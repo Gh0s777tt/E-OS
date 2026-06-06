@@ -1,0 +1,19 @@
+# E-OS code owners — required reviewers for the matched paths.
+# Docs: https://docs.github.com/articles/about-code-owners
+
+# Default owner for everything
+*                       @Gh0s777tt
+
+# Project governance & security — always reviewed by the maintainer
+/LICENSE                @Gh0s777tt
+/NOTICE                 @Gh0s777tt
+/SECURITY.md            @Gh0s777tt
+/CODE_OF_CONDUCT.md     @Gh0s777tt
+/.github/               @Gh0s777tt
+/.gitleaks.toml         @Gh0s777tt
+
+# Release-facing docs
+/README.md              @Gh0s777tt
+/CHANGELOG.md           @Gh0s777tt
+/ROADMAP.md             @Gh0s777tt
+/docs/                  @Gh0s777tt

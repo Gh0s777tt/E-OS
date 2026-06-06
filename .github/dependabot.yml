@@ -1,0 +1,25 @@
+version: 2
+updates:
+  # Keep GitHub Actions pinned versions fresh & patched
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "ci(deps)"
+
+  # Rust dependencies (root workspace). Grouped to reduce PR noise.
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "rust"]
+    commit-message:
+      prefix: "deps"
+    groups:
+      cargo-minor-patch:
+        update-types: ["minor", "patch"]

@@ -1,0 +1,21 @@
+# gitleaks configuration for E-OS
+# Extends the default ruleset; adds allowlisting for known-safe paths.
+# Docs: https://github.com/gitleaks/gitleaks
+
+title = "E-OS gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  # Vendored / generated / upstream artifacts that may contain test fixtures.
+  '''licenses/Redox-OS-MIT\.txt''',
+  '''(^|/)build/''',
+  '''(^|/)prefix/''',
+  '''(^|/)target/''',
+  '''Cargo\.lock$''',
+]
+# Example fixture tokens that are documented as non-secrets can be added here.
+regexTarget = "match"

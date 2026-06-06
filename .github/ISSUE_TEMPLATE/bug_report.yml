@@ -1,0 +1,61 @@
+name: 🐛 Bug report
+description: Something doesn't work as expected (NOT for security issues)
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! For **security** vulnerabilities, use
+        [private reporting](https://github.com/Gh0s777tt/E-OS/security/advisories/new) instead.
+  - type: checkboxes
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This is **not** a security vulnerability.
+          required: true
+        - label: I built with `make CI=1 all` (if a build/boot issue).
+          required: false
+  - type: input
+    id: version
+    attributes:
+      label: E-OS version / commit
+      placeholder: "v0.1.0 (Genesis) or commit 60ba2d1e"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [build, boot, kernel, drivers, filesystem, desktop/COSMIC, docs, other]
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. make CI=1 all
+        2. make qemu gpu=no
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Host OS, WSL2? CPU/RAM, QEMU/KVM, Podman version"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell

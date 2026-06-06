@@ -1,0 +1,8 @@
+# E-OS funding links.
+# Add your own sponsor handles below (github_sponsors, ko_fi, etc.).
+# The custom link supports UPSTREAM Redox OS, without whom E-OS would not exist.
+
+# github: [Gh0s777tt]
+# ko_fi: your_handle
+custom:
+  - "https://redox-os.org/donate/"

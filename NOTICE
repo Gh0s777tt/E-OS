@@ -1,0 +1,45 @@
+================================================================================
+ E-OS — NOTICE
+================================================================================
+
+E-OS
+Copyright (c) 2026 Damian (Gh0s777tt) and the E-OS contributors.
+
+This product as a whole is licensed under the
+GNU Affero General Public License v3.0 (AGPL-3.0-or-later).
+See the LICENSE file for the full text.
+
+--------------------------------------------------------------------------------
+ Built on Redox OS
+--------------------------------------------------------------------------------
+
+E-OS is a downstream distribution derived from Redox OS
+(https://www.redox-os.org), the Rust microkernel operating system created by
+Jeremy Soller and the Redox OS community.
+
+Substantial portions of this repository — including the kernel, relibc,
+RedoxFS, the driver stack, the cookbook/build system, and many components —
+originate from Redox OS and remain licensed under the MIT License:
+
+    Copyright (c) 2016 Redox OS Developers
+    MIT License — see licenses/Redox-OS-MIT.txt
+
+The MIT License permits relicensing of the combined/derivative work under the
+AGPL-3.0. Where individual files carry their own license headers (MIT or
+otherwise), those original notices are retained and continue to apply to those
+files. The AGPL-3.0 governs E-OS's own contributions and the distribution of
+the combined work.
+
+"Redox" and the Redox logo are trademarks of their respective owners. E-OS is
+an independent project and is not endorsed by or affiliated with the Redox OS
+project. See TRADEMARK.md for the upstream trademark policy.
+
+--------------------------------------------------------------------------------
+ Third-party components
+--------------------------------------------------------------------------------
+
+E-OS incorporates the COSMIC desktop and apps (System76), numerous Rust crates,
+and other open-source software, each under its own license. Package and recipe
+licenses are tracked under the cookbook recipes and their respective sources.
+
+================================================================================
