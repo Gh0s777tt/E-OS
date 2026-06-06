@@ -44,6 +44,16 @@
 
 ---
 
+## 🖥️ Preview
+
+<p align="center">
+  <img src="assets/screenshots/eos-cosmic-desktop.png" alt="E-OS running the COSMIC desktop" width="82%" />
+  <br/>
+  <sub><b>E-OS 0.1.0 “Genesis”</b> — the COSMIC desktop, booted under QEMU/KVM.</sub>
+</p>
+
+---
+
 ## ⚡ What is E-OS
 
 **E-OS** is a modern, memory-safe **operating system written in Rust**. It is a

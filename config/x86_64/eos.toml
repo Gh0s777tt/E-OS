@@ -1,0 +1,68 @@
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  E-OS — desktop build configuration                                    ║
+# ║  Full COSMIC desktop, rebranded as E-OS (a downstream of Redox OS).    ║
+# ║  Build:  make CI=1 CONFIG_NAME=eos all   then   make CONFIG_NAME=eos qemu ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+include = ["../desktop.toml"]
+
+[general]
+# A touch more room for E-OS branding assets.
+filesystem_size = 700
+
+# ────────────────────────────  E-OS identity  ────────────────────────────
+# NOTE: postinstall = true is REQUIRED — without it these files are written
+# BEFORE packages are installed, so the base/userutils packages overwrite them.
+# postinstall writes them AFTER packages, so E-OS branding wins.
+
+# Hostname → shown as the login prompt ("eos login:")
+[[files]]
+path = "/etc/hostname"
+postinstall = true
+data = "eos"
+
+# /usr/lib/os-release (/etc/os-release is a symlink to it) — overrides Redox's.
+[[files]]
+path = "/usr/lib/os-release"
+postinstall = true
+data = """
+PRETTY_NAME="E-OS 0.1.0 (Genesis)"
+NAME="E-OS"
+VERSION="0.1.0 (Genesis)"
+VERSION_ID="0.1.0"
+VERSION_CODENAME=genesis
+ID=eos
+ID_LIKE=redox-os
+ANSI_COLOR="1;31"
+HOME_URL="https://github.com/Gh0s777tt/E-OS"
+DOCUMENTATION_URL="https://github.com/Gh0s777tt/E-OS/tree/main/docs"
+SUPPORT_URL="https://github.com/Gh0s777tt/E-OS/issues"
+BUG_REPORT_URL="https://github.com/Gh0s777tt/E-OS/issues"
+"""
+
+# Login banner (/etc/issue) — overrides userutils' default Redox banner.
+[[files]]
+path = "/etc/issue"
+postinstall = true
+data = """
+
+     #####  #####  #####
+     #      #   #  #
+     ####   #   #  #####
+     #      #   #      #
+     #####  #####  #####
+
+  E-OS 0.1.0 "Genesis"  -  a Rust microkernel OS
+  built on Redox * AGPL-3.0 * github.com/Gh0s777tt/E-OS
+
+  Login:  user  (no password)   *   root / password
+
+"""
+
+# Message of the day.
+[[files]]
+path = "/etc/motd"
+postinstall = true
+data = """
+Welcome to E-OS - forged in Rust.  https://github.com/Gh0s777tt/E-OS
+"""

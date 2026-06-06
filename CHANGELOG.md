@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `[U-001]` Project automation: GitHub Actions CI, **CodeQL** code scanning,
   **gitleaks** secret scanning and **Dependabot** dependency updates.
 - `[U-002]` `CODEOWNERS`, issue/PR templates, `FUNDING.yml`.
+- `[U-004]` **Custom build config** `config/x86_64/eos.toml` — the E-OS desktop
+  variant (`make CI=1 CONFIG_NAME=eos all`).
+- `[U-005]` **OS-level rebranding** via `postinstall` file overrides:
+  `/etc/os-release`, `/etc/issue` login banner, hostname and `/etc/motd` → E-OS.
+- `[U-006]` First desktop screenshot — `assets/screenshots/eos-cosmic-desktop.png`
+  (COSMIC running on E-OS under QEMU/KVM).
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).

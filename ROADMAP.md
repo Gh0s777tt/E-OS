@@ -36,9 +36,12 @@ timeline
 **Theme: E-OS looks and feels like E-OS.**
 
 - 🚧 `R-201` Repository: full docs site, CI green, security hardening live.
-- ⏳ `R-202` Custom build config `config/x86_64/eos.toml` (curated package set).
-- ⏳ `R-203` E-OS boot splash / bootloader theming (red/black).
-- ⏳ `R-204` Rebrand user-visible OS strings (`/etc/os-release`, MOTD, hostname).
+- ✅ `R-202` Custom build config `config/x86_64/eos.toml` (E-OS desktop variant).
+- 🚧 `R-203` E-OS boot splash / bootloader theming (red/black) — *bootloader has a
+  graphical mode-select menu; theming it needs a source build of the bootloader recipe.*
+- 🚧 `R-204` Rebrand user-visible OS strings — `/etc/os-release`, `/etc/issue`
+  banner and MOTD **done**; the `redox login:` prompt (getty uses the kernel
+  hostname) needs a getty/init source change.
 - ⏳ `R-205` E-OS wallpaper + COSMIC default theme (Netflix red/black).
 - 💡 `R-206` `eos` meta-package + first-boot welcome.
 
