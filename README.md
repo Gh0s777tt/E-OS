@@ -87,7 +87,7 @@ and hardening goals.
 | 🧩 **True microkernel** | Drivers, filesystems and the network stack run in **user space** as isolated processes. A driver crash isn't a kernel panic. |
 | 🔐 **Capability-secure** | Everything is a **scheme** (URL-like resource). Least-privilege by construction — the AGPL-3.0 license keeps derivatives open. |
 | 🖥️ **COSMIC desktop** | Ships the System76 **COSMIC** desktop environment, also written in Rust. |
-| 📦 **Reproducible builds** | Containerized (Podman) build system, pinned toolchain, verified-bootable base image. |
+| 📦 **Reproducible builds** | Containerized (Podman) build system, pinned toolchain; patched recipes pinned to **E-OS source forks**, so a fresh clone reproduces every branding change. |
 
 ---
 
@@ -99,7 +99,7 @@ and hardening goals.
 - **Everything-is-a-scheme** — uniform, capability-style resource model.
 - **COSMIC** — a fast, modern Rust desktop.
 - **Source-compatible** — runs many Rust, Linux and BSD programs via the cookbook.
-- **Verified base** — E-OS `0.1.0` boots end-to-end under QEMU/KVM to a login. ([proof](EOS_BUILD_STATE.md))
+- **Dual-arch** — builds for **x86_64 and aarch64**. x86_64 boots end-to-end under QEMU/KVM to the COSMIC desktop; the aarch64 E-OS bootloader boots under QEMU `virt`. ([proof](EOS_BUILD_STATE.md))
 
 ---
 
@@ -116,7 +116,7 @@ flowchart TD
     subgraph KS["Kernel space"]
         K["E-OS microkernel<br/>scheduling · memory · IPC · schemes"]
     end
-    HW["Hardware — x86_64 UEFI · NVMe · e1000 · xHCI · HDA"]
+    HW["Hardware — x86_64 &amp; aarch64 UEFI · NVMe · e1000 · xHCI · HDA"]
 
     APPS --> LIBS --> SRV
     SRV <-->|"syscalls · scheme IPC"| K

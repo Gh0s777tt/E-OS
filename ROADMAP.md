@@ -39,10 +39,11 @@ timeline
 - ✅ `R-202` Custom build config `config/x86_64/eos.toml` (E-OS desktop variant).
 - ✅ `R-203` E-OS bootloader theming (red/black) — `"E-OS Bootloader"` banner +
   red-on-black, built from source (`patches/bootloader-eos-red-black.patch`).
-- 🚧 `R-204` Rebrand user-visible OS strings — `/etc/os-release`, `/etc/issue`
-  banner and MOTD **done**; the `redox login:` prompt (getty uses the kernel
-  hostname) needs a getty/init source change.
-- ⏳ `R-205` E-OS wallpaper + COSMIC default theme (Netflix red/black).
+- ✅ `R-204` Rebrand user-visible OS strings — `/etc/os-release`, `/etc/issue`,
+  MOTD, and the **`eos login:`** console prompt (it was a hardcoded literal in
+  `userutils`, **not** the kernel hostname — patched and built from source).
+- ✅ `R-205` E-OS red/black login greeter + desktop wallpaper + launcher icon,
+  built from source via the `orbdata` fork.
 - 💡 `R-206` `eos` meta-package + first-boot welcome.
 
 ---
@@ -53,7 +54,9 @@ timeline
 
 - ⏳ `R-301` **Signed** release images (cosign / minisign) + published checksums.
 - ⏳ `R-302` **SBOM** (CycloneDX) generated per build.
-- ⏳ `R-303` Reproducible, automated release pipeline (tag → image → release).
+- 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release).
+  **Source builds are already reproducible** — the patched recipes point at the
+  `github.com/Gh0s777tt/eos-*` forks, so a fresh clone rebuilds all branding.
 - ⏳ `R-304` Security policy v2: threat model, hardening guide.
 - 💡 `R-305` Optional full-disk encryption defaults (RedoxFS).
 
@@ -63,7 +66,13 @@ timeline
 
 **Theme: beyond x86_64.**
 
-- ⏳ `R-401` **aarch64** bring-up (build + QEMU virt boot).
+- ✅ `R-401` **aarch64** bring-up — a full E-OS aarch64 desktop image builds with
+  complete branding (`config/aarch64/eos.toml`) and the red/black E-OS bootloader
+  boots under QEMU `virt` on `aarch64/UEFI`
+  (`assets/screenshots/eos-aarch64-bootloader.png`).
+- 🚧 `R-401b` Full aarch64 boot-to-login — the kernel boots but upstream `redoxfs`
+  can't yet mount the NVMe root on aarch64 (`UnexpectedEof`); a driver-level
+  upstream fix, unrelated to E-OS branding.
 - ⏳ `R-402` Expanded hardware/driver coverage.
 - 💡 `R-403` Real-hardware test matrix.
 
