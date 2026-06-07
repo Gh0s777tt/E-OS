@@ -5,6 +5,7 @@
 # Using E-OS
 
 - [Install](install.md)
+- [Packages](packages.md)
 - [Architecture](architecture.md)
 - [FAQ](faq.md)
 

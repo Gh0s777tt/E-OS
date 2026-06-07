@@ -99,7 +99,10 @@ timeline
 - 🚧 `R-1002` **LTS branch + support policy** — the `lts/0.1` branch (pushed to
   both remotes) tracks the 0.1 “Genesis” line with security backports; documented
   in [SECURITY.md](SECURITY.md). A *stable ABI surface* is a longer post-1.0 commitment.
-- 💡 `R-1003` App ecosystem & package repository.
+- 🚧 `R-1003` **Package repository** — every build produces a signed (ed25519)
+  `.pkgar` repo (`repo/<target>/` + `repo.toml`, ~58 pkgs/arch); documented
+  ([docs/packages.md](docs/packages.md)) with a publish helper
+  (`scripts/publish-repo.sh`). Public hosting + an app ecosystem are the remaining infra.
 - 🚧 `R-1004` **Documentation site** — mdBook (`book.toml` + `docs/SUMMARY.md`)
   built and deployed to **GitHub Pages** via `.github/workflows/pages.yml`. The
   *custom domain* is the remaining bit.
