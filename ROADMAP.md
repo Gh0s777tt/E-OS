@@ -71,8 +71,10 @@ timeline
   boots under QEMU `virt` on `aarch64/UEFI`
   (`assets/screenshots/eos-aarch64-bootloader.png`).
 - 🚧 `R-401b` Full aarch64 boot-to-login — the kernel boots but upstream `redoxfs`
-  can't yet mount the NVMe root on aarch64 (`UnexpectedEof`); a driver-level
-  upstream fix, unrelated to E-OS branding.
+  faults mounting the root (`synchronous_exception_at_el0` → `UnexpectedEof`).
+  **Not disk-specific** — reproduced identically with NVMe *and* virtio-blk — so
+  it's an upstream aarch64 `redoxfs`/`relibc` userspace bug, unrelated to E-OS
+  branding (E-OS only changes images/strings).
 - ⏳ `R-402` Expanded hardware/driver coverage.
 - 💡 `R-403` Real-hardware test matrix.
 
