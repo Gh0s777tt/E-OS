@@ -60,8 +60,12 @@ timeline
   → `sbom/eos-<ver>-<arch>.cdx.json` (59 components, each with its source git ref
   + BLAKE3 hash; provenance includes the E-OS source forks).
 - 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release).
-  **Source builds are already reproducible** — the patched recipes point at the
-  `github.com/Gh0s777tt/eos-*` forks, so a fresh clone rebuilds all branding.
+  **Source builds are reproducible** (recipes pinned to the `Gh0s777tt/eos-*` forks);
+  the **release-artifact pipeline is live** (`release.yml`: tag → signed `SHA256SUMS`
+  + SBOM + assets, [v0.1.0](https://github.com/Gh0s777tt/E-OS/releases/tag/v0.1.0)).
+  An **experimental CI image build** (`build.yml`, manual dispatch) attempts the
+  full build; a full Redox build in generic CI is heavy (Podman + FUSE + time), so
+  the canonical build stays local ([docs/building.md](docs/building.md)).
 - ✅ `R-304` Security policy v2 — **threat model** (`docs/threat-model.md`) +
   **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
 - 🚧 `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
