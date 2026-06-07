@@ -85,7 +85,9 @@ timeline
   faults mounting the root (`synchronous_exception_at_el0` → `UnexpectedEof`).
   **Not disk-specific** — reproduced identically with NVMe *and* virtio-blk — so
   it's an upstream aarch64 `redoxfs`/`relibc` userspace bug, unrelated to E-OS
-  branding (E-OS only changes images/strings).
+  branding (E-OS only changes images/strings). Root-caused (Data Abort, ESR `0x92000007`,
+  translation fault L3 — unmapped page) + tracked: [docs/known-issues.md](docs/known-issues.md),
+  issue [#2](https://github.com/Gh0s777tt/E-OS/issues/2).
 - ⏳ `R-402` Expanded hardware/driver coverage.
 - 💡 `R-403` Real-hardware test matrix.
 

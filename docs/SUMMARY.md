@@ -7,6 +7,7 @@
 - [Install](install.md)
 - [Packages](packages.md)
 - [Architecture](architecture.md)
+- [Known issues](known-issues.md)
 - [FAQ](faq.md)
 
 # Building
