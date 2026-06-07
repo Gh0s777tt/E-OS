@@ -30,3 +30,6 @@ wget-log
 /book
 /release/*.img
 /release/*.tar.gz
+.eos-kernel-src
+.eos-drivers-src
+.eos-base-src

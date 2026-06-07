@@ -1,44 +1,55 @@
 # 🐞 Known Issues
 
-## `R-401b` — aarch64 boot stops at the RedoxFS root mount
+_No issue currently blocks a full **aarch64** or **x86_64** desktop boot._
+Resolved items are kept below for the record.
 
-**Status:** open · **upstream** (Redox) · *not* E-OS-specific.
+---
 
-The E-OS **aarch64** image builds with full branding and boots the red/black E-OS
-bootloader under QEMU `virt`, but the kernel **does not reach `eos login:`** — the
-`redoxfs` user-space process faults while mounting the RedoxFS root.
+## ✅ `R-401b / R-401c / R-401d` — aarch64 boot-to-login (RESOLVED 2026-06-08)
 
-### Symptom (serial)
+E-OS **aarch64** now boots under QEMU `virt` all the way to the graphical E-OS
+COSMIC desktop (login greeter, wallpaper, taskbar, working USB keyboard).
 
+![E-OS aarch64 desktop](../assets/screenshots/eos-aarch64-desktop.png)
+
+The original report — a `redoxfs` root-mount Data Abort — turned out to be the
+**last** symptom of a chain of **four** aarch64 bugs. The earlier diagnosis (an
+upstream `redoxfs`/`relibc`/`PAGE_SIZE` memory bug) was **wrong**: `redoxfs` was the
+last domino, not the cause. The tell is the serial cascade order — **`randd` crashes
+first**, then a flood of `failed to generate random data: ENODEV`, then `nvmed`, then
+`redoxfs`.
+
+| # | Bug | Fix |
+|---|---|---|
+| `R-401b` | `randd` runs `mrs xN, RNDRRS` (FEAT_RNG, ARMv8.5) unconditionally → **UNDEF** on non-FEAT_RNG aarch64 (Cortex-A72/A53, Raspberry Pi, `-cpu cortex-a72`) → kills the `rand:` scheme → every daemon that seeds a HashMap panics `ENODEV` → cascade kills `nvmed` & `redoxfs` (the "Data Abort" in the original report). | **kernel:** trap-and-emulate `RNDR`/`RNDRRS` in the aarch64 synchronous-exception handler. |
+| `R-401c` | aarch64 has **no MSI**; `nvmed` falls back to INTx but hard-codes `intx:false`, and the INTx IRQ is only *routed* when Redox boots from a **device tree**, not ACPI. | **base:** `nvmed` runs in INTx mode on non-x86. **Boot:** `-machine virt,acpi=off` forces device-tree boot, so the PCIe interrupt-map exists. |
+| `R-401d` | the kernel reserved shared PCIe **INTx** GIC SPIs *exclusively* → `nvmed` failed with `open IRQ: EEXIST`. | **kernel:** allow shared phandle-IRQ opens (`irq_trigger` already fans out to every handle). |
+
+The kernel & base fixes live in the **`Gh0s777tt/eos-kernel`** and
+**`Gh0s777tt/eos-base`** forks (the `core/kernel` / `core/base` recipes are pinned
+to them, so a fresh clone reproduces). Clean upstream patches + a submission guide
+are in [`upstream/`](../upstream/README.md).
+
+### Running the aarch64 image
+
+```sh
+qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
+  -drive if=pflash,unit=0,file=/usr/share/AAVMF/AAVMF_CODE.fd,readonly=on,format=raw \
+  -drive if=pflash,unit=1,file=AAVMF_VARS.fd,format=raw \
+  -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci -display none \
+  -drive file=build/aarch64/eos/harddrive.img,if=none,id=disk0,format=raw \
+  -device nvme,drive=disk0,serial=eos
 ```
-... synchronous_exception_at_el0 ...
-kernel::context::signal: UNHANDLED EXCEPTION, CPU #0, PID 18, NAME /scheme/initfs/bin/redoxfs
-thread 'main' panicked at src/bin/mount.rs:396:
-  called `Result::unwrap()` on an `Err` value: UnexpectedEof "failed to fill whole buffer"
-redoxfs ... failed with exit status: 101
-```
 
-### Diagnosis
+> ⚠️ **`-machine virt,acpi=off` is required** — it selects device-tree boot, which is
+> what carries the PCIe interrupt routing on aarch64. There is no KVM for aarch64 on
+> an x86 host, so QEMU runs under TCG and the boot is slow (minutes).
 
-- The **bootloader finds RedoxFS** on the disk (`RedoxFS …: 697 MiB`) — so the disk
-  and the UEFI block-IO path are fine.
-- The fault is a **synchronous exception at EL0** (user space) inside `redoxfs`.
-  The trace value `0x92000007` decodes as `ESR_EL1`: `EC = 0x24` (Data Abort from a
-  lower EL), `DFSC = 0x07` (**translation fault, level 3**) — i.e. `redoxfs`
-  dereferenced an **unmapped page** while reading the filesystem. The
-  `UnexpectedEof` is the downstream symptom of the aborted read.
-- **Reproduced identically with NVMe *and* `virtio-blk`** → it is **not** a
-  disk-driver issue.
+### Remaining minor items (non-blocking)
 
-### Conclusion
-
-An upstream **aarch64 memory-mapping bug** in `redoxfs` / `relibc` (or the kernel's
-user-space page mapping on aarch64), **unrelated to E-OS branding** — E-OS only
-replaces images and strings; the kernel, `redoxfs` and `relibc` are upstream Redox.
-A real fix belongs in `redox-os/{redoxfs,relibc,kernel}`.
-
-### Workaround
-
-None yet — use **x86_64** for a full desktop. The aarch64 image remains useful for
-verifying the bootloader/branding and the cross-arch build. Tracked as
-[`R-401b`](../ROADMAP.md).
+- `/usr/bin/background` (wallpaper renderer) takes a post-login Data Abort on
+  aarch64 — cosmetic; the desktop still renders.
+- `netstack` / `audiod` exit on QEMU `virt` (no virtual net/audio device) — harmless.
+- The emulated `RNDR` entropy (R-401b) is a **boot stopgap**, *not* a strong CSPRNG
+  seed. A real entropy source (interrupt-timing jitter / a hardware RNG) is the
+  proper long-term fix.

@@ -86,13 +86,16 @@ timeline
   complete branding (`config/aarch64/eos.toml`) and the red/black E-OS bootloader
   boots under QEMU `virt` on `aarch64/UEFI`
   (`assets/screenshots/eos-aarch64-bootloader.png`).
-- 🚧 `R-401b` Full aarch64 boot-to-login — the kernel boots but upstream `redoxfs`
-  faults mounting the root (`synchronous_exception_at_el0` → `UnexpectedEof`).
-  **Not disk-specific** — reproduced identically with NVMe *and* virtio-blk — so
-  it's an upstream aarch64 `redoxfs`/`relibc` userspace bug, unrelated to E-OS
-  branding (E-OS only changes images/strings). Root-caused (Data Abort, ESR `0x92000007`,
-  translation fault L3 — unmapped page) + tracked: [docs/known-issues.md](docs/known-issues.md),
-  issue [#2](https://github.com/Gh0s777tt/E-OS/issues/2).
+- ✅ `R-401b` **Full aarch64 boot-to-login — achieved** (2026-06-08). aarch64 boots
+  to the graphical E-OS COSMIC desktop under QEMU `virt` (`-machine virt,acpi=off`).
+  The original `redoxfs` Data-Abort report was the *last symptom*, not the cause —
+  the real bug was a 4-layer cascade starting with `randd` executing `RNDRRS`
+  (FEAT_RNG / ARMv8.5) on a non-FEAT_RNG CPU. Fixed in the
+  [`eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) + [`eos-base`](https://github.com/Gh0s777tt/eos-base)
+  forks: kernel RNDR/RNDRRS emulation (`R-401b`) + shared INTx IRQ (`R-401d`); base
+  nvmed INTx mode (`R-401c`). Recipes are pinned to the forks; clean upstream patches
+  in [`upstream/`](upstream/README.md). Details: [docs/known-issues.md](docs/known-issues.md),
+  issue [#2](https://github.com/Gh0s777tt/E-OS/issues/2) (closed).
 - ⏳ `R-402` Expanded hardware/driver coverage.
 - 💡 `R-403` Real-hardware test matrix.
 

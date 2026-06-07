@@ -1,5 +1,9 @@
 [source]
-git = "https://gitlab.redox-os.org/redox-os/kernel.git"
+# E-OS R-401b/R-401d: aarch64 FEAT_RNG (RNDR/RNDRRS) emulation + shared PCIe INTx IRQ fixes.
+# Downstream fork of redox-os/kernel @ 56947e1a. Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
+git = "https://github.com/Gh0s777tt/eos-kernel.git"
+branch = "master"
+rev = "eefdf411e00a5d043c0eeba0a58ef1b35cfc90be"
 
 [build]
 template = "custom"

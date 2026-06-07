@@ -1,0 +1,31 @@
+From eefdf411e00a5d043c0eeba0a58ef1b35cfc90be Mon Sep 17 00:00:00 2001
+From: E-OS build <eos@local>
+Date: Sun, 7 Jun 2026 23:40:01 +0200
+Subject: [PATCH 2/2] E-OS R-401d: allow shared phandle IRQ opens (PCIe INTx)
+ instead of EEXIST
+
+---
+ src/scheme/irq.rs | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/scheme/irq.rs b/src/scheme/irq.rs
+index a8795e59..ed43f642 100644
+--- a/src/scheme/irq.rs
++++ b/src/scheme/irq.rs
+@@ -190,8 +190,12 @@ impl IrqScheme {
+                     .or(Err(Error::new(ENOENT)))?;
+                 debug!("open_phandle_irq  virq={}", irq_number);
+                 if flags & O_STAT == 0 {
++                    // E-OS R-401d: PCIe INTx# pins map to GIC SPIs that are *shared* across devices
++                    // (and may already be reserved at init). irq_trigger() already fans an IRQ out
++                    // to every handle registered for it, so permit shared opens here instead of
++                    // failing with EEXIST — the exclusive check broke nvmed's INTx on aarch64.
+                     if is_reserved(LogicalCpuId::new(0), irq_number as u8) {
+-                        return Err(Error::new(EEXIST));
++                        debug!("open_phandle_irq  virq={} already reserved; sharing (INTx)", irq_number);
+                     }
+                     set_reserved(LogicalCpuId::new(0), irq_number as u8, true);
+                 }
+-- 
+2.53.0
+
