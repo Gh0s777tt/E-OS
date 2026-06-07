@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#161616"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FF2A33"/>
+      <stop offset="1" stop-color="#B00610"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="58%">
+      <stop offset="0" stop-color="#E50914" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#E50914" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M60 0H0V60" fill="none" stroke="#E50914" stroke-width="1.2" opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+  <rect width="1920" height="1080" fill="url(#glow)"/>
+
+  <!-- hex logo + E wordmark, centred -->
+  <g transform="translate(960,392)">
+    <polygon points="0,-118 102,-59 102,59 0,118 -102,59 -102,-59"
+             fill="none" stroke="url(#red)" stroke-width="11" stroke-linejoin="round"/>
+    <g fill="#FFFFFF" transform="translate(-45,-59)">
+      <rect x="0" y="0" width="90" height="21" rx="3"/>
+      <rect x="0" y="0" width="21" height="118" rx="3"/>
+      <rect x="0" y="48" width="70" height="20" rx="3"/>
+      <rect x="0" y="97" width="90" height="21" rx="3"/>
+    </g>
+    <circle cx="0" cy="0" r="4.2" fill="#E50914"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="960" y="640" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="150" font-weight="bold" fill="#FFFFFF" letter-spacing="6">E<tspan fill="#E50914">-</tspan>OS</text>
+  <rect x="860" y="672" width="200" height="6" rx="3" fill="url(#red)"/>
+  <text x="960" y="730" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="33" fill="#E50914" letter-spacing="3">The Rust-native operating system</text>
+
+  <!-- footer -->
+  <text x="960" y="1016" text-anchor="middle" font-family="DejaVu Sans Mono, monospace" font-size="26" fill="#8a9097">AGPL-3.0   .   built on Redox OS   .   v0.1.0 "Genesis"</text>
+</svg>
