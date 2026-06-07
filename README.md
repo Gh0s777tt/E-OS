@@ -53,6 +53,12 @@
 </p>
 
 <p align="center">
+  <img src="assets/screenshots/eos-login-greeter.png" alt="The E-OS login greeter" width="82%" />
+  <br/>
+  <sub>The red/black <b>E-OS login greeter</b> — wallpaper and launcher icon built from source.</sub>
+</p>
+
+<p align="center">
   <img src="assets/screenshots/eos-bootloader.png" alt="The red/black E-OS bootloader" width="60%" />
   <br/>
   <sub>The red-on-black <b>E-OS bootloader</b> — themed and built from source.</sub>
