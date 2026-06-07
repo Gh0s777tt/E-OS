@@ -52,6 +52,12 @@
   <sub><b>E-OS 0.1.0 “Genesis”</b> — the COSMIC desktop, booted under QEMU/KVM.</sub>
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/eos-bootloader.png" alt="The red/black E-OS bootloader" width="60%" />
+  <br/>
+  <sub>The red-on-black <b>E-OS bootloader</b> — themed and built from source.</sub>
+</p>
+
 ---
 
 ## ⚡ What is E-OS

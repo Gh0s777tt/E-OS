@@ -37,8 +37,8 @@ timeline
 
 - 🚧 `R-201` Repository: full docs site, CI green, security hardening live.
 - ✅ `R-202` Custom build config `config/x86_64/eos.toml` (E-OS desktop variant).
-- 🚧 `R-203` E-OS boot splash / bootloader theming (red/black) — *bootloader has a
-  graphical mode-select menu; theming it needs a source build of the bootloader recipe.*
+- ✅ `R-203` E-OS bootloader theming (red/black) — `"E-OS Bootloader"` banner +
+  red-on-black, built from source (`patches/bootloader-eos-red-black.patch`).
 - 🚧 `R-204` Rebrand user-visible OS strings — `/etc/os-release`, `/etc/issue`
   banner and MOTD **done**; the `redox login:` prompt (getty uses the kernel
   hostname) needs a getty/init source change.

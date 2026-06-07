@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/etc/os-release`, `/etc/issue` login banner, hostname and `/etc/motd` → E-OS.
 - `[U-006]` First desktop screenshot — `assets/screenshots/eos-cosmic-desktop.png`
   (COSMIC running on E-OS under QEMU/KVM).
+- `[U-007]` **Red/black E-OS bootloader** — `"E-OS Bootloader"` banner + red-on-black
+  theme (selection black-on-red), built from source. Change set:
+  `patches/bootloader-eos-red-black.patch`; screenshot `assets/screenshots/eos-bootloader.png`.
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).
