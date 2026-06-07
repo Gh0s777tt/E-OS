@@ -52,9 +52,10 @@ timeline
 
 **Theme: supply-chain & release integrity.**
 
-- 🚧 `R-301` **Signed** release images + published checksums — `release/SHA256SUMS`
-  is generated and a `.github/workflows/release.yml` attaches it (+ the SBOM) on
-  tag; **minisign** signing runs in CI when a `MINISIGN_SECRET_KEY` secret is set.
+- ✅ `R-301` **Signed** release checksums — `release/SHA256SUMS` + a **minisign**
+  signature (`release/SHA256SUMS.minisig`), public key `keys/eos-release.pub`;
+  `.github/workflows/release.yml` attaches them (+ the SBOM) and re-signs on tag
+  when `MINISIGN_SECRET_KEY` is configured.
 - ✅ `R-302` **SBOM** (CycloneDX 1.5) generated per build — `scripts/gen-sbom.py`
   → `sbom/eos-<ver>-<arch>.cdx.json` (59 components, each with its source git ref
   + BLAKE3 hash; provenance includes the E-OS source forks).

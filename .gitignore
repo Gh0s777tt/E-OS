@@ -26,3 +26,4 @@ wget-log
 .eos-bl-src/
 .eos-uu-src/
 .eos-orbdata-src/
+*.key

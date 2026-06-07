@@ -30,8 +30,8 @@ work through the checklist below.
 
 4. **Verify what you boot.** Check release artifacts before flashing:
    ```sh
+   minisign -Vm SHA256SUMS -p eos-release.pub   # key: keys/eos-release.pub
    sha256sum -c SHA256SUMS
-   minisign -Vm SHA256SUMS -P <E-OS release pubkey>   # if a signed release
    ```
    Or **build from source** — E-OS recipes are pinned to the
    `github.com/Gh0s777tt/eos-*` forks and reproduce all branding from a clean clone.
