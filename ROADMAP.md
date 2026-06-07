@@ -52,8 +52,12 @@ timeline
 
 **Theme: supply-chain & release integrity.**
 
-- ⏳ `R-301` **Signed** release images (cosign / minisign) + published checksums.
-- ⏳ `R-302` **SBOM** (CycloneDX) generated per build.
+- 🚧 `R-301` **Signed** release images + published checksums — `release/SHA256SUMS`
+  is generated and a `.github/workflows/release.yml` attaches it (+ the SBOM) on
+  tag; **minisign** signing runs in CI when a `MINISIGN_SECRET_KEY` secret is set.
+- ✅ `R-302` **SBOM** (CycloneDX 1.5) generated per build — `scripts/gen-sbom.py`
+  → `sbom/eos-<ver>-<arch>.cdx.json` (59 components, each with its source git ref
+  + BLAKE3 hash; provenance includes the E-OS source forks).
 - 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release).
   **Source builds are already reproducible** — the patched recipes point at the
   `github.com/Gh0s777tt/eos-*` forks, so a fresh clone rebuilds all branding.

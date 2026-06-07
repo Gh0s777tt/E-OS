@@ -1,0 +1,1317 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-07T12:26:32+02:00",
+    "tools": [
+      {
+        "vendor": "E-OS",
+        "name": "gen-sbom.py"
+      }
+    ],
+    "component": {
+      "type": "operating-system",
+      "bom-ref": "e-os@0.1.0",
+      "name": "E-OS",
+      "version": "0.1.0",
+      "description": "E-OS 0.1.0 (x86_64-unknown-redox) - a downstream of Redox OS",
+      "properties": [
+        {
+          "name": "eos:commit",
+          "value": "6aca114b"
+        }
+      ]
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "base",
+      "version": "TODO",
+      "bom-ref": "base@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "9dd6901d59a29943872744409004b194cf6e3e47"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "dcf85a19fda52a2b8042bc28dfcd18419acc0c568285b7cf19a89385243fe026"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bash",
+      "version": "TODO",
+      "bom-ref": "bash@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "c1548e3f2a9b6de5296e18c28b3d2007985e647273e03f039efd3e489edaa41f"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f75ac91ff972a36497bbee28d4d3cac238c79f912d787b105809c1be10cda8f9"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bootloader",
+      "version": "1.0.0",
+      "bom-ref": "bootloader@1.0.0",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "9b8d4785e6a3fb0fb19c83d3cde16def805b217d"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "78a19a992f2175e71f3827cd9146b8a5c1cf590be88b5be6103514efcd6f0a71"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "bottom",
+      "version": "TODO",
+      "bom-ref": "bottom@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "2130810b74678a6bf80a4589b1178d2047c36ec7"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "5065de531fd9571dc61ba182eeadfbbc1716829540ea6a9f9092e85d80676665"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ca-certificates",
+      "version": "TODO",
+      "bom-ref": "ca-certificates@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "8139d99ed9cee43280f435ec3d52730e21e7f459"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "433fb9d20aa7cbae282e549acd6a141f6bebd05987588e18f1a3af11560deb0b"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "coreutils",
+      "version": "TODO",
+      "bom-ref": "coreutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "575a46d3b624ad9cd222c9e3250073e9269c3462"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "478c22cb7c9c79fad28122e90817104ce6d26bdc7569a084b5e24caad85a3369"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cosmic-edit",
+      "version": "TODO",
+      "bom-ref": "cosmic-edit@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "bf217ab250d007443145678a14b4aba130f279c2"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "84080c90d8cd63ef34bf739863b4d94d0a70daf4e1ed6c7983f46ce479cace05"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cosmic-files",
+      "version": "TODO",
+      "bom-ref": "cosmic-files@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "c605dbecaf70e193a98fec775f7381a943d264a2"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "7715a79dfe01dce48fe79424851a79d4f890873305de5e112a54805ac572e48e"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cosmic-icons",
+      "version": "TODO",
+      "bom-ref": "cosmic-icons@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "f93dcdfa1060c2cf3f8cf0b56b0338292edcafa5"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "7bd2721fc3ddbbc3a8dac3c12c16fd889ff4332bd73de3f1236295a2e211e327"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "cosmic-term",
+      "version": "TODO",
+      "bom-ref": "cosmic-term@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "3832971d04076c873370cc9a993b7b3178e3d2e3"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "97a8eda4201c271ebdc337f72f2b1f399b5b9c92de57bde8da7a5bd9eccdf6e4"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "curl",
+      "version": "TODO",
+      "bom-ref": "curl@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "a05f34973e6c4bb629d018f7cb51487be1c904d8"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "8c82f4980185f14ac32f9d301fdbcee08c37b7d0a70059854df3391d6e0e1d05"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "dejavu",
+      "version": "TODO",
+      "bom-ref": "dejavu@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "b702bac8a0f8e0802758549da3b4d8041c3c83c3894e1e8a960eab53af18cce8"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "86e543b286f2b6b90e8b013f726bfbc8a2f1089d79812680cadd9cce479f6da2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "diffutils",
+      "version": "TODO",
+      "bom-ref": "diffutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "086a95093c15edcdb826e75ff4de6c2213de6fbd2eb13538d07bdc3286dfb4a4"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "796c719e014e67627547793b403fb9814707edf01b461bc04e53baa4e7331145"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "expat",
+      "version": "TODO",
+      "bom-ref": "expat@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "ea89dd9a5a2e48d5e44fed38554b36a8f2e365a5091a99d08e30bfb1c15dda5e"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "895fc882ed25d2684f586994640bc44a195d48a02c5db23ee241b9b58965f1ad"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "extrautils",
+      "version": "TODO",
+      "bom-ref": "extrautils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "97bf8c6b6eade670e98de18a04a6f1b08ebcaf84"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f7ae701eccb4031d664d9bfe9e2053bb561645877483813fe6573c0570fd174a"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "file",
+      "version": "TODO",
+      "bom-ref": "file@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "no_tar_blake3_hash_info"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "566b47b223363181984c15fd435eb429bd3d7221d0e7b85792c1566040294b02"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "findutils",
+      "version": "TODO",
+      "bom-ref": "findutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "116c044399318bf1c77a0d97371b61999ee170b4"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "8e72ad63861ad1b60771f8d1fd2be1efec7cd1fb2e1420b2860cc36cf8578b79"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "freefont",
+      "version": "TODO",
+      "bom-ref": "freefont@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "e950397741d84981106cf648fbc143c7827b61d637c86c916232d47aabdfe253"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "659accade6cb3a07b5f9ba2390b4ce4073700a8ec5c513efe7953ea138adb150"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "freetype2",
+      "version": "TODO",
+      "bom-ref": "freetype2@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "07a01894ccdb584943ce817b57341a8595ce9a92bfaa77c602ec4757dfabd5e2"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "db351b0e46156bfea1ae9fdd13d43fc19aa994c0e6bb40975649cdf1d2055074"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "gettext",
+      "version": "TODO",
+      "bom-ref": "gettext@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "cb3f3a34da7ce1a92746df81f5b78c5d53841973a24eb80ab76537263d380ec0"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "bc8d7a60bc95243d8b4a45f8703cb2a6e5b13d5e2f880bb140d05088b9730e68"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "git",
+      "version": "TODO",
+      "bom-ref": "git@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "bc78271bffd60c5b8b938d8c08fd74dc2de8d21fbaf8f8e0e3155436d9263f17"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "3d96c13757505e712199db820c93473cc48ca096e167db86a909be6b0284787c"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "hicolor-icon-theme",
+      "version": "TODO",
+      "bom-ref": "hicolor-icon-theme@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "8d22bbf304775a3cc109a2220e633cafda50eaac"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "ad55c37524c77a772bac538d44e7326b9e077f6ec6a2bd9f5c0d3812be172db2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "installer-gui",
+      "version": "TODO",
+      "bom-ref": "installer-gui@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "142b2d639e3b99d16f6749859034756371a851cc"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "593e68366ae23409e7f387f3668a4c4a98686c6a9832eb02702b772f2f30b0fc"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "installer",
+      "version": "0.2.42",
+      "bom-ref": "installer@0.2.42",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "142b2d639e3b99d16f6749859034756371a851cc"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "d2e2208605d4420ee92cd9a95127dc4f4a1788c25767089f0e0957b155660e54"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "ion",
+      "version": "TODO",
+      "bom-ref": "ion@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "1440704f7456fa4c9f873b7b17dd4f0369b0c4ab"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "306a0de774f099397597b597a4198ba5fda04eb2b738d6335ef3a33ae61da0d2"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "kernel",
+      "version": "TODO",
+      "bom-ref": "kernel@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "56947e1a0f01ec5a6b863a05310a6b285b9777e9"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "84495d6466b20107eafabf3ca2b61a6ba94087aef10fc19f12ade18faeecafb3"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "kibi",
+      "version": "TODO",
+      "bom-ref": "kibi@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "274b3719f8eea0ba077bdf7ce4d76c72fc2c074b"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f80c55a42b191e3a0ea9a99678160c0f5cc15e7c939606dd01ce98f3d8a71afd"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libgcc",
+      "version": "TODO",
+      "bom-ref": "libgcc@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "local_source"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "aec6904b9e2d3de2d34c92a88ded228766a8f155bffcd853fca7fc44a11d25a0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libiconv",
+      "version": "TODO",
+      "bom-ref": "libiconv@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "820b3b9fd3e2181bfb95475f01e9a3451e6d751e4f8c98ebcdcca1d8aa720f7f"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "b29acfb6778cfc86b1efb27052bdd05c2d5c32154acf5f51113589d16d23ea19"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libjpeg",
+      "version": "TODO",
+      "bom-ref": "libjpeg@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "3efc14da55c56fc0a6a50f109d9e1ee8a91f5ae7dd17a21d3aebe04a65f3ee96"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "ce3f711df78fed6799df20811e5ff42e00cd31944f178b076750e0df4ed0453d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "liborbital",
+      "version": "TODO",
+      "bom-ref": "liborbital@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "cdb08e85a785a651df99ba8e3812027cfb1c0f70"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "2fe4f9e0e8e9d72e6aed7b43eec6e5c1aa8e30715819c074f1e29bfdb2ae7daf"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libpng",
+      "version": "TODO",
+      "bom-ref": "libpng@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "36f4bbb48c70975116b00ab0cff577931b96f703b2774ac3b33131d001419435"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "75f008194d6f4ecaf60b3f2107b67583a07b5ed135fccadfde62199703c00a11"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libstdcxx",
+      "version": "TODO",
+      "bom-ref": "libstdcxx@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "local_source"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "7360c2f879d53723de373b7d05d027586d6f671fcfb550781ce978443435d38d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libxkbcommon",
+      "version": "TODO",
+      "bom-ref": "libxkbcommon@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "5001ca0b8562feeef2010bf16c05657e3875fda3ed5fdedbf48b9135e5cdfcbc"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "822cba1e63ba4b8a95db8f9ffb0c7ea25c46f5b064fdda22e8ffbefc3f514f32"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "libxml2",
+      "version": "TODO",
+      "bom-ref": "libxml2@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "0653d3750576299c4cb88740942165671b576ff93019f3d669b3f37136225ab7"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "d605bd29770b72d7b169f54d2395ae30a91be1015d27c6e802016850f292cdae"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "netdb",
+      "version": "TODO",
+      "bom-ref": "netdb@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "2c1560629852f10c8cc3dde3d254f7c753d7557d"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "da059c7fe2ce8824015aadd22fca224b6f4779b927d230bebb9a384d48ea925d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "netsurf",
+      "version": "TODO",
+      "bom-ref": "netsurf@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "cd406668a9ed5712efac1a8685125b83626690b73bbc6cb5de82ef00e3f65087"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "3096747bad12b7104d5e011fd8d1911d1ade12e583f3fd3bd43e8febea47eb78"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "netutils",
+      "version": "TODO",
+      "bom-ref": "netutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "ffea9718d42533c63af777ae9337e26d9a47301e"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "b8de823944ef3c55d01e4b08bdfffbb939a4e52d01ee039f9cf7752929818e13"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "nghttp2",
+      "version": "TODO",
+      "bom-ref": "nghttp2@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "1bbc08de4816769d800c42f501a00c1ba3f5efa1b76e1f65d2e5bdf3aa30354d"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "92d7c150a9c64703edd51ee2af2d5d99eb06cc59fd28ff75f4d02263b3b53079"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "openssl3",
+      "version": "TODO",
+      "bom-ref": "openssl3@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "e1622a4587c71c278355bf38ff5a619918bd51e3cd37214d53dd5345b187fc10"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "18007b7e7cddd32488e0d177109b273a706c1a7408d80bbee4c203eec9f7f087"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "orbdata",
+      "version": "TODO",
+      "bom-ref": "orbdata@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "727b45d0da7be34bd8155f8d4ccc4d3742bc1a75"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "e240cbfb39b56cbfd63cd4ba67b7ae1560c22b482adc0b60cab2ae12289ae5bf"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "orbital",
+      "version": "TODO",
+      "bom-ref": "orbital@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "3b60d28a8b61eafdf3290d15d0e3fdcbcc63b755"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "6147cfb89819215954cbb7eca8ae9b3fed9c533d537af32eceab904f1af8daf5"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "orbterm",
+      "version": "unknown",
+      "bom-ref": "orbterm@unknown",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "orbutils",
+      "version": "TODO",
+      "bom-ref": "orbutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "46b6d063c66b9bacdc6bfba215257c98b9b7dd44"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "c6bce4c6e80af0e4407d436b8818a7635f453e12b317d46d002e8b03f147029d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "patchelf",
+      "version": "TODO",
+      "bom-ref": "patchelf@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "f843b32bdf3ee8a1f465e92d3fef34f30c48ccef9c112fdb793e2e7f2ae7283a"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "d33d42f03cd343f88cf4b9401c2a1d34a15b75589925d82b61afed2b821bc54d"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pkgutils",
+      "version": "TODO",
+      "bom-ref": "pkgutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "209d1edddd46fdc4a9fc06036ffc05ef6e5ce86a"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "5d6d4b2c3e3b9f53747c9d665e66648e4bcf450e360bee191211ddc31966fa29"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pop-icon-theme.cursors",
+      "version": "TODO",
+      "bom-ref": "pop-icon-theme.cursors@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "1a575a8e99b4ae629b9b16543a3a04d148632ba9"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "3fc7cb30d9d328fd746d23f257dbb99d2960f4da2df3a0d155648492a23a06d0"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pop-icon-theme",
+      "version": "TODO",
+      "bom-ref": "pop-icon-theme@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "1a575a8e99b4ae629b9b16543a3a04d148632ba9"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "8b4ca9d079cadaf441af068cab769de09be74bec7ed6c59ad78323a670f28c52"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "redoxfs",
+      "version": "0.9.0",
+      "bom-ref": "redoxfs@0.9.0",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "af493b9f4e1ee7086bc6e44a43f096d981936cfe"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f18b12c20214fd0cd12c762693ce01855c7ace33e1f76de8cfff1908d7584b03"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "relibc",
+      "version": "0.2.5",
+      "bom-ref": "relibc@0.2.5",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "bcc1a0d43c44919d2e52c8cadcf8d335fd5e46f0"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "4b9bc6ae89ed23a1d1745882d22ea97195a0aab456162666ffd4a9259c9087c7"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "sdl1",
+      "version": "TODO",
+      "bom-ref": "sdl1@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "7ac3aeb7c60f6e70ad3219e7b2c68892f1ebd271"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "75fb856cb73a44f9ddf1cd8543682669710f7c7049567b1b34237fc7199e6968"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "shared-mime-info",
+      "version": "TODO",
+      "bom-ref": "shared-mime-info@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "ad130f2f923ab3d5455c643e6257abf3598339fdd134ad0fac4e5dbbbf070eb9"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "84a05a7d08abcac217012ed348538e59888d1f489f9bb9d2205799a70d90737f"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "termcap",
+      "version": "TODO",
+      "bom-ref": "termcap@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "57c095e0bb6e60e7b4a0597f51f7ac15b501ca0f95d37424d8d13978d28b8da3"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f0e68859db91004195ba07185b15c4f1de3c191dbee6cf1444635f7b88b37aca"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "userutils",
+      "version": "0.1.0",
+      "bom-ref": "userutils@0.1.0",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "b7bcdb9837e802b28e34eb0d69070f54d169f6e8"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "5286b3e973ad24d5527cb64de7bf5e3d0e30d61ce66a79b13477f9db28033c45"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uutils-procps",
+      "version": "TODO",
+      "bom-ref": "uutils-procps@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "ee98c0a78fe2abe72589f80eb05b455fa228e757"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "f5f0f4fa1704eb17c3ceeb0bee1cabbeae5f931a3f5d30832bacbb7129b89904"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "uutils",
+      "version": "TODO",
+      "bom-ref": "uutils@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "1f7c81f5d2d3e56c518349c0392158871a1ea9ec"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "dcc9c4ec07209392e55ec21071f551bc184deb6d3a0ed4496fa56197945e42c4"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "xz",
+      "version": "TODO",
+      "bom-ref": "xz@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "edc6350542e8cb7188a878135e5b9bd592d687e5b47451ca1c89d51cc4bc6b53"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "2bd80cbbd665bb15627b65c78113b9356c7257d72c6e63aa0040cd5ea47bb02e"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zlib",
+      "version": "TODO",
+      "bom-ref": "zlib@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "ec1abc6f672a7a6ee6f49ba544cc9529f73121b478310473be44fee22a140ebf"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "b8c446631f15e306d3f20e0006bdc9059a2c8042b15084a7fe62aab6ddaf52e1"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "zstd",
+      "version": "TODO",
+      "bom-ref": "zstd@TODO",
+      "properties": [
+        {
+          "name": "redox:target",
+          "value": "x86_64-unknown-redox"
+        },
+        {
+          "name": "redox:source_git_ref",
+          "value": "730dca31244abd219e995f03a55d95b2cfb4b3e16cda055a79fa6f30a4f0e1db"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "BLAKE3",
+          "content": "1efbda4f91b0b8045d4968965b2dc057152663973221a2a834a2322f2b3b23c1"
+        }
+      ]
+    }
+  ]
+}
