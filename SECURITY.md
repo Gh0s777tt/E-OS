@@ -8,11 +8,15 @@ keep it and its users safe.
 | Version | Supported |
 |---------|:---------:|
 | `0.1.x` (Genesis) | ✅ |
-| `eos-base` / `main` | ✅ |
+| `main` (rolling) | ✅ latest fixes |
+| `lts/0.1` (LTS line) | ✅ extended-support backports |
+| `eos-base` (checkpoint) | ✅ |
 | Legacy 2019 mirror (`master`, `0.4.1`) | ❌ archived, unsupported |
 
-Because E-OS is **pre-1.0 (alpha)**, only the latest tag and the default branch
-receive security fixes.
+Because E-OS is **pre-1.0 (alpha)**, `main` carries the latest security fixes; the
+**`lts/0.1`** branch tracks the 0.1 “Genesis” line and receives security
+**backports** for an extended window, so a deployment can pin to a stable line
+instead of rolling `main`.
 
 ## 🚨 Reporting a vulnerability
 

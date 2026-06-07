@@ -96,7 +96,9 @@ timeline
 - ✅ `R-1001` **Graphical installer** — E-OS ships `redox_installer_gui` (+ a TUI
   installer and the `redox_installer` engine); launch **Installer** from the desktop
   to install to a disk, with an optional encrypted root. See [docs/install.md](docs/install.md).
-- 💡 `R-1002` Stable ABI surface + LTS branch.
+- 🚧 `R-1002` **LTS branch + support policy** — the `lts/0.1` branch (pushed to
+  both remotes) tracks the 0.1 “Genesis” line with security backports; documented
+  in [SECURITY.md](SECURITY.md). A *stable ABI surface* is a longer post-1.0 commitment.
 - 💡 `R-1003` App ecosystem & package repository.
 - 🚧 `R-1004` **Documentation site** — mdBook (`book.toml` + `docs/SUMMARY.md`)
   built and deployed to **GitHub Pages** via `.github/workflows/pages.yml`. The
