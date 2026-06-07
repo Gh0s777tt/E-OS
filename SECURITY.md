@@ -48,13 +48,27 @@ should also be reported to the relevant upstream. We will help coordinate.
 **Out of scope:** issues only affecting the archived 2019 mirror; volumetric DoS;
 social engineering; findings without a security impact.
 
+## 🧭 Threat model, hardening & encryption
+
+E-OS's OS-level security posture is documented in:
+
+- **[Threat model](docs/threat-model.md)** — assets, trust boundaries, adversaries,
+  and the mitigations the microkernel + capability-scheme design provides (with
+  honest non-goals for a pre-1.0 system).
+- **[Hardening guide](docs/hardening.md)** — a practical, impact-ordered checklist
+  (change default credentials, encrypt the disk, minimize packages, verify downloads).
+- **[Disk encryption](docs/encryption.md)** — RedoxFS **AES-XTS-128** full-disk
+  encryption: installing, building and booting an encrypted E-OS root.
+
 ## 🛡️ How we harden this repository
 
 - 🔑 **Secret scanning + push protection** and **gitleaks** in CI — credentials
   never land in history.
 - 🤖 **Dependabot** (dependencies) and **CodeQL** (code scanning).
 - 👮 **Branch protection** on the default branch; **CODEOWNERS** review required.
-- ✍️ **Signed commits** encouraged; release artifacts will be **signed** (≥ v0.3.0).
+- ✍️ **Signed commits** encouraged; releases publish **SHA256SUMS** + a CycloneDX
+  **SBOM**, with the checksums **minisign-signed** in CI when a key is configured
+  (see ROADMAP `R-301`/`R-302`).
 - ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
 
 See [docs/security.md](docs/security.md) for the contributor security guide.

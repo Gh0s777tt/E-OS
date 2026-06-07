@@ -61,8 +61,12 @@ timeline
 - 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release).
   **Source builds are already reproducible** — the patched recipes point at the
   `github.com/Gh0s777tt/eos-*` forks, so a fresh clone rebuilds all branding.
-- ⏳ `R-304` Security policy v2: threat model, hardening guide.
-- 💡 `R-305` Optional full-disk encryption defaults (RedoxFS).
+- ✅ `R-304` Security policy v2 — **threat model** (`docs/threat-model.md`) +
+  **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
+- 🚧 `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
+  (`docs/encryption.md`) and tooling-verified (`redoxfs-mkfs --encrypt` succeeds,
+  encrypted header confirmed); installer + bootloader already support it. Making
+  it a one-prompt default is the remaining bit.
 
 ---
 
