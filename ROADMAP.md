@@ -66,8 +66,10 @@ timeline
   **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
 - 🚧 `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
   (`docs/encryption.md`) and tooling-verified (`redoxfs-mkfs --encrypt` succeeds,
-  encrypted header confirmed); installer + bootloader already support it. Making
-  it a one-prompt default is the remaining bit.
+  encrypted header confirmed); installer + bootloader support it and it is
+  **recommended at install** ([docs/install.md](docs/install.md)). Default-on for a
+  public image is an anti-pattern (baked password) — the installer's one-prompt
+  encryption is the right first-class path.
 
 ---
 
@@ -96,16 +98,17 @@ timeline
 - ✅ `R-1001` **Graphical installer** — E-OS ships `redox_installer_gui` (+ a TUI
   installer and the `redox_installer` engine); launch **Installer** from the desktop
   to install to a disk, with an optional encrypted root. See [docs/install.md](docs/install.md).
-- 🚧 `R-1002` **LTS branch + support policy** — the `lts/0.1` branch (pushed to
+- 🚧 `R-1002` **LTS branch + stability policy** — the `lts/0.1` branch (pushed to
   both remotes) tracks the 0.1 “Genesis” line with security backports; documented
-  in [SECURITY.md](SECURITY.md). A *stable ABI surface* is a longer post-1.0 commitment.
+  in [SECURITY.md](SECURITY.md) + a [stability/ABI policy](docs/stability.md). The
+  binding *stable ABI surface* lands at 1.0 (upstream-dependent).
 - 🚧 `R-1003` **Package repository** — every build produces a signed (ed25519)
   `.pkgar` repo (`repo/<target>/` + `repo.toml`, ~58 pkgs/arch); documented
   ([docs/packages.md](docs/packages.md)) with a publish helper
   (`scripts/publish-repo.sh`). Public hosting + an app ecosystem are the remaining infra.
-- 🚧 `R-1004` **Documentation site** — mdBook (`book.toml` + `docs/SUMMARY.md`)
-  built and deployed to **GitHub Pages** via `.github/workflows/pages.yml`. The
-  *custom domain* is the remaining bit.
+- ✅ `R-1004` **Documentation site** — mdBook built + deployed to **GitHub Pages**,
+  **live at <https://gh0s777tt.github.io/E-OS/>** (`.github/workflows/pages.yml`).
+  A *custom domain* is a one-step add (Settings → Pages) once a domain is owned.
 
 ---
 

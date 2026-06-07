@@ -30,7 +30,7 @@ launcher (the red **E** menu). It walks you through:
 
 - choosing the **target disk**,
 - creating **users / passwords**,
-- an optional **RedoxFS disk-encryption password** → encrypted root
+- a **RedoxFS disk-encryption password (recommended)** → encrypted root
   (see [encryption.md](encryption.md)),
 - the package set,
 

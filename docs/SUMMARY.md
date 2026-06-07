@@ -15,6 +15,10 @@
 
 # Security
 
+- [Stability policy](stability.md)
+
+# Security
+
 - [Security guide](security.md)
 - [Threat model](threat-model.md)
 - [Hardening guide](hardening.md)
