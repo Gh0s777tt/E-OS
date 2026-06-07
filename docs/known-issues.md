@@ -47,8 +47,12 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
 
 ### Remaining minor items (non-blocking)
 
-- `/usr/bin/background` (wallpaper renderer) takes a post-login Data Abort on
-  aarch64 — cosmetic; the desktop still renders.
+- `/usr/bin/background` (wallpaper renderer) **intermittently** takes a post-login
+  Data Abort on aarch64 — a null-pointer deref (FAR=`0x8`) **inside relibc**
+  (`libc.so`), *not* in background's own code (background is a 1.7 MB PIE; the crash
+  PCs land in the 4 MB libc.so loaded high). Cosmetic: the desktop and wallpaper
+  render fine, and it does not reliably reproduce (a clean diagnostic boot did not
+  hit it). A precise fix is a deeper relibc investigation — a good upstream candidate.
 - `netstack` / `audiod` exit on QEMU `virt` (no virtual net/audio device) — harmless.
 - The emulated `RNDR` entropy (R-401b) is a **boot stopgap**, *not* a strong CSPRNG
   seed. A real entropy source (interrupt-timing jitter / a hardware RNG) is the
