@@ -24,3 +24,4 @@ source.tar.tmp
 target
 wget-log
 .eos-bl-src/
+.eos-uu-src/
