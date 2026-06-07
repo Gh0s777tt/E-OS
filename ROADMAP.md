@@ -93,7 +93,9 @@ timeline
 
 **Theme: a daily-drivable desktop.**
 
-- 💡 `R-1001` Graphical installer.
+- ✅ `R-1001` **Graphical installer** — E-OS ships `redox_installer_gui` (+ a TUI
+  installer and the `redox_installer` engine); launch **Installer** from the desktop
+  to install to a disk, with an optional encrypted root. See [docs/install.md](docs/install.md).
 - 💡 `R-1002` Stable ABI surface + LTS branch.
 - 💡 `R-1003` App ecosystem & package repository.
 - 💡 `R-1004` Documentation site at a custom domain.
