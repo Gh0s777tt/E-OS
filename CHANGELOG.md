@@ -26,9 +26,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `[U-007]` **Red/black E-OS bootloader** — `"E-OS Bootloader"` banner + red-on-black
   theme (selection black-on-red), built from source. Change set:
   `patches/bootloader-eos-red-black.patch`; screenshot `assets/screenshots/eos-bootloader.png`.
+- `[U-008]` **aarch64 boots to the full branded desktop** (2026-06-08). E-OS now
+  reaches the graphical E-OS COSMIC desktop on **aarch64** under QEMU `virt` (with
+  `-machine virt,acpi=off`); it previously died at early boot. Screenshot
+  `assets/screenshots/eos-aarch64-desktop.png`. Both x86_64 and aarch64 build from
+  the same recipes and boot to the desktop.
+- `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
+  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `eefdf411`)
+  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `25d877fd`).
+  The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
+  fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
+- `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
+  `git am` patches (2 kernel, 1 base) and a `gitlab.redox-os.org` merge-request guide.
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).
+- `[U-014]` `core/kernel` + `core/base` recipes now build from the E-OS forks (pinned
+  by commit) instead of tracking upstream HEAD. `docs/known-issues.md` rewritten
+  (R-401b/c/d **resolved**, with the true root cause and the aarch64 QEMU command);
+  `ROADMAP.md` `R-401b` → ✅.
+
+### Fixed
+- `[U-011]` **`R-401b` — the real aarch64 boot blocker (mis-diagnosed for a whole
+  prior session).** `randd` executed `mrs xN, RNDRRS` (FEAT_RNG / ARMv8.5)
+  **unconditionally** → an UNDEFINED instruction on non-FEAT_RNG CPUs (Cortex-A72/A53,
+  Raspberry Pi, `-cpu cortex-a72`) → `randd` died → the `rand:` scheme never started →
+  every daemon that seeds a HashMap panicked `failed to generate random data: ENODEV`
+  → no boot. The original report blamed an upstream `redoxfs`/`PAGE_SIZE` memory bug;
+  that was **wrong** — redoxfs was the *last* domino. **Fix:** the kernel now traps the
+  UNDEF and **emulates RNDR/RNDRRS** in the aarch64 synchronous-exception handler.
+- `[U-012]` **`R-401c` — nvmed never received its PCIe interrupt on aarch64.** aarch64
+  has **no MSI**; nvmed hard-coded `intx:false`, and INTx is only *routed* when Redox
+  boots from a **device tree**, not ACPI. **Fix:** nvmed runs in **INTx mode** on
+  non-x86 (base), and the image boots with **`-machine virt,acpi=off`** so the PCIe
+  interrupt-map is present.
+- `[U-013]` **`R-401d` — shared PCIe INTx IRQ rejected.** The kernel reserved shared
+  INTx GIC SPIs **exclusively**, so `nvmed` failed `open IRQ: EEXIST`. **Fix:** allow
+  shared phandle-IRQ opens (the kernel's `irq_trigger` already fans an IRQ out to
+  every registered handle).
+
+### Known
+- `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
+  FDT is zeroed before the bootloader runs and AAVMF installs ACPI, not the DTB config
+  table; real device-tree hardware is unaffected). `/usr/bin/background` (wallpaper)
+  **intermittently** null-derefs inside relibc on aarch64 (cosmetic, aarch64-only; the
+  desktop still renders). The GitLab mirror is pending a fresh access token.
 
 ### Planned
 - See **[ROADMAP.md](ROADMAP.md)** for what's coming in `v0.2.0` and beyond.
