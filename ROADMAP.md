@@ -98,7 +98,9 @@ timeline
   to install to a disk, with an optional encrypted root. See [docs/install.md](docs/install.md).
 - 💡 `R-1002` Stable ABI surface + LTS branch.
 - 💡 `R-1003` App ecosystem & package repository.
-- 💡 `R-1004` Documentation site at a custom domain.
+- 🚧 `R-1004` **Documentation site** — mdBook (`book.toml` + `docs/SUMMARY.md`)
+  built and deployed to **GitHub Pages** via `.github/workflows/pages.yml`. The
+  *custom domain* is the remaining bit.
 
 ---
 

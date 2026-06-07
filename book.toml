@@ -1,0 +1,21 @@
+[book]
+title = "E-OS Documentation"
+description = "Documentation for E-OS — a downstream distribution of Redox OS."
+authors = ["Gh0s777tt"]
+src = "docs"
+language = "en"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/Gh0s777tt/E-OS"
+edit-url-template = "https://github.com/Gh0s777tt/E-OS/edit/main/{path}"
+no-section-label = false
+
+[output.html.search]
+enable = true
+limit-results = 20
+
+[output.html.fold]
+enable = true
+level = 1

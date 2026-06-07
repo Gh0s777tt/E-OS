@@ -27,3 +27,4 @@ wget-log
 .eos-uu-src/
 .eos-orbdata-src/
 *.key
+/book
