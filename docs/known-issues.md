@@ -41,9 +41,11 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
   -device nvme,drive=disk0,serial=eos
 ```
 
-> ⚠️ **`-machine virt,acpi=off` is required** — it selects device-tree boot, which is
-> what carries the PCIe interrupt routing on aarch64. There is no KVM for aarch64 on
-> an x86 host, so QEMU runs under TCG and the boot is slow (minutes).
+> ℹ️ **`-machine virt,acpi=off` is no longer required** (as of `R-401f` — pcid now routes PCIe
+> INTx from the ACPI `_PRT`). aarch64 boots under **both** ACPI (`-machine virt`) and device tree
+> (`-machine virt,acpi=off`); the device-tree path stays the cleaner default (under ACPI the
+> pre-existing intermittent `/usr/bin/background` wallpaper crash may appear — non-fatal). There is
+> no KVM for aarch64 on an x86 host, so QEMU runs under TCG and the boot is slow (minutes).
 
 ### Remaining minor items (non-blocking)
 

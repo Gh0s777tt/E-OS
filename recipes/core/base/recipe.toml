@@ -1,9 +1,10 @@
 [source]
-# E-OS R-401c: aarch64 nvmed INTx interrupt-mode fix (no MSI on aarch64).
-# Downstream fork of redox-os/base @ 9dd6901. Upstream: https://gitlab.redox-os.org/redox-os/base.git
+# E-OS R-401c (nvmed INTx mode) + R-401f (pcid ACPI _PRT INTx routing -> aarch64 boots
+# without acpi=off). Downstream fork of redox-os/base @ 9dd6901d.
+# Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "main"
-rev = "25d877fd2209e55b4bba7bba935c9a38b4e2e377"
+rev = "bff3e96670bf495b58737cf32c31d394f40a7609"
 
 [build]
 template = "custom"

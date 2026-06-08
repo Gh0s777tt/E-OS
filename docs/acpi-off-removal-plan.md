@@ -1,6 +1,11 @@
 # Plan: remove the aarch64 `-machine virt,acpi=off` requirement
 
-**Status: designed, not implemented (deferred — see recommendation).**
+**Status: IMPLEMENTED 2026-06-08 as `R-401f` (pcid-only) — aarch64 boots without `acpi=off`.**
+See CHANGELOG `[U-019]`. The plan below is kept for history; the shipped approach matches it but
+was simpler than feared: the kernel already brought up the GIC from the ACPI MADT and exposes
+`irq:phandle-0` (aarch64 builds with `cfg(dtb)`), and acpid already serves the AML namespace, so
+**no kernel or acpid change was needed** — pcid reads the static `\_SB.PCIx._PRT` + each link
+device's `_CRS` directly from acpid's `acpi:/symbols` and routes INTx to the matching GIC SPI.
 
 E-OS aarch64 currently boots only with QEMU `-machine virt,acpi=off`. That flag forces a
 **device-tree** boot, which is the only path on which Redox populates the PCIe

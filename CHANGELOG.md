@@ -33,11 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same recipes and boot to the desktop.
 - `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
   [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `35bdc7d3`)
-  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `25d877fd`).
+  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `bff3e966`).
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
-  `git am` patches (3 kernel, 1 base) and a `gitlab.redox-os.org` merge-request guide.
+  `git am` patches (4 kernel, 2 base) and a `gitlab.redox-os.org` merge-request guide.
 - `[U-017]` **Downstream relibc fork — RETIRED.** It briefly carried an aarch64 `verify()`
   workaround, but `R-401e` (`[U-018]`) fixes the true cause in the **kernel**, so
   `core/relibc` is back on **strict upstream relibc** (`@ bcc1a0d4`) and the fork is no
@@ -115,14 +115,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with the same recipes (kernel `@ 97ca1607`, strict upstream relibc): `whoami`/`uname` run,
   0 aborts, `uname` reports the x86_64 kernel `@ 97ca1607`; R-401e is `cfg`-scoped so x86_64
   is unaffected.
+- `[U-019]` **`R-401f` — aarch64 no longer needs `-machine virt,acpi=off`.** Under a UEFI/ACPI
+  boot, `pcid` got the ECAM from MCFG but **no PCIe interrupt-map** (that only exists under a
+  device tree), so it could not route legacy **INTx** — `nvmed` hung waiting for its IRQ, which is
+  exactly why aarch64 had to force a device-tree boot with `acpi=off`. **Fix** (pcid-only;
+  [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) `@ bff3e966`): pcid reads
+  `\_SB.PCIx._PRT` from acpid's `acpi:/symbols`, resolves each entry's PCI interrupt link device
+  (`_SB.Lxxx`) to its GSI via the link's `_CRS` (Extended-Interrupt descriptor), and routes it to
+  the matching **GIC SPI** by opening `irq:phandle-0` (phandle 0 = the MADT-registered GIC; aarch64
+  builds with `cfg(dtb)` so the phandle IRQ path is available under ACPI). The `_PRT` is read
+  **before** pcid registers with acpid, to avoid a deadlock against acpid's AML-interpreter build.
+  No kernel or acpid change. **Verified** on the production image: boots with **both** `-machine
+  virt` (ACPI) **and** `-machine virt,acpi=off` (device tree) — `nvmed` initializes, redoxfs
+  mounts, login reached, `whoami`=`user` in both. (acpi=off boots clean; under ACPI the only
+  fault observed is the **pre-existing, non-fatal** `/usr/bin/background` wallpaper data-abort —
+  an intermittent relibc null-deref already deferred under *Known*, unrelated to R-401f — which
+  blocks neither the boot nor the shell. acpi=off remains the cleaner default.) Upstream:
+  `upstream/base/0002`.
 
 ### Known
-- `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
-  FDT is zeroed before the bootloader runs and AAVMF installs ACPI, not the DTB config
-  table; real device-tree hardware is unaffected). A concrete, code-grounded removal plan is
-  in [`docs/acpi-off-removal-plan.md`](docs/acpi-off-removal-plan.md) — **deferred** as
-  low-value (multi-subsystem ACPI `_PRT`/IRQ work with real regression risk, for QEMU-only
-  benefit). The GitLab mirror (`gitlab.com/Gh0s777tt/e-os`) is kept **in sync** with GitHub.
+- `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree
+  (`-machine virt,acpi=off`); the `acpi=off` workaround is **no longer required** as of
+  `[U-019]` (`R-401f`). The GitLab mirror (`gitlab.com/Gh0s777tt/e-os`) is kept **in sync**
+  with GitHub.
 
 ### Planned
 - See **[ROADMAP.md](ROADMAP.md)** for what's coming in `v0.2.0` and beyond.

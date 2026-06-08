@@ -20,19 +20,19 @@ patches fix them in the kernel and base (no relibc change is needed - see the no
 | `kernel/0003-...sched_yield.patch` | redox-os/kernel | **R-401e.** On aarch64, `InterruptStack::sig_archdep_reg()` is `scratch.x0` - which is *also* the syscall return register (x86/x86_64 use the flags register, riscv64 a temporary `t0`). `sched_yield` runs `signal_handler` **inside** the `YIELD` syscall, *before* the SVC handler commits the return to `scratch.x0`; so a signal delivered to a context during its yield saved the stale syscall *input* `x0` and `sigreturn` restored it over the real return (`0`). The interrupted program then saw `x0 = -1`, which deterministically broke the first signal-receiving `fork`+`exec` program - e.g. relibc's `verify()` (`SYS_YIELD` with `!0` args) aborted every shell/desktop process. Commits the yield's return into the frame before the signal check, `cfg`-scoped to aarch64. |
 | `kernel/0004-...jitter.patch` | redox-os/kernel | **R-401b (entropy).** Upgrades the FEAT_RNG emulation from a single-seed splitmix64 PRNG to per-read **CPU-execution-timing jitter**: it samples CNTVCT_EL0 deltas across short data-dependent memory bursts (the jitterentropy/haveged technique) and folds them into a pool, with a Weyl-counter + splitmix64 finalizer backbone so output is always non-repeating and non-zero even under deterministic emulation (QEMU TCG). Materially stronger entropy on real non-FEAT_RNG hardware; still not a certified TRNG (a HW RNG remains ideal). |
 | `base/0001-...nvmed.patch` | redox-os/base | **R-401c (driver half).** `drivers/storage/nvmed` hard-codes `intx: false /* FIXME */` when starting its executor, even though on non-x86 `pci_allocate_interrupt_vector()` always returns a **Legacy/INTx** vector (there is no MSI on aarch64). INTx is level-triggered and must be EOI'd; treating it as edge/MSI hangs the driver. Sets `intx = cfg!(not(any(target_arch="x86", target_arch="x86_64")))`. |
+| `base/0002-...PRT.patch` | redox-os/base | **R-401f.** Lets aarch64 boot **without** `acpi=off`. Under ACPI, pcid gets the ECAM from MCFG but no PCIe interrupt-map (that only exists under a device tree), so it could not route legacy INTx and nvmed hung. pcid now reads `\_SB.PCIx._PRT` from acpid's `acpi:/symbols`, resolves each entry's PCI interrupt link device (`_SB.Lxxx`) to its GSI via the link's `_CRS` (Extended Interrupt Descriptor), and routes it to the matching GIC SPI by opening `irq:phandle-0` (the MADT-registered GIC). Read before pcid registers with acpid, to avoid a deadlock against acpid's AML build. No kernel/acpid change. |
 
-## Boot-mode note (R-401c, the other half)
+## Boot-mode note (R-401c / R-401f)
 
-The nvmed `intx` fix only helps if the INTx interrupt is actually *delivered*. On aarch64
-that needs the PCIe **interrupt-map**, which Redox only has when it boots from a **device
-tree** (`/scheme/kernel.dtb`). Under a UEFI **ACPI** boot the kernel's `hwdesc` is an RSDP
-and `DTB_BINARY` is empty, so pcid can't route INTx and nvmed never gets its IRQ.
+The nvmed `intx` fix only helps if the INTx interrupt is actually *delivered*. Under a UEFI
+**device-tree** boot the PCIe **interrupt-map** carries that routing; under a UEFI **ACPI** boot
+it does not (the kernel's `hwdesc` is an RSDP, `DTB_BINARY` is empty), so pcid originally could
+not route INTx and nvmed hung — which is why aarch64 once needed **`-machine virt,acpi=off`** to
+force a device-tree boot.
 
-Workaround (no code change): boot QEMU `virt` with **`-machine virt,acpi=off`**, which makes
-AAVMF install the `EFI_DTB_TABLE_GUID` config table; the bootloader's `find_dtb` (which
-already prefers DTB on aarch64) then boots the device-tree path and everything routes
-correctly. A proper upstream fix would be either (a) ACPI `_PRT` parsing in pcid, or
-(b) GIC-ITS/MSI support in the kernel.
+`base/0002` (**R-401f**) removes that requirement by routing INTx from the ACPI `_PRT` (option
+(a) below). aarch64 now boots under **both** ACPI and device tree; `acpi=off` is optional. (A
+fuller alternative would be GIC-ITS/MSI support in the kernel.)
 
 ## How to submit
 
@@ -45,10 +45,10 @@ git clone https://gitlab.redox-os.org/redox-os/kernel.git && cd kernel
 git am /path/to/upstream/kernel/0001-*.patch /path/to/upstream/kernel/0002-*.patch /path/to/upstream/kernel/0003-*.patch /path/to/upstream/kernel/0004-*.patch
 git push <your-fork> HEAD:aarch64-fixes
 
-# base (R-401c)
+# base (R-401c + R-401f)
 git clone https://gitlab.redox-os.org/redox-os/base.git && cd base
-git am /path/to/upstream/base/0001-*.patch
-git push <your-fork> HEAD:aarch64-nvmed-intx
+git am /path/to/upstream/base/0001-*.patch /path/to/upstream/base/0002-*.patch
+git push <your-fork> HEAD:aarch64-pci-intx
 ```
 
 Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d` (2026-06).
