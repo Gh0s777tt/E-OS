@@ -108,7 +108,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   retired). Verified end-to-end: the rebuilt production image boots **strict** upstream relibc
   on the R-401e kernel with **0 aborts** — disasm confirms the strict `verify()` abort branch
   (`svc; cmn w0,#0x84; b.cs`) is present in the shipped `libc.so`, so it would abort 16/16
-  without the kernel fix.
+  without the kernel fix. **x86_64 non-regression confirmed** — rebuilt + KVM-boot-verified
+  with the same recipes (kernel `@ 97ca1607`, strict upstream relibc): `whoami`/`uname` run,
+  0 aborts, `uname` reports the x86_64 kernel `@ 97ca1607`; R-401e is `cfg`-scoped so x86_64
+  is unaffected.
 
 ### Known
 - `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
