@@ -47,13 +47,57 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
 
 ### Remaining minor items (non-blocking)
 
-- `/usr/bin/background` (wallpaper renderer) **intermittently** takes a post-login
-  Data Abort on aarch64 — a null-pointer deref (FAR=`0x8`) **inside relibc**
-  (`libc.so`), *not* in background's own code (background is a 1.7 MB PIE; the crash
-  PCs land in the 4 MB libc.so loaded high). Cosmetic: the desktop and wallpaper
-  render fine, and it does not reliably reproduce (a clean diagnostic boot did not
-  hit it). A precise fix is a deeper relibc investigation — a good upstream candidate.
+- **aarch64 kernel: the first syscall after `exec` returns a stale `x0`** (follow-up).
+  This is the *root* cause behind the relibc `verify()` abort resolved below — a freshly
+  `fork`+`exec`'d process's very first syscall returns its input register instead of the
+  kernel's result. relibc now tolerates it on aarch64, but the proper fix is in the kernel
+  (the aarch64 `exec`/`sigreturn`-to-entry transition or the syscall-return register
+  handling). Worth fixing because it could mask other first-call return bugs.
 - `netstack` / `audiod` exit on QEMU `virt` (no virtual net/audio device) — harmless.
 - The emulated `RNDR` entropy (R-401b) is a **boot stopgap**, *not* a strong CSPRNG
   seed. A real entropy source (interrupt-timing jitter / a hardware RNG) is the
   proper long-term fix.
+
+---
+
+## ✅ `relibc verify()` — every aarch64 shell/desktop program aborted (RESOLVED 2026-06-08)
+
+An earlier note here called this a "cosmetic, intermittent `/usr/bin/background`
+null-deref inside relibc". That was wrong on every count:
+
+- It is a **`brk #1`** — an explicit **abort/trap**, *not* a memory fault. The serial dump
+  has `ESR_EL1` `EC=0x3C` ("BRK instruction execution"); the printed `FAR_EL1` is stale
+  and irrelevant.
+- It is **deterministic**, not intermittent: **every** `fork`+`exec`-spawned program
+  aborted — `whoami`, `id`, `ls`, `env`, `background` (16/16). The aarch64 shell could not
+  run a single external command. Only long-lived, init/`pcid`-spawned processes (drivers,
+  the `ion` shell itself) survive — which is why the desktop still "rendered".
+- It happens in **`relibc_start_v1`** (the program entry), *before* `main`.
+
+**Root cause.** `relibc_start_v1` → `relibc_verify_host()` → `Sys::verify()`:
+
+```rust
+fn verify() -> bool {
+    // SYS_YIELD is a no-op on Redox; the same number is a different, failing syscall
+    // on Linux — a heuristic to refuse running a Redox binary on Linux.
+    syscall::syscall5(syscall::number::SYS_YIELD, !0, !0, !0, !0, !0).is_ok()
+}
+```
+
+On aarch64 a freshly `fork`+`exec`'d process's **first** syscall returns a stale `-1`
+(the input `x0`, never overwritten by the kernel) instead of `YIELD`'s `0`. `verify()`
+reads `-1`, concludes "not Redox", and aborts. Confirmed two ways: NOP-ing the abort
+branch in `libc.so` made `whoami`/`ls`/`env` work with zero crashes, and the fault
+symbolizes to the exact `brk #1` at `relibc_start_v1+0xf48` (a `handle_alloc_error`/abort
+landing pad reached from the `cmn w0,#0x84; b.cs` error check right after the yield `svc`).
+
+**Fix (relibc).** The [`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc)
+fork (`eos` @ `beb93474`, recipe pinned) issues the yield for its side effect but does not
+treat its unreliable result as fatal on aarch64; **x86_64 keeps the strict check**.
+Verified by binary disasm + boot: `whoami`/`uname`/`ls`/`env` all run, zero aborts.
+Upstream-ready patch: [`upstream/relibc/`](../upstream/relibc/).
+
+**The real root fix (kernel, follow-up).** The relibc change is a workaround. The proper
+fix stops the first post-`exec` syscall from returning a stale `x0` on aarch64 — most
+likely in the kernel's aarch64 `exec`/`sigreturn`-to-entry transition or its syscall
+return-register handling. See *Remaining minor items* above.

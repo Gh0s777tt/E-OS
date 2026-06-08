@@ -37,7 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
-  `git am` patches (2 kernel, 1 base) and a `gitlab.redox-os.org` merge-request guide.
+  `git am` patches (2 kernel, 1 base, 1 relibc) and a `gitlab.redox-os.org` merge-request guide.
+- `[U-017]` **Downstream relibc fork** carrying the aarch64 `verify()` fix —
+  [`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) (`eos` @ `beb93474`).
+  The `core/relibc` recipe is **pinned** to it (reproducible on a fresh clone); the
+  upstream-ready `git am` patch is in [`upstream/relibc/`](upstream/relibc/).
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).
@@ -64,13 +68,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   INTx GIC SPIs **exclusively**, so `nvmed` failed `open IRQ: EEXIST`. **Fix:** allow
   shared phandle-IRQ opens (the kernel's `irq_trigger` already fans an IRQ out to
   every registered handle).
+- `[U-016]` **The aarch64 shell/desktop could not run *any* external program — a
+  mis-diagnosed relibc abort.** The prior session logged this as a "cosmetic,
+  intermittent `/usr/bin/background` null-deref inside relibc"; it is in fact a
+  **deterministic `brk #1` abort** (an explicit trap, *not* a memory fault — `ESR_EL1`
+  `EC=0x3C`) that hit **every** `fork`+`exec`-spawned binary — `whoami`, `ls`, `env`,
+  `background`, the whole desktop session (16/16 reproductions). Root cause:
+  `relibc_start_v1` → `relibc_verify_host` → `Sys::verify()` issues `SYS_YIELD` (a
+  Redox-vs-Linux host check) and aborts unless it returns `Ok`; on aarch64 a freshly
+  `fork`+`exec`'d process's **first** syscall returns a stale `-1` (the input, never
+  overwritten by the kernel) instead of `YIELD`'s `0`, so the check spuriously failed.
+  **Fix:** the **`Gh0s777tt/eos-relibc`** fork issues the yield for its side effect but
+  does not treat its unreliable result as fatal on aarch64 (x86_64 keeps the strict
+  check). Verified by binary disasm **and** boot: `whoami`/`uname`/`ls`/`env` all run with
+  **zero aborts**. The deeper kernel bug (the first syscall after `exec` returns a stale
+  `x0` on aarch64) is the proper root fix — documented in `docs/known-issues.md` and
+  `upstream/` as a follow-up.
 
 ### Known
 - `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
   FDT is zeroed before the bootloader runs and AAVMF installs ACPI, not the DTB config
-  table; real device-tree hardware is unaffected). `/usr/bin/background` (wallpaper)
-  **intermittently** null-derefs inside relibc on aarch64 (cosmetic, aarch64-only; the
-  desktop still renders). The GitLab mirror is pending a fresh access token.
+  table; real device-tree hardware is unaffected). A deeper aarch64 **kernel** bug — the
+  first syscall after `exec` returns a stale `x0` — underlies the relibc `verify()` abort
+  fixed in `[U-016]`; the relibc workaround is in place, the root kernel fix is a
+  follow-up. The GitLab mirror is pending a fresh access token.
 
 ### Planned
 - See **[ROADMAP.md](ROADMAP.md)** for what's coming in `v0.2.0` and beyond.

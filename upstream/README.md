@@ -35,3 +35,37 @@ git push <your-fork> HEAD:aarch64-nvmed-intx
 ```
 
 Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d` (2026‑06).
+
+---
+
+## Post-boot fix: relibc `verify()` aborts every aarch64 program
+
+After the three boot fixes above, aarch64 reaches login — but **no `fork`+`exec`-spawned
+program could run**: `whoami`, `ls`, `env`, and the desktop's wallpaper renderer all
+aborted at startup with a `brk #1` trap (`ESR_EL1` EC=`0x3C`, *not* a memory fault).
+Deterministic, 16/16. (A prior diagnosis called this a "cosmetic intermittent background
+null-deref" — it is neither cosmetic, intermittent, nor a deref.)
+
+`relibc_start_v1` → `relibc_verify_host()` → `Sys::verify()` issues `SYS_YIELD` as a
+Redox-vs-Linux host check and aborts unless it returns `Ok`. On aarch64 a freshly
+`fork`+`exec`'d process's **first** syscall returns a stale `-1` (the input register,
+never overwritten by the kernel) instead of `YIELD`'s `0`, so `verify()` mis-fires and
+aborts before `main`.
+
+`relibc/0001-*.patch` makes `verify()` issue the yield for its side effect but not treat
+its result as fatal on aarch64; **x86_64 keeps the strict check** (the change is
+`#[cfg(target_arch)]`-scoped — verified by disasm: x86_64 still does `syscall; cmp
+$0xffffff7c,%eax; jae <abort>`, aarch64 does `svc` then falls through with no abort).
+
+This is a **workaround**. The proper fix is in the **kernel**: stop the first post-`exec`
+syscall from returning a stale `x0` on aarch64 (most likely the aarch64
+`exec`/`sigreturn`-to-entry transition, or the syscall return-register handling).
+
+```sh
+# relibc
+git clone https://gitlab.redox-os.org/redox-os/relibc.git && cd relibc
+git am /path/to/upstream/relibc/0001-*.patch
+git push <your-fork> HEAD:aarch64-verify-no-abort
+```
+
+The relibc patch is based on `redox-os/relibc @ bcc1a0d4` (2026-06).
