@@ -1,9 +1,10 @@
 [source]
-# E-OS R-401b/R-401d: aarch64 FEAT_RNG (RNDR/RNDRRS) emulation + shared PCIe INTx IRQ fixes.
-# Downstream fork of redox-os/kernel @ 56947e1a. Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
+# E-OS R-401b/R-401d/R-401e: aarch64 FEAT_RNG (RNDR/RNDRRS) emulation + shared PCIe INTx IRQ
+# + sched_yield/signal-delivery x0-clobber fix. Downstream fork of redox-os/kernel @ 56947e1a.
+# Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
 git = "https://github.com/Gh0s777tt/eos-kernel.git"
 branch = "master"
-rev = "eefdf411e00a5d043c0eeba0a58ef1b35cfc90be"
+rev = "97ca1607d35d7ec22cb8fc03add57986b656341e"
 
 [build]
 template = "custom"

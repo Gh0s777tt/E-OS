@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `assets/screenshots/eos-aarch64-desktop.png`. Both x86_64 and aarch64 build from
   the same recipes and boot to the desktop.
 - `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
-  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `eefdf411`)
+  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `97ca1607`)
   and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `25d877fd`).
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
@@ -82,16 +82,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   does not treat its unreliable result as fatal on aarch64 (x86_64 keeps the strict
   check). Verified by binary disasm **and** boot: `whoami`/`uname`/`ls`/`env` all run with
   **zero aborts**. The deeper kernel bug (the first syscall after `exec` returns a stale
-  `x0` on aarch64) is the proper root fix — documented in `docs/known-issues.md` and
-  `upstream/` as a follow-up.
+  `x0` on aarch64) is now **fixed at the source in `[U-018]`** — and the real cause turned
+  out *not* to be a stale `x0` but a signal-vs-syscall-return ordering bug; this relibc
+  change is kept as harmless defense-in-depth.
+- `[U-018]` **`R-401e` — the aarch64 kernel root cause behind the `verify()` abort
+  (`[U-016]`), now fixed in the kernel.** The "first syscall after `exec` returns a stale
+  `x0`" diagnosis from the prior session was **wrong**. Real cause: `sched_yield` calls
+  `signal_handler` *inside* the `SYS_YIELD` syscall, **before** the aarch64 SVC handler
+  commits the syscall return to `scratch.x0`. On aarch64 *alone*, `sig_archdep_reg()` is
+  `scratch.x0` — which is **also** the syscall return register (x86/x86_64 use the flags
+  register, riscv64 a temporary `t0`). So a signal delivered to a context **during** its
+  yield saved the stale syscall *input* `x0` (`verify()`'s `YIELD` passes `!0` in every
+  arg) and `sigreturn` restored it over the real return (`0`) — the interrupted program
+  then saw `x0 = -1` and aborted. Only `fork`+`exec`'d processes with a signal pending
+  during their first yield were hit, which is exactly why shell-spawned `whoami` failed but
+  init-spawned daemons did not. **Fix** ([`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel)
+  `master` @ `97ca1607`, `core/kernel` recipe re-pinned): commit the yield's return (`0`)
+  into the frame **before** the signal check, `cfg`-scoped to aarch64 (the only arch where
+  `x0` is the return register). **Validated** by booting the fixed kernel on the
+  **unpatched-relibc** image — `whoami`/`uname`/`ls` all run with **0 aborts** (was 16/16) —
+  so the kernel fix alone is sufficient and the relibc `[U-016]`/`[U-017]` workaround is now
+  redundant (reverting `eos-relibc` to upstream strict `verify()` is a clean follow-up).
 
 ### Known
 - `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
   FDT is zeroed before the bootloader runs and AAVMF installs ACPI, not the DTB config
-  table; real device-tree hardware is unaffected). A deeper aarch64 **kernel** bug — the
-  first syscall after `exec` returns a stale `x0` — underlies the relibc `verify()` abort
-  fixed in `[U-016]`; the relibc workaround is in place, the root kernel fix is a
-  follow-up. The GitLab mirror is pending a fresh access token.
+  table; real device-tree hardware is unaffected). The GitLab mirror is pending a fresh
+  access token.
 
 ### Planned
 - See **[ROADMAP.md](ROADMAP.md)** for what's coming in `v0.2.0` and beyond.

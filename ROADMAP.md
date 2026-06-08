@@ -92,8 +92,9 @@ timeline
   the real bug was a 4-layer cascade starting with `randd` executing `RNDRRS`
   (FEAT_RNG / ARMv8.5) on a non-FEAT_RNG CPU. Fixed in the
   [`eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) + [`eos-base`](https://github.com/Gh0s777tt/eos-base)
-  forks: kernel RNDR/RNDRRS emulation (`R-401b`) + shared INTx IRQ (`R-401d`); base
-  nvmed INTx mode (`R-401c`). Recipes are pinned to the forks; clean upstream patches
+  forks: kernel RNDR/RNDRRS emulation (`R-401b`) + shared INTx IRQ (`R-401d`) + the
+  `sched_yield`/signal `x0`-clobber fix (`R-401e`, the kernel root cause behind the relibc
+  `verify()` abort); base nvmed INTx mode (`R-401c`). Recipes are pinned to the forks; clean upstream patches
   in [`upstream/`](upstream/README.md). Details: [docs/known-issues.md](docs/known-issues.md),
   issue [#2](https://github.com/Gh0s777tt/E-OS/issues/2) (closed).
 - ⏳ `R-402` Expanded hardware/driver coverage.

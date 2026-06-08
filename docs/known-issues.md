@@ -47,12 +47,6 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
 
 ### Remaining minor items (non-blocking)
 
-- **aarch64 kernel: the first syscall after `exec` returns a stale `x0`** (follow-up).
-  This is the *root* cause behind the relibc `verify()` abort resolved below — a freshly
-  `fork`+`exec`'d process's very first syscall returns its input register instead of the
-  kernel's result. relibc now tolerates it on aarch64, but the proper fix is in the kernel
-  (the aarch64 `exec`/`sigreturn`-to-entry transition or the syscall-return register
-  handling). Worth fixing because it could mask other first-call return bugs.
 - `netstack` / `audiod` exit on QEMU `virt` (no virtual net/audio device) — harmless.
 - The emulated `RNDR` entropy (R-401b) is a **boot stopgap**, *not* a strong CSPRNG
   seed. A real entropy source (interrupt-timing jitter / a hardware RNG) is the
@@ -84,9 +78,10 @@ fn verify() -> bool {
 }
 ```
 
-On aarch64 a freshly `fork`+`exec`'d process's **first** syscall returns a stale `-1`
-(the input `x0`, never overwritten by the kernel) instead of `YIELD`'s `0`. `verify()`
-reads `-1`, concludes "not Redox", and aborts. Confirmed two ways: NOP-ing the abort
+On aarch64, `verify()`'s `YIELD` returns a stale `-1` (the input `x0`) instead of `0`, so it
+concludes "not Redox" and aborts. (The kernel actually computes `0` correctly; the true root
+cause — a signal-vs-syscall-return race — is the kernel bug fixed in `R-401e` below.)
+Confirmed two ways: NOP-ing the abort
 branch in `libc.so` made `whoami`/`ls`/`env` work with zero crashes, and the fault
 symbolizes to the exact `brk #1` at `relibc_start_v1+0xf48` (a `handle_alloc_error`/abort
 landing pad reached from the `cmn w0,#0x84; b.cs` error check right after the yield `svc`).
@@ -97,7 +92,15 @@ treat its unreliable result as fatal on aarch64; **x86_64 keeps the strict check
 Verified by binary disasm + boot: `whoami`/`uname`/`ls`/`env` all run, zero aborts.
 Upstream-ready patch: [`upstream/relibc/`](../upstream/relibc/).
 
-**The real root fix (kernel, follow-up).** The relibc change is a workaround. The proper
-fix stops the first post-`exec` syscall from returning a stale `x0` on aarch64 — most
-likely in the kernel's aarch64 `exec`/`sigreturn`-to-entry transition or its syscall
-return-register handling. See *Remaining minor items* above.
+**The real root fix (kernel) — `R-401e`, RESOLVED 2026-06-08.** The relibc change above is a
+workaround; the kernel root cause is now fixed. It is *not* a "stale `x0` after `exec`": on
+aarch64, `sched_yield` calls `signal_handler` **inside** the `YIELD` syscall, *before* the
+SVC handler commits the return to `scratch.x0`, and aarch64 alone uses `scratch.x0` (the
+return register) as `sig_archdep_reg()` (x86/x86_64 use the flags register, riscv64 a
+temporary). So a signal delivered to a context during its yield saved the stale *input* `x0`
+and `sigreturn` restored it over the real return (`0`) — breaking the first
+signal-receiving `fork`+`exec` program (`whoami` was hit; init-spawned daemons were not).
+The kernel now commits the yield return **before** the signal check (`cfg`-scoped to
+aarch64), fixed in [`eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) `@ 97ca1607` and
+validated on the **unpatched-relibc** image (`whoami`/`uname`/`ls` run, 0 aborts). The
+relibc workaround is kept as harmless defense-in-depth.
