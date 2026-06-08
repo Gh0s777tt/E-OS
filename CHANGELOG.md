@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `assets/screenshots/eos-aarch64-desktop.png`. Both x86_64 and aarch64 build from
   the same recipes and boot to the desktop.
 - `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
-  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `97ca1607`)
+  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `35bdc7d3`)
   and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `25d877fd`).
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
@@ -58,7 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every daemon that seeds a HashMap panicked `failed to generate random data: ENODEV`
   → no boot. The original report blamed an upstream `redoxfs`/`PAGE_SIZE` memory bug;
   that was **wrong** — redoxfs was the *last* domino. **Fix:** the kernel now traps the
-  UNDEF and **emulates RNDR/RNDRRS** in the aarch64 synchronous-exception handler.
+  UNDEF and **emulates RNDR/RNDRRS** in the aarch64 synchronous-exception handler. The
+  emulation folds in real **CPU-jitter entropy** per read (CNTVCT timing deltas — the
+  jitterentropy technique — not a single-seed PRNG); `eos-kernel @ 35bdc7d3`,
+  `upstream/kernel/0004`.
 - `[U-012]` **`R-401c` — nvmed never received its PCIe interrupt on aarch64.** aarch64
   has **no MSI**; nvmed hard-coded `intx:false`, and INTx is only *routed* when Redox
   boots from a **device tree**, not ACPI. **Fix:** nvmed runs in **INTx mode** on

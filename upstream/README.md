@@ -15,9 +15,10 @@ patches fix them in the kernel and base (no relibc change is needed - see the no
 
 | Patch | Repo | What it fixes |
 |---|---|---|
-| `kernel/0001-...RNG.patch` | redox-os/kernel | **R-401b.** `randd` executes `mrs xN, RNDR/RNDRRS` (FEAT_RNG) unconditionally; on a CPU without FEAT_RNG this is an **UNDEF** (sync exception, EC=0) at EL0, killing `randd` -> the `rand:` scheme never starts -> every daemon that seeds a HashMap panics `failed to generate random data: ENODEV`. Adds `emulate_feat_rng()` to the aarch64 synchronous-exception handler: on an EC=0 fault it `ldtr`-reads the faulting instruction, and if it is `MRS Xt, RNDR/RNDRRS` supplies a value (splitmix64 seeded from CNTPCT) and skips the instruction. *NOTE: that PRNG is a stopgap so the system boots; a real entropy source (jitter / HW RNG) is the proper long-term fix.* |
+| `kernel/0001-...RNG.patch` | redox-os/kernel | **R-401b.** `randd` executes `mrs xN, RNDR/RNDRRS` (FEAT_RNG) unconditionally; on a CPU without FEAT_RNG this is an **UNDEF** (sync exception, EC=0) at EL0, killing `randd` -> the `rand:` scheme never starts -> every daemon that seeds a HashMap panics `failed to generate random data: ENODEV`. Adds `emulate_feat_rng()` to the aarch64 synchronous-exception handler: on an EC=0 fault it `ldtr`-reads the faulting instruction, and if it is `MRS Xt, RNDR/RNDRRS` supplies a value and skips the instruction. *NOTE: `0001` uses a splitmix64 stopgap; `0004` upgrades it to real CPU-jitter entropy (below). A hardware RNG remains the ideal.* |
 | `kernel/0002-...IRQ.patch` | redox-os/kernel | **R-401d.** `scheme/irq.rs` `open_phandle_irq` reserves GIC SPIs **exclusively** (`is_reserved`->`EEXIST`), but PCIe **INTx#** lines are *shared* across devices, so a second opener (e.g. `nvmed`) fails with `EEXIST`. `irq_trigger()` already fans an IRQ out to *every* handle registered for it, so sharing is safe - this drops the exclusive `EEXIST` gate. |
 | `kernel/0003-...sched_yield.patch` | redox-os/kernel | **R-401e.** On aarch64, `InterruptStack::sig_archdep_reg()` is `scratch.x0` - which is *also* the syscall return register (x86/x86_64 use the flags register, riscv64 a temporary `t0`). `sched_yield` runs `signal_handler` **inside** the `YIELD` syscall, *before* the SVC handler commits the return to `scratch.x0`; so a signal delivered to a context during its yield saved the stale syscall *input* `x0` and `sigreturn` restored it over the real return (`0`). The interrupted program then saw `x0 = -1`, which deterministically broke the first signal-receiving `fork`+`exec` program - e.g. relibc's `verify()` (`SYS_YIELD` with `!0` args) aborted every shell/desktop process. Commits the yield's return into the frame before the signal check, `cfg`-scoped to aarch64. |
+| `kernel/0004-...jitter.patch` | redox-os/kernel | **R-401b (entropy).** Upgrades the FEAT_RNG emulation from a single-seed splitmix64 PRNG to per-read **CPU-execution-timing jitter**: it samples CNTVCT_EL0 deltas across short data-dependent memory bursts (the jitterentropy/haveged technique) and folds them into a pool, with a Weyl-counter + splitmix64 finalizer backbone so output is always non-repeating and non-zero even under deterministic emulation (QEMU TCG). Materially stronger entropy on real non-FEAT_RNG hardware; still not a certified TRNG (a HW RNG remains ideal). |
 | `base/0001-...nvmed.patch` | redox-os/base | **R-401c (driver half).** `drivers/storage/nvmed` hard-codes `intx: false /* FIXME */` when starting its executor, even though on non-x86 `pci_allocate_interrupt_vector()` always returns a **Legacy/INTx** vector (there is no MSI on aarch64). INTx is level-triggered and must be EOI'd; treating it as edge/MSI hangs the driver. Sets `intx = cfg!(not(any(target_arch="x86", target_arch="x86_64")))`. |
 
 ## Boot-mode note (R-401c, the other half)
@@ -39,9 +40,9 @@ Redox develops on GitLab. For each repo, fork it on <https://gitlab.redox-os.org
 patch(es) with `git am`, and open a merge request:
 
 ```sh
-# kernel (R-401b + R-401d + R-401e)
+# kernel (R-401b + R-401d + R-401e + R-401b entropy)
 git clone https://gitlab.redox-os.org/redox-os/kernel.git && cd kernel
-git am /path/to/upstream/kernel/0001-*.patch /path/to/upstream/kernel/0002-*.patch /path/to/upstream/kernel/0003-*.patch
+git am /path/to/upstream/kernel/0001-*.patch /path/to/upstream/kernel/0002-*.patch /path/to/upstream/kernel/0003-*.patch /path/to/upstream/kernel/0004-*.patch
 git push <your-fork> HEAD:aarch64-fixes
 
 # base (R-401c)

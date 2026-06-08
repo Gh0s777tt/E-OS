@@ -48,9 +48,10 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
 ### Remaining minor items (non-blocking)
 
 - `netstack` / `audiod` exit on QEMU `virt` (no virtual net/audio device) — harmless.
-- The emulated `RNDR` entropy (R-401b) is a **boot stopgap**, *not* a strong CSPRNG
-  seed. A real entropy source (interrupt-timing jitter / a hardware RNG) is the
-  proper long-term fix.
+- The emulated `RNDR`/`RNDRRS` entropy (R-401b) now folds in real **CPU-execution-timing
+  jitter** (CNTVCT deltas across data-dependent work — the jitterentropy technique) on every
+  read, a genuine entropy source on real non-FEAT_RNG hardware. It is still not a certified
+  TRNG — a hardware RNG remains the ideal long-term source.
 
 ---
 
