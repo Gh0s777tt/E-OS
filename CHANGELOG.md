@@ -119,8 +119,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known
 - `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
   FDT is zeroed before the bootloader runs and AAVMF installs ACPI, not the DTB config
-  table; real device-tree hardware is unaffected). The GitLab mirror is pending a fresh
-  access token.
+  table; real device-tree hardware is unaffected). A concrete, code-grounded removal plan is
+  in [`docs/acpi-off-removal-plan.md`](docs/acpi-off-removal-plan.md) — **deferred** as
+  low-value (multi-subsystem ACPI `_PRT`/IRQ work with real regression risk, for QEMU-only
+  benefit). The GitLab mirror (`gitlab.com/Gh0s777tt/e-os`) is kept **in sync** with GitHub.
 
 ### Planned
 - See **[ROADMAP.md](ROADMAP.md)** for what's coming in `v0.2.0` and beyond.
