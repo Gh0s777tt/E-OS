@@ -102,5 +102,9 @@ and `sigreturn` restored it over the real return (`0`) — breaking the first
 signal-receiving `fork`+`exec` program (`whoami` was hit; init-spawned daemons were not).
 The kernel now commits the yield return **before** the signal check (`cfg`-scoped to
 aarch64), fixed in [`eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) `@ 97ca1607` and
-validated on the **unpatched-relibc** image (`whoami`/`uname`/`ls` run, 0 aborts). The
-relibc workaround is kept as harmless defense-in-depth.
+validated on the **unpatched-relibc** image (`whoami`/`uname`/`ls` run, 0 aborts). With the
+kernel fixed, relibc has been **reverted to strict upstream** (`core/relibc` re-pinned to
+`@ bcc1a0d4`); the production image was rebuilt with strict upstream relibc on the R-401e
+kernel and boots with 0 aborts (disasm confirms the strict `verify()` abort branch is present
+in the shipped `libc.so`, so it would abort 16/16 without the kernel fix). R-401e is the
+upstream contribution (`upstream/kernel/0003-*`); the relibc workaround patch is retired.

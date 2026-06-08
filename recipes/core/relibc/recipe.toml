@@ -1,11 +1,10 @@
 [source]
-# E-OS: aarch64 verify() fix. Sys::verify() issues SYS_YIELD and aborts on a
-# non-Ok result; a freshly fork+exec'd aarch64 process's first syscall returns a
-# stale -1, so this aborted every shell/desktop-spawned program. Downstream fork
-# of redox-os/relibc @ bcc1a0d4. Upstream: https://gitlab.redox-os.org/redox-os/relibc.git
-git = "https://github.com/Gh0s777tt/eos-relibc.git"
-branch = "eos"
-rev = "beb934749b4744616eaf1dc9a21768b6ceb7c0c3"
+# E-OS R-401e revert: the kernel sched_yield/signal x0 fix (eos-kernel @ 97ca1607) is the
+# proper root fix for the aarch64 verify() abort, so relibc is back on strict upstream.
+# Pinned to the same upstream base the (now-retired) eos-relibc verify() fork branched from.
+git = "https://gitlab.redox-os.org/redox-os/relibc.git"
+branch = "master"
+rev = "bcc1a0d43c44919d2e52c8cadcf8d335fd5e46f0"
 
 [build]
 template = "custom"

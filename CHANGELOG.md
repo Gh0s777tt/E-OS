@@ -37,11 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
-  `git am` patches (2 kernel, 1 base, 1 relibc) and a `gitlab.redox-os.org` merge-request guide.
-- `[U-017]` **Downstream relibc fork** carrying the aarch64 `verify()` fix —
-  [`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) (`eos` @ `beb93474`).
-  The `core/relibc` recipe is **pinned** to it (reproducible on a fresh clone); the
-  upstream-ready `git am` patch is in [`upstream/relibc/`](upstream/relibc/).
+  `git am` patches (3 kernel, 1 base) and a `gitlab.redox-os.org` merge-request guide.
+- `[U-017]` **Downstream relibc fork — RETIRED.** It briefly carried an aarch64 `verify()`
+  workaround, but `R-401e` (`[U-018]`) fixes the true cause in the **kernel**, so
+  `core/relibc` is back on **strict upstream relibc** (`@ bcc1a0d4`) and the fork is no
+  longer used. The upstream-ready fix is now the kernel patch `upstream/kernel/0003-*`.
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).
@@ -83,8 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   check). Verified by binary disasm **and** boot: `whoami`/`uname`/`ls`/`env` all run with
   **zero aborts**. The deeper kernel bug (the first syscall after `exec` returns a stale
   `x0` on aarch64) is now **fixed at the source in `[U-018]`** — and the real cause turned
-  out *not* to be a stale `x0` but a signal-vs-syscall-return ordering bug; this relibc
-  change is kept as harmless defense-in-depth.
+  out *not* to be a stale `x0` but a signal-vs-syscall-return ordering bug. With the kernel
+  fixed (`[U-018]`), relibc has been **reverted to strict upstream** (`@ bcc1a0d4`) — the
+  workaround is gone.
 - `[U-018]` **`R-401e` — the aarch64 kernel root cause behind the `verify()` abort
   (`[U-016]`), now fixed in the kernel.** The "first syscall after `exec` returns a stale
   `x0`" diagnosis from the prior session was **wrong**. Real cause: `sched_yield` calls
@@ -101,8 +102,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   into the frame **before** the signal check, `cfg`-scoped to aarch64 (the only arch where
   `x0` is the return register). **Validated** by booting the fixed kernel on the
   **unpatched-relibc** image — `whoami`/`uname`/`ls` all run with **0 aborts** (was 16/16) —
-  so the kernel fix alone is sufficient and the relibc `[U-016]`/`[U-017]` workaround is now
-  redundant (reverting `eos-relibc` to upstream strict `verify()` is a clean follow-up).
+  so the kernel fix alone is sufficient. The relibc `[U-016]`/`[U-017]` workaround has
+  accordingly been **reverted to strict upstream relibc** (`core/relibc` re-pinned to
+  `@ bcc1a0d4`), and R-401e added to `upstream/kernel/0003-*` (the relibc workaround patch
+  retired). Verified end-to-end: the rebuilt production image boots **strict** upstream relibc
+  on the R-401e kernel with **0 aborts** — disasm confirms the strict `verify()` abort branch
+  (`svc; cmn w0,#0x84; b.cs`) is present in the shipped `libc.so`, so it would abort 16/16
+  without the kernel fix.
 
 ### Known
 - `[U-015]` aarch64 requires **`-machine virt,acpi=off`** (a QEMU-virt-UEFI quirk — the
