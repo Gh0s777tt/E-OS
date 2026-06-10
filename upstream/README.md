@@ -36,8 +36,16 @@ fuller alternative would be GIC-ITS/MSI support in the kernel.)
 
 ## How to submit
 
-Redox develops on GitLab. For each repo, fork it on <https://gitlab.redox-os.org>, apply the
-patch(es) with `git am`, and open a merge request:
+Redox develops on GitLab. Fork `redox-os/{kernel,base,relibc}` on
+<https://gitlab.redox-os.org>, then either run the helper (clones, branches, `git am`s,
+optionally re-authors the commits under your name, and adds your fork remotes):
+
+```sh
+./upstream/prepare-mrs.sh <your-gitlab-username> [workdir] ["Your Name" you@example.com]
+# then push each printed branch and open the MR with the matching MR-DESCRIPTIONS.md section
+```
+
+…or do it by hand — for each repo, apply the patch(es) with `git am` and open a merge request:
 
 ```sh
 # kernel (R-401b + R-401d + R-401e + R-401b entropy)
