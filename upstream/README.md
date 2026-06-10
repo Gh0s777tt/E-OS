@@ -52,6 +52,9 @@ git push <your-fork> HEAD:aarch64-pci-intx
 ```
 
 Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d` (2026-06).
+Re-verified 2026-06-10: all kernel/base/relibc patches still `git am` cleanly onto current
+mainline `master` (kernel `56947e1a`, base `4581183c`, relibc `b390ee65` — relibc +48 commits
+since its base). Ready-to-paste MR descriptions are in [`MR-DESCRIPTIONS.md`](MR-DESCRIPTIONS.md).
 
 ---
 
