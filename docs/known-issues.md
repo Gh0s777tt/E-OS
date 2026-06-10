@@ -43,8 +43,8 @@ qemu-system-aarch64 -machine virt,acpi=off -cpu cortex-a72 -m 2048 -smp 4 \
 
 > ℹ️ **`-machine virt,acpi=off` is no longer required** (as of `R-401f` — pcid now routes PCIe
 > INTx from the ACPI `_PRT`). aarch64 boots under **both** ACPI (`-machine virt`) and device tree
-> (`-machine virt,acpi=off`); the device-tree path stays the cleaner default (under ACPI the
-> pre-existing intermittent `/usr/bin/background` wallpaper crash may appear — non-fatal). There is
+> (`-machine virt,acpi=off`); the device-tree path stays the cleaner default. (The wallpaper
+> crash once seen under ACPI was the relibc TLS bug below — fixed.) There is
 > no KVM for aarch64 on an x86 host, so QEMU runs under TCG and the boot is slow (minutes).
 
 ### Remaining minor items (non-blocking)
@@ -111,3 +111,41 @@ kernel fixed, relibc has been **reverted to strict upstream** (`core/relibc` re-
 kernel and boots with 0 aborts (disasm confirms the strict `verify()` abort branch is present
 in the shipped `libc.so`, so it would abort 16/16 without the kernel fix). R-401e is the
 upstream contribution (`upstream/kernel/0003-*`); the relibc workaround patch is retired.
+
+---
+
+## ✅ relibc TLS layout — every thread crashed on exit, BOTH arches (RESOLVED 2026-06-10, R-402a)
+
+The long-deferred "intermittent `/usr/bin/background` null-deref" was root-caused with a
+kernel-side fault-map dump: it is a **systemic relibc static-TLS bug** — every thread in a
+thread-spawning program crashed **on exit** (`relibc::pthread::exit_current_thread` walking
+the `CLEANUP_LL_HEAD` thread-local, which read garbage instead of NULL). ion background jobs
+reproduce it deterministically: **5/5 on aarch64, 3/3 on x86_64** (the x86_64 case was
+verified **pre-existing on unpatched upstream** relibc — it had simply never been exercised).
+
+Two distinct mechanisms, both masked for most workloads by lucky zeroed memory:
+
+- **aarch64/riscv64:** the linker stored x86-style end-relative `Master::offset`
+  (`cum+memsz`) which the non-x86 `copy_masters`/DTV paths consume start-relative — every
+  module's TLS image copied where nothing reads it (`.tdata` initializers silently zero) —
+  plus the static TLSDESC descriptor missing the 16-byte aarch64 TCB bias (all
+  dynamic-object TLS reads shifted −16, boundary variables reading the *neighbouring
+  module's* memory), the TPOFF reloc using the x86 negative form, and `__tlsdesc_dynamic`
+  subtracting the TCB pointer instead of TP (broken dlopen TLS).
+- **x86/x86_64:** the backwards placement used the **raw `p_memsz`** for the
+  distance-from-end while the static linker computes local-exec offsets from
+  **`align_up(p_memsz, p_align)`** — for `ion` (`memsz 0x2c8`, `align 0x10`) the `.tdata`
+  image landed 8 bytes above the local-exec plane, overlaying neighbouring thread-locals
+  with shifted initializer bytes; Rust std's thread-dtor list head read a shifted nonzero
+  constant and the std dtor walked a garbage list at thread exit (near-null fault at
+  `0x70`). The x86 static-TLSDESC descriptor also had a wrong sign (corrected, though no
+  current binary emits it).
+
+**Fix:** explicit per-arch offset conventions in the
+[`eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) fork, branch `eos-tls` `@ c17cde00`
+(one clean commit over upstream `bcc1a0d4`; `core/relibc` re-pinned): x86/x86_64 keep the
+backwards layout but with alignment-correct placement and a correctly signed TLSDESC;
+aarch64/riscv64 use forward, `p_align`-aligned start-based offsets with the aarch64 TCB bias
+in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** and
+**3/3 → 0 (x86_64)**; full production boots clean on both arches. Upstream has no fix on
+`master`; the upstream-ready patch is `upstream/relibc/0001-*`.

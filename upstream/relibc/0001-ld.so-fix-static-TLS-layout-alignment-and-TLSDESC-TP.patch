@@ -1,0 +1,218 @@
+From c17cde003295fa28ff4460f8a20347fde141f2d9 Mon Sep 17 00:00:00 2001
+From: E-OS <eos@eos>
+Date: Wed, 10 Jun 2026 10:21:51 +0200
+Subject: [PATCH] ld.so: fix static-TLS layout, alignment and TLSDESC/TPOFF
+ offsets
+
+The static-TLS machinery had several inconsistencies that made every
+exiting thread crash in thread-spawning programs on BOTH aarch64 and
+x86_64 (reproduced deterministically with shell background jobs on
+Redox: 5/5 aarch64, 3/3 x86_64). Both were masked for most workloads
+because the misplaced TLS bytes usually landed in zeroed memory.
+
+aarch64 (and riscv64) - x86 conventions in a forward-TLS world:
+- Master::offset was computed as cum + p_memsz (the x86 backwards
+  convention, distance from the END of the block), but the non-x86
+  branches of copy_masters/setup_dtv consume it as a START offset, so
+  every module's TLS image was copied p_memsz bytes beyond where it is
+  read. All .tdata initializers were silently never seen, and accesses
+  near module boundaries read the neighbouring module's data: relibc's
+  own CLEANUP_LL_HEAD (module offset 0) read the preceding module's
+  last qword, making pthread exit walk a garbage cleanup list and crash
+  with a near-null dereference on every thread exit.
+- The static TLSDESC descriptor (sym + tls_offset + addend) was missing
+  the aarch64 16-byte TCB bias (TP points 16 bytes below the TLS
+  block), shifting every dynamic-object TLS access by -16.
+- The TPOFF (initial/local-exec) relocation used the x86 negative
+  formula on all arches; on aarch64 it must be 16 + module_start +
+  value (riscv64: module_start + value, no bias).
+- The aarch64 __tlsdesc_dynamic resolver subtracted the TCB pointer
+  instead of TP (they only coincide on x86_64), breaking dlopen'd TLS.
+- STATIC_TCB_MASTER.offset displaced static executables' .tdata the
+  same way.
+
+x86_64 (and x86) - placement ignored PT_TLS alignment:
+- The static linker computes local-exec offsets as
+  -align_up(p_memsz, p_align) + off, but the module's distance-from-end
+  used the raw p_memsz. For an executable whose TLS size is not a
+  multiple of its alignment (e.g. ion: memsz 0x2c8, align 0x10), the
+  .tdata image was copied (align_up - memsz) bytes above the local-exec
+  plane, overlaying neighbouring thread-locals with shifted initializer
+  bytes. Rust std's thread-destructor list head then read a shifted
+  nonzero constant, and the std dtor walked a garbage list at thread
+  exit (page fault at 0x70, verified pre-existing on unpatched
+  upstream).
+- The static TLSDESC descriptor also added tls_offset where variant-2
+  TLS requires a negative offset from TP; no current binary emits
+  static TLSDESC on x86_64 (initial-exec/local-dynamic are used), but
+  the value is now correctly signed, mirroring TPOFF.
+
+Make the offset conventions explicit per arch: x86/x86_64 keep the
+backwards layout but use align_up(p_memsz, p_align) for the
+distance-from-end (and a correctly signed TLSDESC); aarch64/riscv64 use
+forward, p_align-aligned start-based offsets, with the aarch64 TCB bias
+applied in TLSDESC/TPOFF and the dynamic resolver subtracting TP.
+
+Verified on Redox (QEMU): the shell background-job repro goes from 5/5
+(aarch64) and 3/3 (x86_64) crashed exiting threads to 0 on both; full
+desktops boot on both arches; .tdata initializers land where they are
+read.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+---
+ src/ld_so/dso.rs    | 72 ++++++++++++++++++++++++++++++++++++++-------
+ src/ld_so/linker.rs |  9 +++++-
+ src/ld_so/mod.rs    | 10 ++++++-
+ 3 files changed, 78 insertions(+), 13 deletions(-)
+
+diff --git a/src/ld_so/dso.rs b/src/ld_so/dso.rs
+index 9c9778ce..2bd47e47 100644
+--- a/src/ld_so/dso.rs
++++ b/src/ld_so/dso.rs
+@@ -622,7 +622,26 @@ impl DSO {
+                         ptr,
+                         image_size: ph.p_filesz(endian) as usize,
+                         segment_size: ph.p_memsz(endian) as usize,
+-                        offset: tls_offset + ph.p_memsz(endian) as usize,
++                        // x86{_64}: backwards layout — `offset` is the distance from the END of
++                        // the static TLS block down to this module's data. The static linker
++                        // computes local-exec offsets as -align_up(memsz, p_align)+off, so the
++                        // distance must use the ALIGNED segment size: with the raw memsz the
++                        // image lands (align_up(memsz,align)-memsz) bytes above the LE plane,
++                        // overlaying neighbouring thread-locals with shifted initializers (e.g.
++                        // Rust std's thread-dtor list head reading garbage -> thread-exit crash).
++                        // aarch64/riscv64: forward layout — `offset` is the module's START offset
++                        // within the static TLS block, aligned to the segment's p_align. Reusing
++                        // the x86 end-relative convention here made `copy_masters` place images
++                        // `memsz` beyond where local-exec/TLSDESC accesses read them.
++                        offset: {
++                            let memsz = ph.p_memsz(endian) as usize;
++                            let align = (ph.p_align(endian) as usize).max(1);
++                            if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
++                                tls_offset + memsz.next_multiple_of(align)
++                            } else {
++                                tls_offset.next_multiple_of(align)
++                            }
++                        },
+                     });
+                     log::trace!("  tcb master {:x?}", tcb_master);
+                 }
+@@ -884,7 +903,25 @@ impl DSO {
+             })) as usize;
+         } else {
+             *resolver = __tlsdesc_static as *const () as usize;
+-            *descriptor = sym + tls_offset + reloc.addend.unwrap_or_default();
++            // The static resolver returns this value verbatim as the offset from TP.
++            //
++            // x86{_64} (variant 2, TP at the END of the static TLS block): the offset is
++            // NEGATIVE — (value + addend) minus the module's distance-from-end, mirroring
++            // the TPOFF relocation. The previous code added tls_offset instead, so every
++            // static TLSDESC access read ABOVE the TP, inside the TCB page (nonzero Tcb
++            // fields → e.g. pthread exit walking a garbage CLEANUP_LL_HEAD "list" →
++            // thread-exit crashes, observed deterministically with ion background jobs).
++            //
++            // aarch64 (variant 1, TP 16 bytes below the block start): positive offset,
++            // plus the 16-byte TCB bias, so the access lands where `copy_masters` placed
++            // the data.
++            *descriptor = if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
++                (sym + reloc.addend.unwrap_or_default()).wrapping_sub(tls_offset)
++            } else {
++                sym + tls_offset
++                    + reloc.addend.unwrap_or_default()
++                    + if cfg!(target_arch = "aarch64") { 16 } else { 0 }
++            };
+         }
+     }
+ 
+@@ -964,13 +1001,24 @@ impl DSO {
+                     "The {{local/initial}}-exec access model is used for symbol '{}' in '{}', which requires a static TLS block. However, the definition in '{}' resides in the dynamic TLS block because the object was loaded via dlopen(2).",
+                     reloc.sym, self.name, tls_obj.name
+                 );
+-                if reloc.sym.0 > 0 {
+-                    let (sym, _) = sym
+-                        .as_ref()
+-                        .expect("RelocationKind::TPOFF called without valid symbol");
+-                    set_usize((sym.value + a).wrapping_sub(tls_obj.tls_offset));
++                let sym_value = if reloc.sym.0 > 0 {
++                    sym.as_ref()
++                        .expect("RelocationKind::TPOFF called without valid symbol")
++                        .0
++                        .value
++                } else {
++                    0
++                };
++                // x86{_64}: TP sits at the END of the static TLS block; the offset is
++                // negative (value - distance_from_end). aarch64: TP is 16 bytes below the
++                // block start, so the offset is positive (16 + module_start + value).
++                // riscv64: TP is exactly at the block start (no bias).
++                if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
++                    set_usize((sym_value + a).wrapping_sub(tls_obj.tls_offset));
++                } else if cfg!(target_arch = "aarch64") {
++                    set_usize(16 + tls_obj.tls_offset + sym_value + a);
+                 } else {
+-                    set_usize(a.wrapping_sub(tls_obj.tls_offset));
++                    set_usize(tls_obj.tls_offset + sym_value + a);
+                 }
+             }
+             RelocationKind::IRELATIVE => unsafe {
+@@ -1253,11 +1301,13 @@ __tlsdesc_dynamic:
+     // x1 := tls_descriptor.addend
+     ldp x0, x1, [x0]
+ 
+-    mrs x2, tpidr_el0 // ABI ptr
+-    ldr x2, [x2] // TCB ptr
++    mrs x2, tpidr_el0 // ABI ptr (= TP)
+ 
+-    sub x1, x1, x2 // tls_descriptor.addend -= tcb
++    // The caller adds TP to our return value, so subtract TP itself — not the TCB
++    // pointer (on x86_64 TP and the TCB coincide; on aarch64 they do not).
++    sub x1, x1, x2 // tls_descriptor.addend -= tp
+ 
++    ldr x2, [x2] // TCB ptr
+     ldr x2, [x2, {DTV_PTR_OFF}] // tcb.dtv_ptr
+     ldr x2, [x2, x0, lsl #3] // tcb.dtv_ptr[tls_descriptor.module_id]
+     add x0, x2, x1 // tcb.dtv_ptr[tls_descriptor.module_id] + tls_descriptor.addend
+diff --git a/src/ld_so/linker.rs b/src/ld_so/linker.rs
+index 1e50ef4e..2f85973e 100644
+--- a/src/ld_so/linker.rs
++++ b/src/ld_so/linker.rs
+@@ -855,7 +855,14 @@ impl Linker {
+ 
+         if let Some(master) = tcb_master {
+             if !dlopened {
+-                self.tls_size = master.offset; // => aligned ph.p_memsz
++                // x86{_64}: master.offset already includes this module's memsz (backwards
++                // layout). aarch64/riscv64: master.offset is the module's start offset, so
++                // the running total must add the module's size.
++                self.tls_size = if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
++                    master.offset
++                } else {
++                    master.offset + master.segment_size
++                };
+             }
+ 
+             tcb_masters.push(master);
+diff --git a/src/ld_so/mod.rs b/src/ld_so/mod.rs
+index 750f2189..44d2e50c 100644
+--- a/src/ld_so/mod.rs
++++ b/src/ld_so/mod.rs
+@@ -113,7 +113,15 @@ fn static_init(
+             unsafe {
+                 STATIC_TCB_MASTER.ptr = p_vaddr as *const u8;
+                 STATIC_TCB_MASTER.image_size = p_filesz;
+-                STATIC_TCB_MASTER.offset = valign;
++                // x86{_64}: backwards layout, offset measured down from the block end.
++                // aarch64/riscv64: forward layout, the (only) module starts at offset 0 —
++                // matching the compiler's local-exec accesses at TP+16 (TP+0 on riscv64).
++                STATIC_TCB_MASTER.offset =
++                    if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
++                        valign
++                    } else {
++                        0
++                    };
+ 
+                 let tcb = Tcb::new(vsize).expect_notls("failed to allocate TCB");
+                 tcb.masters_ptr = ptr::addr_of_mut!(STATIC_TCB_MASTER);
+-- 
+2.53.0
+

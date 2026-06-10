@@ -1,10 +1,10 @@
 [source]
-# E-OS R-401e revert: the kernel sched_yield/signal x0 fix (eos-kernel @ 97ca1607) is the
-# proper root fix for the aarch64 verify() abort, so relibc is back on strict upstream.
-# Pinned to the same upstream base the (now-retired) eos-relibc verify() fork branched from.
-git = "https://gitlab.redox-os.org/redox-os/relibc.git"
-branch = "master"
-rev = "bcc1a0d43c44919d2e52c8cadcf8d335fd5e46f0"
+# E-OS R-402a: aarch64 static-TLS layout / TLSDESC / TPOFF fix (thread-exit crashes in any
+# thread-spawning program, displaced .tdata initializers, broken dlopen TLS). Downstream fork
+# of redox-os/relibc @ bcc1a0d4. Upstream: https://gitlab.redox-os.org/redox-os/relibc.git
+git = "https://github.com/Gh0s777tt/eos-relibc.git"
+branch = "eos-tls"
+rev = "c17cde003295fa28ff4460f8a20347fde141f2d9"
 
 [build]
 template = "custom"

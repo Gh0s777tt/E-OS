@@ -73,3 +73,40 @@ signal delivered during the in-flight `YIELD` clobbered the syscall return value
 aarch64 `sig_archdep_reg`/`x0` aliasing. With that kernel fix, the strict upstream `verify()`
 works unmodified - so **no relibc patch is needed**, and E-OS has reverted to strict upstream
 relibc. (The earlier relibc workaround patch has been retired in favour of the kernel fix.)
+
+---
+
+## relibc patch: static-TLS layout / TLSDESC / TPOFF fixes, aarch64 + x86_64 (R-402a)
+
+A second, unrelated relibc issue IS a real relibc bug — on **both** aarch64 and x86_64,
+**every thread crashed on exit** in thread-spawning programs (pthread exit walked the
+`CLEANUP_LL_HEAD` thread-local, which read garbage instead of NULL; reproduced
+deterministically with ion background jobs: 5/5 aarch64, 3/3 x86_64, the latter verified
+pre-existing on unpatched upstream).
+
+`relibc/0001-*.patch` fixes both mechanisms:
+
+- **aarch64/riscv64**: end-relative x86-style `Master::offset` consumed start-relative by
+  the non-x86 `copy_masters`/DTV paths (module images copied where nothing reads them —
+  `.tdata` initializers silently zero), static TLSDESC missing the aarch64 16-byte TCB
+  bias, x86-style negative TPOFF on all arches, and `__tlsdesc_dynamic` subtracting the
+  TCB pointer instead of TP (broken dlopen TLS).
+- **x86/x86_64**: module placement ignored PT_TLS **alignment** — the distance-from-end
+  used the raw `p_memsz` while the static linker computes local-exec offsets from
+  `align_up(p_memsz, p_align)`, so executables whose TLS size is not a multiple of its
+  alignment had their `.tdata` image copied above the local-exec plane, overlaying
+  neighbouring thread-locals with shifted initializer bytes (Rust std's thread-dtor list
+  head then walked a garbage list at thread exit). The static TLSDESC descriptor also had
+  a wrong sign (corrected; no current binary emits static TLSDESC on x86_64).
+
+Verified on Redox QEMU: both repros go to 0 crashed threads; full desktops boot; `.tdata`
+initializers land where they are read.
+
+```sh
+# relibc (R-402a)
+git clone https://gitlab.redox-os.org/redox-os/relibc.git && cd relibc
+git am /path/to/upstream/relibc/0001-*.patch
+git push <your-fork> HEAD:tls-layout-fixes
+```
+
+The relibc patch is based on `redox-os/relibc @ bcc1a0d4` (2026-06).

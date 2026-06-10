@@ -127,10 +127,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **before** pcid registers with acpid, to avoid a deadlock against acpid's AML-interpreter build.
   No kernel or acpid change. **Verified** on the production image: boots with **both** `-machine
   virt` (ACPI) **and** `-machine virt,acpi=off` (device tree) — `nvmed` initializes, redoxfs
-  mounts, login reached, `whoami`=`user` in both. (acpi=off boots clean; under ACPI the only
-  fault observed is the **pre-existing, non-fatal** `/usr/bin/background` wallpaper data-abort —
-  an intermittent relibc null-deref already deferred under *Known*, unrelated to R-401f — which
-  blocks neither the boot nor the shell. acpi=off remains the cleaner default.) **Cross-arch
+  mounts, login reached, `whoami`=`user` in both. (The `/usr/bin/background` data-abort
+  occasionally seen in these boots was a then-undiagnosed relibc TLS bug, unrelated to R-401f —
+  since root-caused and **fixed in `[U-020]`**.) **Cross-arch
   gate**: the `_PRT` routing is `cfg!`-gated to **non-x86** — on x86/x86_64 legacy INTx is routed
   by plain IRQ line (PIC/IOAPIC) and `irq:phandle-N` does not exist in non-`dtb` kernels, so those
   arches keep their existing path untouched (and pcid no longer risks triggering acpid's AML build
@@ -138,6 +137,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   login reached, 0 aborts, and zero `phandle`/`_PRT` activity in the boot log; aarch64 ACPI boot
   re-verified on the gated rev (`_PRT` routing resolves, nvmed up, login, `whoami`=`user`).
   Upstream: `upstream/base/0002` (single squashed patch, gate included).
+- `[U-020]` **`R-402a` — the "intermittent `/usr/bin/background` crash" was a systemic relibc
+  TLS-ABI bug on BOTH arches: every thread crashed on exit.** Hunted with a kernel-side fault-map dump
+  (`EOS-FAULT`/`EOS-MAP`): ion's background-job threads crashed **deterministically (5/5)** at the
+  same PC — symbolized to `relibc::pthread::exit_current_thread` walking `CLEANUP_LL_HEAD`, a
+  `#[thread_local]` that read garbage (`8`) instead of NULL. Root cause: relibc's static-TLS
+  machinery reused **x86 conventions on aarch64**, leaving three planes inconsistent — module
+  images copied at `cum+memsz` (end-relative `Master::offset`) while local-exec reads expect
+  `TP+16+offset`, TLSDESC descriptors missing the 16-byte TCB bias (every dynamic TLS access
+  shifted −16, boundary variables reading the *neighbouring module's* data), the TPOFF reloc using
+  the x86 negative form, `__tlsdesc_dynamic` subtracting the TCB pointer instead of TP (broken
+  dlopen TLS), and static binaries' `.tdata` displaced the same way (initializers silently read
+  as zeros). "Intermittent" was an illusion: only thread-spawning programs (ion jobs, the
+  wallpaper renderer) hit thread-exit, deterministically per build. **The same repro then exposed
+  x86_64** — 3/3 ion job threads crashed with a near-null fault at `0x70`, **baseline-verified
+  pre-existing on strict unpatched upstream** (no prior x86_64 test had ever spawned `&` jobs).
+  Probing it the same way (memory-map dump → symbolization → ld.so module-table trace →
+  pthread-key trace) pinned a *different* mechanism: relibc's backwards x86 placement used the
+  **raw `p_memsz`** for the distance-from-end while the static linker computes local-exec offsets
+  from **`align_up(p_memsz, p_align)`** — for ion (`memsz 0x2c8`, `align 0x10`) the `.tdata` image
+  lands 8 bytes above the local-exec plane, overlaying neighbouring thread-locals with shifted
+  initializer bytes; Rust std's thread-dtor list head read a shifted nonzero constant and the std
+  dtor walked a garbage list at thread exit. (The x86 static-TLSDESC descriptor also had a wrong
+  sign — corrected too, though no current binary emits it.) **Fix**
+  ([`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) branch `eos-tls`
+  `@ c17cde00`, one clean commit over upstream `bcc1a0d4`, `core/relibc` re-pinned): explicit
+  per-arch offset conventions — x86/x86_64 keep the backwards layout but with **alignment-correct
+  placement** and a correctly signed TLSDESC; aarch64/riscv64 use forward, `p_align`-aligned
+  start-based offsets with the aarch64 TCB bias in TLSDESC/TPOFF, and the dynamic resolver
+  subtracts TP. **Verified**: the ion job repro goes **5/5 → 0 (aarch64)** and **3/3 → 0
+  (x86_64)**; full production boots on both arches stay clean. Upstream has no fix for this
+  (checked `master`); upstream-ready patch in `upstream/relibc/0001-*`. Upstream bug-fix patch
+  count is now **4 kernel + 2 base + 1 relibc**.
 
 ### Known
 - `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree
