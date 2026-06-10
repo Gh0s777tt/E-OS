@@ -99,8 +99,12 @@ timeline
   is no longer required (`R-401f`). Recipes are pinned to the forks; clean upstream patches
   in [`upstream/`](upstream/README.md). Details: [docs/known-issues.md](docs/known-issues.md),
   issue [#2](https://github.com/Gh0s777tt/E-OS/issues/2) (closed).
-- ⏳ `R-402` Expanded hardware/driver coverage.
-- 💡 `R-403` Real-hardware test matrix.
+- ⏳ `R-402` Expanded hardware/driver coverage. *(Note: `R-402a` — a relibc static-TLS
+  bug that crashed every thread on exit on both arches — is **resolved**; see
+  [docs/known-issues.md](docs/known-issues.md).)*
+- 💡 `R-403` Real-hardware test matrix. Starting map of what carries over from QEMU and
+  what does not: [docs/hardware-bringup.md](docs/hardware-bringup.md) (forward-looking;
+  nothing hardware-tested yet).
 
 ---
 

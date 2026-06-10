@@ -31,11 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-machine virt,acpi=off`); it previously died at early boot. Screenshot
   `assets/screenshots/eos-aarch64-desktop.png`. Both x86_64 and aarch64 build from
   the same recipes and boot to the desktop.
-- `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
-  [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `35bdc7d3`)
-  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `6c695a10`).
-  The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
-  fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
+- `[U-009]` **Downstream kernel/base/relibc forks** carrying the aarch64 (and one
+  cross-arch relibc) fixes — [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel)
+  (`master` @ `35bdc7d3`), [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base)
+  (`main` @ `6c695a10`), and [`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc)
+  (`eos-tls` @ `c17cde00`). The `core/kernel` + `core/base` + `core/relibc` recipes are
+  **pinned** to them. Reproducibility **empirically verified** (2026-06-10): a forced clean
+  re-fetch of all three forks (`u.*` to delete the cached sources, the state of a fresh clone)
+  re-cooked straight from the GitHub origins and rebuilt an aarch64 image that boots to login
+  with 0 aborts — plus an x86_64 regression build.
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
   `git am` patches (4 kernel, 2 base) and a `gitlab.redox-os.org` merge-request guide.
 - `[U-017]` **Downstream relibc fork — RETIRED.** It briefly carried an aarch64 `verify()`
