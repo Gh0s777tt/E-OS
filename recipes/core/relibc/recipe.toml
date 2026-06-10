@@ -4,7 +4,7 @@
 # of redox-os/relibc @ bcc1a0d4. Upstream: https://gitlab.redox-os.org/redox-os/relibc.git
 git = "https://github.com/Gh0s777tt/eos-relibc.git"
 branch = "eos-tls"
-rev = "c17cde003295fa28ff4460f8a20347fde141f2d9"
+rev = "0d30e9ea0e1e5344c66b4d05f86564cf1b83fe52"
 
 [build]
 template = "custom"

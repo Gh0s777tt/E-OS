@@ -142,10 +142,11 @@ Two distinct mechanisms, both masked for most workloads by lucky zeroed memory:
   current binary emits it).
 
 **Fix:** explicit per-arch offset conventions in the
-[`eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) fork, branch `eos-tls` `@ c17cde00`
+[`eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) fork, branch `eos-tls` `@ 0d30e9ea`
 (one clean commit over upstream `bcc1a0d4`; `core/relibc` re-pinned): x86/x86_64 keep the
 backwards layout but with alignment-correct placement and a correctly signed TLSDESC;
 aarch64/riscv64 use forward, `p_align`-aligned start-based offsets with the aarch64 TCB bias
 in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** and
 **3/3 → 0 (x86_64)**; full production boots clean on both arches. Upstream has no fix on
-`master`; the upstream-ready patch is `upstream/relibc/0001-*`.
+`master`; the upstream-ready patch is `upstream/relibc/0001-*` and includes a regression test
+(`tests/pthread/tls_initexit.c`) covering both failure modes.

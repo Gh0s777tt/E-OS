@@ -35,13 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cross-arch relibc) fixes — [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel)
   (`master` @ `35bdc7d3`), [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base)
   (`main` @ `6c695a10`), and [`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc)
-  (`eos-tls` @ `c17cde00`). The `core/kernel` + `core/base` + `core/relibc` recipes are
+  (`eos-tls` @ `0d30e9ea`). The `core/kernel` + `core/base` + `core/relibc` recipes are
   **pinned** to them. Reproducibility **empirically verified** (2026-06-10): a forced clean
   re-fetch of all three forks (`u.*` to delete the cached sources, the state of a fresh clone)
   re-cooked straight from the GitHub origins and rebuilt an aarch64 image that boots to login
   with 0 aborts — plus an x86_64 regression build.
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
-  `git am` patches (4 kernel, 2 base) and a `gitlab.redox-os.org` merge-request guide.
+  `git am` patches (4 kernel, 2 base, 1 relibc) and a `gitlab.redox-os.org` merge-request
+  guide, plus `upstream/MR-DESCRIPTIONS.md` (paste-ready MR titles/bodies). All seven
+  re-verified to `git am` cleanly onto current mainline (2026-06-10).
 - `[U-017]` **Downstream relibc fork — RETIRED.** It briefly carried an aarch64 `verify()`
   workaround, but `R-401e` (`[U-018]`) fixes the true cause in the **kernel**, so
   `core/relibc` is back on **strict upstream relibc** (`@ bcc1a0d4`) and the fork is no
@@ -165,14 +167,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dtor walked a garbage list at thread exit. (The x86 static-TLSDESC descriptor also had a wrong
   sign — corrected too, though no current binary emits it.) **Fix**
   ([`Gh0s777tt/eos-relibc`](https://github.com/Gh0s777tt/eos-relibc) branch `eos-tls`
-  `@ c17cde00`, one clean commit over upstream `bcc1a0d4`, `core/relibc` re-pinned): explicit
+  `@ 0d30e9ea`, one clean commit over upstream `bcc1a0d4`, `core/relibc` re-pinned): explicit
   per-arch offset conventions — x86/x86_64 keep the backwards layout but with **alignment-correct
   placement** and a correctly signed TLSDESC; aarch64/riscv64 use forward, `p_align`-aligned
   start-based offsets with the aarch64 TCB bias in TLSDESC/TPOFF, and the dynamic resolver
   subtracts TP. **Verified**: the ion job repro goes **5/5 → 0 (aarch64)** and **3/3 → 0
   (x86_64)**; full production boots on both arches stay clean. Upstream has no fix for this
-  (checked `master`); upstream-ready patch in `upstream/relibc/0001-*`. Upstream bug-fix patch
-  count is now **4 kernel + 2 base + 1 relibc**.
+  (checked `master`); upstream-ready patch in `upstream/relibc/0001-*`. The patch also adds a
+  **regression test** (`tests/pthread/tls_initexit.c`, registered in the relibc suite) that
+  exercises both failure modes — thread-local `.tdata` initializers read by spawned threads,
+  and a clean thread exit (the cleanup-stack/destructor walks over the TLS block) — so this
+  can never silently come back. Upstream bug-fix patch count is now **4 kernel + 2 base + 1
+  relibc**.
 
 ### Known
 - `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree

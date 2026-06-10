@@ -103,7 +103,9 @@ pre-existing on unpatched upstream).
   a wrong sign (corrected; no current binary emits static TLSDESC on x86_64).
 
 Verified on Redox QEMU: both repros go to 0 crashed threads; full desktops boot; `.tdata`
-initializers land where they are read.
+initializers land where they are read. The patch also adds `tests/pthread/tls_initexit.c`
+(registered in the suite), a regression test exercising both failure modes (a correct libc
+passes; the bug fails an initializer assert or crashes on thread exit).
 
 ```sh
 # relibc (R-402a)

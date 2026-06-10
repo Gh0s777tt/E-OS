@@ -204,7 +204,9 @@ resolver subtracting TP.
 
 Verified on Redox QEMU: the background-job repro goes from 5/5 (aarch64) and
 3/3 (x86_64) crashed exiting threads to 0 on both; full desktops boot on both
-arches; .tdata initializers now land where they are read.
+arches; .tdata initializers now land where they are read. The patch also adds
+tests/pthread/tls_initexit.c, a regression test (registered in the suite) that
+exercises both failure modes so this cannot silently regress.
 ```
 
 ### Apply
