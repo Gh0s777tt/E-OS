@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same recipes and boot to the desktop.
 - `[U-009]` **Downstream kernel/base forks** carrying the aarch64 fixes —
   [`Gh0s777tt/eos-kernel`](https://github.com/Gh0s777tt/eos-kernel) (`master` @ `35bdc7d3`)
-  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `bff3e966`).
+  and [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) (`main` @ `6c695a10`).
   The `core/kernel` + `core/base` recipes are **pinned** to them (reproducible on a
   fresh clone; verified by re-cooking from the fork and an x86_64 regression build).
 - `[U-010]` **Upstream-ready patches + submission guide** — `upstream/` holds clean
@@ -119,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   boot, `pcid` got the ECAM from MCFG but **no PCIe interrupt-map** (that only exists under a
   device tree), so it could not route legacy **INTx** — `nvmed` hung waiting for its IRQ, which is
   exactly why aarch64 had to force a device-tree boot with `acpi=off`. **Fix** (pcid-only;
-  [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) `@ bff3e966`): pcid reads
+  [`Gh0s777tt/eos-base`](https://github.com/Gh0s777tt/eos-base) `@ 6c695a10`): pcid reads
   `\_SB.PCIx._PRT` from acpid's `acpi:/symbols`, resolves each entry's PCI interrupt link device
   (`_SB.Lxxx`) to its GSI via the link's `_CRS` (Extended-Interrupt descriptor), and routes it to
   the matching **GIC SPI** by opening `irq:phandle-0` (phandle 0 = the MADT-registered GIC; aarch64
@@ -130,8 +130,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   mounts, login reached, `whoami`=`user` in both. (acpi=off boots clean; under ACPI the only
   fault observed is the **pre-existing, non-fatal** `/usr/bin/background` wallpaper data-abort —
   an intermittent relibc null-deref already deferred under *Known*, unrelated to R-401f — which
-  blocks neither the boot nor the shell. acpi=off remains the cleaner default.) Upstream:
-  `upstream/base/0002`.
+  blocks neither the boot nor the shell. acpi=off remains the cleaner default.) **Cross-arch
+  gate**: the `_PRT` routing is `cfg!`-gated to **non-x86** — on x86/x86_64 legacy INTx is routed
+  by plain IRQ line (PIC/IOAPIC) and `irq:phandle-N` does not exist in non-`dtb` kernels, so those
+  arches keep their existing path untouched (and pcid no longer risks triggering acpid's AML build
+  before registering its `pci_fd`). **x86_64 non-regression verified** with the new base under KVM:
+  login reached, 0 aborts, and zero `phandle`/`_PRT` activity in the boot log; aarch64 ACPI boot
+  re-verified on the gated rev (`_PRT` routing resolves, nvmed up, login, `whoami`=`user`).
+  Upstream: `upstream/base/0002` (single squashed patch, gate included).
 
 ### Known
 - `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree
