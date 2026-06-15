@@ -857,7 +857,7 @@ dependencies = [
 [[package]]
 name = "redox-pkg"
 version = "0.3.1"
-source = "git+https://gitlab.redox-os.org/redox-os/pkgutils.git#209d1edddd46fdc4a9fc06036ffc05ef6e5ce86a"
+source = "git+https://gitlab.redox-os.org/redox-os/pkgutils.git#2228da8c67d2d36be5b8392d93e294bbea96cc01"
 dependencies = [
  "hex",
  "serde",
