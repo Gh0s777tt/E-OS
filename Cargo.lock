@@ -895,7 +895,7 @@ dependencies = [
 [[package]]
 name = "redox_installer"
 version = "0.2.42"
-source = "git+https://gitlab.redox-os.org/redox-os/installer.git#1c2534e44c68ace0a21db2a1bc9503945a38c809"
+source = "git+https://gitlab.redox-os.org/redox-os/installer.git#142b2d639e3b99d16f6749859034756371a851cc"
 dependencies = [
  "anyhow",
  "arg_parser",
