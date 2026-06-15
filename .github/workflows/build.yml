@@ -62,7 +62,7 @@ jobs:
           echo "E-OS Bootloader: $(strings "$IMG" | grep -c 'E-OS Bootloader')"
           echo "redox login:    $(strings "$IMG" | grep -c 'redox login:')"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eos-${{ inputs.arch }}-harddrive
