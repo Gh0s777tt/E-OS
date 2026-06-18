@@ -7,14 +7,17 @@
 - [Install](install.md)
 - [Packages](packages.md)
 - [Architecture](architecture.md)
+- [Hardware support](hardware-matrix.md)
+- [Hardware bring-up (aarch64)](hardware-bringup.md)
 - [Known issues](known-issues.md)
 - [FAQ](faq.md)
 
 # Building
 
 - [Build from source](building.md)
+- [Troubleshooting](build-troubleshooting.md)
 
-# Security
+# Stability
 
 - [Stability policy](stability.md)
 
