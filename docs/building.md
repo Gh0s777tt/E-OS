@@ -70,3 +70,8 @@ make qemu gpu=no kvm=yes      # serial console; Ctrl-A X to quit QEMU
 
 A healthy boot shows: `Redox OS Bootloader` → `RedoxFS … MiB` → kernel →
 `init: switchroot` → driver spawns → `login:`.
+
+## Troubleshooting
+
+Hit a build error (e.g. `Package "ncursesw" not found`) or want to smoke-test the
+image under QEMU? See **[build-troubleshooting.md](build-troubleshooting.md)**.
