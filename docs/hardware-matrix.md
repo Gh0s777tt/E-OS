@@ -37,6 +37,7 @@
 |---|---|---|---|
 | virtio-net (transitional) | `1af4:1000` | `virtio-netd` | ✅ **Verified** — bound, MAC read |
 | Intel e1000 | `8086:1004/100e/100f/109a/1503` | `e1000d` | ▫ Present |
+| Intel e1000e (82574L) — **default q35 NIC** | `8086:10d3` | `e1000d` (via E-OS overlay) | ✅ **Verified** — bound + initialised from the built eos image |
 | Intel 10GbE (ixgbe) | `8086:` 82598/82599/X5xx | `ixgbed` | ▫ Present |
 | Realtek RTL8139 / RTL8168/9 | `10ec:8139` / `10ec:8168/8169` | `rtl8139d` / `rtl8168d` | ▫ Present |
 
@@ -68,16 +69,18 @@ network. NVMe + AHCI storage and Intel-HDA audio are verified too.
 
 ---
 
+## Fixed in this work
+
+- **`e1000e` (`8086:10d3`) — the default q35 NIC — now works.** It used to enumerate
+  but bind no driver. The 82574L is register-compatible with `e1000d`; once its id is
+  mapped, `e1000d` binds and initialises it (BARs + IRQ). Shipped as the
+  `/usr/lib/pcid.d/e1000e.toml` overlay in `config/x86_64/eos.toml`. **Verified
+  end-to-end** by booting the freshly-built eos image with `qemu -device e1000e`.
+
 ## Verified gaps (R-402 next targets)
 
-1. **`e1000e` (`8086:10d3`) — the _default q35 NIC_ — is unsupported.** Verified: the
-   device enumerates on the PCI bus but **no driver binds** to it (no `pcid` spawn).
-   `e1000d` maps only the older `e1000` family (`…:100e` etc.), not the 82574-class
-   `e1000e`. Anyone using QEMU/q35's default networking gets **no NIC**. Highest-value
-   real gap; check whether upstream `redox-os/drivers/net` has an `e1000e` path or
-   whether `e1000d` can be extended.
-2. **Wi-Fi / Bluetooth** — unsupported upstream; large, out of near-term scope.
-3. **Modern-only virtio device IDs** (`1af4:1040+`). The `pcid` maps cover only the
+1. **Wi-Fi / Bluetooth** — unsupported upstream; large, out of near-term scope.
+2. **Modern-only virtio device IDs** (`1af4:1040+`). The `pcid` maps cover only the
    *transitional* IDs. Transitional virtio (QEMU's and most clouds' default) works
    fully; a pure-modern presentation (`virtio-*-pci-non-transitional`) would not be
    matched. Lower priority since transitional is the common case. *(Tested: adding a
