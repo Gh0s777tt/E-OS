@@ -66,3 +66,20 @@ postinstall = true
 data = """
 Welcome to E-OS - forged in Rust.  https://github.com/Gh0s777tt/E-OS
 """
+
+# ───────────────────────────  E-OS R-402: e1000e NIC  ───────────────────────────
+# QEMU's default q35 NIC is the Intel 82574L (e1000e, 8086:10D3), which the stock
+# e1000d pcid map does not claim -- so default-q35 networking binds no driver.
+# Verified 2026-06-18 (live boot): with this id mapped, e1000d binds and initialises
+# the 82574L (BARs + IRQ). Shipped as a /usr/lib/pcid.d overlay so it survives a
+# drivers-package refresh.
+[[files]]
+path = "/usr/lib/pcid.d/e1000e.toml"
+postinstall = true
+data = """
+[[drivers]]
+name = "Intel e1000e (82574L)"
+class = 0x02
+ids = { 0x8086 = [0x10D3] }
+command = ["e1000d"]
+"""
