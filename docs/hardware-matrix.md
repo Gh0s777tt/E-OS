@@ -1,4 +1,4 @@
-# 🧩 E-OS hardware & driver support matrix (x86_64)
+# 🧩 E-OS hardware & driver support matrix (x86_64 + aarch64)
 
 > **Verified 2026-06-18** against the built E-OS x86_64 image
 > (`build/x86_64/desktop/harddrive.img`, Redox base `84d78137`, drivers `20ffe4d`).
@@ -67,6 +67,27 @@
 **Takeaway:** the full **virtio** set — `virtio-blk`, `virtio-gpu`, `virtio-net` —
 binds and works, so E-OS runs as a virtio (KVM/cloud) guest with disk, display and
 network. NVMe + AHCI storage and Intel-HDA audio are verified too.
+
+(The tables above are **x86_64** on QEMU `q35` with KVM.)
+
+---
+
+## aarch64 (QEMU `virt`, `-cpu cortex-a72`)
+
+The prebuilt aarch64 eos image **boots to `eos login:`** (verified 2026-06-18, ACPI
+path). Drivers observed binding:
+
+| Device | PCI ID | Driver | Status |
+|---|---|---|---|
+| NVMe (PCIe) | `1b36:0010` | `nvmed` | ✅ **Verified** — model + capacity read; RedoxFS root mounted (697 MiB) |
+| Intel e1000 | `8086:100e` | `e1000d` | ✅ **Verified** — bound (GIC SPI IRQ via FDT) |
+| xHCI (USB) | `1b36:000d` | `xhcid` | ✅ **Verified** — bound |
+| ACPI `_PRT` INTx routing | — | `pcid` | ✅ **128 entries resolved** (validates **R-401f**; `acpi=off` no longer needed) |
+
+> aarch64 has **no KVM** on an x86_64 host, so it runs under **TCG (software, slow)**.
+> `-cpu max` is too slow to reach login in a sane window — use **`-cpu cortex-a72`**
+> (also a faithful non-FEAT_RNG proxy for the R-401b RNG work). Audio (HDA) and
+> virtio/GPU were not attached in this run.
 
 ---
 
