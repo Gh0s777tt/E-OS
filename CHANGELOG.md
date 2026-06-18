@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workaround, but `R-401e` (`[U-018]`) fixes the true cause in the **kernel**, so
   `core/relibc` is back on **strict upstream relibc** (`@ bcc1a0d4`) and the fork is no
   longer used. The upstream-ready fix is now the kernel patch `upstream/kernel/0003-*`.
+- `[U-021]` **Hardware support matrix** — `docs/hardware-matrix.md` records the driver
+  coverage verified by live QEMU boots on **x86_64** (q35/KVM) and **aarch64** (`virt`,
+  `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
+  `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
+  kitchen-sink boot.
+- `[U-022]` **`docs/build-troubleshooting.md`** — fix for the `make CONFIG_NAME=eos all`
+  "Package `ncursesw` not found" failure (cook `r.terminfo` + deps first; `terminfo` has
+  no `source_info.toml` under `REPO_BINARY`, so the resolver marks it and its dependent
+  `ncursesw` outdated and never publishes them), plus the headless-QEMU smoke-test recipe.
 
 ### Changed
 - `[U-003]` Documentation expanded under `docs/` (architecture, building, security, FAQ).
@@ -179,6 +188,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a clean thread exit (the cleanup-stack/destructor walks over the TLS block) — so this
   can never silently come back. Upstream bug-fix patch count is now **4 kernel + 2 base + 1
   relibc**.
+- `[U-023]` **e1000e — the default `q35` NIC — now binds.** QEMU's `q35` default NIC is
+  the Intel 82574L (`8086:10d3`); the stock `e1000d` PCI map omitted it, so default-q35
+  networking bound no driver. `e1000d` is register-compatible with the 82574L, so a
+  `/usr/lib/pcid.d/e1000e.toml` overlay (`config/x86_64/eos.toml`) makes it bind and
+  initialise the card — verified end-to-end on the built eos image (`qemu -device e1000e`).
+- `[U-024]` **Restored license files.** `LICENSE` (AGPL-3.0) + `licenses/Redox-OS-MIT.txt`
+  on the meta repo and `LICENSE` (MIT) on the six `eos-*` forks had been removed; restored
+  from git history so AGPL-3.0 distribution and Redox's MIT attribution are intact again.
 
 ### Known
 - `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree
