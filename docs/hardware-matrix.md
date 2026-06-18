@@ -125,5 +125,6 @@ This revision reflects that verified ground truth.
 
 *Method: built image inspected via `redoxfs` FUSE (root fs) and live boots via
 `qemu-system-x86_64 -machine q35 -enable-kvm` (headless, serial captured). PCI
-enumeration and driver spawns read from the boot log. Regenerate when the pinned
-forks or driver set change.*
+enumeration and driver spawns read from the boot log. **Regenerate with
+[`scripts/qemu-driver-check.sh`](../scripts/qemu-driver-check.sh) `[x86_64|aarch64]`** —
+a single kitchen-sink boot exercises every device model and prints which drivers bind.*
