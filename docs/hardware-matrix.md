@@ -1,56 +1,58 @@
 # 🧩 E-OS hardware & driver support matrix (x86_64)
 
-> **Generated 2026-06-18** from the built E-OS x86_64 image
-> (`build/x86_64/desktop/harddrive.img`): the on-disk PCI→driver map
-> (`/usr/lib/pcid.d/*.toml`) plus the installed driver binaries
-> (`/usr/lib/drivers/`), cross-checked with a live QEMU/KVM boot.
+> **Verified 2026-06-18** against the built E-OS x86_64 image
+> (`build/x86_64/desktop/harddrive.img`, Redox base `84d78137`, drivers `20ffe4d`).
 >
-> E-OS drivers are **user-space processes** (microkernel); the `pcid` daemon
-> matches PCI devices to a driver by class / vendor / device ID.
+> E-OS drivers are **user-space processes** (microkernel). They live in **two**
+> places, which matters for reading this table:
+> * the boot **`initfs`** — storage, GPU, input and other early-boot drivers
+>   (`nvmed`, `ahcid`, `ided`, `virtio-blkd`, `virtio-gpud`, `ps2d`, `vesad`, …);
+> * the root filesystem **`/usr/lib/drivers`** — secondary / hot-plug drivers,
+>   mapped by `/usr/lib/pcid.d/*.toml`.
 >
-> **Status legend** — **✅ Verified**: observed binding in a headless QEMU boot on
-> this date. **▫ Present**: the driver binary + PCI mapping ship in the image but
-> were not separately re-verified here. Storage and input drivers live in the boot
-> `initfs`, not in `/usr/lib/drivers`.
-
-## Networking
-
-| Device | PCI ID(s) | Driver | Status |
-|---|---|---|---|
-| Intel e1000 | `8086:1004/100e/100f/109a/1503` | `e1000d` | ▫ Present (QEMU's default NIC) |
-| Intel 10GbE (ixgbe) | `8086:` 82598/82599/X5xx family | `ixgbed` | ▫ Present |
-| Realtek RTL8139 | `10ec:8139` | `rtl8139d` | ▫ Present |
-| Realtek RTL8168/8169 | `10ec:8168/8169` | `rtl8168d` | ▫ Present |
-| virtio-net (transitional) | `1af4:1000` | `virtio-netd` | ✅ **Verified** — bound, MAC `52:54:00:12:34:56` read |
+> **Status** — ✅ **Verified**: observed binding in a live headless QEMU/KVM boot on
+> this date. ▫ **Present**: driver ships + is mapped, not separately re-verified here.
 
 ## Storage
 
-| Device | Driver | Status |
-|---|---|---|
-| NVMe | `nvmed` (initfs) | ✅ **Verified** — root filesystem booted from NVMe |
-| AHCI / SATA | `ahcid` (initfs) | ▫ Present (Redox base boot driver) |
-| USB mass-storage | `usbscsid` | ▫ Present |
+| Device | PCI ID | Driver (initfs) | Status |
+|---|---|---|---|
+| NVMe | `1b36:0010` | `nvmed` | ✅ **Verified** — root booted from NVMe |
+| virtio-blk | `1af4:1001` | `virtio-blkd` | ✅ **Verified** — bound, read disk geometry (2 097 152 sectors × 512 B) |
+| AHCI / SATA | class `01:06` | `ahcid` | ✅ **Verified** — spawned on the q35 AHCI controller |
+| IDE | class `01:01` | `ided` | ▫ Present |
+| USB mass-storage | — | `usbscsid` | ▫ Present |
+
+## Graphics
+
+| Device | PCI ID | Driver | Status |
+|---|---|---|---|
+| virtio-gpu | `1af4:1050` | `virtio-gpud` (initfs) | ✅ **Verified** — bound, set up display 0 (1280×800) |
+| Intel HD Graphics | `8086:` Kaby/Comet/Tiger Lake + Arc | `ihdgd` | ▫ Present (real Intel iGPU/dGPU) |
+| Firmware framebuffer | UEFI GOP | `vesad` + `fbcond` | ▫ Present |
+
+## Networking
+
+| Device | PCI ID | Driver | Status |
+|---|---|---|---|
+| virtio-net (transitional) | `1af4:1000` | `virtio-netd` | ✅ **Verified** — bound, MAC read |
+| Intel e1000 | `8086:1004/100e/100f/109a/1503` | `e1000d` | ▫ Present |
+| Intel 10GbE (ixgbe) | `8086:` 82598/82599/X5xx | `ixgbed` | ▫ Present |
+| Realtek RTL8139 / RTL8168/9 | `10ec:8139` / `10ec:8168/8169` | `rtl8139d` / `rtl8168d` | ▫ Present |
 
 ## Audio
 
 | Device | PCI match | Driver | Status |
 |---|---|---|---|
-| Intel HD Audio | class `04:03` | `ihdad` | ✅ **Verified** — bound (`IHDA … IRQ 11`) |
+| Intel HD Audio | class `04:03` | `ihdad` | ✅ **Verified** — bound |
 | AC'97 | class `04:01` | `ac97d` | ▫ Present |
 | Sound Blaster 16 | — | `sb16d` | ▫ Present |
-
-## Graphics
-
-| Device | PCI ID(s) | Driver | Status |
-|---|---|---|---|
-| Intel HD Graphics | `8086:` Kaby/Comet/Tiger Lake + Arc/Alchemist | `ihdgd` | ▫ Present (real Intel iGPU/dGPU) |
-| Firmware framebuffer | UEFI GOP (set up by the bootloader) | `vesad` + `fbcond` | ▫ Present — how COSMIC renders under QEMU |
 
 ## USB / input
 
 | Device | PCI match | Driver | Status |
 |---|---|---|---|
-| xHCI (USB 3) | class `0C:03:30` | `xhcid` | ✅ **Verified** — bound (`XHCI … IRQ 10`) |
+| xHCI (USB 3) | class `0C:03:30` | `xhcid` | ✅ **Verified** — bound |
 | USB HID / hub / mass-storage | — | `usbhidd`, `usbhubd`, `usbscsid` | ▫ Present |
 | PS/2 keyboard & mouse | — | `ps2d` (initfs) | ▫ Present |
 
@@ -60,47 +62,43 @@
 |---|---|---|---|
 | VirtualBox guest device | `80ee:cafe` | `vboxd` | ▫ Present |
 
----
-
-## Gaps — R-402 next targets
-
-Ordered by impact for running E-OS as a **cloud / VM guest**, the most common
-deployment surface and where coverage is weakest:
-
-1. **virtio-blk (virtio storage) — _no driver in this image_.** `virtio-blkd` is
-   absent (only `virtio-netd` ships). E-OS cannot use a virtio-blk root disk — the
-   default disk on most clouds and KVM/libvirt. **Highest-value gap.** (NVMe and AHCI
-   boot fine.) It already exists upstream — see the adoption path below.
-2. **virtio-gpu — _no driver_.** `gpu=virtio` has no backing driver; the COSMIC
-   desktop needs the Intel iGPU driver or a firmware framebuffer (GOP / ramfb).
-3. **Modern virtio (1.0+) — needs a _driver_ update, not just config.** `virtio-netd`
-   maps only the *transitional* ID `1af4:1000`; modern presentations (`1af4:1041`,
-   `virtio-*-pci-non-transitional`) are unmapped. **Verified by experiment (2026-06-18):**
-   adding `1af4:1041` to `pcid.d` makes `pcid` *spawn* `virtio-netd` on the modern
-   device, but the driver then **fails to initialise** (no startup/MAC line) — the
-   shipped `virtio-netd` is transitional-only *in code*. Modern support therefore needs
-   the newer `virtio-core`/`virtio-netd`, not a config tweak.
-4. **e1000e** (`8086:10d3`, …) — only the older `e1000` family is mapped.
-5. **Wi-Fi / Bluetooth** — unsupported upstream; large, out of near-term scope.
-
-### Path to closing the virtio gaps — adopt the newer Redox `drivers`
-**Verified (2026-06-18):** upstream `redox-os/drivers` already ships
-`storage/virtio-blkd`, `graphics/virtio-gpud`, and `net/virtio-netd` on a modern
-`virtio-core`. They are simply newer than the `drivers` build baked into this image
-(pinned Redox `84d78137`, 2026-06-06). So closing virtio-blk / virtio-gpu / modern-net
-is a **drivers version bump + integration**, not new-driver development:
-
-- bump the pinned Redox `drivers` (or the whole base) to a revision that includes them;
-- add their `pcid.d` mappings (`virtio-blkd` `1af4:1001/1042`, `virtio-gpud` `1af4:1050`);
-- include `virtio-blkd` in the **storage `initfs`** so it can host the root filesystem;
-- rebuild and verify with `make qemu disk=virtio` (storage) and a modern virtio-net device.
-
-Risk to check first: driver↔kernel ABI compatibility between the newer `drivers` and
-E-OS's pinned base (`84d78137`). If incompatible, the bump must move the base too.
+**Takeaway:** the full **virtio** set — `virtio-blk`, `virtio-gpu`, `virtio-net` —
+binds and works, so E-OS runs as a virtio (KVM/cloud) guest with disk, display and
+network. NVMe + AHCI storage and Intel-HDA audio are verified too.
 
 ---
 
-*Method: image mounted read-only via the `redoxfs` FUSE tool; PCI maps read from
-`/usr/lib/pcid.d`; live boot via `qemu-system-x86_64 -machine q35 -enable-kvm`
-headless (`-nographic`), serial captured and parsed. This matrix should be
-re-generated whenever the driver set or pinned forks change.*
+## Verified gaps (R-402 next targets)
+
+1. **`e1000e` (`8086:10d3`) — the _default q35 NIC_ — is unsupported.** Verified: the
+   device enumerates on the PCI bus but **no driver binds** to it (no `pcid` spawn).
+   `e1000d` maps only the older `e1000` family (`…:100e` etc.), not the 82574-class
+   `e1000e`. Anyone using QEMU/q35's default networking gets **no NIC**. Highest-value
+   real gap; check whether upstream `redox-os/drivers/net` has an `e1000e` path or
+   whether `e1000d` can be extended.
+2. **Wi-Fi / Bluetooth** — unsupported upstream; large, out of near-term scope.
+3. **Modern-only virtio device IDs** (`1af4:1040+`). The `pcid` maps cover only the
+   *transitional* IDs. Transitional virtio (QEMU's and most clouds' default) works
+   fully; a pure-modern presentation (`virtio-*-pci-non-transitional`) would not be
+   matched. Lower priority since transitional is the common case. *(Tested: adding a
+   modern net ID to the root-fs `pcid.d` makes `pcid` spawn the **older** `/usr/lib`
+   `virtio-netd`, which then fails to init — so a clean modern path would use the
+   initfs/`20ffe4d` virtio stack, not the prebuilt root-fs driver.)*
+
+---
+
+## Correction note (2026-06-18)
+
+The first two revisions of this file wrongly listed **virtio-blk** and **virtio-gpu**
+as unsupported "gaps." That was an inspection error: only the root filesystem's
+`/usr/lib/drivers` was enumerated, **not the boot `initfs`**, where the storage and
+GPU drivers actually live (and the `disk=virtio` UEFI boot used to test it failed at
+*firmware* level, falling back to PXE, so it never reached the OS). A live QEMU/KVM
+boot with virtio-blk + virtio-gpu + e1000e devices attached (2026-06-18) shows
+`virtio-blkd` and `virtio-gpud` binding and working, and `e1000e` **not** binding.
+This revision reflects that verified ground truth.
+
+*Method: built image inspected via `redoxfs` FUSE (root fs) and live boots via
+`qemu-system-x86_64 -machine q35 -enable-kvm` (headless, serial captured). PCI
+enumeration and driver spawns read from the boot log. Regenerate when the pinned
+forks or driver set change.*
