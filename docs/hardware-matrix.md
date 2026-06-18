@@ -36,10 +36,11 @@
 | Device | PCI ID | Driver | Status |
 |---|---|---|---|
 | virtio-net (transitional) | `1af4:1000` | `virtio-netd` | ✅ **Verified** — bound, MAC read |
-| Intel e1000 | `8086:1004/100e/100f/109a/1503` | `e1000d` | ▫ Present |
+| Intel e1000 | `8086:1004/100e/100f/109a/1503` | `e1000d` | ✅ **Verified** — bound + initialised (`8086:100e`) |
 | Intel e1000e (82574L) — **default q35 NIC** | `8086:10d3` | `e1000d` (via E-OS overlay) | ✅ **Verified** — bound + initialised from the built eos image |
 | Intel 10GbE (ixgbe) | `8086:` 82598/82599/X5xx | `ixgbed` | ▫ Present |
-| Realtek RTL8139 / RTL8168/9 | `10ec:8139` / `10ec:8168/8169` | `rtl8139d` / `rtl8168d` | ▫ Present |
+| Realtek RTL8139 | `10ec:8139` | `rtl8139d` | ✅ **Verified** — bound + initialised |
+| Realtek RTL8168/8169 | `10ec:8168/8169` | `rtl8168d` | ▫ Present (no QEMU model to test) |
 
 ## Audio
 
