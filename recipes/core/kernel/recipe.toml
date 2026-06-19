@@ -4,7 +4,7 @@
 # Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
 git = "https://github.com/Gh0s777tt/eos-kernel.git"
 branch = "master"
-rev = "614099e14a9875701dbaed9bbd9799e221d76678"
+rev = "6ee1f7961ba5cddd86253bfea30ac99f2cea64b3"
 
 [build]
 template = "custom"
