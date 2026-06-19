@@ -1,10 +1,11 @@
 [source]
 # E-OS R-401c (nvmed INTx mode) + R-401f (pcid ACPI _PRT INTx routing -> aarch64 boots
-# without acpi=off). Downstream fork of redox-os/base @ 9dd6901d.
-# Upstream: https://gitlab.redox-os.org/redox-os/base.git
+# without acpi=off) + R-402 (virtio-rng entropy driver feeding randd's pool, plus
+# virtio-core legacy INTx support so virtio works on aarch64). Downstream fork of
+# redox-os/base @ 9dd6901d. Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "main"
-rev = "7b31876542bf2f4622f93e316f94e7d41548d0c5"
+rev = "a230ef23584b551008667c1f04b0c5acdf817f93"
 
 [build]
 template = "custom"
