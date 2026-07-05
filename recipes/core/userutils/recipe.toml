@@ -1,6 +1,7 @@
 [source]
 git = "https://github.com/Gh0s777tt/eos-userutils.git"
 branch = "master"
+rev = "a589abb2ba8be43f3d81f511fac6d78b5e18c0b1"
 
 [build]
 template = "custom"
