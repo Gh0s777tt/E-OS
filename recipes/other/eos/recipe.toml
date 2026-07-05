@@ -1,0 +1,42 @@
+# E-OS meta-package (R-206): ships the `eos-welcome` quick-start command and the
+# /usr/share/eos/eos-release identity file. Source-less, files-only recipe — the
+# same pattern as recipes/other/myfiles. Registered in config/*/eos.toml.
+
+[build]
+template = "custom"
+script = """
+mkdir -pv "${COOKBOOK_STAGE}/usr/bin" "${COOKBOOK_STAGE}/usr/share/eos"
+
+cat > "${COOKBOOK_STAGE}/usr/bin/eos-welcome" <<'WELCOME'
+#!/usr/bin/env ion
+# E-OS quick start. Plain `echo` only — keeps the script ion- and sh-compatible.
+echo ""
+echo "  \e[1;31mE-OS 0.1.0 \"Genesis\"\e[0m — a Rust microkernel OS, built on Redox"
+echo ""
+echo "  Getting around"
+echo "    - Desktop:    COSMIC. The launcher is on the taskbar (E-OS hex icon)."
+echo "    - Terminal:   the shell is ion. Try: ls, uname -a, ion --help"
+echo "    - Files:      COSMIC Files; your home is /home/user"
+echo ""
+echo "  Install to disk"
+echo "    - Launch \"Installer\" from the desktop (GUI), or run: installer_tui"
+echo "    - Full-disk encryption (AES-XTS) is offered at install — recommended."
+echo ""
+echo "  Accounts"
+echo "    - user  (no password)     root / password   — change them after install!"
+echo ""
+echo "  Docs & source"
+echo "    - Handbook:  https://gh0s777tt.github.io/E-OS/"
+echo "    - Source:    https://github.com/Gh0s777tt/E-OS   (AGPL-3.0)"
+echo "    - Issues:    https://github.com/Gh0s777tt/E-OS/issues"
+echo ""
+echo "  Run \"eos-welcome\" any time to see this again."
+echo ""
+WELCOME
+chmod 0755 "${COOKBOOK_STAGE}/usr/bin/eos-welcome"
+
+cat > "${COOKBOOK_STAGE}/usr/share/eos/eos-release" <<'RELEASE'
+E-OS 0.1.0 (Genesis)
+https://github.com/Gh0s777tt/E-OS
+RELEASE
+"""

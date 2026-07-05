@@ -10,6 +10,12 @@ include = ["../desktop.toml"]
 # A touch more room for E-OS branding assets.
 filesystem_size = 700
 
+# ────────────────────────────  E-OS packages  ────────────────────────────
+# R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
+# /usr/share/eos/eos-release. Recipe: recipes/other/eos.
+[packages]
+eos = {}
+
 # ────────────────────────────  E-OS identity  ────────────────────────────
 # NOTE: postinstall = true is REQUIRED — without it these files are written
 # BEFORE packages are installed, so the base/userutils packages overwrite them.
@@ -59,12 +65,29 @@ data = """
 
 """
 
-# Message of the day.
+# Message of the day (printed by login) — points at the eos-welcome quick start.
 [[files]]
 path = "/etc/motd"
 postinstall = true
 data = """
 Welcome to E-OS - forged in Rust.  https://github.com/Gh0s777tt/E-OS
+Type  eos-welcome  for a quick start.
+"""
+
+# First thing a desktop user sees in COSMIC Files (same pattern as demo.toml).
+[[files]]
+path = "/home/user/Welcome.txt"
+postinstall = true
+data = """
+Welcome to E-OS 0.1.0 "Genesis" — a Rust microkernel OS, built on Redox.
+
+Quick start: open a terminal and run  eos-welcome
+
+  - Install to disk:  launch "Installer" from the desktop (optional full-disk
+    encryption is offered during install — recommended).
+  - Accounts:  user (no password)  *  root / password  — change them after install!
+  - Handbook:  https://gh0s777tt.github.io/E-OS/
+  - Source:    https://github.com/Gh0s777tt/E-OS  (AGPL-3.0)
 """
 
 # ───────────────────────────  E-OS R-402: e1000e NIC  ───────────────────────────

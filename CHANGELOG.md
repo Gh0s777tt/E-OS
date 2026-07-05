@@ -53,6 +53,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
   `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
   kitchen-sink boot.
+- `[U-027]` **`R-206` — `eos` meta-package + first-boot welcome (implemented, pending
+  boot verification).** New source-less recipe `recipes/other/eos` (the `myfiles`
+  pattern) ships `/usr/bin/eos-welcome` — an ion-compatible quick-start command
+  (getting around, install-to-disk with encryption, accounts, docs links) — plus
+  `/usr/share/eos/eos-release`. Registered as `eos = {}` in both
+  `config/x86_64/eos.toml` and `config/aarch64/eos.toml`; the configs also add
+  `/home/user/Welcome.txt` (the proven `demo.toml` pattern, visible in COSMIC Files)
+  and extend `/etc/motd` (printed by `login`) with a pointer to `eos-welcome`.
 - `[U-022]` **`docs/build-troubleshooting.md`** — fix for the `make CONFIG_NAME=eos all`
   "Package `ncursesw` not found" failure (cook `r.terminfo` + deps first; `terminfo` has
   no `source_info.toml` under `REPO_BINARY`, so the resolver marks it and its dependent
