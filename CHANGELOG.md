@@ -64,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by commit) instead of tracking upstream HEAD. `docs/known-issues.md` rewritten
   (R-401b/c/d **resolved**, with the true root cause and the aarch64 QEMU command);
   `ROADMAP.md` `R-401b` → ✅.
+- `[U-026]` The three branding recipes (`core/bootloader`, `core/userutils`,
+  `gui/orbdata`) are now **rev-pinned** to their fork heads like kernel/base/relibc —
+  previously they tracked a branch, so a push to a fork could silently change the build.
 
 ### Fixed
 - `[U-011]` **`R-401b` — the real aarch64 boot blocker (mis-diagnosed for a whole
@@ -196,6 +199,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `[U-024]` **Restored license files.** `LICENSE` (AGPL-3.0) + `licenses/Redox-OS-MIT.txt`
   on the meta repo and `LICENSE` (MIT) on the six `eos-*` forks had been removed; restored
   from git history so AGPL-3.0 distribution and Redox's MIT attribution are intact again.
+- `[U-025]` **License restore completed on non-default branches.** `[U-024]` only covered
+  the default branches; `LICENSE` was still missing on `lts/0.1`, `eos-base`,
+  `archive/redox-0.4.1` and `archive/redox-mirror-2019` (meta repo, both remotes) and on
+  `eos-relibc` branch `eos-tls` (the branch the `core/relibc` recipe pins). Restored on
+  all of them (cherry-pick of `48ec6293` / reverts of the "Delete LICENSE" commits).
 
 ### Known
 - `[U-015]` aarch64 now boots under **both** ACPI (`-machine virt`) and device tree
