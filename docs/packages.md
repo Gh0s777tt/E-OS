@@ -43,6 +43,27 @@ A package repo is just **static files over HTTPS** — the layout upstream uses 
 Because the repo is ~0.5 GB/arch it is **not** committed to git — host it as
 release assets or on a CDN.
 
+### The official E-OS hosting path (R-1003)
+
+E-OS hosts its repo on **GitHub Pages**, one repository per architecture (the
+`pkg` client requires the nested `<base>/<target>/<pkg>.pkgar` layout, which
+flat release assets cannot serve):
+
+| Arch | Hosting repo | Stable repo URL |
+|---|---|---|
+| x86_64 | [`eos-pkg-x86_64`](https://github.com/Gh0s777tt/eos-pkg-x86_64) | `https://gh0s777tt.github.io/eos-pkg-x86_64/pkg` |
+| aarch64 | [`eos-pkg-aarch64`](https://github.com/Gh0s777tt/eos-pkg-aarch64) | `https://gh0s777tt.github.io/eos-pkg-aarch64/pkg` |
+
+Publish after a build with
+[`scripts/publish-repo-pages.sh`](../scripts/publish-repo-pages.sh)`
+[TARGET]` — it stages `pkg/<target>/` + the public key, verifies no package
+exceeds GitHub's 100 MB blob limit, and **force-pushes a single orphan commit**
+to the hosting repo's `main` (history is discarded each publish, so the hosting
+repo never grows). Once the repo is populated and stable, add a
+`/etc/pkg.d/50_eos` entry to `config/*/eos.toml` pointing clients at the URL
+above (deliberately *not* pre-added — a dead repo URL would degrade `pkg` on
+shipped images).
+
 ## Consuming packages
 
 - **At build time** — point the build's binary-package source at your repo URL so
@@ -53,6 +74,9 @@ release assets or on a CDN.
 
 ## Status
 
-The repo is **produced and signed** for x86_64 + aarch64 every build, and
-documented here. **Public hosting** (a stable E-OS repo URL + an E-OS-owned
-signing key) is the remaining infrastructure step — see ROADMAP `R-1003`.
+The repo is **produced and signed** for x86_64 + aarch64 every build. **Public
+hosting infrastructure is live**: the `eos-pkg-<arch>` Pages repos exist with
+Pages enabled, and `scripts/publish-repo-pages.sh` publishes to them. Remaining
+for `R-1003`: run the first publish from a build rig, then wire
+`/etc/pkg.d/50_eos` into the image configs and generate an E-OS-owned package
+signing key (kept off-repo).

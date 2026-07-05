@@ -125,8 +125,13 @@ timeline
   binding *stable ABI surface* lands at 1.0 (upstream-dependent).
 - 🚧 `R-1003` **Package repository** — every build produces a signed (ed25519)
   `.pkgar` repo (`repo/<target>/` + `repo.toml`, ~58 pkgs/arch); documented
-  ([docs/packages.md](docs/packages.md)) with a publish helper
-  (`scripts/publish-repo.sh`). Public hosting + an app ecosystem are the remaining infra.
+  ([docs/packages.md](docs/packages.md)). **Hosting infrastructure is live**:
+  per-arch GitHub Pages repos ([`eos-pkg-x86_64`](https://github.com/Gh0s777tt/eos-pkg-x86_64),
+  [`eos-pkg-aarch64`](https://github.com/Gh0s777tt/eos-pkg-aarch64)) + the
+  `scripts/publish-repo-pages.sh` publisher (orphan-commit force-push, so the
+  hosting repos never grow). Remaining: first publish from a build rig, wire
+  `/etc/pkg.d/50_eos` into the images, an E-OS-owned signing key, and the app
+  ecosystem.
 - ✅ `R-1004` **Documentation site** — mdBook built + deployed to **GitHub Pages**,
   **live at <https://gh0s777tt.github.io/E-OS/>** (`.github/workflows/pages.yml`).
   A *custom domain* is a one-step add (Settings → Pages) once a domain is owned.

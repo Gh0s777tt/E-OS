@@ -53,6 +53,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
   `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
   kitchen-sink boot.
+- `[U-028]` **`R-1003` — public package-repo hosting infrastructure.** Per-arch
+  GitHub Pages hosting repos created with Pages enabled
+  ([`eos-pkg-x86_64`](https://github.com/Gh0s777tt/eos-pkg-x86_64),
+  [`eos-pkg-aarch64`](https://github.com/Gh0s777tt/eos-pkg-aarch64)) — Pages was
+  chosen because the `pkg` client requires the nested `<base>/<target>/<pkg>.pkgar`
+  layout that flat release assets cannot serve. New publisher
+  `scripts/publish-repo-pages.sh`: stages `pkg/<target>/` + the public signing key,
+  rejects >100 MB blobs (GitHub's limit) up front, and force-pushes one orphan
+  commit per publish so the hosting repos never accumulate history. Stable URLs:
+  `https://gh0s777tt.github.io/eos-pkg-<arch>/pkg`. `docs/packages.md` updated;
+  `/etc/pkg.d/50_eos` is deliberately not pre-wired into images until the repo is
+  populated (a dead repo URL would degrade `pkg`).
 - `[U-027]` **`R-206` — `eos` meta-package + first-boot welcome (implemented, pending
   boot verification).** New source-less recipe `recipes/other/eos` (the `myfiles`
   pattern) ships `/usr/bin/eos-welcome` — an ion-compatible quick-start command
