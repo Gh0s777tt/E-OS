@@ -18,9 +18,10 @@ filesystem_size = 1400
 [packages]
 eos = {}
 
-# COSMIC desktop apps: cosmic-store/settings/reader deferred — their cookbook
-# build pulls fontconfig, which needs the gperf host tool (recipes/wip) that the
-# REPO_BINARY resolver does not auto-build. Follow-up. The base desktop.toml
+# COSMIC desktop apps: cosmic-store/settings/reader deferred — they pull
+# fontconfig -> host:gperf, whose redoxer host toolchain is published only for
+# x86_64-linux build hosts. This aarch64 (Apple Silicon) build host gets a 404;
+# they build fine on an x86_64-linux host (the WSL2 rig). The base desktop.toml
 # still ships cosmic-edit/files/term.
 
 # CLI toolbox

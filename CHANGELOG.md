@@ -65,6 +65,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-040]` **`R-209` — the `eos` system command.** `recipes/other/eos` now ships
+  `/usr/bin/eos`: `eos info` (E-OS/kernel/build details), `eos doctor` (quick health
+  check — entropy source, home, hostname), `eos welcome`, `eos help`. Written in ion
+  syntax verified construct-by-construct against ion's own test corpus (`fn`, `if/else
+  if`, `test $x = "y"`, `test -f/-e/-d`, `$len(@args)`, `@args[1]`) and confirmed present
+  in the built image. **Runtime boot-verification is still pending:** the July kernel
+  emits a `debug!` on every `call_fdread`, which floods the serial console under QEMU
+  TCG and starves the login getty's input — so an automated serial-login test can't
+  drive it yet. Quieting the kernel's default log level is the follow-up (it also slows
+  every TCG boot). `eos-welcome`'s app list was corrected to what actually ships.
+- `[U-041]` **`R-207` follow-up — COSMIC GUI apps blocked on the aarch64 build host.**
+  `cosmic-store`/`settings`/`reader` pull `fontconfig` → `host:gperf`, whose redoxer
+  host toolchain Redox publishes **only for x86_64-linux** build hosts. On this Apple
+  Silicon (aarch64) build host the toolchain fetch 404s; the apps build fine on an
+  x86_64-linux host (the WSL2 rig). The config note records this accurately; the CLI
+  toolbox (nano/vim/git/curl/wget/ripgrep/nushell/openssh) ships on both arches.
 - `[U-039]` **Upstream patch set refreshed & expanded to 13 patches — ready to submit.**
   Regenerated `upstream/` from the rebased forks (`eos-july`): **6 kernel, 6 base, 1
   relibc**, up from 7. Two new kernel fixes found during the rebase are now included —

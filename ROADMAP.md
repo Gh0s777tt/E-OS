@@ -58,6 +58,11 @@ timeline
   packages in the image now build from `Gh0s777tt/eos-*` (6 modified forks + 16 pinned
   mirrors), independent of `gitlab.redox-os.org`. See [docs/forks.md](docs/forks.md);
   keep current with `scripts/sync-forks.sh`.
+- 🚧 `R-209` **`eos` system command** — `recipes/other/eos` now ships `/usr/bin/eos`
+  (`eos info` / `eos doctor` / `eos welcome` / `eos help`) alongside `eos-welcome`.
+  Written in verified ion syntax; present in the image. Runtime boot-verification is
+  pending a quieter kernel log level (the July kernel's `debug!`-per-`call_fdread`
+  flood starves interactive serial input under QEMU TCG — a separate follow-up).
 
 ---
 
