@@ -44,11 +44,12 @@ timeline
   `userutils`, **not** the kernel hostname — patched and built from source).
 - ✅ `R-205` E-OS red/black login greeter + desktop wallpaper + launcher icon,
   built from source via the `orbdata` fork.
-- 🚧 `R-206` `eos` meta-package + first-boot welcome — **implemented** (recipe
-  `recipes/other/eos`: `/usr/bin/eos-welcome` quick-start command +
-  `/usr/share/eos/eos-release`; `config/*/eos.toml`: package registered,
-  `/home/user/Welcome.txt`, MOTD points at `eos-welcome`). Pending a boot
-  verification on the build rig before it flips to ✅.
+- ✅ `R-206` `eos` meta-package + first-boot welcome — recipe `recipes/other/eos`
+  ships `/usr/bin/eos-welcome` (quick-start command) + `/usr/share/eos/eos-release`;
+  `config/*/eos.toml` registers the package, adds `/home/user/Welcome.txt` and
+  points the MOTD at `eos-welcome`. **Boot-verified** (2026-07-10, aarch64 QEMU,
+  serial session): login → `eos-welcome` prints the full quick start; `uname -a`
+  reports the fork kernel; `whoami` runs with 0 aborts.
 
 ---
 

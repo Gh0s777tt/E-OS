@@ -96,8 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `https://gh0s777tt.github.io/eos-pkg-<arch>/pkg`. `docs/packages.md` updated;
   `/etc/pkg.d/50_eos` is deliberately not pre-wired into images until the repo is
   populated (a dead repo URL would degrade `pkg`).
-- `[U-027]` **`R-206` — `eos` meta-package + first-boot welcome (implemented, pending
-  boot verification).** New source-less recipe `recipes/other/eos` (the `myfiles`
+- `[U-027]` **`R-206` — `eos` meta-package + first-boot welcome (BOOT-VERIFIED
+  2026-07-10** — aarch64 QEMU serial session: `eos login:` → `eos-welcome` prints
+  the full quick start; `uname -a` reports the fork kernel `6ee1f796`; `whoami`
+  runs clean — **the first E-OS image built and verified entirely on
+  macOS/Apple Silicon).** New source-less recipe `recipes/other/eos` (the `myfiles`
   pattern) ships `/usr/bin/eos-welcome` — an ion-compatible quick-start command
   (getting around, install-to-disk with encryption, accounts, docs links) — plus
   `/usr/share/eos/eos-release`. Registered as `eos = {}` in both
