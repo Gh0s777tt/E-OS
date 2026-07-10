@@ -64,25 +64,46 @@ not just the upstream-ready patch subset in `upstream/`:
    and `driver-graphics` fails to compile (two `redox_syscall` versions, 0.8 vs
    0.9). Both fixed (sysroot rebuild + `cargo generate-lockfile`).
 
-### Result: builds, links, 0 exceptions — but a hard deadlock blocks boot
+### Two layered deadlocks found and one fixed — the rebase now boots to login
 
-The fully-rebased image **builds and links cleanly**, boots with **0 unhandled
-exceptions**, and all drivers initialise (nvmed on INTx, `virtio-net` reads its
-MAC, `virtio-rng` seeds `/scheme/rand`). But the boot then **deadlocks**: right
-after `virtio-rng` seeds and `pcid-spawner` spawns `virtio-netd`, all CPUs go to
-**WFI (QEMU at 0% CPU)** — the guest is waiting for an interrupt that never
-arrives. `virtio-rng` and `virtio-netd` **share an INTx line** (virq 37/38); the
-July virtio-core/IRQ path plus the E-OS shared-INTx commits deadlock on delivery.
-It never reaches the greeter.
+The fully-rebased image builds, links, and boots with **0 unhandled exceptions**;
+all drivers initialise. Boot then hit a **kernel-level deadlock** (all CPUs WFI,
+QEMU 0% CPU) right after `virtio-rng` seeds. Root-caused to the aarch64 IRQ path:
 
-**Decision:** `main` stays on the **validated June forks + the three workaround
-pins** (greeter, 0 exceptions). The rebase is **complete and pushed** on the
-`eos-july` branches — it confirmed U-030's root cause and removes all three pins —
-but promotion is **blocked on the virtio shared-INTx deadlock**, which needs
-kernel/driver-level debugging (why the shared INTx handler's WFI never wakes on
-the July stack). This is the concrete next task for the rebase; it also wants
-resolving before the upstream MRs, since the shared-INTx patch (`kernel/0002`)
-is implicated.
+- **Kernel INTx deadlock — FIXED** (`eos-kernel@bf4b264e`). On aarch64 the kernel
+  deferred the GIC **EOI** of a userspace-handled level-triggered INTx to the
+  driver's scheme ack. That leaves the interrupt **active** (GIC running priority
+  raised) from the moment it fires until the driver acks — blocking every
+  equal/lower-priority interrupt, **including the generic-timer PPI**. But the
+  driver can't be scheduled to ack without the timer: a circular deadlock. Fix
+  (aarch64-only; riscv64 PLIC already EOIs in-handler, x86 unchanged):
+  `dtb::irqchip::trigger_virq` now **masks the line + EOIs in-kernel** before
+  notifying userspace (priority drops at once, the timer keeps firing, the masked
+  line won't re-fire), and the driver's ack **re-enables** the line instead of
+  EOIing again. **This is an upstream-worthy fix** — a real mainline aarch64 INTx
+  bug. With it, QEMU goes from 0% → ~5% CPU (the timer fires again).
+
+- **Result: the rebased July stack boots to `eos login:`** with **0 exceptions**
+  (kernel `bf4b264e`, base `3e10b86f`, relibc `963b8f91`, userutils `260d772`,
+  all `eos-july`; redoxfs/orbital/orbutils on July upstream HEAD, **no pins**).
+  Verified on the macOS/M4 rig (headless QEMU, serial login prompt).
+
+- **Remaining: a `virtio-rngd`-specific userspace deadlock** (our optional R-402
+  entropy driver). With a `virtio-rng` device attached, boot still freezes right
+  after `virtio-rngd` seeds `/scheme/rand` — but now at **~5% CPU (timer alive),
+  all userspace threads blocked** (a userspace lock/wait deadlock, not the kernel
+  one). **Proof it is isolated to `virtio-rngd`:** booting the *same image* with
+  **no `virtio-rng` device** reaches `eos login:` cleanly. The seed itself
+  succeeds (the first `pull()` gets 32 bytes), so it is a post-seed interaction of
+  `virtio-rngd` with the July relibc/redox-rt runtime, not the INTx path.
+
+**Decision:** `main` stays on the **validated June forks + pins** (greeter, 0
+exceptions). The rebase is complete on the `eos-july` branches, the kernel INTx
+fix is proven, and the only remaining item is the `virtio-rngd` userspace
+deadlock — which needs userspace thread-state/lock debugging, or (pragmatically)
+dropping the optional R-402 `virtio-rng` driver from the July line (the kernel's
+R-401b jitter entropy already provides randomness). The INTx fix should go
+upstream regardless.
 
 **Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
 HEAD) crashes the same way **with a display attached** (ramfb GUI boot test:

@@ -65,6 +65,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-034]` **aarch64 kernel INTx deadlock fixed — the rebased July stack now boots to
+  login.** Root-caused the WFI deadlock (U-033): on aarch64 the kernel deferred the GIC
+  **EOI** of a userspace-handled level-triggered INTx to the driver's scheme ack,
+  leaving the interrupt active (GIC priority raised) and blocking the generic-timer PPI
+  until the driver acks — but the driver can't be scheduled to ack without the timer, a
+  circular deadlock. Fix (`eos-kernel@bf4b264e`, aarch64-only; riscv64 PLIC already EOIs
+  in-handler, x86 unchanged): `dtb::irqchip::trigger_virq` masks + EOIs the line
+  in-kernel before notifying userspace, and the driver's ack re-enables it instead of a
+  double-EOI. **An upstream-worthy mainline aarch64 bug fix.** With it the rebased July
+  stack (kernel `bf4b264e`, base `3e10b86f`, relibc `963b8f91`, userutils `260d772`, all
+  `eos-july`; redoxfs/orbital/orbutils on July HEAD, no pins) **boots to `eos login:`
+  with 0 exceptions** (verified headless on macOS/M4). **One isolated item remains:** a
+  `virtio-rngd`-specific userspace deadlock (our optional R-402 driver) — with a
+  `virtio-rng` device attached the boot freezes post-seed at ~5% CPU (timer alive, all
+  userspace blocked); the *same image* with no `virtio-rng` device reaches login cleanly,
+  so it is a `virtio-rngd`/July-runtime interaction, not the INTx path. `main` stays on
+  the validated June forks + pins. Details: `docs/known-issues.md`.
 - `[U-033]` **Fork rebase onto July upstream — executed in full, root cause of U-030
   confirmed, promotion blocked on a virtio-INTx deadlock.** All **four** code forks
   were rebased onto current mainline via a full `git rebase --onto` carrying the
