@@ -5,6 +5,41 @@ Resolved items are kept below for the record.
 
 ---
 
+## ✅ Upstream-drift: unpinned `redoxfs` aborted every aarch64 boot (RESOLVED 2026-07-10, U-030)
+
+A fresh build shipped **upstream redoxfs 0.9.1 (July HEAD)** — the recipe was
+unpinned — while kernel/relibc are the June-pinned E-OS forks. The initfs
+`redoxfs` (PID 17) then died **deterministically** at relibc start with `brk #1`
+(`ESR_EL1=0xF2000001`, EC=0x3C) before mounting root; boot never reached login.
+Reproduced identically under QEMU TCG `cortex-a72` and HVF on Apple M4, `-smp 1`
+and `-smp 4`.
+
+**Diagnosis** (disasm of the initfs binary at the fault ELR): the abort is a
+shared `brk #1` landing pad in relibc's start path. `verify()` **passed**
+(`X0=0` at the fault — the R-401e kernel fix works); the abort came from a later
+early-startup check (`cbz x9` with `X9=0` — a NULL out of TCB/TLS setup;
+`X8=0x0000800000000000` looks like a pathological computed TLS address). The
+July redoxfs binary's TLS/segment layout appears to hit an edge the June
+fork relibc/kernel pair mishandles.
+
+**Fix:** `recipes/core/redoxfs` is now **pinned** to `af493b9f` — the rev the
+0.1.0 SBOM records for the boot-validated image. With only that change the same
+build boots to `eos login:`. The deeper interaction (July-binary TLS layout vs
+the R-402a TLS math and/or kernel exec TLS handoff) is to be root-caused as part
+of the planned **fork rebase onto current upstream**.
+
+**Watch item:** `orbital` (also unpinned upstream, July HEAD) logged one
+`UNHANDLED EXCEPTION` (PID 32) during the headless boot — non-blocking without a
+display, but it matches the same drift pattern; verify during the next
+display-enabled boot.
+
+**Systemic note:** any recipe cooked from an *unpinned* upstream source can
+drift against the frozen June forks. The core boot-critical set is now pinned
+(kernel, base, relibc, bootloader, userutils, orbdata, redoxfs); the long-term
+answer is periodic fork rebases onto upstream, not more pins.
+
+---
+
 ## ✅ `R-401b / R-401c / R-401d` — aarch64 boot-to-login (RESOLVED 2026-06-08)
 
 E-OS **aarch64** now boots under QEMU `virt` all the way to the graphical E-OS

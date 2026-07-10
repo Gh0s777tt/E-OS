@@ -1,5 +1,11 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/redoxfs.git"
+# E-OS U-030: pin to the 0.1.0-SBOM-validated rev. Unpinned upstream redoxfs
+# (0.9.1, 2026-07) aborts at relibc start (brk #1, NULL in an early TCB/TLS-
+# setup check) on aarch64 against the June-pinned fork kernel/relibc — initfs
+# redoxfs died and the boot never mounted root. Deterministic on QEMU TCG
+# cortex-a72 and HVF/M4, -smp 1 and 4. Re-evaluate when the forks rebase.
+rev = "af493b9f4e1ee7086bc6e44a43f096d981936cfe"
 
 [build]
 template = "custom"

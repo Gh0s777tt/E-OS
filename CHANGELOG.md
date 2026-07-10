@@ -53,6 +53,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
   `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
   kitchen-sink boot.
+- `[U-030]` **Upstream-drift boot blocker: unpinned `redoxfs` (0.9.1, July HEAD)
+  aborted every aarch64 boot against the June-pinned forks — root-caused by
+  disasm, fixed by pinning to the SBOM-validated rev.** The initfs `redoxfs`
+  (PID 17) died deterministically at relibc start (`brk #1`, EC=0x3C) before
+  mounting root, under TCG `cortex-a72` **and** HVF/M4, `-smp 1` **and** `4`.
+  Disassembly at the fault ELR showed the shared abort landing pad: `verify()`
+  **passed** (`X0=0` — R-401e works), the abort came from a later TCB/TLS-setup
+  NULL check (`cbz x9`, `X9=0`, `X8=0x0000800000000000`). Pinning
+  `recipes/core/redoxfs` to `af493b9f` (the 0.1.0 SBOM rev) makes the same build
+  boot to `eos login:`. Deeper TLS-layout interaction deferred to the planned
+  fork rebase; `orbital` (same drift class) logged one non-blocking exception
+  headless and is a watch item. Details: `docs/known-issues.md`. *(First E-OS
+  image built AND boot-verified on macOS/Apple Silicon — Podman VM build,
+  QEMU TCG boot.)*
 - `[U-029]` **Fresh-clone builds silently shipped UPSTREAM binaries for all six
   pinned forks — found by the first macOS build, fixed in CI + docs.** Under
   `REPO_BINARY=1` the cook resolver compares local `source_info.toml` with the
