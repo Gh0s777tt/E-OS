@@ -53,6 +53,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
   `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
   kitchen-sink boot.
+- `[U-029]` **Fresh-clone builds silently shipped UPSTREAM binaries for all six
+  pinned forks — found by the first macOS build, fixed in CI + docs.** Under
+  `REPO_BINARY=1` the cook resolver compares local `source_info.toml` with the
+  packaged state; on a fresh clone the pinned-source recipes were never fetched,
+  so there is nothing to compare and the resolver silently takes the upstream
+  binary — the built image had `eos login:`=0, `E-OS Bootloader`=0,
+  `redox login:`=1 and **no R-401\*/R-402a fixes** (an aarch64 image that may not
+  boot; `make f.<pkg>` alone doesn't help — with `--repo-binary` it reports
+  `cached` without fetching source). This also invalidated the CI image guarantee:
+  `build.yml` forced only the three branding forks (`scr.bootloader/userutils/orbdata`),
+  so CI images shipped upstream kernel/base/relibc. **Fixed:** `build.yml` now
+  forces all six (`scr.kernel scr.base scr.relibc scr.bootloader scr.userutils
+  scr.orbdata`) and gained a verification step comparing each package's
+  `source_identifier` in `repo/<target>/<pkg>.toml` against the pinned fork rev;
+  the trap + both fixes documented in `docs/build-troubleshooting.md`. *(The 0.1.0
+  release-image builds were done on the dev rig with sources fetched, so they were
+  not affected; the risk was fresh clones and CI.)*
 - `[U-028]` **`R-1003` — public package-repo hosting infrastructure.** Per-arch
   GitHub Pages hosting repos created with Pages enabled
   ([`eos-pkg-x86_64`](https://github.com/Gh0s777tt/eos-pkg-x86_64),
