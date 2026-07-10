@@ -60,9 +60,13 @@ git push <your-fork> HEAD:aarch64-pci-intx
 ```
 
 Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d` (2026-06).
-Re-verified 2026-06-10: all kernel/base/relibc patches still `git am` cleanly onto current
-mainline `master` (kernel `56947e1a`, base `4581183c`, relibc `b390ee65` — relibc +48 commits
-since its base). Ready-to-paste MR descriptions are in [`MR-DESCRIPTIONS.md`](MR-DESCRIPTIONS.md).
+**Re-verified 2026-07-10** against current mainline `master` (kernel `fbfe439`, base
+`9e12870`, relibc `d589900`): all **4 kernel** and **2 base** patches still `git am`
+**cleanly**; the **1 relibc** patch needs a trivial 3-way merge (upstream renamed
+`Tcb::new(..).expect(..)` → `.expect_notls(..)` in the same lines — one hunk, no logic
+change) and none of the fixes have landed upstream (the target code regions are unchanged,
+so the patches remain necessary). Ready-to-paste MR descriptions are in
+[`MR-DESCRIPTIONS.md`](MR-DESCRIPTIONS.md).
 
 ---
 

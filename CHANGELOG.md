@@ -53,6 +53,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `-cpu cortex-a72`): nvmed, ahcid, virtio-blk/gpu/net, e1000/e1000e, rtl8139, ihda, xhci.
   `scripts/qemu-driver-check.sh [x86_64|aarch64]` regenerates it from a single
   kitchen-sink boot.
+- `[U-031]` **x86_64 regression build + both-arch boot verification on macOS.** After
+  U-029/U-030, rebuilt **both** arches from source (all seven forks forced via `scr.*`)
+  and boot-tested them on the Apple-Silicon rig: **x86_64** (q35/TCG, headless) reaches
+  `eos login:` with the `E-OS Bootloader` banner and 0 unhandled exceptions;
+  **aarch64** (virt/TCG, ramfb) reaches the graphical **red/black E-OS greeter** with 0
+  exceptions once `orbital`/`orbutils` are pinned (`assets/screenshots/eos-aarch64-greeter-macos-build.png`).
+- `[U-032]` **Upstream patch set re-verified against July mainline.** The 7 upstream-ready
+  patches were re-checked against current `redox-os` `master` (kernel `fbfe439`, base
+  `9e12870`, relibc `d589900`): 4 kernel + 2 base still `git am` cleanly, the 1 relibc
+  patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
+  rename), and **none** of the fixes have landed upstream — so the forks remain
+  necessary. `upstream/README.md` verification note updated. (Full fork-branch rebase
+  onto July upstream is staged as a deliberate next step, not yet executed.)
 - `[U-030]` **Upstream-drift boot blocker: unpinned `redoxfs` (0.9.1, July HEAD)
   aborted every aarch64 boot against the June-pinned forks — root-caused by
   disasm, fixed by pinning to the SBOM-validated rev.** The initfs `redoxfs`
