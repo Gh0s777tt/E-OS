@@ -1,5 +1,9 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/orbutils.git"
+# E-OS U-030 follow-up: pin to the 0.1.0-SBOM-validated rev (same upstream-drift
+# class as redoxfs/orbital — the launcher/greeter must match the June forks).
+# Re-evaluate when the forks rebase onto upstream.
+rev = "46b6d063c66b9bacdc6bfba215257c98b9b7dd44"
 
 [build]
 template = "custom"

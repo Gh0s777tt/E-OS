@@ -1,5 +1,11 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/orbital.git"
+# E-OS U-030 follow-up: pin to the 0.1.0-SBOM-validated rev. Unpinned upstream
+# orbital (July HEAD) crashes with an UNHANDLED EXCEPTION on aarch64 against
+# the June-pinned forks (same upstream-drift class as the redoxfs boot
+# blocker); the desktop then never starts and the boot falls back to the
+# framebuffer console. Re-evaluate when the forks rebase onto upstream.
+rev = "3b60d28a8b61eafdf3290d15d0e3fdcbcc63b755"
 
 [build]
 template = "cargo"
