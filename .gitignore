@@ -33,3 +33,4 @@ wget-log
 .eos-kernel-src
 .eos-drivers-src
 .eos-base-src
+.DS_Store

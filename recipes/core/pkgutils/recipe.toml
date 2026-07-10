@@ -1,5 +1,8 @@
 [source]
-git = "https://gitlab.redox-os.org/redox-os/pkgutils.git"
+# E-OS vendored mirror of redox-os/pkgutils (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-pkgutils.git"
+branch = "master"
+rev = "7e89ac2ebad663de8d15a75a599a073004d1c8c2"
 
 [build]
 template = "cargo"

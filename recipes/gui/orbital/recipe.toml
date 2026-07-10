@@ -1,8 +1,8 @@
 [source]
-# Tracks upstream redox-os/orbital. (The U-030 SBOM pin was only needed against the
-# June forks; the July fork rebase resolved the drift, so orbital is unpinned again —
-# verified reaching the graphical E-OS greeter on aarch64.)
-git = "https://gitlab.redox-os.org/redox-os/orbital.git"
+# E-OS vendored mirror of redox-os/orbital (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-orbital.git"
+branch = "master"
+rev = "b6de07ef268b130f8c0fd7143617e72840f33193"
 
 [build]
 template = "cargo"

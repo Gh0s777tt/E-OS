@@ -1,7 +1,8 @@
 [source]
-# Tracks upstream redox-os/orbutils. (The U-030 SBOM pin was only needed against the
-# June forks; the July fork rebase resolved the drift, so orbutils is unpinned again.)
-git = "https://gitlab.redox-os.org/redox-os/orbutils.git"
+# E-OS vendored mirror of redox-os/orbutils (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-orbutils.git"
+branch = "master"
+rev = "8cacc920e37596ab237dbd2d92321c224aa1dee3"
 
 [build]
 template = "custom"

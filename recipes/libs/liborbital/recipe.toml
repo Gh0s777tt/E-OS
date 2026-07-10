@@ -1,5 +1,8 @@
 [source]
-git = "https://gitlab.redox-os.org/redox-os/liborbital.git"
+# E-OS vendored mirror of redox-os/liborbital (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-liborbital.git"
+branch = "master"
+rev = "b0388fa74d27c4930dfa5e7b52b6c173eabe5553"
 
 [build]
 template = "custom"

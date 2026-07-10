@@ -65,6 +65,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-038]` **Vendored the core Redox OS into E-OS's own repos — the whole boot→desktop
+  stack is now under `Gh0s777tt`.** Mirrored the **16** Redox-authored components E-OS
+  ships (that weren't already forked) into `Gh0s777tt/eos-*` and re-pointed their recipes,
+  each pinned to an exact rev: `redoxfs`, `orbital`, `orbutils`, `orbterm`, `orbclient`,
+  `liborbital`, `ion`, `coreutils`, `extrautils`, `netutils`, `netdb`, `pkgutils`, `pkgar`,
+  `installer`, `redoxer`, `redox-fatfs`. Together with the 6 modified forks, **all 22
+  Redox-authored packages in the E-OS image build from E-OS-owned repos** — editable
+  freely, reproducible, independent of `gitlab.redox-os.org`. The ~1900 third-party
+  software ports (vim/curl/gcc/COSMIC-from-pop-os/…) are deliberately **not** vendored —
+  they are upstream projects, not Redox. New `docs/forks.md` (the full map + policy) and
+  `scripts/sync-forks.sh` (report/fast-forward the pure mirrors vs upstream).
+- `[U-037]` **`R-207` — usable CLI toolbox out of the box.** A fresh E-OS install shipped
+  only an editor, file manager, terminal and netsurf. `config/*/eos.toml` now adds a
+  practical CLI toolbox — `nano`, `vim`, `git`, `curl`, `wget`, `ripgrep`, `nushell`,
+  `openssh` (both arches; filesystem grown 700 → 1400 MiB; `eos-welcome` updated). The
+  extra COSMIC GUI apps (store/settings/reader) are **deferred**: their cookbook build
+  pulls `fontconfig`, which needs the `gperf` host tool (`recipes/wip`) that the
+  `REPO_BINARY` resolver does not auto-build — a follow-up. `cosmic-monitor` is dropped
+  outright (its version fails to compile against the current `libcosmic`).
 - `[U-036]` **`main` PROMOTED to the July fork rebase — all upstream-drift workaround
   pins removed.** With both arches validated (aarch64 greeter + x86_64 `eos login:`, 0
   exceptions each), the recipes now build the rebased forks: `core/kernel` →

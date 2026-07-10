@@ -6,6 +6,7 @@
 
 - [Install](install.md)
 - [Packages](packages.md)
+- [Forks & vendored components](forks.md)
 - [Architecture](architecture.md)
 - [Hardware support](hardware-matrix.md)
 - [Hardware bring-up (aarch64)](hardware-bringup.md)

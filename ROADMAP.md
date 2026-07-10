@@ -50,6 +50,14 @@ timeline
   points the MOTD at `eos-welcome`. **Boot-verified** (2026-07-10, aarch64 QEMU,
   serial session): login → `eos-welcome` prints the full quick start; `uname -a`
   reports the fork kernel; `whoami` runs with 0 aborts.
+- 🚧 `R-207` **Usable out-of-the-box toolbox** — a fresh E-OS install now ships a
+  practical CLI toolbox (`nano`, `vim`, `git`, `curl`, `wget`, `ripgrep`, `nushell`,
+  `openssh`) in `config/*/eos.toml` (filesystem grown to 1400 MiB). The extra COSMIC
+  GUI apps (store/settings/reader) are a follow-up — a cookbook host-tool build quirk.
+- 🚧 `R-208` **Vendor the core Redox OS into E-OS repos** — all 22 Redox-authored
+  packages in the image now build from `Gh0s777tt/eos-*` (6 modified forks + 16 pinned
+  mirrors), independent of `gitlab.redox-os.org`. See [docs/forks.md](docs/forks.md);
+  keep current with `scripts/sync-forks.sh`.
 
 ---
 

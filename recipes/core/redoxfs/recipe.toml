@@ -1,8 +1,8 @@
 [source]
-# Tracks upstream redox-os/redoxfs. (The U-030 SBOM pin was only needed against the
-# June forks; the July fork rebase resolved the relibc-ABI drift, so redoxfs is
-# unpinned again — verified booting to the greeter on both arches.)
-git = "https://gitlab.redox-os.org/redox-os/redoxfs.git"
+# E-OS vendored mirror of redox-os/redoxfs (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-redoxfs.git"
+branch = "master"
+rev = "6ade863ea5867e1beb96cba3b9749943c2fd9ef4"
 
 [build]
 template = "custom"

@@ -7,14 +7,34 @@
 include = ["../desktop.toml"]
 
 [general]
-# A touch more room for E-OS branding assets.
-filesystem_size = 700
+# Room for E-OS branding + the richer desktop app set below.
+filesystem_size = 1400
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
 # /usr/share/eos/eos-release. Recipe: recipes/other/eos.
+#
+# R-207 (usable desktop): the base desktop.toml ships only edit/files/term +
+# netsurf. E-OS adds a practical CLI toolbox so a fresh install is usable out of
+# the box. (The extra COSMIC apps — store/settings/reader — are deferred; see the
+# note by [packages] below.)
 [packages]
 eos = {}
+
+# COSMIC desktop apps: cosmic-store/settings/reader deferred — their cookbook
+# build pulls fontconfig, which needs the gperf host tool (recipes/wip) that the
+# REPO_BINARY resolver does not auto-build. Follow-up. The base desktop.toml
+# still ships cosmic-edit/files/term.
+
+# CLI toolbox
+nano = {}              # beginner-friendly editor
+vim = {}               # modal editor
+git = {}               # version control
+curl = {}              # HTTP client
+wget = {}              # downloader
+ripgrep = {}           # fast recursive search (rg)
+nushell = {}           # modern structured shell
+openssh = {}           # ssh client/server
 
 # ────────────────────────────  E-OS identity  ────────────────────────────
 # NOTE: postinstall = true is REQUIRED — without it these files are written

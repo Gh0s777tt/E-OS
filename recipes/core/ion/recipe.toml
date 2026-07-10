@@ -1,5 +1,8 @@
 [source]
-git = "https://gitlab.redox-os.org/redox-os/ion.git"
+# E-OS vendored mirror of redox-os/ion (edit freely; sync via scripts/sync-forks.sh).
+git = "https://github.com/Gh0s777tt/eos-ion.git"
+branch = "master"
+rev = "1440704f7456fa4c9f873b7b17dd4f0369b0c4ab"
 
 [build]
 template = "cargo"
