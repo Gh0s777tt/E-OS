@@ -1,0 +1,74 @@
+From ff987693c37f81a914493ecda5d83ada9a890128 Mon Sep 17 00:00:00 2001
+From: Gh0s777tt <dzierzawskii98.dam@gmail.com>
+Date: Fri, 10 Jul 2026 16:31:45 +0000
+Subject: [PATCH 6/6] aarch64: mask+EOI userspace level INTx in-kernel (fix
+ virtio deadlock)
+
+On aarch64 the kernel deferred the GIC EOI of a userspace-handled level-
+triggered INTx to the driver's ack (scheme/irq acknowledge -> irq_eoi). That
+leaves the interrupt ACTIVE (GIC running priority raised) from the moment it
+fires until the driver acks, which blocks every equal/lower-priority
+interrupt -- including the generic-timer PPI. But the driver cannot be
+scheduled to ack without the timer: a hard deadlock (all CPUs WFI, 0% CPU),
+reproduced on the July stack right after virtio-rng seeds /scheme/rand.
+
+Fix (aarch64-only; riscv64 PLIC already EOIs in its handler, x86 unchanged):
+in dtb::irqchip::trigger_virq, for a userspace IRQ (no in-kernel handler),
+mask the line (irq_disable) and EOI (irq_eoi) in-kernel before notifying
+userspace -- the running priority drops immediately so the timer keeps
+firing, while the masked line will not re-fire though the device still
+asserts it. The driver's scheme ack then re-enables (unmasks) the line
+instead of EOIing again (a double-EOI would corrupt GICv2 state).
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+(cherry picked from commit bf4b264e86dd5777f09cf20de032537710bacc06)
+---
+ src/dtb/irqchip.rs | 13 +++++++++++++
+ src/scheme/irq.rs  |  7 +++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/src/dtb/irqchip.rs b/src/dtb/irqchip.rs
+index 110b51d1..856cdb90 100644
+--- a/src/dtb/irqchip.rs
++++ b/src/dtb/irqchip.rs
+@@ -317,6 +317,19 @@ impl IrqChipCore {
+                     if let Some(ic_idx) = desc.basic.child_ic_idx {
+                         self.irq_chip_list.chips[ic_idx].ic.irq_handler(virq, token);
+                     } else {
++                        // E-OS: userspace-handled level-triggered INTx. Mask this
++                        // line and EOI (priority-drop + deactivate) in-kernel BEFORE
++                        // notifying userspace, so the GIC running priority drops at
++                        // once. Otherwise the interrupt stays active and blocks the
++                        // timer PPI until the driver acks -- but the driver cannot be
++                        // scheduled to ack without the timer, a deadlock (seen on the
++                        // July stack). The line stays masked until the driver's ack
++                        // re-enables it. aarch64-only; riscv64 PLIC EOIs in-handler.
++                        #[cfg(target_arch = "aarch64")]
++                        {
++                            self.irq_disable(virq);
++                            self.irq_eoi(virq);
++                        }
+                         irq_trigger(virq as u8, token);
+                     }
+                 }
+diff --git a/src/scheme/irq.rs b/src/scheme/irq.rs
+index 8efe3012..5c70ec3a 100644
+--- a/src/scheme/irq.rs
++++ b/src/scheme/irq.rs
+@@ -454,6 +454,13 @@ impl crate::scheme::KernelScheme for IrqScheme {
+                 }
+                 handle_ack.store(ack, Ordering::SeqCst);
+                 unsafe {
++                    // E-OS: aarch64 masks + EOIs userspace level INTx in-kernel (see
++                    // dtb::irqchip::trigger_virq), so the driver's ack must RE-ENABLE
++                    // (unmask) the line rather than EOI again (a double-EOI would
++                    // corrupt GICv2 state). Other arches keep the deferred-EOI ack.
++                    #[cfg(target_arch = "aarch64")]
++                    IRQ_CHIP.irq_enable(handle_irq as u32);
++                    #[cfg(not(target_arch = "aarch64"))]
+                     acknowledge(handle_irq as usize);
+                 }
+                 Ok(size_of::<usize>())
+-- 
+2.47.3
+

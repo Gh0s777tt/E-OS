@@ -1,8 +1,8 @@
-From 327f9c6ea2415a65a2464b8a2383c525837d1582 Mon Sep 17 00:00:00 2001
+From 63337eb94e95be08b75892d3e94f0492d0493cd0 Mon Sep 17 00:00:00 2001
 From: E-OS <eos@eos>
-Date: Wed, 10 Jun 2026 09:01:59 +0200
-Subject: [PATCH] aarch64: route PCIe INTx via ACPI _PRT (removes the acpi=off
- requirement)
+Date: Mon, 8 Jun 2026 15:20:19 +0200
+Subject: [PATCH 2/6] aarch64: route PCIe INTx via ACPI _PRT (removes the
+ acpi=off requirement)
 
 On aarch64 under a UEFI/ACPI boot, pcid gets the ECAM from MCFG but no PCIe
 interrupt-map (that only exists under device tree), so it could not route legacy
@@ -17,18 +17,15 @@ builds with cfg(dtb) so the phandle IRQ path is available under ACPI too). The
 _PRT is read before pcid registers its pci_fd with acpid, to avoid a deadlock
 against acpid's AML interpreter build.
 
-Gated to non-x86: on x86/x86_64 legacy INTx is routed by plain IRQ line number
-(PIC/IOAPIC) and the irq:phandle-N path does not exist in non-dtb kernels, so
-those arches keep their existing behavior untouched.
-
 aarch64 now boots under pure ACPI (no acpi=off); the device-tree path is
 unchanged. Adds amlserde + ron as pcid dependencies.
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+(cherry picked from commit 8fcf05e6547ced2d4bdf47a30181b0ab554eeb31)
 ---
  drivers/pcid/Cargo.toml  |   2 +
- drivers/pcid/src/main.rs | 147 ++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 148 insertions(+), 1 deletion(-)
+ drivers/pcid/src/main.rs | 138 ++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 139 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/pcid/Cargo.toml b/drivers/pcid/Cargo.toml
 index 69695311..cdc2e466 100644
@@ -44,20 +41,17 @@ index 69695311..cdc2e466 100644
  common = { path = "../common" }
  daemon = { path = "../../daemon" }
 diff --git a/drivers/pcid/src/main.rs b/drivers/pcid/src/main.rs
-index 1dd8e829..fb39b323 100644
+index 1dd8e829..d64687fd 100644
 --- a/drivers/pcid/src/main.rs
 +++ b/drivers/pcid/src/main.rs
-@@ -218,10 +218,46 @@ fn enable_function(
+@@ -218,10 +218,43 @@ fn enable_function(
                  mapping.parent_interrupt,
                  mapping.parent_interrupt_cells,
              ))
-+        } else if cfg!(not(any(target_arch = "x86", target_arch = "x86_64")))
-+            && pcie.interrupt_map.is_empty()
-+        {
++        } else if pcie.interrupt_map.is_empty() {
 +            // No FDT interrupt-map (ACPI boot): route INTx via the ACPI _PRT to a GIC SPI so the
 +            // driver opens it as irq:phandle-0 (phandle 0 = the MADT-registered GIC). This is what
-+            // lets aarch64 boot WITHOUT `-machine virt,acpi=off` (E-OS R-401f). x86/x86_64 keep the
-+            // plain IRQ-line path (phandle routing does not exist in non-dtb kernels).
++            // lets aarch64 boot WITHOUT `-machine virt,acpi=off` (E-OS R-401f).
 +            let device = pci_address.device();
 +            let pin_idx = interrupt_pin.saturating_sub(1); // config pin is 1..=4; _PRT pin is 0..=3
 +            match acpi_prt_routing()
@@ -95,7 +89,7 @@ index 1dd8e829..fb39b323 100644
              debug!("found mapping: addr={:?} => {:?}", addr, phandled);
          }
  
-@@ -231,6 +267,102 @@ fn enable_function(
+@@ -231,6 +264,102 @@ fn enable_function(
      }
  }
  
@@ -198,20 +192,14 @@ index 1dd8e829..fb39b323 100644
  fn main() {
      common::init();
      daemon::Daemon::new(daemon);
-@@ -253,6 +385,19 @@ fn daemon(daemon: daemon::Daemon) -> ! {
+@@ -253,6 +382,13 @@ fn daemon(daemon: daemon::Daemon) -> ! {
      let socket = redox_scheme::Socket::create().expect("failed to open pci scheme socket");
      let handler = Blocking::new(&socket, 16);
  
 +    // EOS R-401f: populate the ACPI _PRT INTx routing BEFORE registering our pci_fd with acpid, so
 +    // acpid's AML-interpreter build (triggered by our read of acpi:/symbols) cannot deadlock against
 +    // pcid, which is not yet serving the pci scheme. Only relevant under ACPI boot (empty interrupt_map).
-+    // NOT on x86/x86_64: there legacy INTx is routed by plain IRQ line number (PIC/IOAPIC), the
-+    // irq:phandle-N scheme path only exists in cfg(dtb) kernels (aarch64/riscv64), and reading
-+    // acpi:/symbols this early would force acpid's AML build before our pci_fd is registered
-+    // (x86 DSDTs have PCI config OpRegions, so that build would be degraded).
-+    if cfg!(not(any(target_arch = "x86", target_arch = "x86_64")))
-+        && scheme.pcie.interrupt_map.is_empty()
-+    {
++    if scheme.pcie.interrupt_map.is_empty() {
 +        let _ = acpi_prt_routing();
 +    }
 +
@@ -219,5 +207,5 @@ index 1dd8e829..fb39b323 100644
          match libredox::Fd::open("/scheme/acpi/register_pci", libredox::flag::O_WRONLY, 0) {
              Ok(register_pci) => {
 -- 
-2.53.0
+2.47.3
 

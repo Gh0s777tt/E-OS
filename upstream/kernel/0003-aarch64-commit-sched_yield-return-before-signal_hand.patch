@@ -1,7 +1,7 @@
-From 97ca1607d35d7ec22cb8fc03add57986b656341e Mon Sep 17 00:00:00 2001
+From fc2bcd7c576c7cdaccec1a3b8b95bacb3bae6332 Mon Sep 17 00:00:00 2001
 From: E-OS <eos@eos>
 Date: Mon, 8 Jun 2026 12:39:51 +0200
-Subject: [PATCH] aarch64: commit sched_yield return before signal_handler
+Subject: [PATCH 3/6] aarch64: commit sched_yield return before signal_handler
  (R-401e)
 
 On aarch64, InterruptStack::sig_archdep_reg() returns scratch.x0 -- which is also
@@ -20,6 +20,8 @@ none of which carry the syscall return value, so they are unaffected.
 Fix: commit the yield's return value (always Ok(()) == 0) into the frame before the
 signal check, so sig_archdep_reg() reflects the completed syscall. cfg-scoped to
 aarch64 (the only arch where x0 is the return register).
+
+(cherry picked from commit 8394931bfe313bf9995d6c71b7fd2cf30ab841da)
 ---
  src/syscall/time.rs | 30 ++++++++++++++++++++++++++++++
  1 file changed, 30 insertions(+)
@@ -66,5 +68,5 @@ index e5b64fa0..1645230d 100644
      context::signal::signal_handler(token);
      Ok(())
 -- 
-2.53.0
+2.47.3
 

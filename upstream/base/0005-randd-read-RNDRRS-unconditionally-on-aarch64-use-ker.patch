@@ -1,0 +1,91 @@
+From 4bc4de4dd7baf8281b0c4787cdb509e95ff19468 Mon Sep 17 00:00:00 2001
+From: Damian Dzierzawski <dzierzawskii98.dam@gmail.com>
+Date: Fri, 19 Jun 2026 09:18:52 +0200
+Subject: [PATCH 5/6] randd: read RNDRRS unconditionally on aarch64 (use kernel
+ R-401b emulation)
+
+On aarch64 cores without FEAT_RNG (cortex-a72, RPi 3/4), randd's
+is_cpu_feature_detected("rand") gate skipped the RNDRRS path and fell back to an
+all-zero seed -- "Random numbers on this platform are NOT SECURE", leaving the
+whole ChaCha20 state known to an attacker.
+
+But the E-OS kernel already emulates RNDR/RNDRRS for such cores (R-401b: it traps
+the UNDEFINED instruction at EL0 and returns a splitmix64 value seeded from
+CNTPCT). The feature gate made that emulation dead code for randd.
+
+Drop the gate and read RNDRRS unconditionally: FEAT_RNG cores use the hardware
+register, others get the kernel's emulated value -- either way a non-zero seed
+instead of zeros. virtio-rngd then mixes real hardware entropy into the pool via
+/scheme/rand. This removes the catastrophic known-zero seed; the emulated value
+is weak, so it is a stopgap until the hardware-entropy feed arrives rather than a
+full cryptographic guarantee.
+
+Validated on aarch64 (QEMU cortex-a72, no FEAT_RNG): randd no longer prints
+"NOT SECURE", the system boots, and virtio-rngd seeds /scheme/rand. The x86_64
+path is unchanged.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+(cherry picked from commit 401f53ef7a2eb37625abca69042b4d8d7d2c82de)
+---
+ randd/src/main.rs | 43 ++++++++++++++++++++-----------------------
+ 1 file changed, 20 insertions(+), 23 deletions(-)
+
+diff --git a/randd/src/main.rs b/randd/src/main.rs
+index a77057a3..4b5d4e47 100644
+--- a/randd/src/main.rs
++++ b/randd/src/main.rs
+@@ -56,31 +56,28 @@ fn create_rdrand_seed() -> [u8; SEED_BYTES] {
+     }
+     #[cfg(target_arch = "aarch64")]
+     {
+-        fn is_cpu_feature_detected(feature: &str) -> bool {
+-            if let Ok(cpu) = std::fs::read_to_string("/scheme/sys/cpu") {
+-                let found = cpu
+-                    .lines()
+-                    .find_map(|s| s.strip_prefix("Features:"))
+-                    .and_then(|s| s.split(" ").find(|s| s == &feature))
+-                    .is_some();
+-                return found;
++        // Read RNDRRS unconditionally. On real FEAT_RNG cores this is the hardware
++        // entropy source; on cores without FEAT_RNG (e.g. cortex-a72, Raspberry Pi
++        // 3/4) the instruction is UNDEFINED, but the E-OS kernel traps it and
++        // emulates RNDR/RNDRRS (R-401b: a splitmix64 PRNG seeded from CNTPCT). So we
++        // get a non-zero seed instead of falling back to the insecure all-zero seed.
++        //
++        // The previous `is_cpu_feature_detected("rand")` gate skipped this entirely
++        // on non-FEAT_RNG cores, which re-introduced the zero seed and left the
++        // kernel's R-401b emulation dead code. virtio-rngd later mixes real hardware
++        // entropy into the pool via /scheme/rand (see drivers/rng/virtio-rngd).
++        let mut failure = false;
++        for i in 0..SEED_BYTES / 8 {
++            // We get 8 bytes at a time from the RNDRRS register.
++            let rand: u64;
++            unsafe {
++                asm!("mrs {}, s3_3_c2_c4_1", out(reg) rand); // rndrrs
+             }
+-            false
++            failure |= rand == 0;
++            rng[i * 8..(i * 8 + 8)].copy_from_slice(&rand.to_le_bytes());
+         }
+-        if is_cpu_feature_detected("rand") {
+-            let mut failure = false;
+-            for i in 0..SEED_BYTES / 8 {
+-                // We get 8 bytes at a time from RNDRRS register
+-                let rand: u64;
+-                unsafe {
+-                    asm!("mrs {}, s3_3_c2_c4_1", out(reg) rand); // rndrrs
+-                }
+-                failure |= rand == 0;
+-                rng[i * 8..(i * 8 + 8)].copy_from_slice(&rand.to_le_bytes());
+-            }
+-            have_seeded = !failure;
+-        }
+-    } // TODO integrate alternative entropy sources
++        have_seeded = !failure;
++    }
+     if !have_seeded {
+         println!("randd: Seeding failed, no entropy source.  Random numbers on this platform are NOT SECURE");
+     }
+-- 
+2.47.3
+

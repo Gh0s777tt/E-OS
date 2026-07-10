@@ -7,10 +7,11 @@ downstream Redox distribution) on QEMU `virt` (aarch64, `-cpu cortex-a72`, TCG)
 and q35 (x86_64, KVM); the repro for several of them is just running shell
 background jobs (`prog &`) from `ion` over the serial console.
 
-> **Apply-clean verified against current mainline (2026-06-10):** all 7 patches
-> `git am` cleanly onto today's `master` — kernel `@ 56947e1a`, base `@ 4581183c`
-> (+2 commits since the patches were cut), relibc `@ b390ee65` (+48 commits). No
-> rebase needed; `git am` directly onto a fresh clone.
+> **Apply-clean verified against current mainline (2026-07-11):** all 13 patches
+> `git am` cleanly onto a fresh `master` clone — kernel `@ 20a813c5`, base
+> `@ 2f06b013`, relibc `@ 284852a0`. No rebase needed; `git am` directly onto a
+> fresh clone. (Regenerated from the E-OS forks after rebasing them onto current
+> mainline, so they carry the full fix set: **6 kernel, 6 base, 1 relibc**.)
 
 > Note on commit authorship: the patch files are authored as `E-OS`. Before
 > opening each MR, you may want to reset the author to your own identity, e.g.
@@ -20,13 +21,13 @@ background jobs (`prog &`) from `ion` over the serial console.
 
 ---
 
-## MR 1 — kernel: boot aarch64 on non-FEAT_RNG CPUs + fix a syscall/signal return clobber
+## MR 1 — kernel: boot aarch64 on non-FEAT_RNG CPUs + fix three aarch64 IRQ/signal bugs
 
-**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0004`
+**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0006`
 
 ### Title
 ```
-aarch64: boot on non-FEAT_RNG CPUs, share PCIe INTx IRQs, fix sched_yield/signal return clobber
+aarch64: boot on non-FEAT_RNG CPUs; fix virtual-timer IRQ, shared PCIe INTx, sched_yield/signal clobber, and a level-INTx EOI deadlock
 ```
 
 ### Body
@@ -78,30 +79,50 @@ crashes first, then a flood of `failed to generate random data: ENODEV`, then
   remains the ideal long-term source, and this only matters where FEAT_RNG is
   absent.
 
-All changes are cfg-scoped to aarch64; x86_64/riscv64 are unaffected. Tested:
-aarch64 boots to a graphical desktop on QEMU virt (-cpu cortex-a72), and an
-x86_64 build was regression-booted to confirm no change.
+0005 — register the virtual timer's interrupt, not the physical one
+  On cores without VHE (`use_virtual_timer` = true; e.g. Cortex-A72 and the QEMU
+  virt machine) the kernel arms the *virtual* generic timer, but both timer-init
+  paths registered the *non-secure physical* timer's interrupt. The virtual timer
+  then fired on an interrupt nobody handled: `context::timeout::trigger` never ran
+  and every `thread::sleep` blocked forever, hanging the boot at the first
+  sleeping driver. Selects the interrupt to match the timer in use —
+  `acpi/gtdt.rs` uses `virtual_el1_timer_gsiv` when `use_virtual_timer`, and the
+  device-tree path uses PPI index 2 (virtual) instead of 1 (non-secure physical).
+
+0006 — mask + EOI userspace level-triggered INTx in-kernel (fix a deadlock)
+  For a userspace-handled level-triggered INTx the kernel deferred the GIC EOI to
+  the driver's scheme ack. That leaves the interrupt *active* (GIC running
+  priority raised) from the moment it fires until the driver acks — which blocks
+  every equal/lower-priority interrupt, including the generic-timer PPI. But the
+  driver cannot be scheduled to ack without the timer: a circular deadlock (all
+  CPUs WFI). `dtb::irqchip::trigger_virq` now masks the line and EOIs in-kernel
+  before notifying userspace (priority drops at once, the timer keeps firing, the
+  masked line won't re-fire though the device still asserts it), and the driver's
+  ack re-enables the line instead of a second EOI. aarch64-only; riscv64's PLIC
+  already EOIs in its handler and x86 is unchanged.
+
+All changes are cfg-scoped to aarch64 (0006 explicitly; the timer/RNG/IRQ paths
+are aarch64 device code); x86_64/riscv64 are unaffected. Tested: aarch64 boots to
+a graphical desktop on QEMU virt (-cpu cortex-a72) and x86_64 was regression-
+booted to confirm no change.
 ```
 
 ### Apply
 ```sh
 git clone https://gitlab.redox-os.org/redox-os/kernel.git && cd kernel
-git am /path/to/upstream/kernel/0001-*.patch \
-       /path/to/upstream/kernel/0002-*.patch \
-       /path/to/upstream/kernel/0003-*.patch \
-       /path/to/upstream/kernel/0004-*.patch
+git am /path/to/upstream/kernel/000*.patch
 git push <your-fork> HEAD:aarch64-boot-fixes
 ```
 
 ---
 
-## MR 2 — base: PCIe legacy INTx for nvmed on aarch64 (device-tree + ACPI)
+## MR 2 — base: aarch64 legacy PCIe INTx for nvmed + virtio, and two boot fixes
 
-**Repo:** `redox-os/base`  ·  **Patches:** `upstream/base/0001..0002`
+**Repo:** `redox-os/base`  ·  **Patches:** `upstream/base/0001..0006`
 
 ### Title
 ```
-aarch64: route PCIe legacy INTx for nvmed (device-tree and ACPI _PRT)
+aarch64: legacy PCIe INTx for nvmed and virtio (device-tree + ACPI _PRT), plus randd RNDRRS and an ihdad boot-hang fix
 ```
 
 ### Body
@@ -130,19 +151,41 @@ boot and why aarch64 previously needed `-machine virt,acpi=off`.
   avoid a deadlock against acpid's AML-interpreter build. The routing is
   cfg-gated to non-x86 (x86 routes legacy INTx by plain IRQ line, and
   irq:phandle-N does not exist in non-dtb kernels). No kernel or acpid change.
+  (0002 adds the _PRT routing; 0003 cfg-gates it to non-x86 so x86 keeps its
+  plain-IRQ-line path untouched.)
+
+0004 — virtio-core: legacy INTx support (aarch64/riscv64)
+  virtio-core assumed MSI-X; on aarch64 (no MSI) it must fall back to legacy,
+  level-triggered PCI INTx, which is acknowledged at both the device (read the
+  ISR status register, which de-asserts the line) and the kernel IRQ scheme
+  (write the count back to re-arm). Adds that path so virtio devices work on
+  aarch64; MSI-X is unchanged where present.
+
+0005 — randd: read RNDRRS unconditionally on aarch64
+  Pairs with the kernel FEAT_RNG emulation (MR 1, 0001/0004): with the kernel
+  trapping and emulating RNDR/RNDRRS, randd can read RNDRRS on every aarch64 core
+  instead of gating on a `rand` feature bit that non-FEAT_RNG cores do not report
+  — which otherwise re-introduces the insecure all-zero seed on exactly those
+  cores. (Apply after the kernel series.)
+
+0006 — ihdad: don't hang the boot on aarch64
+  ihdad's HDA controller reset used `thread::sleep`, which does not wake early in
+  aarch64 boot; the driver hung and stalled the sequential pcid-spawn. Bounds the
+  reset with spin-waits instead and fails gracefully if the controller does not
+  come up, so a missing/again-slow HDA controller cannot hang the boot.
 
 Tested on QEMU virt: with these (plus the kernel series) aarch64 boots to a
 graphical login under BOTH `-machine virt` (ACPI) and `-machine virt,acpi=off`
-(device tree); nvmed initializes, redoxfs mounts. x86_64 verified unaffected
-(the _PRT path is cfg-gated off, no phandle/_PRT activity in the boot log).
+(device tree); nvmed and virtio init, redoxfs mounts. x86_64 verified unaffected
+(the aarch64/non-x86 paths are cfg-gated off).
 
-Depends on the kernel "share PCIe INTx GIC SPIs" change for the shared-IRQ case.
+Depends on the kernel series (shared PCIe INTx, and the FEAT_RNG emulation for 0005).
 ```
 
 ### Apply
 ```sh
 git clone https://gitlab.redox-os.org/redox-os/base.git && cd base
-git am /path/to/upstream/base/0001-*.patch /path/to/upstream/base/0002-*.patch
+git am /path/to/upstream/base/000*.patch
 git push <your-fork> HEAD:aarch64-pcie-intx
 ```
 
@@ -218,11 +261,30 @@ git push <your-fork> HEAD:tls-layout-fixes
 
 ---
 
+## How to submit (no new account needed)
+
+Redox develops on **gitlab.redox-os.org**. You do **not** need to register a new
+account: its sign-in page offers **"Sign in with GitLab.com"** — log in with your
+existing `gitlab.com` account and your Redox-instance account is created for you.
+Then, per repo:
+
+1. **Fork** `redox-os/<repo>` on gitlab.redox-os.org (Fork button).
+2. Clone the upstream, `git am` the patches (commands in each MR above), and
+   `git push` to your fork's branch.
+3. Open the MR from your fork's branch into `redox-os/<repo>:master`, pasting the
+   title/body above.
+
+`upstream/prepare-mrs.sh` automates steps 1–2 (clone + `git am` + branch). If a
+fresh Redox-instance account can't fork yet (anti-spam approval), a one-line note
+on the Redox Matrix/chat unblocks it — or e-mail the patches to the maintainers
+(the links are public in this repo).
+
 ## Suggested submission order
 
-1. **kernel** first (0001/0002/0004 are independent boot fixes; 0003 is the
-   signal/return fix). Nothing depends on base or relibc.
-2. **base** next — note in the MR that the shared-INTx case wants the kernel
-   change, but the patches are independent to apply.
-3. **relibc** independently — unrelated to the others (it is a generic TLS-ABI
-   fix that happens to surface as a thread-exit crash; it is not aarch64-specific).
+1. **kernel** first — the boot + IRQ + signal fixes; nothing depends on base or
+   relibc. (0005 the timer fix and 0006 the level-INTx EOI fix are what actually
+   get aarch64 to reach and hold a login.)
+2. **base** next — note in the MR that it depends on the kernel series (shared
+   INTx, and FEAT_RNG emulation for the randd patch).
+3. **relibc** independently — unrelated to the others (a generic TLS-ABI fix that
+   surfaces as a thread-exit crash on both aarch64 and x86_64; not aarch64-specific).

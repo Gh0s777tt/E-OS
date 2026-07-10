@@ -1,9 +1,10 @@
-From 35bdc7d3d7a764265fad6bda19d1f9d0a9f5d9ea Mon Sep 17 00:00:00 2001
+From 7320309283d19688d58269f84e5e4c8db6e5d93d Mon Sep 17 00:00:00 2001
 From: E-OS <eos@eos>
 Date: Mon, 8 Jun 2026 13:55:25 +0200
-Subject: [PATCH] aarch64: real CPU-jitter entropy for FEAT_RNG emulation
+Subject: [PATCH 4/6] aarch64: real CPU-jitter entropy for FEAT_RNG emulation
  (R-401b)
 
+(cherry picked from commit 0357c793f38e29e8d747701627131e341a47ca10)
 ---
  src/arch/aarch64/interrupt/exception.rs | 68 +++++++++++++++++++++----
  1 file changed, 57 insertions(+), 11 deletions(-)
@@ -98,5 +99,5 @@ index df47d968..43faa743 100644
          z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
          z ^= z >> 31;
 -- 
-2.53.0
+2.47.3
 

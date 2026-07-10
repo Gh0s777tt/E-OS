@@ -1,9 +1,10 @@
-From 25d877fd2209e55b4bba7bba935c9a38b4e2e377 Mon Sep 17 00:00:00 2001
+From 20d61dbb2025f2ddfbf550734e00c268d755506c Mon Sep 17 00:00:00 2001
 From: E-OS build <eos@local>
 Date: Sun, 7 Jun 2026 18:05:22 +0200
-Subject: [PATCH] E-OS R-401c: nvmed runs in INTx mode on non-x86 (aarch64 has
- no MSI)
+Subject: [PATCH 1/6] E-OS R-401c: nvmed runs in INTx mode on non-x86 (aarch64
+ has no MSI)
 
+(cherry picked from commit 96fab1ba94e98debe58f0abac63ff9ad4d602327)
 ---
  drivers/storage/nvmed/src/main.rs | 7 ++++++-
  1 file changed, 6 insertions(+), 1 deletion(-)
@@ -34,5 +35,5 @@ index 658af327..c8a99cdc 100644
      let mut time_handle = File::open(&format!("/scheme/time/{}", libredox::flag::CLOCK_MONOTONIC))
          .expect("failed to open time handle");
 -- 
-2.53.0
+2.47.3
 

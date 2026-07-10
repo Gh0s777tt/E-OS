@@ -1,4 +1,4 @@
-From 0d30e9ea0e1e5344c66b4d05f86564cf1b83fe52 Mon Sep 17 00:00:00 2001
+From 2b622e9870fbb15b957e312ef8741f25983d765a Mon Sep 17 00:00:00 2001
 From: E-OS <eos@eos>
 Date: Wed, 10 Jun 2026 10:21:51 +0200
 Subject: [PATCH] ld.so: fix static-TLS layout, alignment and TLSDESC/TPOFF
@@ -66,6 +66,7 @@ TLS-resident bookkeeping that a misplaced block turns to garbage). A correct
 libc passes; the bug either fails an initializer assert or crashes on exit.
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+(cherry picked from commit 963b8f91544d061ea2fc267892ce8ca91857d6a1)
 ---
  src/ld_so/dso.rs             | 72 +++++++++++++++++++++++-----
  src/ld_so/linker.rs          |  9 +++-
@@ -183,10 +184,10 @@ index 9c9778ce..2bd47e47 100644
      ldr x2, [x2, x0, lsl #3] // tcb.dtv_ptr[tls_descriptor.module_id]
      add x0, x2, x1 // tcb.dtv_ptr[tls_descriptor.module_id] + tls_descriptor.addend
 diff --git a/src/ld_so/linker.rs b/src/ld_so/linker.rs
-index 1e50ef4e..2f85973e 100644
+index 56193ff1..e9889d38 100644
 --- a/src/ld_so/linker.rs
 +++ b/src/ld_so/linker.rs
-@@ -855,7 +855,14 @@ impl Linker {
+@@ -856,7 +856,14 @@ impl Linker {
  
          if let Some(master) = tcb_master {
              if !dlopened {
@@ -203,10 +204,10 @@ index 1e50ef4e..2f85973e 100644
  
              tcb_masters.push(master);
 diff --git a/src/ld_so/mod.rs b/src/ld_so/mod.rs
-index 750f2189..44d2e50c 100644
+index f8b90af0..161f227c 100644
 --- a/src/ld_so/mod.rs
 +++ b/src/ld_so/mod.rs
-@@ -113,7 +113,15 @@ fn static_init(
+@@ -111,7 +111,15 @@ fn static_init(
              unsafe {
                  STATIC_TCB_MASTER.ptr = p_vaddr as *const u8;
                  STATIC_TCB_MASTER.image_size = p_filesz;
@@ -221,13 +222,13 @@ index 750f2189..44d2e50c 100644
 +                        0
 +                    };
  
-                 let tcb = Tcb::new(vsize).expect_notls("failed to allocate TCB");
+                 let tcb = Tcb::new(vsize).expect("failed to allocate TCB");
                  tcb.masters_ptr = ptr::addr_of_mut!(STATIC_TCB_MASTER);
 diff --git a/tests/Makefile.tests.mk b/tests/Makefile.tests.mk
-index e8223679..248f7ec2 100644
+index 01442a8a..40ad0780 100644
 --- a/tests/Makefile.tests.mk
 +++ b/tests/Makefile.tests.mk
-@@ -321,6 +321,7 @@ VARIED_NAMES=\
+@@ -324,6 +324,7 @@ VARIED_NAMES=\
  	pthread/mutex_recursive \
  	pthread/timeout \
  	pthread/tls \
@@ -335,5 +336,5 @@ index 00000000..ad828dbb
 +    return EXIT_SUCCESS;
 +}
 -- 
-2.53.0
+2.47.3
 

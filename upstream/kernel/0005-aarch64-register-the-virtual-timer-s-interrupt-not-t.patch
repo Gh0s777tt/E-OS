@@ -1,0 +1,94 @@
+From 856fff4353636b313e0d51601cbd27614b55e64e Mon Sep 17 00:00:00 2001
+From: Damian Dzierzawski <dzierzawskii98.dam@gmail.com>
+Date: Fri, 19 Jun 2026 12:01:43 +0200
+Subject: [PATCH 5/6] aarch64: register the virtual timer's interrupt, not the
+ physical one
+
+On cores without VHE (use_virtual_timer = true; e.g. cortex-a72 and the QEMU
+virt machine) the kernel arms the *virtual* generic timer, but the interrupt
+setup registered the *non-secure physical* timer's interrupt. So the virtual
+timer fired while its interrupt was never registered/handled: the timer handler
+never ran, context::timeout::trigger was never called, and every thread::sleep
+blocked forever.
+
+Drivers that sleep before signalling readiness (ihdad, e1000d, ...) hung, and
+because pcid-spawner starts drivers sequentially and waits for each to be ready,
+that stalled the whole boot -- aarch64 never reached login.
+
+Select the interrupt to match the timer in use, in both timer-init paths:
+  - acpi/gtdt.rs (the active path on ACPI / the QEMU virt machine): use
+    virtual_el1_timer_gsiv when use_virtual_timer, else non_secure_el1_timer_gsiv.
+  - arch/aarch64/device/generic_timer.rs (the device-tree path): use DT interrupt
+    index 2 (virtual) when use_virtual_timer, else index 1 (non-secure physical).
+
+Validated on QEMU aarch64 (cortex-a72): the timer interrupt now fires (gsiv 27 =
+virtual instead of 30 = physical), thread::sleep wakes, the previously hung
+drivers come up, and the system boots to login.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+(cherry picked from commit cb14af3ba4b68fb10ba238593bead5a3c5b92e98)
+---
+ src/acpi/gtdt.rs                         | 18 ++++++++++++++++--
+ src/arch/aarch64/device/generic_timer.rs | 14 +++++++++++---
+ 2 files changed, 27 insertions(+), 5 deletions(-)
+
+diff --git a/src/acpi/gtdt.rs b/src/acpi/gtdt.rs
+index 1c5743c2..c364200a 100644
+--- a/src/acpi/gtdt.rs
++++ b/src/acpi/gtdt.rs
+@@ -46,10 +46,24 @@ impl Gtdt {
+             return;
+         };
+ 
+-        let gsiv = gtdt.non_secure_el1_timer_gsiv;
+-        info!("generic_timer gsiv = {}", gsiv);
+         let mut timer = GenericTimer::new();
+         timer.init();
++        // The kernel arms the *virtual* timer when VHE is absent (use_virtual_timer,
++        // true on e.g. cortex-a72 / the QEMU virt machine), so register the GSIV of
++        // the timer actually in use. Registering the non-secure physical timer's
++        // GSIV while running the virtual timer means the timer fires but its
++        // interrupt is never handled -- so context::timeout::trigger never runs and
++        // every thread::sleep blocks forever, hanging the boot at the first sleeping
++        // driver. (E-OS: fixes the aarch64 boot stall.)
++        let gsiv = if timer.use_virtual_timer {
++            gtdt.virtual_el1_timer_gsiv
++        } else {
++            gtdt.non_secure_el1_timer_gsiv
++        };
++        info!(
++            "generic_timer gsiv = {} (virtual_timer={})",
++            gsiv, timer.use_virtual_timer
++        );
+         register_irq(gsiv, Box::new(timer));
+         unsafe { IRQ_CHIP.irq_enable(gsiv as u32) };
+     }
+diff --git a/src/arch/aarch64/device/generic_timer.rs b/src/arch/aarch64/device/generic_timer.rs
+index b3c29c92..2cac76a6 100644
+--- a/src/arch/aarch64/device/generic_timer.rs
++++ b/src/arch/aarch64/device/generic_timer.rs
+@@ -27,10 +27,18 @@ pub unsafe fn init(fdt: &Fdt) {
+         let mut timer = GenericTimer::new();
+         timer.init();
+         if let Some(node) = fdt.find_compatible(&["arm,armv7-timer"]) {
+-            let irq = get_interrupt(fdt, &node, 1).unwrap();
+-            debug!("irq = {:?}", irq);
++            // arm,arm{v7,v8}-timer lists its PPIs in this order: 0 = secure
++            // physical, 1 = non-secure physical, 2 = virtual, 3 = hypervisor.
++            // We arm the *virtual* timer when VHE is absent (use_virtual_timer),
++            // so we must register the virtual timer's PPI (index 2). Registering
++            // the physical PPI (index 1) while running the virtual timer means the
++            // timer fires but its interrupt is never handled -- so timed wakeups
++            // (thread::sleep, via timeout::trigger) never run and the boot hangs
++            // at the first sleeping driver. (E-OS: fixes aarch64 boot stall.)
++            let timer_irq_idx = if timer.use_virtual_timer { 2 } else { 1 };
++            let irq = get_interrupt(fdt, &node, timer_irq_idx).unwrap();
++            debug!("irq = {:?} (virtual_timer={})", irq, timer.use_virtual_timer);
+             if let Some(ic_idx) = ic_for_chip(&fdt, &node) {
+-                //PHYS_NONSECURE_PPI only
+                 let virq = IRQ_CHIP.irq_chip_list.chips[ic_idx]
+                     .ic
+                     .irq_xlate(irq)
+-- 
+2.47.3
+

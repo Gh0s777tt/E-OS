@@ -65,7 +65,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
-- `[U-038]` **Vendored the core Redox OS into E-OS's own repos — the whole boot→desktop
+- `[U-039]` **Upstream patch set refreshed & expanded to 13 patches — ready to submit.**
+  Regenerated `upstream/` from the rebased forks (`eos-july`): **6 kernel, 6 base, 1
+  relibc**, up from 7. Two new kernel fixes found during the rebase are now included —
+  the virtual-timer IRQ registration (`kernel/0005`) and the level-INTx EOI deadlock
+  (`kernel/0006`) — plus previously-uncontributed base fixes (`_PRT` cfg-gate,
+  virtio-core INTx, randd RNDRRS, ihdad boot-hang). **All 13 `git am` cleanly onto a
+  fresh mainline clone** (kernel `@ 20a813c5`, base `@ 2f06b013`, relibc `@ 284852a0`);
+  none have landed upstream. `upstream/MR-DESCRIPTIONS.md` and `README.md` updated with
+  the new patches and a no-new-account submission path (sign in to gitlab.redox-os.org
+  with an existing gitlab.com account). Submission itself is the maintainer's account
+  step — the patches are prepared and verified. — the whole boot→desktop
   stack is now under `Gh0s777tt`.** Mirrored the **16** Redox-authored components E-OS
   ships (that weren't already forked) into `Gh0s777tt/eos-*` and re-pointed their recipes,
   each pinned to an exact rev: `redoxfs`, `orbital`, `orbutils`, `orbterm`, `orbclient`,

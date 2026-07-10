@@ -1,15 +1,16 @@
-From eefdf411e00a5d043c0eeba0a58ef1b35cfc90be Mon Sep 17 00:00:00 2001
+From 4459aa782348ae975c631aaee64f8c0d46293af3 Mon Sep 17 00:00:00 2001
 From: E-OS build <eos@local>
 Date: Sun, 7 Jun 2026 23:40:01 +0200
-Subject: [PATCH 2/2] E-OS R-401d: allow shared phandle IRQ opens (PCIe INTx)
+Subject: [PATCH 2/6] E-OS R-401d: allow shared phandle IRQ opens (PCIe INTx)
  instead of EEXIST
 
+(cherry picked from commit 24e009bd59b57c839d15a0031c4e0af71e481d49)
 ---
  src/scheme/irq.rs | 6 +++++-
  1 file changed, 5 insertions(+), 1 deletion(-)
 
 diff --git a/src/scheme/irq.rs b/src/scheme/irq.rs
-index a8795e59..ed43f642 100644
+index ec0570b1..8efe3012 100644
 --- a/src/scheme/irq.rs
 +++ b/src/scheme/irq.rs
 @@ -190,8 +190,12 @@ impl IrqScheme {
@@ -27,5 +28,5 @@ index a8795e59..ed43f642 100644
                      set_reserved(LogicalCpuId::new(0), irq_number as u8, true);
                  }
 -- 
-2.53.0
+2.47.3
 

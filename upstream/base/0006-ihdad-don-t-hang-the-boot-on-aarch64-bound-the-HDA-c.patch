@@ -1,0 +1,150 @@
+From 167050c63566ef55357daa42a6b5c5d2d1e2829f Mon Sep 17 00:00:00 2001
+From: Damian Dzierzawski <dzierzawskii98.dam@gmail.com>
+Date: Fri, 19 Jun 2026 11:06:37 +0200
+Subject: [PATCH 6/6] ihdad: don't hang the boot on aarch64 (bound the HDA
+ controller reset)
+
+On aarch64 the HDA controller reset hung the entire boot: the thread::sleep
+between the CRST assert/deassert steps never returns early in boot (the
+generic-timer wakeup path does not fire while a thread is blocked), so ihdad
+never reached daemon.ready(). pcid-spawner starts drivers sequentially and
+waits for each to signal readiness, so it blocked forever and the system never
+reached login.
+
+Make the reset path robust:
+  - reset_controller: replace the Timeout-based waits (Timeout relies on
+    std::time::Instant) and the thread::sleep settle delays with hard-bounded
+    spin loops, so the reset always terminates -- it completes if the controller
+    comes up, or returns EIO if it does not.
+  - main: if HDA init fails, log a warning and signal readiness + exit cleanly
+    instead of panicking, so pcid-spawner proceeds and the rest of the system
+    boots (without audio).
+
+Validated on aarch64 (QEMU cortex-a72): ihdad's HDA init now completes fully
+(controller resets, codec detected/enumerated/configured); previously it hung
+in reset. x86_64 is unchanged -- the controller resets immediately, so the spin
+loops break on the first poll.
+
+Note: the underlying issue is that thread::sleep does not wake on aarch64 early
+in boot (a kernel generic-timer interrupt-delivery issue, tracked separately);
+this change makes ihdad robust against it.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+(cherry picked from commit 5183a66a7aa78d4f9a3355be13b7231c39039eab)
+---
+ drivers/audio/ihdad/src/hda/device.rs | 59 +++++++++++++++++----------
+ drivers/audio/ihdad/src/main.rs       | 12 +++++-
+ 2 files changed, 47 insertions(+), 24 deletions(-)
+ mode change 100755 => 100644 drivers/audio/ihdad/src/hda/device.rs
+ mode change 100755 => 100644 drivers/audio/ihdad/src/main.rs
+
+diff --git a/drivers/audio/ihdad/src/hda/device.rs b/drivers/audio/ihdad/src/hda/device.rs
+old mode 100755
+new mode 100644
+index 78e8f0a2..879d341e
+--- a/drivers/audio/ihdad/src/hda/device.rs
++++ b/drivers/audio/ihdad/src/hda/device.rs
+@@ -655,38 +655,53 @@ impl IntelHDA {
+ 
+         self.regs.statests.write(0x7FFF);
+ 
+-        // 3.3.7
++        // 3.3.7: reset the controller. On aarch64 the Timeout helper (which relies on
++        // std::time::Instant) does not reliably fire and thread::sleep is unreliable
++        // this early in boot, so bound these waits with a hard spin cap. Otherwise a
++        // controller that never completes reset hangs the entire boot, because
++        // pcid-spawner blocks waiting for ihdad to signal readiness.
++        const RESET_SPINS: u32 = 5_000_000;
++
++        // Enter reset (CRST low) and wait for the controller to acknowledge.
++        self.regs.gctl.writef(CRST, false);
+         {
+-            let timeout = Timeout::from_secs(1);
+-            self.regs.gctl.writef(CRST, false);
+-            loop {
+-                if !self.regs.gctl.readf(CRST) {
+-                    break;
++            let mut spins: u32 = 0;
++            while self.regs.gctl.readf(CRST) {
++                spins += 1;
++                if spins > RESET_SPINS {
++                    log::error!(
++                        "ihda: controller did not enter reset (gctl={:08X})",
++                        self.regs.gctl.read()
++                    );
++                    return Err(Error::new(EIO));
+                 }
+-                timeout.run().map_err(|()| {
+-                    log::error!("failed to start reset");
+-                    Error::new(EIO)
+-                })?;
++                core::hint::spin_loop();
+             }
+         }
+ 
+-        thread::sleep(Duration::from_millis(1));
+-
++        // Brief settle, then leave reset (CRST high) and wait for it to come up.
++        for _ in 0..100_000 {
++            core::hint::spin_loop();
++        }
++        self.regs.gctl.writef(CRST, true);
+         {
+-            let timeout = Timeout::from_secs(1);
+-            self.regs.gctl.writef(CRST, true);
+-            loop {
+-                if self.regs.gctl.readf(CRST) {
+-                    break;
++            let mut spins: u32 = 0;
++            while !self.regs.gctl.readf(CRST) {
++                spins += 1;
++                if spins > RESET_SPINS {
++                    log::error!(
++                        "ihda: controller did not leave reset (gctl={:08X})",
++                        self.regs.gctl.read()
++                    );
++                    return Err(Error::new(EIO));
+                 }
+-                timeout.run().map_err(|()| {
+-                    log::error!("failed to finish reset");
+-                    Error::new(EIO)
+-                })?;
++                core::hint::spin_loop();
+             }
+         }
+ 
+-        thread::sleep(Duration::from_millis(2));
++        for _ in 0..200_000 {
++            core::hint::spin_loop();
++        }
+ 
+         let mut ticks: u32 = 0;
+         while self.regs.statests.read() == 0 {
+diff --git a/drivers/audio/ihdad/src/main.rs b/drivers/audio/ihdad/src/main.rs
+old mode 100755
+new mode 100644
+index 681b73e9..7c6f697b
+--- a/drivers/audio/ihdad/src/main.rs
++++ b/drivers/audio/ihdad/src/main.rs
+@@ -60,8 +60,16 @@ fn daemon(daemon: daemon::Daemon, mut pcid_handle: PciFunctionHandle) -> ! {
+         let event_queue =
+             EventQueue::<Source>::new().expect("ihdad: Could not create event queue.");
+         let socket = Socket::nonblock().expect("ihdad: failed to create socket");
+-        let mut device = unsafe {
+-            hda::IntelHDA::new(address, vend_prod).expect("ihdad: failed to allocate device")
++        let mut device = match unsafe { hda::IntelHDA::new(address, vend_prod) } {
++            Ok(dev) => dev,
++            Err(err) => {
++                // HDA init failed (e.g. the controller does not come up on this
++                // platform). Don't hang or panic: signal readiness so pcid-spawner
++                // proceeds and the rest of the system boots, just without audio.
++                log::warn!("ihdad: HDA initialization failed ({err:?}); audio unavailable");
++                daemon.ready();
++                std::process::exit(0);
++            }
+         };
+         let mut readiness_based = ReadinessBased::new(&socket, 16);
+ 
+-- 
+2.47.3
+
