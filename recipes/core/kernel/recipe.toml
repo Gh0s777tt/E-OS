@@ -1,10 +1,11 @@
 [source]
-# E-OS R-401b/R-401d/R-401e: aarch64 FEAT_RNG (RNDR/RNDRRS) emulation with CPU-jitter entropy +
-# shared PCIe INTx IRQ + sched_yield/signal x0 fix. Downstream fork of redox-os/kernel @ 56947e1a.
-# Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
+# E-OS R-401b/R-401d/R-401e: aarch64 FEAT_RNG (RNDR/RNDRRS) emulation with CPU-jitter
+# entropy + shared PCIe INTx IRQ + sched_yield/signal x0 fix + the virtual-timer-IRQ
+# registration fix + the userspace-level-INTx mask/EOI deadlock fix. Rebased onto current
+# redox-os/kernel mainline (July). Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
 git = "https://github.com/Gh0s777tt/eos-kernel.git"
-branch = "master"
-rev = "6ee1f7961ba5cddd86253bfea30ac99f2cea64b3"
+branch = "eos-july"
+rev = "bf4b264e86dd5777f09cf20de032537710bacc06"
 
 [build]
 template = "custom"

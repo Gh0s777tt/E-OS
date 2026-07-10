@@ -1,12 +1,13 @@
 [source]
 # E-OS R-401c (nvmed INTx mode) + R-401f (pcid ACPI _PRT INTx routing -> aarch64 boots
-# without acpi=off) + R-402 (virtio-rng entropy driver feeding randd's pool, plus
-# virtio-core legacy INTx support so virtio works on aarch64) + dep bump (drop
-# vulnerable crossbeam-utils 0.7.2). Downstream fork of redox-os/base @ 9dd6901d.
+# without acpi=off) + virtio-core legacy INTx + dep bumps. Rebased onto current
+# redox-os/base mainline (July). NOTE: the R-402 virtio-rng entropy driver is
+# reverted on this branch (it deadlocked userspace on the July stack; the kernel
+# R-401b jitter entropy still seeds randd) — see docs/known-issues.md.
 # Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
-branch = "main"
-rev = "0645c1be7b2d557a5a453e5a5574dc0e0575c9d4"
+branch = "eos-july"
+rev = "969c64b9436cea063baaa4b65e95e33e9dce95b7"
 
 [build]
 template = "custom"

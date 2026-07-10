@@ -107,12 +107,14 @@ QEMU 0% CPU) right after `virtio-rng` seeds. Root-caused to the aarch64 IRQ path
   `virtio-rng` device attached** (the exact config that used to deadlock), CPU
   100%+ throughout (no WFI stall). Verified on the macOS/M4 rig.
 
-**Status:** the July rebase is **complete and validated on aarch64**. Remaining
-before it replaces the June forks on `main`: an **x86_64** cross-build/boot check
-(the rebase is arch-independent in the recipes, but x86_64 hasn't been booted on
-the July stack yet). The dropped `virtio-rngd` and the deferred upstream MRs (now
-including the INTx fix) are tracked follow-ups. The kernel INTx fix should go
-upstream regardless.
+**Status: PROMOTED.** The July rebase is validated on **both arches** — aarch64
+(graphical greeter, 0 exceptions, virtio-rng device attached) and x86_64 (`eos
+login:`, 0 exceptions, ahci/nvme up) — and is now what `main` builds: `core/kernel`,
+`core/base`, `core/relibc`, `core/userutils` pin the `eos-july` fork branches, and
+`redoxfs`/`orbital`/`orbutils` are **unpinned** (back to upstream — all three U-030
+workaround pins removed). Follow-ups: root-cause the `virtio-rngd` userspace
+deadlock and restore R-402, and submit the upstream MRs (now including the INTx
+mask/EOI fix, `kernel/0005`).
 
 **Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
 HEAD) crashes the same way **with a display attached** (ramfb GUI boot test:

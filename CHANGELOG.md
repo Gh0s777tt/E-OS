@@ -65,6 +65,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-036]` **`main` PROMOTED to the July fork rebase — all upstream-drift workaround
+  pins removed.** With both arches validated (aarch64 greeter + x86_64 `eos login:`, 0
+  exceptions each), the recipes now build the rebased forks: `core/kernel` →
+  `eos-july@bf4b264e`, `core/base` → `eos-july@969c64b9`, `core/relibc` →
+  `eos-july@963b8f91`, `core/userutils` → `eos-july@260d7725`, and `redoxfs`/`orbital`/
+  `orbutils` are **unpinned** (the three U-030 SBOM pins are gone — the rebase resolved
+  the relibc-ABI drift that required them). E-OS's forks are now current with July
+  mainline, carry the same fixes plus the new INTx deadlock fix, and ship no workaround
+  pins. `docs/known-issues.md` marks the rebase promoted.
 - `[U-035]` **July rebase now boots to the greeter on aarch64 — `virtio-rngd` dropped
   from the July line.** After the INTx fix (U-034) the only remaining blocker was a
   `virtio-rngd`-specific userspace deadlock (proven isolated: the same image with no
