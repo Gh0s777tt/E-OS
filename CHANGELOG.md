@@ -64,8 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `9e12870`, relibc `d589900`): 4 kernel + 2 base still `git am` cleanly, the 1 relibc
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
-  necessary. `upstream/README.md` verification note updated. (Full fork-branch rebase
-  onto July upstream is staged as a deliberate next step, not yet executed.)
+  necessary. `upstream/README.md` verification note updated.
+- `[U-033]` **Fork rebase onto July upstream — executed, validated, staged (not yet
+  promoted).** The three code forks were rebased onto current mainline and pushed to
+  `eos-{kernel,base,relibc}` branch `eos-july` (kernel `1a631be5`, base `67606b61`,
+  relibc `8133f89f`). Rebuilt aarch64 with the toolchain **sysroot relibc rebuilt** to
+  the rebased rev and `redoxfs`/`orbital`/`orbutils` **un-pinned** (July HEAD): this
+  **confirms U-030's root cause is relibc ABI drift** — the July userland failed to
+  link against the June sysroot (`undefined reference to redox_fcntl_v0`), and against
+  the rebased relibc it builds **and** boots to the **graphical E-OS greeter**
+  (`assets/screenshots/eos-aarch64-greeter-rebased-july.png`), with all three workaround
+  pins removed. **One non-blocking regression** surfaced (`virtio-netd` throws a single
+  unhandled exception; the greeter still comes up), so **`main` stays on the validated
+  June forks + pins** (0 exceptions) until that is root-caused. The rebase is ready to
+  promote on the `eos-july` branches. Details: `docs/known-issues.md`.
 - `[U-030]` **Upstream-drift boot blocker: unpinned `redoxfs` (0.9.1, July HEAD)
   aborted every aarch64 boot against the June-pinned forks — root-caused by
   disasm, fixed by pinning to the SBOM-validated rev.** The initfs `redoxfs`

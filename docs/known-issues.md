@@ -22,11 +22,41 @@ early-startup check (`cbz x9` with `X9=0` — a NULL out of TCB/TLS setup;
 July redoxfs binary's TLS/segment layout appears to hit an edge the June
 fork relibc/kernel pair mishandles.
 
-**Fix:** `recipes/core/redoxfs` is now **pinned** to `af493b9f` — the rev the
-0.1.0 SBOM records for the boot-validated image. With only that change the same
-build boots to `eos login:`. The deeper interaction (July-binary TLS layout vs
-the R-402a TLS math and/or kernel exec TLS handoff) is to be root-caused as part
-of the planned **fork rebase onto current upstream**.
+**Fix (shipping):** `recipes/core/redoxfs` is **pinned** to `af493b9f` — the rev
+the 0.1.0 SBOM records for the boot-validated image. With only that change the
+same build boots to `eos login:`.
+
+**Root cause — CONFIRMED 2026-07-10 by the fork rebase (below): relibc ABI
+drift, not a TLS-math edge.** Building the July `redoxfs`/`orbital` from source
+against the June sysroot relibc fails to link — `undefined reference to
+redox_fcntl_v0` — a versioned relibc symbol the July `redox_scheme` needs but the
+June relibc does not export. Under `REPO_BINARY` there was no link step, so the
+mismatch surfaced only at runtime as the `brk #1` abort. Rebasing the forks onto
+July upstream (which provides the symbol) makes the July `redoxfs`/`orbital`
+build **and** boot — see the rebase note below.
+
+## 🔬 Fork rebase onto July upstream — validated, staged, not yet promoted (2026-07-10)
+
+The three code forks were rebased onto current `redox-os` mainline and pushed to
+`eos-{kernel,base,relibc}` branch **`eos-july`** (kernel `1a631be5` = 4 patches on
+`fbfe439`; base `67606b61` = 2 patches on `9e12870`; relibc `8133f89f` = the TLS
+patch on `d589900`, a one-hunk 3-way merge). Rebuilt aarch64 with the toolchain
+**sysroot relibc rebuilt** to the rebased rev and with `redoxfs`/`orbital`/`orbutils`
+**un-pinned** (back to July upstream HEAD):
+
+- ✅ July `redoxfs`/`orbital`/`orbutils` now **build from source** (the
+  `redox_fcntl_v0` link error is gone) and the image reaches the **graphical E-OS
+  greeter** (`assets/screenshots/eos-aarch64-greeter-rebased-july.png`).
+- ⚠️ **One new, non-blocking regression:** `virtio-netd` (PID 21) throws a single
+  `UNHANDLED EXCEPTION` (at `relibc stdlib/mod.rs:121`) — the July network driver
+  vs the environment. The greeter still comes up; the June-forks build had 0
+  exceptions here, so this is a rebase-introduced item to root-cause **before the
+  rebase replaces the validated June forks on `main`**.
+
+**Decision:** `main` stays on the **validated June forks + the three workaround
+pins** (0 exceptions) until the `virtio-netd` regression is resolved. The rebase
+lives on the `eos-july` fork branches, ready to promote (it removes all three
+workaround pins and brings the forks current for upstream MR submission).
 
 **Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
 HEAD) crashes the same way **with a display attached** (ramfb GUI boot test:
