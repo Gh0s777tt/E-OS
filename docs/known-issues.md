@@ -97,12 +97,21 @@ QEMU 0% CPU) right after `virtio-rng` seeds. Root-caused to the aarch64 IRQ path
   succeeds (the first `pull()` gets 32 bytes), so it is a post-seed interaction of
   `virtio-rngd` with the July relibc/redox-rt runtime, not the INTx path.
 
-**Decision:** `main` stays on the **validated June forks + pins** (greeter, 0
-exceptions). The rebase is complete on the `eos-july` branches, the kernel INTx
-fix is proven, and the only remaining item is the `virtio-rngd` userspace
-deadlock — which needs userspace thread-state/lock debugging, or (pragmatically)
-dropping the optional R-402 `virtio-rng` driver from the July line (the kernel's
-R-401b jitter entropy already provides randomness). The INTx fix should go
+- **Resolution: `virtio-rngd` dropped from the July line — the rebase now boots
+  to the greeter cleanly.** The optional R-402 `virtio-rng` entropy driver was
+  reverted on `eos-base@969c64b9` (the kernel's R-401b jitter entropy still seeds
+  randd, so there is no zero-seed regression). With it gone the fully-rebased July
+  aarch64 image — kernel `bf4b264e`, base `969c64b9`, relibc `963b8f91`, userutils
+  `260d772` (all `eos-july`); redoxfs/orbital/orbutils on July upstream HEAD, **no
+  pins** — boots to the **graphical E-OS greeter with 0 exceptions and a
+  `virtio-rng` device attached** (the exact config that used to deadlock), CPU
+  100%+ throughout (no WFI stall). Verified on the macOS/M4 rig.
+
+**Status:** the July rebase is **complete and validated on aarch64**. Remaining
+before it replaces the June forks on `main`: an **x86_64** cross-build/boot check
+(the rebase is arch-independent in the recipes, but x86_64 hasn't been booted on
+the July stack yet). The dropped `virtio-rngd` and the deferred upstream MRs (now
+including the INTx fix) are tracked follow-ups. The kernel INTx fix should go
 upstream regardless.
 
 **Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
