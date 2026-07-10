@@ -28,10 +28,13 @@ build boots to `eos login:`. The deeper interaction (July-binary TLS layout vs
 the R-402a TLS math and/or kernel exec TLS handoff) is to be root-caused as part
 of the planned **fork rebase onto current upstream**.
 
-**Watch item:** `orbital` (also unpinned upstream, July HEAD) logged one
-`UNHANDLED EXCEPTION` (PID 32) during the headless boot — non-blocking without a
-display, but it matches the same drift pattern; verify during the next
-display-enabled boot.
+**Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
+HEAD) crashes the same way **with a display attached** (ramfb GUI boot test:
+`UNHANDLED EXCEPTION`, desktop never starts, boot falls back to the branded
+framebuffer console — which itself renders correctly, `/etc/issue` + `eos
+login:`). Fixed the same way: `recipes/gui/orbital` pinned to `3b60d28a` and
+`recipes/gui/orbutils` (greeter/launcher, same risk class) to `46b6d063` — the
+0.1.0-SBOM revs.
 
 **Systemic note:** any recipe cooked from an *unpinned* upstream source can
 drift against the frozen June forks. The core boot-critical set is now pinned
