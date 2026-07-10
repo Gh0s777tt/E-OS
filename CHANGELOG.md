@@ -65,19 +65,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
-- `[U-033]` **Fork rebase onto July upstream — executed, validated, staged (not yet
-  promoted).** The three code forks were rebased onto current mainline and pushed to
-  `eos-{kernel,base,relibc}` branch `eos-july` (kernel `1a631be5`, base `67606b61`,
-  relibc `8133f89f`). Rebuilt aarch64 with the toolchain **sysroot relibc rebuilt** to
-  the rebased rev and `redoxfs`/`orbital`/`orbutils` **un-pinned** (July HEAD): this
-  **confirms U-030's root cause is relibc ABI drift** — the July userland failed to
-  link against the June sysroot (`undefined reference to redox_fcntl_v0`), and against
-  the rebased relibc it builds **and** boots to the **graphical E-OS greeter**
-  (`assets/screenshots/eos-aarch64-greeter-rebased-july.png`), with all three workaround
-  pins removed. **One non-blocking regression** surfaced (`virtio-netd` throws a single
-  unhandled exception; the greeter still comes up), so **`main` stays on the validated
-  June forks + pins** (0 exceptions) until that is root-caused. The rebase is ready to
-  promote on the `eos-july` branches. Details: `docs/known-issues.md`.
+- `[U-033]` **Fork rebase onto July upstream — executed in full, root cause of U-030
+  confirmed, promotion blocked on a virtio-INTx deadlock.** All **four** code forks
+  were rebased onto current mainline via a full `git rebase --onto` carrying the
+  **complete** E-OS delta (not just the `upstream/` patch subset) and pushed to
+  `eos-{kernel,base,relibc,userutils}` branch `eos-july` (kernel `cb14af3b`/8 commits,
+  base `3e10b86f`/13, relibc `963b8f91`/1, userutils `260d772`/4). The exercise
+  **confirmed U-030's root cause is relibc ABI drift** (`undefined reference to
+  redox_fcntl_v0` when the July userland links against the June sysroot) and surfaced
+  three rebase lessons the earlier patch-only attempt hid: a fork carries more than its
+  `upstream/` patches (dropping R-402 virtio-core INTx made `virtio-netd` panic on
+  `enable_msix unimplemented!()`); all code forks must move together (June userutils vs
+  July relibc made `sudo` panic `Function not implemented`); the toolchain **sysroot
+  relibc must be rebuilt** and **`Cargo.lock` regenerated** (else `driver-graphics`
+  fails on two `redox_syscall` versions). The fully-rebased image **builds, links, and
+  boots with 0 unhandled exceptions** (all drivers init: nvmed INTx, `virtio-net` MAC,
+  `virtio-rng` seed) — but then **deadlocks**: after `virtio-rng` seeds, all CPUs go to
+  WFI (QEMU 0% CPU) waiting on the shared `virtio-rng`/`virtio-netd` **INTx** line, and
+  never reach the greeter. **`main` stays on the validated June forks + pins** (greeter,
+  0 exceptions); the rebase is complete on the `eos-july` branches, blocked on the
+  shared-INTx deadlock (kernel/driver debugging needed — the shared-INTx patch
+  `kernel/0002` is implicated). Details: `docs/known-issues.md`.
 - `[U-030]` **Upstream-drift boot blocker: unpinned `redoxfs` (0.9.1, July HEAD)
   aborted every aarch64 boot against the June-pinned forks — root-caused by
   disasm, fixed by pinning to the SBOM-validated rev.** The initfs `redoxfs`

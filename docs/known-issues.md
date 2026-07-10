@@ -35,28 +35,54 @@ mismatch surfaced only at runtime as the `brk #1` abort. Rebasing the forks onto
 July upstream (which provides the symbol) makes the July `redoxfs`/`orbital`
 build **and** boot — see the rebase note below.
 
-## 🔬 Fork rebase onto July upstream — validated, staged, not yet promoted (2026-07-10)
+## 🔬 Fork rebase onto July upstream — validated, staged, blocked on a virtio-INTx deadlock (2026-07-10)
 
-The three code forks were rebased onto current `redox-os` mainline and pushed to
-`eos-{kernel,base,relibc}` branch **`eos-july`** (kernel `1a631be5` = 4 patches on
-`fbfe439`; base `67606b61` = 2 patches on `9e12870`; relibc `8133f89f` = the TLS
-patch on `d589900`, a one-hunk 3-way merge). Rebuilt aarch64 with the toolchain
-**sysroot relibc rebuilt** to the rebased rev and with `redoxfs`/`orbital`/`orbutils`
-**un-pinned** (back to July upstream HEAD):
+All **four** code forks were rebased onto current `redox-os` mainline and pushed
+to `eos-{kernel,base,relibc,userutils}` branch **`eos-july`**. Crucially this was
+done as a **full `git rebase --onto`** carrying the *complete* E-OS fork delta —
+not just the upstream-ready patch subset in `upstream/`:
 
-- ✅ July `redoxfs`/`orbital`/`orbutils` now **build from source** (the
-  `redox_fcntl_v0` link error is gone) and the image reaches the **graphical E-OS
-  greeter** (`assets/screenshots/eos-aarch64-greeter-rebased-july.png`).
-- ⚠️ **One new, non-blocking regression:** `virtio-netd` (PID 21) throws a single
-  `UNHANDLED EXCEPTION` (at `relibc stdlib/mod.rs:121`) — the July network driver
-  vs the environment. The greeter still comes up; the June-forks build had 0
-  exceptions here, so this is a rebase-introduced item to root-cause **before the
-  rebase replaces the validated June forks on `main`**.
+| fork | eos-july rev | E-OS commits over July upstream |
+|---|---|---|
+| kernel | `cb14af3b` | 8 (incl. the virtual-timer fix + R-401b/d/e; the timer fix is **not** in `upstream/`) |
+| base | `3e10b86f` | 13 (incl. R-402 virtio-core INTx + virtio-rng + nvmed INTx + a regenerated `Cargo.lock`) |
+| relibc | `963b8f91` | 1 (the TLS patch, a one-hunk 3-way merge) |
+| userutils | `260d772` | 4 (incl. the `eos login:` prompt) |
+
+### What the rebase proved (three lessons the "quick" patch-only rebase hid)
+
+1. **A fork carries more than its `upstream/` patches.** The first attempt applied
+   only the 2 upstreamable base patches and dropped R-402 virtio-core INTx →
+   `virtio-core::arch::aarch64::enable_msix` is `unimplemented!()` upstream, so
+   `virtio-netd` panicked. Fixed by rebasing the *full* delta.
+2. **All code forks must move together.** userutils was left on June →
+   `sudo` panicked `Function not implemented` (June userutils vs July relibc ABI).
+   Fixed by rebasing userutils too.
+3. **The toolchain sysroot relibc must be rebuilt, and `Cargo.lock` regenerated.**
+   Otherwise the July userland fails to link (`undefined reference to
+   redox_fcntl_v0` — **this is U-030's confirmed root cause: relibc ABI drift**)
+   and `driver-graphics` fails to compile (two `redox_syscall` versions, 0.8 vs
+   0.9). Both fixed (sysroot rebuild + `cargo generate-lockfile`).
+
+### Result: builds, links, 0 exceptions — but a hard deadlock blocks boot
+
+The fully-rebased image **builds and links cleanly**, boots with **0 unhandled
+exceptions**, and all drivers initialise (nvmed on INTx, `virtio-net` reads its
+MAC, `virtio-rng` seeds `/scheme/rand`). But the boot then **deadlocks**: right
+after `virtio-rng` seeds and `pcid-spawner` spawns `virtio-netd`, all CPUs go to
+**WFI (QEMU at 0% CPU)** — the guest is waiting for an interrupt that never
+arrives. `virtio-rng` and `virtio-netd` **share an INTx line** (virq 37/38); the
+July virtio-core/IRQ path plus the E-OS shared-INTx commits deadlock on delivery.
+It never reaches the greeter.
 
 **Decision:** `main` stays on the **validated June forks + the three workaround
-pins** (0 exceptions) until the `virtio-netd` regression is resolved. The rebase
-lives on the `eos-july` fork branches, ready to promote (it removes all three
-workaround pins and brings the forks current for upstream MR submission).
+pins** (greeter, 0 exceptions). The rebase is **complete and pushed** on the
+`eos-july` branches — it confirmed U-030's root cause and removes all three pins —
+but promotion is **blocked on the virtio shared-INTx deadlock**, which needs
+kernel/driver-level debugging (why the shared INTx handler's WFI never wakes on
+the July stack). This is the concrete next task for the rebase; it also wants
+resolving before the upstream MRs, since the shared-INTx patch (`kernel/0002`)
+is implicated.
 
 **Confirmed follow-up (2026-07-10):** `orbital` (also unpinned upstream, July
 HEAD) crashes the same way **with a display attached** (ramfb GUI boot test:
