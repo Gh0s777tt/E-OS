@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    couldn't be driven past the greeter), so E-OS can't yet *boot-verify* it the way it does the
    kernel hardenings. A tightened build was confirmed to boot to the greeter with 0
    scheme-permission errors; full session verification awaits a driveable display (the x86 rig).
+   **(4) Cross-arch verification of the whole Fala B stack:** the `x86_64` E-OS image was
+   rebuilt on the current pins (`overflow-checks` kernel+base+relibc, ASLR, W⊕X) and **boots
+   to `eos login:` with 0 exceptions / 0 panics** (E-OS Bootloader 1.0.0 on x86_64/UEFI) —
+   confirming the hardening is not aarch64-only and that the x86_64-specific ASLR entropy path
+   (`RDTSC`) compiles and runs. Both arches now boot the fully-hardened kernel clean.
 - `[U-001]` Project automation: GitHub Actions CI, **CodeQL** code scanning,
   **gitleaks** secret scanning and **Dependabot** dependency updates.
 - `[U-002]` `CODEOWNERS`, issue/PR templates, `FUNDING.yml`.

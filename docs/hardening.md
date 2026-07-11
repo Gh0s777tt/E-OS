@@ -122,8 +122,8 @@ work through the checklist below.
 | `overflow-checks = true` | `eos-relibc` release profile (the C library under every program) | ✅ on (boot-verified) |
 | `panic = "abort"` (no unwinding) | `eos-kernel` + `eos-relibc` release profiles | ✅ on |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
-| User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified; upstream has none) |
-| User-space **W⊕X** (no *simultaneously* writable+executable pages) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified; upstream allows RWX) |
+| User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified **aarch64 + x86_64**; upstream has none) |
+| User-space **W⊕X** (no *simultaneously* writable+executable pages) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified **aarch64 + x86_64**; upstream allows RWX) |
 | **Kernel-space W⊕X** memory | kernel paging | ✅ No *persistent* W+X pages (audited). The only x86 W+X mappings are two **transient early-boot windows** that are torn down: the SMP AP trampoline (mapped W+X, written, then **unmapped** once the APs are up — `acpi/madt/arch/x86.rs`) and the `alternative` self-modifying-code patcher (W+X to patch, then **remapped R-X** — `arch/x86_64/alternative.rs`). aarch64 has neither. |
 | Hardened `RUSTFLAGS` (RELRO/BIND_NOW) | build env | ▫ Low marginal value here — E-OS's userland is memory-safe Rust, mostly statically linked, and the loader loads code into anonymous memory (no classic PLT/GOT lazy-binding for `-z now` to protect); enabling it would force a full-world rebuild for negligible gain. The C **ports** (which would benefit) build with their own toolchain flags, not `.cargo/config.toml`. Left as a deliberate no-op rather than a pending gap. |
 
