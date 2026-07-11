@@ -97,6 +97,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aarch64 image reaches login with **0 unhandled exceptions / 0 panics** — the entire
   user-space bring-up (init, drivers, login) now runs through the randomized allocator
   without a single fault, proving every returned span is in-bounds and correctly aligned.
+  **Randomization empirically proven** (2026-07-11): a throwaway diagnostic kernel logged
+  the base of the first few anonymous user `mmap`s across two cold boots — the
+  *map-anywhere* allocations moved (`0x6294000` → `0xaf6a000`, ~141 MiB apart; `0xf6000`
+  → `0x12b000`, 53 pages apart) while the fixed/hinted regions (`0x400000000000`,
+  `0x7ffffffec000`) stayed put, exactly as designed — confirming the entropy source is
+  live (not stuck at 0) and the offset is bounded by hole size. The diagnostic kernel was
+  discarded; the shipping kernel carries no such print.
   `eos-kernel@8b5cc736`, recipe re-pinned; `docs/hardening.md` updated.
 - `[U-044]` **Hardening (Fala B): `overflow-checks` in the release kernel.** E-OS now
   builds `eos-kernel` with `overflow-checks = true` in its release profile (upstream

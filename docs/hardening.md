@@ -77,7 +77,9 @@ work through the checklist below.
   x86_64) and re-mixed with fresh jitter per call, bounded to `ASLR_MAX_SLACK_PAGES`
   and gated by `KERNEL_ASLR`. `MAP_FIXED` is unaffected. (Verified: aarch64 image
   boots to login with 0 exceptions / 0 panics — the entire user-space bring-up runs
-  through the randomized allocator without a single fault.)
+  through the randomized allocator without a single fault; and a diagnostic kernel
+  confirmed the map-anywhere bases actually *move* between two cold boots while
+  fixed/hinted regions stay put.)
 - **User-space W⊕X enforcement** — upstream Redox lets a process `mmap`/`mprotect`/
   `mremap` a page as `PROT_WRITE | PROT_EXEC`, i.e. writable *and* executable, which is
   the textbook shellcode-injection primitive (write attacker bytes, jump to them). E-OS
