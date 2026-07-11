@@ -2,8 +2,8 @@
 # E-OS: build the red/black-themed bootloader from the local patched checkout
 # (must live under /mnt/redox so it's visible inside the build container).
 git = "https://github.com/Gh0s777tt/eos-bootloader.git"
-branch = "master"
-rev = "083d9faeeac9c5e4eebfd2d3b3441c827d9d7b5b"
+branch = "eos-rebased"
+rev = "f1ba665799a024ec380e09991a6b3a22c4a617f3"
 
 [build]
 template = "custom"

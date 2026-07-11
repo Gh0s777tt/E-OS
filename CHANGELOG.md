@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-050]` **Bootloader fork rebased onto current mainline (removes fork debt, adopts the
+  native FDE fix).** Follow-up to `U-049`: rather than carry a custom encrypted-boot patch,
+  the `eos-bootloader` fork was **rebased onto current `redox-os/bootloader` master**
+  (`b74f53a`), which already contains the proper fix (`f520862`, `seen_enokey`). The fork was
+  only 2 commits behind and its E-OS delta is just 4 theming commits (red/black theme + banner,
+  README, LICENSE) — all cherry-picked cleanly; the custom `ENOKEY` patch was **dropped** as
+  redundant. Net result: E-OS's bootloader is now *current mainline + E-OS theming*, with the
+  encrypted-boot fix coming from upstream instead of a local patch (`eos-bootloader@f1ba665`,
+  branch `eos-rebased`, recipe re-pinned). **Both paths re-verified on the rebased bootloader:**
+  the normal image boots to `eos login:` (0 exceptions), and the encrypted image prompts for the
+  password, unlocks the AES-XTS root, and reaches `eos login:` (0 exceptions).
 - `[U-049]` **Full-disk encryption now actually boots — bootloader fix + end-to-end
   verification.** E-OS advertises RedoxFS AES-XTS full-disk encryption, but the UEFI boot
   path was **broken**: an encrypted root **panicked** the bootloader (`Failed to open
