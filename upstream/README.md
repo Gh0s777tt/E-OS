@@ -69,10 +69,17 @@ Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d`
 **Regenerated & re-verified 2026-07-11.** The patch set was regenerated from the E-OS
 forks *after* rebasing them onto current mainline, so it now carries the full fix set —
 **8 kernel, 6 base, 1 relibc (15 patches)** — including two new kernel fixes found during
-the rebase (the virtual-timer IRQ registration and the level-INTx EOI deadlock). All 13
+the rebase (the virtual-timer IRQ registration and the level-INTx EOI deadlock). All 15
 `git am` **cleanly** onto a fresh `master` clone (kernel `@ 20a813c5`, base `@ 2f06b013`,
 relibc `@ 284852a0`); none have landed upstream. Ready-to-paste MR descriptions are in
 [`MR-DESCRIPTIONS.md`](MR-DESCRIPTIONS.md).
+
+**Re-verified against current mainline 2026-07-11:** all **15** patches still `git am`
+**cleanly** (3-way) onto fresh `master` clones — kernel `@ 00cfa2d`, base `@ 1b17b3f`,
+relibc `@ cbc14a3` — so the set has not drifted and remains ready to submit. (Note: the
+E-OS memory-safety hardening added since — `overflow-checks`, mmap ASLR, W⊕X — is a
+*downstream product* choice and is deliberately **not** part of this upstream set, which
+is scoped to genuine mainline bugfixes.)
 
 ---
 
