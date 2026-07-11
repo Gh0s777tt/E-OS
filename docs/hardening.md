@@ -45,8 +45,30 @@ work through the checklist below.
    (`server-demo.toml` sets `PermitEmptyPasswords yes` — **never** in production).
 
 7. **Use least-privilege scheme namespaces.** A user's reachable **schemes** define
-   its authority. Tighten `/etc/login_schemes.toml` to drop schemes a given user
-   doesn't need (network, audio, …). This is E-OS's capability-style sandboxing.
+   its authority (E-OS's capability-style sandbox). Tighten `/etc/login_schemes.toml`
+   for the interactive `user`. Concretely, the default `user` list grants three **raw
+   hardware / kernel-driver capabilities** that an interactive desktop user never needs
+   — device drivers run in a system context, not as `user` — so they are safe to drop:
+   ```diff
+     [user_schemes.user]
+     schemes = [
+   -   "memory",   # mapping raw physical / device memory  — drivers only
+   -   "irq",      # registering hardware interrupt lines   — drivers only
+   -   "serio",    # raw PS/2-style device input            — owned by inputd; the
+   +               #   user receives input via the `orbital` scheme, and on USB-input
+   +               #   machines (e.g. QEMU virt) `serio` is unused entirely
+       ...
+     ]
+   ```
+   Keep everything else (network, `orbital`/`display*`, `sudo`, `proc`/`pty`, `audio`,
+   `file`, IPC, and `debug` for the serial getty). **Note:** this is left as an opt-in
+   rather than the shipped default because the post-login graphical session can't be
+   driven end-to-end under the current headless test harness (QEMU-on-macOS delivers no
+   serial input and GUI login automation is unreliable), so E-OS can't yet *boot-verify*
+   the change the way it does the kernel hardenings — apply it and confirm login on your
+   own display before relying on it. The removed schemes were confirmed driver-context by
+   inspection (input on the test image is handled by `usbhidd`, not `user`-held `serio`),
+   and the tightened image boots to the greeter with zero scheme-permission errors.
 
 8. **Avoid working as root.** Use a normal user; escalate with `sudo` only when
    required. The microkernel + scheme model already contains userspace faults — keep
@@ -102,8 +124,8 @@ work through the checklist below.
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified; upstream has none) |
 | User-space **W⊕X** (no *simultaneously* writable+executable pages) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified; upstream allows RWX) |
-| **Kernel-space W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
-| Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
+| **Kernel-space W⊕X** memory | kernel paging | ✅ No *persistent* W+X pages (audited). The only x86 W+X mappings are two **transient early-boot windows** that are torn down: the SMP AP trampoline (mapped W+X, written, then **unmapped** once the APs are up — `acpi/madt/arch/x86.rs`) and the `alternative` self-modifying-code patcher (W+X to patch, then **remapped R-X** — `arch/x86_64/alternative.rs`). aarch64 has neither. |
+| Hardened `RUSTFLAGS` (RELRO/BIND_NOW) | build env | ▫ Low marginal value here — E-OS's userland is memory-safe Rust, mostly statically linked, and the loader loads code into anonymous memory (no classic PLT/GOT lazy-binding for `-z now` to protect); enabling it would force a full-world rebuild for negligible gain. The C **ports** (which would benefit) build with their own toolchain flags, not `.cargo/config.toml`. Left as a deliberate no-op rather than a pending gap. |
 
 ## ⚠️ Known limits (don't assume these)
 

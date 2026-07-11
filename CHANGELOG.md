@@ -14,6 +14,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-047]` **Hardening (Fala B): audit & guidance for the remaining W⊕X / RUSTFLAGS /
+   scheme-namespace items** — closing out Fala B by resolving the three tracked gaps with
+   evidence instead of leaving them vague. (1) **Kernel-space W⊕X audited:** there are *no
+   persistent* x86 W+X pages — the two sites are transient early-boot windows that are torn
+   down (the SMP AP trampoline is mapped W+X, written, then **unmapped**; the `alternative`
+   self-modifying-code patcher goes W+X to patch then **remaps R-X**). `docs/hardening.md`
+   now states this precisely (was "a few necessary x86 W+X pages remain"). (2) **`RUSTFLAGS`
+   RELRO/BIND_NOW assessed:** low marginal value for E-OS's memory-safe, mostly-static Rust
+   userland whose loader maps code into anonymous memory (no classic PLT/GOT for `-z now` to
+   protect), and it would force a full-world rebuild — documented as a deliberate no-op, not
+   a pending gap; the C ports that *would* benefit build with their own flags. (3)
+   **Least-privilege `login_schemes.toml`:** identified three raw driver-only schemes safe to
+   drop from the interactive `user` (`memory`, `irq`, `serio` — input is handled by `usbhidd`,
+   not `user`-held `serio`) and shipped a ready-to-apply diff + rationale in the hardening
+   guide. Left as **operator opt-in, not the default**, because the post-login graphical
+   session can't be driven end-to-end under the headless test harness (QEMU-on-macOS delivers
+   no serial input; GUI-login automation proved unreliable — even a `root`/`password` attempt
+   couldn't be driven past the greeter), so E-OS can't yet *boot-verify* it the way it does the
+   kernel hardenings. A tightened build was confirmed to boot to the greeter with 0
+   scheme-permission errors; full session verification awaits a driveable display (the x86 rig).
 - `[U-001]` Project automation: GitHub Actions CI, **CodeQL** code scanning,
   **gitleaks** secret scanning and **Dependabot** dependency updates.
 - `[U-002]` `CODEOWNERS`, issue/PR templates, `FUNDING.yml`.
