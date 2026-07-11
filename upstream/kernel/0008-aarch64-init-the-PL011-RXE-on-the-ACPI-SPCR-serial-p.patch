@@ -1,0 +1,50 @@
+From c7d76dd9f078410780b8081eb4fc9ac94a1e4672 Mon Sep 17 00:00:00 2001
+From: Gh0s777tt <dzierzawskii98.dam@gmail.com>
+Date: Sat, 11 Jul 2026 09:19:34 +0000
+Subject: [PATCH 8/8] =?UTF-8?q?aarch64:=20init=20the=20PL011=20(RXE)=20on=20th?=
+ =?UTF-8?q?e=20ACPI/SPCR=20serial=20path=20=E2=80=94=20fixes=20serial=20in?=
+ =?UTF-8?q?put?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The SPCR/ACPI serial path created the PL011 and enabled its IRQ but never
+called SerialPort::init(), which is what sets the control register
+(RXE | TXE | UARTEN). Without RXE the receiver is disabled, so serial *input*
+never arrived under an ACPI boot -- only output worked, making the interactive
+serial console (login getty) unusable. The device-tree path already calls
+init(); this regressed for E-OS when R-401f let aarch64 boot under ACPI
+(-machine virt) instead of forcing a device-tree boot (acpi=off). Call
+init(false) in the SPCR path before storing COM1; enable_irq() still sets the
+RX interrupt mask. Upstream-clean (the ACPI serial RX path is broken the same
+way on mainline).
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+(cherry picked from commit 3c642030691238c62ef2141d2c5cd507c7b930ca)
+---
+ src/acpi/spcr.rs | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/acpi/spcr.rs b/src/acpi/spcr.rs
+index 5f55f1ed..8a564850 100644
+--- a/src/acpi/spcr.rs
++++ b/src/acpi/spcr.rs
+@@ -81,7 +81,14 @@ impl Spcr {
+                                 PAGE_SIZE,
+                             )
+                         };
+-                        let serial_port = uart_pl011::SerialPort::new(virt.data(), false);
++                        let mut serial_port = uart_pl011::SerialPort::new(virt.data(), false);
++                        // E-OS: the SPCR/ACPI path skipped init(), which sets the PL011
++                        // control register (RXE | TXE | UARTEN). Without RXE the receiver
++                        // is off, so serial *input* never arrives (only output worked) --
++                        // interactive serial login was impossible under an ACPI boot
++                        // (the device-tree path in dtb/serial.rs already calls init()).
++                        // enable_irq() below only sets the interrupt mask, not RXE.
++                        serial_port.init(false);
+                         *COM1.lock() = SerialKind::Pl011(serial_port);
+                         //TODO: enable IRQ on more platforms and interrupt types
+                         if (spcr.interrupt_type & INTERRUPT_TYPE_GIC) == INTERRUPT_TYPE_GIC {
+-- 
+2.47.3
+

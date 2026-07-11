@@ -7,11 +7,11 @@ downstream Redox distribution) on QEMU `virt` (aarch64, `-cpu cortex-a72`, TCG)
 and q35 (x86_64, KVM); the repro for several of them is just running shell
 background jobs (`prog &`) from `ion` over the serial console.
 
-> **Apply-clean verified against current mainline (2026-07-11):** all 14 patches
+> **Apply-clean verified against current mainline (2026-07-11):** all 15 patches
 > `git am` cleanly onto a fresh `master` clone — kernel `@ 985bc262`, base
 > `@ 2f06b013`, relibc `@ 284852a0`. No rebase needed; `git am` directly onto a
 > fresh clone. (Regenerated from the E-OS forks after rebasing them onto current
-> mainline, so they carry the full fix set: **7 kernel, 6 base, 1 relibc**.)
+> mainline, so they carry the full fix set: **8 kernel, 6 base, 1 relibc**.)
 
 > Note on commit authorship: the patch files are authored as `E-OS`. Before
 > opening each MR, you may want to reset the author to your own identity, e.g.
@@ -23,7 +23,7 @@ background jobs (`prog &`) from `ion` over the serial console.
 
 ## MR 1 — kernel: boot aarch64 on non-FEAT_RNG CPUs + fix three aarch64 IRQ/signal bugs
 
-**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0007`
+**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0008`
 
 ### Title
 ```
@@ -108,10 +108,18 @@ crashes first, then a flood of `failed to generate random data: ENODEV`, then
   every boot. Adds a crate-root `KERNEL_DEBUG` constant (default false) and gates
   the macro on it; one flip re-enables it for bring-up.
 
-All changes are cfg-scoped to aarch64 (0006 explicitly; the timer/RNG/IRQ paths
-are aarch64 device code; 0007 is aarch64/riscv64); x86_64 is unaffected. Tested:
-aarch64 boots to a graphical desktop on QEMU virt (-cpu cortex-a72) and x86_64
-was regression-booted to confirm no change.
+0008 — init the PL011 (RXE) on the ACPI/SPCR serial path
+  The SPCR/ACPI serial path created the PL011 and enabled its IRQ but never called
+  `SerialPort::init()`, which sets the control register (`RXE | TXE | UARTEN`).
+  Without `RXE` the receiver is disabled, so serial *input* is dropped under an
+  ACPI-only boot (no device tree to run the DT path, which does call init()).
+  Calls `init(false)` in the SPCR path before storing `COM1`; `enable_irq()` still
+  sets the RX interrupt mask.
+
+All changes are cfg-scoped to aarch64 (0006 explicitly; the timer/RNG/IRQ/serial
+paths are aarch64 device code; 0007 is aarch64/riscv64); x86_64 is unaffected.
+Tested: aarch64 boots to a graphical desktop on QEMU virt (-cpu cortex-a72) and
+x86_64 was regression-booted to confirm no change.
 ```
 
 ### Apply

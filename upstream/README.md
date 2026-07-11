@@ -68,7 +68,7 @@ git push <your-fork> HEAD:aarch64-pci-intx
 Patches are based on `redox-os/kernel @ 56947e1a` and `redox-os/base @ 9dd6901d` (2026-06).
 **Regenerated & re-verified 2026-07-11.** The patch set was regenerated from the E-OS
 forks *after* rebasing them onto current mainline, so it now carries the full fix set —
-**7 kernel, 6 base, 1 relibc (14 patches)** — including two new kernel fixes found during
+**8 kernel, 6 base, 1 relibc (15 patches)** — including two new kernel fixes found during
 the rebase (the virtual-timer IRQ registration and the level-INTx EOI deadlock). All 13
 `git am` **cleanly** onto a fresh `master` clone (kernel `@ 20a813c5`, base `@ 2f06b013`,
 relibc `@ 284852a0`); none have landed upstream. Ready-to-paste MR descriptions are in
