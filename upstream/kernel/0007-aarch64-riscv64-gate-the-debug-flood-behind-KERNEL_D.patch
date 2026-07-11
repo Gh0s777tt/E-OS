@@ -1,0 +1,57 @@
+From dab2a3a2cea266569586e0e4e375665cd983ae1b Mon Sep 17 00:00:00 2001
+From: Gh0s777tt <dzierzawskii98.dam@gmail.com>
+Date: Sat, 11 Jul 2026 08:11:28 +0000
+Subject: [PATCH 7/7] aarch64/riscv64: gate the debug! flood behind KERNEL_DEBUG
+ (default off)
+
+Upstream printed the kernel debug! macro UNCONDITIONALLY on aarch64/riscv64
+(cfg-gated to those arches, no level check) while it is a no-op on x86. That
+emits a DEBUG line on every call_fdread and similar hot paths, flooding the
+console -- it slows every QEMU TCG boot and starves the login gettys serial
+input, making the interactive serial console unusable on aarch64. Add a
+crate-root KERNEL_DEBUG constant (default false) and gate the macro on it, so
+the flood is off by default but one flip re-enables it for bring-up.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+(cherry picked from commit cf54bc11436286f4ab72398401afd2bce31dafb6)
+---
+ src/macros.rs | 6 +++++-
+ src/main.rs   | 5 +++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/macros.rs b/src/macros.rs
+index 2f81a3cb..7560589c 100644
+--- a/src/macros.rs
++++ b/src/macros.rs
+@@ -40,7 +40,11 @@ macro_rules! info {
+ #[macro_export]
+ macro_rules! debug {
+     ($($arg:tt)*) => {
+-        if cfg!(any(target_arch = "aarch64", target_arch = "riscv64")) {
++        // E-OS: gate the aarch64/riscv64 debug output behind KERNEL_DEBUG (default
++        // false). Upstream printed it unconditionally on those arches -- a bring-up
++        // aid that floods the console (one DEBUG per call_fdread etc.) and starves
++        // interactive serial input under QEMU TCG. Set KERNEL_DEBUG=true to re-enable.
++        if cfg!(any(target_arch = "aarch64", target_arch = "riscv64")) && $crate::KERNEL_DEBUG {
+             println!("{}:DEBUG -- {}", core::module_path!(), format_args!($($arg)*));
+         }
+     };
+diff --git a/src/main.rs b/src/main.rs
+index 8380e02f..fe84df4f 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -35,6 +35,11 @@ use crate::arch::{consts::*, ipi, stop, CurrentRmmArch};
+ #[cfg_attr(any(target_arch = "x86", target_arch = "x86_64"), expect(dead_code))]
+ const PHYS_OFFSET: usize = <arch::CurrentRmmArch as ::rmm::Arch>::PHYS_OFFSET;
+ 
++/// E-OS: master switch for the aarch64/riscv64 `debug!` output (src/macros.rs).
++/// Off by default -- upstream printed it unconditionally on those arches, which
++/// floods the console and starves interactive serial input under QEMU TCG.
++pub const KERNEL_DEBUG: bool = false;
++
+ /// Heap allocators
+ mod allocator;
+ 
+-- 
+2.47.3
+

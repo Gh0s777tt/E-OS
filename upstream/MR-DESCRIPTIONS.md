@@ -7,11 +7,11 @@ downstream Redox distribution) on QEMU `virt` (aarch64, `-cpu cortex-a72`, TCG)
 and q35 (x86_64, KVM); the repro for several of them is just running shell
 background jobs (`prog &`) from `ion` over the serial console.
 
-> **Apply-clean verified against current mainline (2026-07-11):** all 13 patches
-> `git am` cleanly onto a fresh `master` clone — kernel `@ 20a813c5`, base
+> **Apply-clean verified against current mainline (2026-07-11):** all 14 patches
+> `git am` cleanly onto a fresh `master` clone — kernel `@ 985bc262`, base
 > `@ 2f06b013`, relibc `@ 284852a0`. No rebase needed; `git am` directly onto a
 > fresh clone. (Regenerated from the E-OS forks after rebasing them onto current
-> mainline, so they carry the full fix set: **6 kernel, 6 base, 1 relibc**.)
+> mainline, so they carry the full fix set: **7 kernel, 6 base, 1 relibc**.)
 
 > Note on commit authorship: the patch files are authored as `E-OS`. Before
 > opening each MR, you may want to reset the author to your own identity, e.g.
@@ -23,7 +23,7 @@ background jobs (`prog &`) from `ion` over the serial console.
 
 ## MR 1 — kernel: boot aarch64 on non-FEAT_RNG CPUs + fix three aarch64 IRQ/signal bugs
 
-**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0006`
+**Repo:** `redox-os/kernel`  ·  **Patches:** `upstream/kernel/0001..0007`
 
 ### Title
 ```
@@ -101,10 +101,17 @@ crashes first, then a flood of `failed to generate random data: ENODEV`, then
   ack re-enables the line instead of a second EOI. aarch64-only; riscv64's PLIC
   already EOIs in its handler and x86 is unchanged.
 
+0007 — quiet the aarch64/riscv64 debug! flood
+  The `debug!` macro prints unconditionally on aarch64/riscv64 (cfg-gated to
+  those arches, no level check; a no-op on x86), so it emits a DEBUG line on
+  every `call_fdread` and similar hot paths — flooding the console and slowing
+  every boot. Adds a crate-root `KERNEL_DEBUG` constant (default false) and gates
+  the macro on it; one flip re-enables it for bring-up.
+
 All changes are cfg-scoped to aarch64 (0006 explicitly; the timer/RNG/IRQ paths
-are aarch64 device code); x86_64/riscv64 are unaffected. Tested: aarch64 boots to
-a graphical desktop on QEMU virt (-cpu cortex-a72) and x86_64 was regression-
-booted to confirm no change.
+are aarch64 device code; 0007 is aarch64/riscv64); x86_64 is unaffected. Tested:
+aarch64 boots to a graphical desktop on QEMU virt (-cpu cortex-a72) and x86_64
+was regression-booted to confirm no change.
 ```
 
 ### Apply
