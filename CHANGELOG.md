@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-051]` **Deeper ASLR hardening: exec/library base confirmed randomized + guard bands.**
+  Working through the "risky" hardening backlog: **(1) full-executable ASLR was already
+  achieved** by `U-045` — E-OS/Redox userspace binaries are **PIE linked at vaddr 0**
+  (confirmed via `readelf`), and the relibc loader maps them with a *map-anywhere* (`NULL`-
+  hint) anonymous `mmap` that flows through `find_free_near`, so the code base (not just the
+  heap) is randomized per boot; no risky loader change was needed. **(2) Guard bands** —
+  `find_free_near` now keeps a minimum unmapped margin (`ASLR_GUARD_PAGES`, default 4) on
+  both sides of each map-anywhere allocation when its hole has room, so a linear overflow
+  past a mapping faults on unmapped space instead of corrupting the neighbour. Best-effort
+  (shrinks to fit tight holes, never `ENOMEM`); a *soft* guard, not a hard `PROT_NONE` page.
+  `eos-kernel@e20d5765`, recipe re-pinned; boot-verified (login, 0 exceptions).
+  **Assessed and deliberately NOT done** (honest risk/reward): *hard* `PROT_NONE` guard
+  pages (would need grant-model + demand-paging-fault-handler surgery on the core mmap path —
+  high boot-breakage risk for modest marginal value in a memory-safe userland); randomizing
+  the `ld.so` loader's own base (deeper exec-path change); restoring the optional virtio-rng
+  driver (`R-402`, a known userspace deadlock, redundant with the kernel's jitter entropy);
+  full temporal W⊕X (needs relibc to map code file-backed — its loader does anon→`mprotect(+X)`).
 - `[U-050]` **Bootloader fork rebased onto current mainline (removes fork debt, adopts the
   native FDE fix).** Follow-up to `U-049`: rather than carry a custom encrypted-boot patch,
   the `eos-bootloader` fork was **rebased onto current `redox-os/bootloader` master**

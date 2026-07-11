@@ -94,7 +94,11 @@ work through the checklist below.
   at deterministic addresses — a gift to exploit chains. E-OS randomizes them: the
   kernel's `find_free_near` now places each non-fixed mapping at a page-aligned random
   offset *inside* the chosen free hole instead of always at its start, so the heap,
-  `mmap`'d libraries and stacks are unpredictable per boot. Offsets come from a
+  `mmap`'d libraries and stacks are unpredictable per boot. **This also covers the main
+  executable and shared libraries:** E-OS/Redox userspace binaries are PIE linked at
+  vaddr 0, and the relibc loader maps them with a *map-anywhere* (`NULL`-hint) anonymous
+  `mmap` — which goes through `find_free_near` — then relocates against the actual
+  address, so the code base is randomized too (not just the heap). Offsets come from a
   splitmix64 PRNG seeded from a cycle counter (`CNTVCT_EL0` on aarch64, `RDTSC` on
   x86_64) and re-mixed with fresh jitter per call, bounded to `ASLR_MAX_SLACK_PAGES`
   and gated by `KERNEL_ASLR`. `MAP_FIXED` is unaffected. (Verified: aarch64 image
@@ -112,6 +116,15 @@ work through the checklist below.
   RWX through the *internal* `AddrSpace::mmap` path, not a syscall), is deliberately left
   untouched. Gated by `KERNEL_WX_USER`. (Verified: aarch64 boots to login with 0
   exceptions / 0 panics — the whole base userland runs without needing a W+X page.)
+- **Guard bands around map-anywhere allocations** — on top of ASLR, `find_free_near`
+  keeps a minimum unmapped margin (`ASLR_GUARD_PAGES`, default 4) on *both* sides of each
+  non-fixed allocation when its hole has room, so a linear overflow past a mapping runs
+  into unmapped space and faults instead of silently corrupting the neighbouring mapping.
+  Best-effort: the band shrinks to fit tight holes (never causes `ENOMEM`); the remaining
+  slack is what ASLR randomizes over. This is a *soft* guard (the margin is free address
+  space that a later allocation may fill), not a hard `PROT_NONE` page — but it makes tight
+  adjacency, and thus a clean overflow into a live neighbour, far less likely. (Verified:
+  aarch64 boots to login, 0 exceptions.)
 
 ## 🔒 Build-time hardening (enforced in the E-OS image)
 
@@ -124,6 +137,7 @@ work through the checklist below.
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified **aarch64 + x86_64**; upstream has none) |
 | User-space **W⊕X** (no *simultaneously* writable+executable pages) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified **aarch64 + x86_64**; upstream allows RWX) |
+| **Guard bands** (unmapped margin around map-anywhere allocations) | `eos-kernel` (`find_free_near`, `ASLR_GUARD_PAGES`) | ✅ on (soft guard, boot-verified) |
 | **Kernel-space W⊕X** memory | kernel paging | ✅ No *persistent* W+X pages (audited). The only x86 W+X mappings are two **transient early-boot windows** that are torn down: the SMP AP trampoline (mapped W+X, written, then **unmapped** once the APs are up — `acpi/madt/arch/x86.rs`) and the `alternative` self-modifying-code patcher (W+X to patch, then **remapped R-X** — `arch/x86_64/alternative.rs`). aarch64 has neither. |
 | Hardened `RUSTFLAGS` (RELRO/BIND_NOW) | build env | ▫ Low marginal value here — E-OS's userland is memory-safe Rust, mostly statically linked, and the loader loads code into anonymous memory (no classic PLT/GOT lazy-binding for `-z now` to protect); enabling it would force a full-world rebuild for negligible gain. The C **ports** (which would benefit) build with their own toolchain flags, not `.cargo/config.toml`. Left as a deliberate no-op rather than a pending gap. |
 
