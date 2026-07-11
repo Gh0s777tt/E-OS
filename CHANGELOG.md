@@ -76,8 +76,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and daemons (`eos-base@98039b88`) now build with `overflow-checks = true` too; they
   parse untrusted input (disk, network, USB), so this is where it matters most.
   Boot-verified: the image reaches login with **0 overflow panics** and the drivers
-  (acpid/fbcond/nvmed/…) come up clean. `docs/hardening.md` gained a build-time
-  hardening table (kernel + base overflow-checks, `panic=abort`, `KERNEL_DEBUG` off, a
+  (acpid/fbcond/nvmed/…) come up clean. **Also extended to `eos-relibc@be0fb67f`** — the
+  C library under *every* program — completing the trilogy: **all E-OS-owned Rust code
+  (kernel + base + relibc) now aborts on unintended integer overflow.** The relibc build
+  required a toolchain-sysroot rebuild; boot-verified with 0 overflow panics (all
+  relibc-linked userspace runs clean). `docs/hardening.md` gained a build-time hardening
+  table (kernel + base + relibc overflow-checks, `panic=abort`, `KERNEL_DEBUG` off, a
   W⊕X audit noting the few necessary x86 W+X pages, and empty `RUSTFLAGS` as a tracked
   gap) and its stale "aarch64 not yet to login" limit was removed.
 - `[U-043]` **Serial console login — the image-side pieces (ACPI PL011 RXE init +

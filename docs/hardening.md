@@ -57,12 +57,13 @@ work through the checklist below.
 - **Memory-safe** kernel + drivers + userland (Rust) — no buffer-overflow class.
 - **Userspace drivers / netstack / fs** — a compromise is a *process*, not the kernel.
 - **Capability schemes** — least privilege by construction.
-- **`overflow-checks` in the release kernel** — E-OS builds `eos-kernel` with
-  `overflow-checks = true` (upstream Redox does not), so an *unintended* integer
-  overflow — a classic exploit primitive even in safe Rust — is a controlled abort
-  (`panic = "abort"`), not a silent wrap. Intentional wrapping uses `wrapping_*` /
-  `Wrapping`, so this only fires on genuine bugs. (Verified: the image boots to login
-  with 0 overflow panics.)
+- **`overflow-checks` across all E-OS Rust code** — E-OS builds `eos-kernel`,
+  `eos-base` (every driver + daemon) and `eos-relibc` (the C library under every
+  program) with `overflow-checks = true` (upstream Redox does not), so an *unintended*
+  integer overflow — a classic exploit primitive even in safe Rust — is a controlled
+  abort (`panic = "abort"`), not a silent wrap. Intentional wrapping uses `wrapping_*` /
+  `Wrapping`, so this only fires on genuine bugs. (Verified: all three build and the
+  image boots to login with 0 overflow panics / 0 exceptions.)
 - **No debug flood / smaller info leak** — the kernel's aarch64/riscv64 `debug!`
   macro is gated behind `KERNEL_DEBUG` (default off), so hot-path internals aren't
   streamed to the console in production.
@@ -73,7 +74,8 @@ work through the checklist below.
 |---|---|---|
 | `overflow-checks = true` | `eos-kernel` release profile | ✅ on (boot-verified) |
 | `overflow-checks = true` | `eos-base` release profile (all drivers + daemons) | ✅ on (boot-verified) |
-| `panic = "abort"` (no unwinding) | `eos-kernel` release profile | ✅ on (upstream default) |
+| `overflow-checks = true` | `eos-relibc` release profile (the C library under every program) | ✅ on (boot-verified) |
+| `panic = "abort"` (no unwinding) | `eos-kernel` + `eos-relibc` release profiles | ✅ on |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | **W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
 | Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
@@ -82,8 +84,8 @@ work through the checklist below.
 
 - No **UEFI Secure Boot** / TPM measured-boot chain yet.
 - No formal verification or completed security audit (pre-1.0).
-- `relibc` and the third-party ports don't yet build with `overflow-checks` — the
-  kernel and `base` (drivers/daemons) do. Extending it to `relibc` needs care (libc
-  has intentional-wrapping arithmetic) and is a tracked follow-up.
+- The **third-party ports** (the ~1900 cookbook recipes for `vim`, `curl`, `gcc`, the
+  COSMIC desktop, …) build with their own upstream flags — E-OS's `overflow-checks`
+  covers the code it owns (kernel + base + relibc), not those.
 
 Found a hardening gap or a vuln? Report **privately** — see [SECURITY.md](../SECURITY.md).
