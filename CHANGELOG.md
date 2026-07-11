@@ -65,6 +65,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-043]` **Serial console login — the image-side pieces (ACPI PL011 RXE init +
+  a serial getty); interactive input is a QEMU/macOS host limit, not an E-OS bug.**
+  Root-caused why the headless serial console showed output but took no input, in
+  three layers: **(1)** the ACPI/SPCR serial path created the PL011 and enabled its
+  IRQ but never called `SerialPort::init()`, which sets the control register
+  (`RXE | TXE | UARTEN`) — without `RXE` the receiver is off (fixed in
+  `eos-kernel@3c642030`; the device-tree path already inits); **(2)** there was **no
+  serial getty** — login runs via `getty` on `/scheme/fbcon` (the framebuffer
+  console), never on the serial, so nothing read serial input (added a
+  `getty /scheme/debug` init.d service — `getty` treats a non-numeric TTY arg as a
+  literal scheme path); **(3)** with both fixed, a kernel-side diagnostic proved the
+  serial RX interrupt **never fires on keypress (0 IRQs)** — QEMU on macOS does not
+  deliver `-serial unix:…,server` **input** to the guest UART (output works). So the
+  two E-OS fixes are correct and enable serial login on real hardware / a serial
+  backend that forwards input; they can't be runtime-verified under QEMU-macOS. The
+  real interactive paths — the graphical greeter and `ssh` (openssh ships) — work.
 - `[U-042]` **Kernel: gate the aarch64/riscv64 `debug!` flood behind `KERNEL_DEBUG`
   (default off) — quieter, faster boots.** Upstream's kernel `debug!` macro printed
   **unconditionally** on aarch64/riscv64 (cfg-gated to those arches, no level check;

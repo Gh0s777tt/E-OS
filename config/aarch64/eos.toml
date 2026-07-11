@@ -107,3 +107,20 @@ Quick start: open a terminal and run  eos-welcome
   - Handbook:  https://gh0s777tt.github.io/E-OS/
   - Source:    https://github.com/Gh0s777tt/E-OS  (AGPL-3.0)
 """
+
+# Serial console login — a getty on /scheme/debug (the kernel serial/UART console),
+# so headless serial access gets a login prompt. getty treats a non-numeric TTY arg
+# as a literal scheme path (userutils getty.rs). Needs the ACPI PL011 RXE init fix
+# (eos-kernel). NOTE: interactive input over QEMU's macOS unix-socket serial isn't
+# delivered to the guest (verified: 0 RX interrupts) — this works on real hardware
+# or a serial backend that forwards input; for VMs, use the graphical greeter or ssh.
+[[files]]
+path = "/usr/lib/init.d/30_serial-getty.service"
+data = """
+[unit]
+description = "Serial console login"
+[service]
+cmd = "getty"
+args = ["/scheme/debug"]
+type = "oneshot_async"
+"""
