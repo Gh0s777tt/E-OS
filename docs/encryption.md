@@ -30,8 +30,12 @@ The whole chain is in place:
 > the device), so the caller — which only prompts for a password on `ENOKEY` — saw
 > `ENOENT` and gave up. Fixed by propagating `ENOKEY`/`EKEYREJECTED` from the scan
 > ([`eos-bootloader@083d9fae`](https://github.com/Gh0s777tt/eos-bootloader)); the
-> BIOS path was already correct. This affected **both** aarch64 and x86_64 under
-> UEFI, so it is also an upstream-Redox bug (candidate for `upstream/`).
+> BIOS path was already correct. This affected **both** aarch64 and x86_64 under UEFI.
+> **Not an upstream gap:** mainline `redox-os/bootloader` already fixes it (commit
+> `f520862`, via a `seen_enokey` flag) — the E-OS bootloader fork was pinned to a rev
+> *predating* that fix, so it had regressed; our patch restores equivalent behavior.
+> (The fix also does not regress the normal unencrypted image — still boots to
+> `eos login:`, 0 exceptions.)
 
 ---
 

@@ -28,8 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   recipe re-pinned). **Verified end-to-end** (aarch64/UEFI, QEMU): built an encrypted
   image (`[general] encrypt_disk`), booted it — bootloader prompts `RedoxFS password
   (1/10):`, the password is accepted, the **AES-XTS** root unlocks, the kernel loads from
-  it, and it reaches `eos login:` with **0 exceptions / 0 panics**. This is a genuine
-  upstream-Redox bug too (candidate for `upstream/`). `docs/encryption.md` updated from
+  it, and it reaches `eos login:` with **0 exceptions / 0 panics**. **Not an upstream bug:**
+  mainline `redox-os/bootloader` already fixes this (commit `f520862`, "Fix UEFI support for
+  encrypted partitions", via a `seen_enokey` flag) — the E-OS bootloader fork was **pinned to
+  a rev predating that fix**, so it had regressed; our patch restores the correct behavior
+  (functionally equivalent). Also verified the fix does **not** regress the normal unencrypted
+  image (rebuilt + booted to `eos login:`, 0 exceptions). `docs/encryption.md` updated from
   "chain in place / mkfs verified" to full boot-unlock verified.
 - `[U-048]` **Bootable live / installer ISO — verified on aarch64.** Besides the
   pre-installed `harddrive.img`, E-OS now has a confirmed **live ISO** (`make
