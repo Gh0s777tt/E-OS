@@ -72,6 +72,7 @@ work through the checklist below.
 | Measure | Where | State |
 |---|---|---|
 | `overflow-checks = true` | `eos-kernel` release profile | ✅ on (boot-verified) |
+| `overflow-checks = true` | `eos-base` release profile (all drivers + daemons) | ✅ on (boot-verified) |
 | `panic = "abort"` (no unwinding) | `eos-kernel` release profile | ✅ on (upstream default) |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | **W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
@@ -81,7 +82,8 @@ work through the checklist below.
 
 - No **UEFI Secure Boot** / TPM measured-boot chain yet.
 - No formal verification or completed security audit (pre-1.0).
-- Userspace binaries (base/relibc/ports) don't yet build with `overflow-checks` —
-  only the kernel does; extending it is a tracked follow-up.
+- `relibc` and the third-party ports don't yet build with `overflow-checks` — the
+  kernel and `base` (drivers/daemons) do. Extending it to `relibc` needs care (libc
+  has intentional-wrapping arithmetic) and is a tracked follow-up.
 
 Found a hardening gap or a vuln? Report **privately** — see [SECURITY.md](../SECURITY.md).

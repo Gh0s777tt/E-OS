@@ -72,10 +72,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   silent wrap; intentional wrapping uses `wrapping_*`/`Wrapping`, so this only fires on
   genuine bugs. **Boot-verified:** the aarch64 image reaches login with **0 overflow
   panics / 0 unhandled exceptions**, so no hot path relied on implicit wrapping.
-  `eos-kernel@ffd0e6b3`, recipe re-pinned. `docs/hardening.md` gained a build-time
-  hardening table (overflow-checks, `panic=abort`, `KERNEL_DEBUG` off, a W⊕X audit
-  noting the few necessary x86 W+X pages, and empty `RUSTFLAGS` as a tracked gap) and
-  its stale "aarch64 not yet to login" limit was removed.
+  `eos-kernel@ffd0e6b3`, recipe re-pinned. **Extended to `eos-base`** — all drivers
+  and daemons (`eos-base@98039b88`) now build with `overflow-checks = true` too; they
+  parse untrusted input (disk, network, USB), so this is where it matters most.
+  Boot-verified: the image reaches login with **0 overflow panics** and the drivers
+  (acpid/fbcond/nvmed/…) come up clean. `docs/hardening.md` gained a build-time
+  hardening table (kernel + base overflow-checks, `panic=abort`, `KERNEL_DEBUG` off, a
+  W⊕X audit noting the few necessary x86 W+X pages, and empty `RUSTFLAGS` as a tracked
+  gap) and its stale "aarch64 not yet to login" limit was removed.
 - `[U-043]` **Serial console login — the image-side pieces (ACPI PL011 RXE init +
   a serial getty); interactive input is a QEMU/macOS host limit, not an E-OS bug.**
   Root-caused why the headless serial console showed output but took no input, in
