@@ -54,10 +54,12 @@ timeline
   practical CLI toolbox (`nano`, `vim`, `git`, `curl`, `wget`, `ripgrep`, `nushell`,
   `openssh`) in `config/*/eos.toml` (filesystem grown to 1400 MiB). The extra COSMIC
   GUI apps (store/settings/reader) are a follow-up — a cookbook host-tool build quirk.
-- 🚧 `R-208` **Vendor the core Redox OS into E-OS repos** — all 22 Redox-authored
-  packages in the image now build from `Gh0s777tt/eos-*` (6 modified forks + 16 pinned
-  mirrors), independent of `gitlab.redox-os.org`. See [docs/forks.md](docs/forks.md);
-  keep current with `scripts/sync-forks.sh`.
+- ✅ `R-208` **Vendor the core Redox OS into E-OS repos** — all 22 Redox-authored
+  packages in the image build from `Gh0s777tt/eos-*` (6 modified forks + 16 pinned
+  mirrors), independent of `gitlab.redox-os.org`. **Verified** (2026-07-11): every
+  `recipes/core/*` + vendored recipe resolves to a `Gh0s777tt/eos-*` fork (22 distinct);
+  only the third-party ports point at their own upstreams (by policy). See
+  [docs/forks.md](docs/forks.md); keep current with `scripts/sync-forks.sh`.
 - ✅ `R-209` **`eos` system command** — `recipes/other/eos` ships `/usr/bin/eos`
   (`eos info` / `eos doctor` / `eos welcome` / `eos help`) alongside `eos-welcome`.
   **Runtime-verified** (aarch64 boot self-test): all four subcommands print correct
@@ -149,9 +151,9 @@ timeline
   `redox_installer_gui` (+ a TUI installer and the `redox_installer` engine); launch
   **Installer** from the desktop to install to a disk, with an optional encrypted root.
   A **bootable live/installer ISO** (`make CONFIG_NAME=eos build/<arch>/eos/redox-live.iso`)
-  boots the full system read-only (greeter + installer) like a Linux live USB — verified on
-  aarch64 (`U-048`; screenshot `assets/screenshots/eos-aarch64-live-iso-greeter.png`). See
-  [docs/install.md](docs/install.md).
+  boots the full system read-only (greeter + installer) like a Linux live USB — verified to
+  `eos login:` on **both aarch64 and x86_64** (`U-048`; screenshot
+  `assets/screenshots/eos-aarch64-live-iso-greeter.png`). See [docs/install.md](docs/install.md).
 - 🚧 `R-1002` **LTS branch + stability policy** — the `lts/0.1` branch (pushed to
   both remotes) tracks the 0.1 “Genesis” line with security backports; documented
   in [SECURITY.md](SECURITY.md) + a [stability/ABI policy](docs/stability.md). The

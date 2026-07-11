@@ -34,9 +34,8 @@ make CONFIG_NAME=eos ARCH=x86_64  build/x86_64/eos/redox-live.iso   # or ARCH=aa
 # → boot the .iso in a UEFI VM, or flash it to a USB stick (dd, see §4)
 ```
 
-Both arches are verified to boot the live ISO to the E-OS greeter/login (aarch64 boot
-tested under QEMU `virt`/UEFI: "Switching to live disk" → E-OS 0.1.0 "Genesis" → login,
-0 exceptions):
+Both arches are **verified** to boot the live ISO to `eos login:` (QEMU/UEFI: "Switching
+to live disk" → E-OS 0.1.0 "Genesis" → login, 0 exceptions on aarch64 **and** x86_64):
 
 ![E-OS graphical greeter booted from the aarch64 live ISO](../assets/screenshots/eos-aarch64-live-iso-greeter.png)
 
