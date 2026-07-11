@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-053]` **Connectivity roadmap (USB · LAN · Bluetooth) + wired-LAN driver-diversity
+  verified.** New [`docs/roadmap-connectivity.md`](docs/roadmap-connectivity.md) surveys the
+  actual `eos-base` driver tree and lays out the plan for **USB** (all versions already via
+  xHCI; per-class drivers — HID ✅, mass storage, CDC-serial, USB-Ethernet, USB-audio,
+  printer), **LAN** (multi-NIC + IPv6 + throughput), and a ground-up **Bluetooth** stack
+  (HCI → L2CAP → SDP → pairing → profiles A2DP/HID/RFCOMM → BLE), each with effort estimates
+  and an explicit note of what is QEMU-verifiable vs needs real hardware (Wi-Fi and BT
+  both need hardware — QEMU emulates neither). **LAN verified beyond virtio:** E-OS boots
+  with an Intel **e1000** NIC and `pcid` auto-spawns `e1000d`, which binds the device
+  (login reached, 0 exceptions) — confirming the wired-Ethernet stack (smoltcp netstack +
+  the e1000/rtl/ixgbe/virtio driver family) is not virtio-only.
 - `[U-052]` **ASLR now covers the dynamic linker (`ld.so`) itself.** Follow-up to `U-051`,
   which had noted the linker's own base as a remaining gap. The Redox `ld_script`s pinned
   `ld.so` at a fixed `0x20000000`, so the loader mapped it `MAP_FIXED` there — the linker's
