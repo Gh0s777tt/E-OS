@@ -65,16 +65,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-042]` **Kernel: gate the aarch64/riscv64 `debug!` flood behind `KERNEL_DEBUG`
+  (default off) — quieter, faster boots.** Upstream's kernel `debug!` macro printed
+  **unconditionally** on aarch64/riscv64 (cfg-gated to those arches, no level check;
+  a no-op on x86), emitting a `DEBUG` line on **every** `call_fdread` and similar hot
+  paths. That floods the console — visibly slowing every QEMU TCG boot. Added a
+  crate-root `KERNEL_DEBUG` constant (default `false`) and gated the macro on it
+  (`eos-kernel@cf54bc11`, recipe re-pinned); one flip re-enables it for bring-up.
+  **Verified:** the rebuilt aarch64 image boots with **zero** `DEBUG --` lines on the
+  serial console (was thousands). *(A separate finding: aarch64 serial **input** (UART
+  RX) is not delivered to the login getty on the July image, so an interactive serial
+  login can't be driven — this is unrelated to the flood and is a tracked follow-up;
+  the `eos` CLI was instead runtime-verified via a boot-time self-test, below.)*
 - `[U-040]` **`R-209` — the `eos` system command.** `recipes/other/eos` now ships
   `/usr/bin/eos`: `eos info` (E-OS/kernel/build details), `eos doctor` (quick health
   check — entropy source, home, hostname), `eos welcome`, `eos help`. Written in ion
   syntax verified construct-by-construct against ion's own test corpus (`fn`, `if/else
-  if`, `test $x = "y"`, `test -f/-e/-d`, `$len(@args)`, `@args[1]`) and confirmed present
-  in the built image. **Runtime boot-verification is still pending:** the July kernel
-  emits a `debug!` on every `call_fdread`, which floods the serial console under QEMU
-  TCG and starves the login getty's input — so an automated serial-login test can't
-  drive it yet. Quieting the kernel's default log level is the follow-up (it also slows
-  every TCG boot). `eos-welcome`'s app list was corrected to what actually ships.
+  if`, `test $x = "y"`, `test -f/-e/-d`, `$len(@args)`, `@args[1]`). **Runtime-verified**
+  (2026-07-11) via a boot-time self-test that ran all four subcommands and captured
+  their output on the serial console: `eos info` prints the E-OS banner + `uname -a`
+  (kernel `cf54bc11`) + os-release; `eos doctor` reports `[ok]` for the entropy source,
+  home and hostname; `eos help` prints usage; an unknown command prints the error +
+  usage. `eos-welcome`'s app list was corrected to what actually ships.
 - `[U-041]` **`R-207` follow-up — COSMIC GUI apps blocked on the aarch64 build host.**
   `cosmic-store`/`settings`/`reader` pull `fontconfig` → `host:gperf`, whose redoxer
   host toolchain Redox publishes **only for x86_64-linux** build hosts. On this Apple

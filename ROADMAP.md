@@ -58,11 +58,14 @@ timeline
   packages in the image now build from `Gh0s777tt/eos-*` (6 modified forks + 16 pinned
   mirrors), independent of `gitlab.redox-os.org`. See [docs/forks.md](docs/forks.md);
   keep current with `scripts/sync-forks.sh`.
-- 🚧 `R-209` **`eos` system command** — `recipes/other/eos` now ships `/usr/bin/eos`
+- ✅ `R-209` **`eos` system command** — `recipes/other/eos` ships `/usr/bin/eos`
   (`eos info` / `eos doctor` / `eos welcome` / `eos help`) alongside `eos-welcome`.
-  Written in verified ion syntax; present in the image. Runtime boot-verification is
-  pending a quieter kernel log level (the July kernel's `debug!`-per-`call_fdread`
-  flood starves interactive serial input under QEMU TCG — a separate follow-up).
+  **Runtime-verified** (aarch64 boot self-test): all four subcommands print correct
+  output; `eos info` reports the fork kernel `cf54bc11`.
+- ✅ `R-210` **Quieter kernel** — the aarch64/riscv64 `debug!` flood (a `DEBUG` per
+  `call_fdread`, printed unconditionally upstream) is now gated behind `KERNEL_DEBUG`
+  (default off) in `eos-kernel@cf54bc11`. Zero `DEBUG` lines on the serial console;
+  faster TCG boots.
 
 ---
 
