@@ -67,6 +67,17 @@ work through the checklist below.
 - **No debug flood / smaller info leak** — the kernel's aarch64/riscv64 `debug!`
   macro is gated behind `KERNEL_DEBUG` (default off), so hot-path internals aren't
   streamed to the console in production.
+- **User-space mmap ASLR** — upstream Redox has *no* ASLR (KASLR is unimplemented and
+  there is no user-space load/heap randomization), so "map anywhere" allocations land
+  at deterministic addresses — a gift to exploit chains. E-OS randomizes them: the
+  kernel's `find_free_near` now places each non-fixed mapping at a page-aligned random
+  offset *inside* the chosen free hole instead of always at its start, so the heap,
+  `mmap`'d libraries and stacks are unpredictable per boot. Offsets come from a
+  splitmix64 PRNG seeded from a cycle counter (`CNTVCT_EL0` on aarch64, `RDTSC` on
+  x86_64) and re-mixed with fresh jitter per call, bounded to `ASLR_MAX_SLACK_PAGES`
+  and gated by `KERNEL_ASLR`. `MAP_FIXED` is unaffected. (Verified: aarch64 image
+  boots to login with 0 exceptions / 0 panics — the entire user-space bring-up runs
+  through the randomized allocator without a single fault.)
 
 ## 🔒 Build-time hardening (enforced in the E-OS image)
 
@@ -77,6 +88,7 @@ work through the checklist below.
 | `overflow-checks = true` | `eos-relibc` release profile (the C library under every program) | ✅ on (boot-verified) |
 | `panic = "abort"` (no unwinding) | `eos-kernel` + `eos-relibc` release profiles | ✅ on |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
+| User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified; upstream has none) |
 | **W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
 | Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
 

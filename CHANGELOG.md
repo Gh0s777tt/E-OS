@@ -65,6 +65,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-045]` **Hardening (Fala B): user-space `mmap` ASLR.** Upstream Redox has **no**
+  ASLR — KASLR is unimplemented and there is no user-space load/heap randomization, so
+  "map anywhere" allocations (heap, `mmap`'d libraries, stacks) land at deterministic
+  addresses, which hands an attacker predictable targets. E-OS randomizes them: the
+  kernel's `find_free_near` now places each non-fixed mapping at a **page-aligned random
+  offset inside** the chosen free hole rather than always at its start. The offset comes
+  from a splitmix64 PRNG seeded from a cycle counter (`CNTVCT_EL0` on aarch64, `RDTSC` on
+  x86_64) and re-mixed with fresh jitter per call, **bounded** by `ASLR_MAX_SLACK_PAGES`
+  (avoids flinging a small allocation to the far end of a huge hole) and **gated** by the
+  `KERNEL_ASLR` const. `MAP_FIXED` is unaffected. All arithmetic is `wrapping_*`/
+  `saturating_*` so it composes with `overflow-checks` (U-044). **Boot-verified:** the
+  aarch64 image reaches login with **0 unhandled exceptions / 0 panics** — the entire
+  user-space bring-up (init, drivers, login) now runs through the randomized allocator
+  without a single fault, proving every returned span is in-bounds and correctly aligned.
+  `eos-kernel@8b5cc736`, recipe re-pinned; `docs/hardening.md` updated.
 - `[U-044]` **Hardening (Fala B): `overflow-checks` in the release kernel.** E-OS now
   builds `eos-kernel` with `overflow-checks = true` in its release profile (upstream
   Redox does not). An *unintended* integer overflow — a classic exploit primitive even
