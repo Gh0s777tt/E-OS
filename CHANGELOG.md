@@ -65,6 +65,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-046]` **Hardening (Fala B): user-space W⊕X (no writable+executable pages).**
+  Upstream Redox lets a process `mmap`/`mprotect`/`mremap` a page as
+  `PROT_WRITE | PROT_EXEC` — writable *and* executable at once, the textbook
+  shellcode-injection primitive (write attacker bytes into a page, jump into it). E-OS
+  now **strips `PROT_EXEC` from any user-space request that also asks for `PROT_WRITE`**,
+  at the syscall boundary (`SYS_FMAP` / `SYS_MPROTECT` / `SYS_MREMAP`, via a new
+  `wx_sanitize`), so a running program can never obtain a W+X page — code must be mapped
+  read-only-executable. Enforcement lives at the syscall entry, **not** in the shared
+  `page_flags()` conversion, on purpose: the kernel's trusted one-shot `bootstrap` blob
+  is legitimately mapped RWX through the *internal* `AddrSpace::mmap` path (not a
+  syscall) and must stay executable. Gated by `KERNEL_WX_USER`. **First attempt
+  (self-corrected):** enforcing inside `page_flags()` also disarmed the bootstrap RWX
+  mapping, and the aarch64 image faulted `[bootstrap]` with a synchronous EL0 exception
+  on its very first instruction — proving the enforcement was live, but at the wrong
+  layer; moved to the syscall boundary. **Boot-verified:** the aarch64 image reaches
+  login with **0 unhandled exceptions / 0 panics** — the whole base userland (init,
+  drivers, login) runs without needing a single W+X page. `eos-kernel@4d3c8e94`, recipe
+  re-pinned; `docs/hardening.md` updated (kernel-space vs user-space W⊕X split out).
 - `[U-045]` **Hardening (Fala B): user-space `mmap` ASLR.** Upstream Redox has **no**
   ASLR — KASLR is unimplemented and there is no user-space load/heap randomization, so
   "map anywhere" allocations (heap, `mmap`'d libraries, stacks) land at deterministic

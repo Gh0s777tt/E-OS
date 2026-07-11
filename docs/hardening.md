@@ -78,6 +78,16 @@ work through the checklist below.
   and gated by `KERNEL_ASLR`. `MAP_FIXED` is unaffected. (Verified: aarch64 image
   boots to login with 0 exceptions / 0 panics — the entire user-space bring-up runs
   through the randomized allocator without a single fault.)
+- **User-space W⊕X enforcement** — upstream Redox lets a process `mmap`/`mprotect`/
+  `mremap` a page as `PROT_WRITE | PROT_EXEC`, i.e. writable *and* executable, which is
+  the textbook shellcode-injection primitive (write attacker bytes, jump to them). E-OS
+  strips `PROT_EXEC` from any **user-space** request that also asks for `PROT_WRITE`, at
+  the syscall boundary (`SYS_FMAP` / `SYS_MPROTECT` / `SYS_MREMAP`, via `wx_sanitize`),
+  so a running program can never hold a W+X page — code must be mapped read-only-
+  executable. The one trusted exception, the kernel's one-shot `bootstrap` blob (mapped
+  RWX through the *internal* `AddrSpace::mmap` path, not a syscall), is deliberately left
+  untouched. Gated by `KERNEL_WX_USER`. (Verified: aarch64 boots to login with 0
+  exceptions / 0 panics — the whole base userland runs without needing a W+X page.)
 
 ## 🔒 Build-time hardening (enforced in the E-OS image)
 
@@ -89,7 +99,8 @@ work through the checklist below.
 | `panic = "abort"` (no unwinding) | `eos-kernel` + `eos-relibc` release profiles | ✅ on |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified; upstream has none) |
-| **W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
+| User-space **W⊕X** (no writable+executable pages for user processes) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified; upstream allows RWX) |
+| **Kernel-space W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
 | Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
 
 ## ⚠️ Known limits (don't assume these)
