@@ -90,12 +90,24 @@ timeline
   checksums (image timestamps differ run-to-run).
 - ✅ `R-304` Security policy v2 — **threat model** (`docs/threat-model.md`) +
   **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
-- 🚧 `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
-  (`docs/encryption.md`) and tooling-verified (`redoxfs-mkfs --encrypt` succeeds,
-  encrypted header confirmed); installer + bootloader support it and it is
-  **recommended at install** ([docs/install.md](docs/install.md)). Default-on for a
-  public image is an anti-pattern (baked password) — the installer's one-prompt
-  encryption is the right first-class path.
+- ✅ `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
+  (`docs/encryption.md`) and **verified end-to-end** (2026-07-11): an image installed with
+  `[general] encrypt_disk` boots the encrypted root all the way to `eos login:` — the
+  bootloader prompts `RedoxFS password`, unlocks the AES-XTS root, loads the kernel from it,
+  0 exceptions (`U-049`). This surfaced and fixed a real boot bug: the UEFI bootloader
+  **panicked** on an encrypted root instead of prompting; the `eos-bootloader` fork was
+  pinned to a rev predating mainline's fix, so it was **rebased onto current mainline**
+  (`U-050`), which carries the fix natively. Default-on for a public image is an anti-pattern
+  (baked password) — the installer's one-prompt encryption is the right first-class path.
+- ✅ `R-306` **Fala B — memory-safety hardening the E-OS kernel owns** (upstream Redox has
+  none of these; all boot-verified on **aarch64 + x86_64**, 0 exceptions):
+  **`overflow-checks`** across `eos-kernel` + `eos-base` + `eos-relibc` so an unintended
+  integer overflow aborts instead of wrapping (`U-044`); user-space **mmap ASLR**
+  (`find_free_near` randomizes non-fixed mappings; randomization empirically proven across
+  two boots) (`U-045`); user-space **W⊕X** (no simultaneously writable+executable pages,
+  enforced at the mmap/mprotect/mremap syscall boundary) (`U-046`); plus an audit closing
+  the W+X / RUSTFLAGS / least-privilege-scheme items (`U-047`). See
+  [docs/hardening.md](docs/hardening.md).
 
 ---
 
@@ -133,9 +145,13 @@ timeline
 
 **Theme: a daily-drivable desktop.**
 
-- ✅ `R-1001` **Graphical installer** — E-OS ships `redox_installer_gui` (+ a TUI
-  installer and the `redox_installer` engine); launch **Installer** from the desktop
-  to install to a disk, with an optional encrypted root. See [docs/install.md](docs/install.md).
+- ✅ `R-1001` **Graphical installer + bootable live medium** — E-OS ships
+  `redox_installer_gui` (+ a TUI installer and the `redox_installer` engine); launch
+  **Installer** from the desktop to install to a disk, with an optional encrypted root.
+  A **bootable live/installer ISO** (`make CONFIG_NAME=eos build/<arch>/eos/redox-live.iso`)
+  boots the full system read-only (greeter + installer) like a Linux live USB — verified on
+  aarch64 (`U-048`; screenshot `assets/screenshots/eos-aarch64-live-iso-greeter.png`). See
+  [docs/install.md](docs/install.md).
 - 🚧 `R-1002` **LTS branch + stability policy** — the `lts/0.1` branch (pushed to
   both remotes) tracks the 0.1 “Genesis” line with security backports; documented
   in [SECURITY.md](SECURITY.md) + a [stability/ABI policy](docs/stability.md). The
