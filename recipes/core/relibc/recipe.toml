@@ -4,7 +4,7 @@
 # current redox-os/relibc mainline (July). Upstream: https://gitlab.redox-os.org/redox-os/relibc.git
 git = "https://github.com/Gh0s777tt/eos-relibc.git"
 branch = "eos-july"
-rev = "be0fb67f83b31e9e690553efd55c2b1a54a0a636"
+rev = "9e0bc82402400c45c2a2d34ffc74f367d197ce37"
 
 [build]
 template = "custom"

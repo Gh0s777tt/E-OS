@@ -95,10 +95,13 @@ work through the checklist below.
   kernel's `find_free_near` now places each non-fixed mapping at a page-aligned random
   offset *inside* the chosen free hole instead of always at its start, so the heap,
   `mmap`'d libraries and stacks are unpredictable per boot. **This also covers the main
-  executable and shared libraries:** E-OS/Redox userspace binaries are PIE linked at
-  vaddr 0, and the relibc loader maps them with a *map-anywhere* (`NULL`-hint) anonymous
-  `mmap` — which goes through `find_free_near` — then relocates against the actual
-  address, so the code base is randomized too (not just the heap). Offsets come from a
+  executable, the shared libraries, *and the dynamic linker (`ld.so`) itself:*** E-OS/Redox
+  userspace binaries are PIE linked at vaddr 0, and the relibc loader maps them with a
+  *map-anywhere* (`NULL`-hint) anonymous `mmap` — which goes through `find_free_near` — then
+  relocates against the actual address, so the code base is randomized too (not just the
+  heap). E-OS additionally relinks `ld.so` at vaddr 0 (upstream pinned it at a fixed
+  `0x20000000`), so the linker's own code — a rich ROP-gadget source — is randomized rather
+  than sitting at a predictable address. Offsets come from a
   splitmix64 PRNG seeded from a cycle counter (`CNTVCT_EL0` on aarch64, `RDTSC` on
   x86_64) and re-mixed with fresh jitter per call, bounded to `ASLR_MAX_SLACK_PAGES`
   and gated by `KERNEL_ASLR`. `MAP_FIXED` is unaffected. (Verified: aarch64 image

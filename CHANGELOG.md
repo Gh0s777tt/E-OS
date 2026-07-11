@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-052]` **ASLR now covers the dynamic linker (`ld.so`) itself.** Follow-up to `U-051`,
+  which had noted the linker's own base as a remaining gap. The Redox `ld_script`s pinned
+  `ld.so` at a fixed `0x20000000`, so the loader mapped it `MAP_FIXED` there — the linker's
+  code, a rich source of ROP gadgets, sat at a **predictable** address on every boot. E-OS
+  now links `ld.so` at **vaddr 0** (like ordinary PIE binaries) in all Redox `ld_script`s,
+  so the loader maps it *map-anywhere* (`NULL` hint) and the kernel mmap ASLR (`U-045`)
+  randomizes its base per boot — closing the last easy ASLR gap in the user-space load
+  chain (executable + libraries were already covered per `U-051`; now the linker too).
+  **Boot-verified** (aarch64): the image reaches login with **0 exceptions / 0 panics** —
+  `ld.so`'s self-relocation works correctly at the randomized base. `eos-relibc@9e0bc824`,
+  recipe re-pinned; `docs/hardening.md` updated.
 - `[U-051]` **Deeper ASLR hardening: exec/library base confirmed randomized + guard bands.**
   Working through the "risky" hardening backlog: **(1) full-executable ASLR was already
   achieved** by `U-045` — E-OS/Redox userspace binaries are **PIE linked at vaddr 0**
@@ -27,8 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `eos-kernel@e20d5765`, recipe re-pinned; boot-verified (login, 0 exceptions).
   **Assessed and deliberately NOT done** (honest risk/reward): *hard* `PROT_NONE` guard
   pages (would need grant-model + demand-paging-fault-handler surgery on the core mmap path —
-  high boot-breakage risk for modest marginal value in a memory-safe userland); randomizing
-  the `ld.so` loader's own base (deeper exec-path change); restoring the optional virtio-rng
+  high boot-breakage risk for modest marginal value in a memory-safe userland); restoring the optional virtio-rng
   driver (`R-402`, a known userspace deadlock, redundant with the kernel's jitter entropy);
   full temporal W⊕X (needs relibc to map code file-backed — its loader does anon→`mprotect(+X)`).
 - `[U-050]` **Bootloader fork rebased onto current mainline (removes fork debt, adopts the
