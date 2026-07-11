@@ -76,7 +76,11 @@ relibc `@ 284852a0`); none have landed upstream. Ready-to-paste MR descriptions 
 
 **Re-verified against current mainline 2026-07-11:** all **15** patches still `git am`
 **cleanly** (3-way) onto fresh `master` clones — kernel `@ 00cfa2d`, base `@ 1b17b3f`,
-relibc `@ cbc14a3` — so the set has not drifted and remains ready to submit. (Note: the
+relibc `@ cbc14a3` — so the set has not drifted and remains ready to submit. The kernel
+set (the largest, 8 patches) was additionally **compile-checked**: patched mainline
+`redox-os/kernel` `cargo check --target aarch64-unknown-redox` finishes clean (no
+errors), so the patches are not merely textually applicable but build on current
+mainline. (Note: the
 E-OS memory-safety hardening added since — `overflow-checks`, mmap ASLR, W⊕X — is a
 *downstream product* choice and is deliberately **not** part of this upstream set, which
 is scoped to genuine mainline bugfixes.)
