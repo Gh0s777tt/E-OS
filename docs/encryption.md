@@ -16,12 +16,12 @@ The whole chain is in place:
 | **Install** with encryption | installer prompts *"redoxfs password (empty for none)"*, or config `[general] encrypt_disk = "…"` |
 | **Boot** an encrypted root | the **E-OS bootloader** prompts `RedoxFS password (attempt/attempts):` and unlocks |
 
-> ✅ **Verified end-to-end (2026-07-11, aarch64/UEFI):** an image installed with
-> `[general] encrypt_disk` boots the encrypted root all the way to `eos login:` —
-> the bootloader prompts `RedoxFS password (1/10):`, accepts the password, unlocks
-> the **AES-XTS** RedoxFS, loads the kernel from it, and reaches login with **0
-> exceptions / 0 panics**. `redoxfs-mkfs --encrypt` likewise produces a distinct
-> encrypted on-disk header.
+> ✅ **Verified end-to-end (2026-07-11, both aarch64 and x86_64 under UEFI):** an image
+> installed with `[general] encrypt_disk` boots the encrypted root all the way to
+> `eos login:` — the bootloader prompts `RedoxFS password (1/10):`, accepts the password,
+> unlocks the **AES-XTS** RedoxFS, loads the kernel from it, and reaches login with **0
+> exceptions / 0 panics** on **both** architectures. `redoxfs-mkfs --encrypt` likewise
+> produces a distinct encrypted on-disk header.
 >
 > ⚠️ **This required an E-OS bootloader fix.** The UEFI boot path previously
 > **panicked** (`Failed to open RedoxFS`) on an encrypted root instead of prompting:

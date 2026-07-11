@@ -24,7 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   encrypted-boot fix coming from upstream instead of a local patch (`eos-bootloader@f1ba665`,
   branch `eos-rebased`, recipe re-pinned). **Both paths re-verified on the rebased bootloader:**
   the normal image boots to `eos login:` (0 exceptions), and the encrypted image prompts for the
-  password, unlocks the AES-XTS root, and reaches `eos login:` (0 exceptions).
+  password, unlocks the AES-XTS root, and reaches `eos login:` (0 exceptions) — the encrypted-boot
+  path is now verified on **both aarch64 and x86_64** under UEFI.
 - `[U-049]` **Full-disk encryption now actually boots — bootloader fix + end-to-end
   verification.** E-OS advertises RedoxFS AES-XTS full-disk encryption, but the UEFI boot
   path was **broken**: an encrypted root **panicked** the bootloader (`Failed to open
