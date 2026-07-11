@@ -22,9 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so the loader maps it *map-anywhere* (`NULL` hint) and the kernel mmap ASLR (`U-045`)
   randomizes its base per boot — closing the last easy ASLR gap in the user-space load
   chain (executable + libraries were already covered per `U-051`; now the linker too).
-  **Boot-verified** (aarch64): the image reaches login with **0 exceptions / 0 panics** —
-  `ld.so`'s self-relocation works correctly at the randomized base. `eos-relibc@9e0bc824`,
-  recipe re-pinned; `docs/hardening.md` updated.
+  **Boot-verified on both aarch64 and x86_64**: each image reaches login with **0
+  exceptions / 0 panics** — `ld.so`'s self-relocation works correctly at the randomized
+  base on both. `eos-relibc@9e0bc824`, recipe re-pinned; `docs/hardening.md` updated.
 - `[U-051]` **Deeper ASLR hardening: exec/library base confirmed randomized + guard bands.**
   Working through the "risky" hardening backlog: **(1) full-executable ASLR was already
   achieved** by `U-045` — E-OS/Redox userspace binaries are **PIE linked at vaddr 0**
