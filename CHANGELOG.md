@@ -14,6 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-049]` **Full-disk encryption now actually boots — bootloader fix + end-to-end
+  verification.** E-OS advertises RedoxFS AES-XTS full-disk encryption, but the UEFI boot
+  path was **broken**: an encrypted root **panicked** the bootloader (`Failed to open
+  RedoxFS`) instead of prompting for the password. Root cause: the UEFI `filesystem()`
+  partition scan (`os/uefi/mod.rs`) treated the `ENOKEY` that an encrypted RedoxFS returns
+  as a generic error — logging *"BlockIo error: Required key not available"* and skipping
+  the device — then returned `ENOENT`; the unlock loop in `main.rs` only prompts for a
+  password on `ENOKEY`, so it saw `ENOENT` and panicked. Since **both** aarch64 and x86_64
+  use the UEFI bootloader, encrypted roots could not boot on either (the BIOS path was
+  fine, as it returns `open()` directly). **Fix:** propagate `ENOKEY`/`EKEYREJECTED` from
+  the scan so the unlock loop prompts ([`eos-bootloader@083d9fae`](https://github.com/Gh0s777tt/eos-bootloader),
+  recipe re-pinned). **Verified end-to-end** (aarch64/UEFI, QEMU): built an encrypted
+  image (`[general] encrypt_disk`), booted it — bootloader prompts `RedoxFS password
+  (1/10):`, the password is accepted, the **AES-XTS** root unlocks, the kernel loads from
+  it, and it reaches `eos login:` with **0 exceptions / 0 panics**. This is a genuine
+  upstream-Redox bug too (candidate for `upstream/`). `docs/encryption.md` updated from
+  "chain in place / mkfs verified" to full boot-unlock verified.
 - `[U-048]` **Bootable live / installer ISO — verified on aarch64.** Besides the
   pre-installed `harddrive.img`, E-OS now has a confirmed **live ISO** (`make
   CONFIG_NAME=eos build/<arch>/eos/redox-live.iso`) — a read-only medium that boots the

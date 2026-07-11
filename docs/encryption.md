@@ -16,9 +16,22 @@ The whole chain is in place:
 | **Install** with encryption | installer prompts *"redoxfs password (empty for none)"*, or config `[general] encrypt_disk = "…"` |
 | **Boot** an encrypted root | the **E-OS bootloader** prompts `RedoxFS password (attempt/attempts):` and unlocks |
 
-> ✅ **Verified:** `redoxfs-mkfs --encrypt` on the E-OS toolchain creates an
-> encrypted filesystem (distinct on-disk header vs. an unencrypted one). The
-> password prompt requires a real terminal (TTY).
+> ✅ **Verified end-to-end (2026-07-11, aarch64/UEFI):** an image installed with
+> `[general] encrypt_disk` boots the encrypted root all the way to `eos login:` —
+> the bootloader prompts `RedoxFS password (1/10):`, accepts the password, unlocks
+> the **AES-XTS** RedoxFS, loads the kernel from it, and reaches login with **0
+> exceptions / 0 panics**. `redoxfs-mkfs --encrypt` likewise produces a distinct
+> encrypted on-disk header.
+>
+> ⚠️ **This required an E-OS bootloader fix.** The UEFI boot path previously
+> **panicked** (`Failed to open RedoxFS`) on an encrypted root instead of prompting:
+> its partition scan swallowed the `ENOKEY` that an encrypted RedoxFS returns
+> (logging it as a generic *"BlockIo error: Required key not available"* and skipping
+> the device), so the caller — which only prompts for a password on `ENOKEY` — saw
+> `ENOENT` and gave up. Fixed by propagating `ENOKEY`/`EKEYREJECTED` from the scan
+> ([`eos-bootloader@083d9fae`](https://github.com/Gh0s777tt/eos-bootloader)); the
+> BIOS path was already correct. This affected **both** aarch64 and x86_64 under
+> UEFI, so it is also an upstream-Redox bug (candidate for `upstream/`).
 
 ---
 
