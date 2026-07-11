@@ -65,6 +65,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   patch needs only a trivial 3-way merge (an upstream `.expect()`→`.expect_notls()`
   rename), and **none** of the fixes have landed upstream — so the forks remain
   necessary. `upstream/README.md` verification note updated.
+- `[U-044]` **Hardening (Fala B): `overflow-checks` in the release kernel.** E-OS now
+  builds `eos-kernel` with `overflow-checks = true` in its release profile (upstream
+  Redox does not). An *unintended* integer overflow — a classic exploit primitive even
+  in memory-safe Rust — is now a controlled abort (`panic = "abort"`) instead of a
+  silent wrap; intentional wrapping uses `wrapping_*`/`Wrapping`, so this only fires on
+  genuine bugs. **Boot-verified:** the aarch64 image reaches login with **0 overflow
+  panics / 0 unhandled exceptions**, so no hot path relied on implicit wrapping.
+  `eos-kernel@ffd0e6b3`, recipe re-pinned. `docs/hardening.md` gained a build-time
+  hardening table (overflow-checks, `panic=abort`, `KERNEL_DEBUG` off, a W⊕X audit
+  noting the few necessary x86 W+X pages, and empty `RUSTFLAGS` as a tracked gap) and
+  its stale "aarch64 not yet to login" limit was removed.
 - `[U-043]` **Serial console login — the image-side pieces (ACPI PL011 RXE init +
   a serial getty); interactive input is a QEMU/macOS host limit, not an E-OS bug.**
   Root-caused why the headless serial console showed output but took no input, in

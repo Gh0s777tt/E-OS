@@ -57,12 +57,31 @@ work through the checklist below.
 - **Memory-safe** kernel + drivers + userland (Rust) — no buffer-overflow class.
 - **Userspace drivers / netstack / fs** — a compromise is a *process*, not the kernel.
 - **Capability schemes** — least privilege by construction.
+- **`overflow-checks` in the release kernel** — E-OS builds `eos-kernel` with
+  `overflow-checks = true` (upstream Redox does not), so an *unintended* integer
+  overflow — a classic exploit primitive even in safe Rust — is a controlled abort
+  (`panic = "abort"`), not a silent wrap. Intentional wrapping uses `wrapping_*` /
+  `Wrapping`, so this only fires on genuine bugs. (Verified: the image boots to login
+  with 0 overflow panics.)
+- **No debug flood / smaller info leak** — the kernel's aarch64/riscv64 `debug!`
+  macro is gated behind `KERNEL_DEBUG` (default off), so hot-path internals aren't
+  streamed to the console in production.
+
+## 🔒 Build-time hardening (enforced in the E-OS image)
+
+| Measure | Where | State |
+|---|---|---|
+| `overflow-checks = true` | `eos-kernel` release profile | ✅ on (boot-verified) |
+| `panic = "abort"` (no unwinding) | `eos-kernel` release profile | ✅ on (upstream default) |
+| `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
+| **W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
+| Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
 
 ## ⚠️ Known limits (don't assume these)
 
 - No **UEFI Secure Boot** / TPM measured-boot chain yet.
 - No formal verification or completed security audit (pre-1.0).
-- **aarch64** boots the bootloader but not yet to login (upstream `redoxfs`
-  mount bug, `R-401b`) — treat aarch64 as experimental.
+- Userspace binaries (base/relibc/ports) don't yet build with `overflow-checks` —
+  only the kernel does; extending it is a tracked follow-up.
 
 Found a hardening gap or a vuln? Report **privately** — see [SECURITY.md](../SECURITY.md).
