@@ -23,6 +23,21 @@ make CONFIG_NAME=eos qemu          # x86_64, KVM-accelerated
 Default logins: **`user`** (no password) · **`root`** / `password`
 — **change these** before real use ([hardening.md](hardening.md)).
 
+### Live / installer medium (USB-style, read-only)
+
+Besides the pre-installed `harddrive.img`, E-OS builds a **bootable live ISO** — a
+read-only medium that boots the full system (greeter + `installer-gui`) so you can try
+it and then install to a real disk, exactly like a Linux live USB:
+
+```sh
+make CONFIG_NAME=eos ARCH=x86_64  build/x86_64/eos/redox-live.iso   # or ARCH=aarch64
+# → boot the .iso in a UEFI VM, or flash it to a USB stick (dd, see §4)
+```
+
+Both arches are verified to boot the live ISO to the E-OS greeter/login (aarch64 boot
+tested under QEMU `virt`/UEFI: "Switching to live disk" → E-OS 0.1.0 "Genesis" → login,
+0 exceptions).
+
 ## 2. Graphical install (recommended)
 
 E-OS includes **`redox_installer_gui`** — open **“Installer”** from the desktop
@@ -62,9 +77,15 @@ prompt for encryption; use the installer (2/3) if you want an encrypted root.
 
 ## Architectures
 
-- **x86_64** — boots end-to-end to the COSMIC desktop (UEFI, NVMe).
-- **aarch64** — the image builds with full branding and boots the E-OS bootloader
-  under QEMU `virt`; full boot-to-login awaits an upstream RedoxFS fix
-  (ROADMAP `R-401b`). Treat aarch64 as experimental.
+- **x86_64** — boots end-to-end to the COSMIC desktop (UEFI, NVMe). Both the
+  pre-installed image and the live ISO boot to `eos login:` with 0 exceptions.
+- **aarch64** — **boots to the graphical E-OS greeter/login** under QEMU `virt` (UEFI),
+  and the live ISO boots the same way (verified). The early-boot blockers that once
+  stopped it (`R-401b` FEAT_RNG emulation and the follow-on PCIe-INTx / signal-ordering
+  fixes) are **fixed** — see `upstream/`. The extra **COSMIC apps** (store/settings/reader)
+  are still deferred on aarch64 because their `fontconfig → host:gperf` build dependency
+  publishes a redoxer host toolchain only for x86_64-linux build hosts; the base desktop
+  (greeter, cosmic-edit/files/term, orbital) is present. Build aarch64 on an x86_64-linux
+  host to get the full COSMIC app set.
 
 See also: [getting-started.md](getting-started.md) · [building.md](building.md).

@@ -14,6 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-048]` **Bootable live / installer ISO — verified on aarch64.** Besides the
+  pre-installed `harddrive.img`, E-OS now has a confirmed **live ISO** (`make
+  CONFIG_NAME=eos build/<arch>/eos/redox-live.iso`) — a read-only medium that boots the
+  full system with the graphical greeter and `installer-gui`, i.e. a "try it then install
+  to disk" flow like a Linux live USB. The **aarch64** live ISO was boot-tested under QEMU
+  `virt`/UEFI: the loader hands off, the kernel comes up, **"Switching to live disk"**,
+  the E-OS `0.1.0 "Genesis"` banner renders, and it reaches the greeter / `eos login:`
+  with **0 exceptions / 0 panics** — on the fully-hardened kernel (overflow-checks + ASLR
+  + W⊕X). This is a concrete step toward "installable like a normal OS": the medium boots
+  and carries the installer. `docs/install.md` updated — added the live-ISO build/flash
+  path and corrected the stale "aarch64 is experimental / awaits a RedoxFS fix" note (that
+  blocker was fixed; aarch64 boots to the graphical greeter, with only the extra COSMIC
+  apps still deferred to an x86_64-linux build host).
 - `[U-047]` **Hardening (Fala B): audit & guidance for the remaining W⊕X / RUSTFLAGS /
    scheme-namespace items** — closing out Fala B by resolving the three tracked gaps with
    evidence instead of leaving them vague. (1) **Kernel-space W⊕X audited:** there are *no
