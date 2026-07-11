@@ -101,7 +101,7 @@ work through the checklist below.
 | `panic = "abort"` (no unwinding) | `eos-kernel` + `eos-relibc` release profiles | ✅ on |
 | `KERNEL_DEBUG` off (no debug flood) | `eos-kernel` | ✅ default off |
 | User-space **mmap ASLR** (randomized base for non-fixed maps) | `eos-kernel` (`find_free_near`, gated by `KERNEL_ASLR`) | ✅ on (boot-verified; upstream has none) |
-| User-space **W⊕X** (no writable+executable pages for user processes) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified; upstream allows RWX) |
+| User-space **W⊕X** (no *simultaneously* writable+executable pages) | `eos-kernel` (`wx_sanitize` at `SYS_FMAP`/`SYS_MPROTECT`/`SYS_MREMAP`, gated by `KERNEL_WX_USER`) | ✅ on (boot-verified; upstream allows RWX) |
 | **Kernel-space W⊕X** memory | kernel paging | ▫ Mostly — a few necessary x86 W+X pages remain (the SMP AP trampoline and the runtime `alternative` code-patcher); aarch64 has none. Auditing/eliminating these is tracked. |
 | Hardened `RUSTFLAGS` (RELRO/PIE/stack-protector for C ports) | build env | ⏳ planned — `.cargo/config.toml` `rustflags` are currently empty. |
 
@@ -112,5 +112,14 @@ work through the checklist below.
 - The **third-party ports** (the ~1900 cookbook recipes for `vim`, `curl`, `gcc`, the
   COSMIC desktop, …) build with their own upstream flags — E-OS's `overflow-checks`
   covers the code it owns (kernel + base + relibc), not those.
+- **W⊕X is simultaneous-only, not temporal.** E-OS blocks a page from being *at once*
+  writable and executable, but not the `mmap(RW)` → write → `mprotect(R-X)` *sequence*
+  (dropping write as it gains execute). This is a deliberate limit: Redox's dynamic
+  loader (`ld.so`) reads each shared object into **anonymous** memory and then
+  `mprotect`s it executable — it does not map code file-backed — so denying "anonymous
+  memory may gain `PROT_EXEC`" breaks every dynamically-loaded program (empirically:
+  `ld.so mprotect failed: EACCES` on `rm`, `sudo`, `orbital`, …). Full temporal W⊕X
+  would require the loader to map code file-backed, or a capability gating executable
+  memory — tracked as future work.
 
 Found a hardening gap or a vuln? Report **privately** — see [SECURITY.md](../SECURITY.md).

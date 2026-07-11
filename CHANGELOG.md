@@ -83,6 +83,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   login with **0 unhandled exceptions / 0 panics** — the whole base userland (init,
   drivers, login) runs without needing a single W+X page. `eos-kernel@4d3c8e94`, recipe
   re-pinned; `docs/hardening.md` updated (kernel-space vs user-space W⊕X split out).
+  **Scope — simultaneous, not temporal:** this blocks a page from being W and X *at
+  once*, but not the `mmap(RW)` → write → `mprotect(R-X)` *sequence*. A stronger temporal
+  variant (deny anonymous memory ever gaining `PROT_EXEC`) was implemented and tested,
+  but **reverted**: Redox's `ld.so` loads every shared object into *anonymous* memory and
+  then `mprotect`s it executable (it does not map code file-backed), so the rule faulted
+  every dynamically-loaded program (`ld.so mprotect failed: EACCES` on `rm`, `sudo`,
+  `orbital`, …). Full temporal W⊕X needs loader rework and is tracked as future work; the
+  shipped kernel keeps the working simultaneous-W⊕X rule.
 - `[U-045]` **Hardening (Fala B): user-space `mmap` ASLR.** Upstream Redox has **no**
   ASLR — KASLR is unimplemented and there is no user-space load/heap randomization, so
   "map anywhere" allocations (heap, `mmap`'d libraries, stacks) land at deterministic
