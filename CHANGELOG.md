@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-054]` **USB mass storage works — root-caused a daemon-framework bug and re-enabled it.**
+  USB flash drives / disks (`usbscsid`, class 8) were **disabled upstream** ("until it is more
+  reliable" — "causes XHCI errors"). Investigation showed the failure was **not** in the SCSI
+  or xHCI layer at all: `usbscsid` aborted at startup in the shared **`daemon`** crate
+  (`daemon/src/lib.rs`), because a driver spawned by `xhcid` (not by `init`) inherits the
+  parent's `INIT_NOTIFY` env var but **not a valid notify-pipe fd** — the parent's fd is
+  `CLOEXEC`/already consumed — so `fcntl(FD_CLOEXEC)` returned `EBADF` and the daemon
+  `panic!`ed → abort. **Fix:** make the notify pipe **optional** — on `EBADF`, skip the
+  readiness notification (`write_pipe = None`, `ready*()` becomes a no-op) instead of aborting;
+  init-spawned daemons (valid fd) are unchanged. Then re-enabled the class-8/subclass-6 →
+  `usbscsid` mapping in `xhcid/drivers.toml`, and removed a debug block-0 dump in `usbscsid`
+  (leaked disk contents to the console + panicked on a not-yet-ready device). **Verified in
+  QEMU** with `-device usb-storage`: `xhcid` loads the SCSI subdriver, `usbscsid` starts
+  cleanly, `Inquiry version: 5`, `SCSI initialized`, and it **reads the flash drive** (block 0
+  returned the exact test marker written to the image) — login reached, 0 exceptions. So the
+  upstream "unreliable" was a spawn-plumbing bug, now fixed; USB storage is usable. This also
+  unblocks **any** future xHCI subdriver (audio/printer/CDC) that uses the daemon framework.
+  `eos-base@71359c6e`, recipe re-pinned. See [docs/roadmap-connectivity.md](docs/roadmap-connectivity.md).
 - `[U-053]` **Connectivity roadmap (USB · LAN · Bluetooth) + wired-LAN driver-diversity
   verified.** New [`docs/roadmap-connectivity.md`](docs/roadmap-connectivity.md) surveys the
   actual `eos-base` driver tree and lays out the plan for **USB** (all versions already via

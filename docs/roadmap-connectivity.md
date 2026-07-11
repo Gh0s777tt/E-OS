@@ -26,7 +26,7 @@ already handles hubs, so hub topology (many devices) works.
 | **HID** — keyboards, mice, gamepads | 3 | `usbhidd` | ✅ done | ✅ (`usb-kbd`, `usb-mouse`, `usb-tablet`) |
 | Xbox 360 controller (vendor HID) | 0xFF/93 | `usbhidd` | ✅ done | ⚠️ (needs a passthrough pad) |
 | **Hubs** — multi-device topology | 9 | `usbhubd` | ✅ done | ✅ (`usb-hub`) |
-| **Mass storage** — flash drives, USB HDD | 8/6 | `usbscsid` | 🟡 **written but disabled** (`drivers.toml` comment: "causes XHCI errors") | ✅ (`usb-storage`) |
+| **Mass storage** — flash drives, USB HDD | 8/6 | `usbscsid` | ✅ **done** — re-enabled + fixed (the "XHCI errors" were a `daemon`-crate `INIT_NOTIFY` bug, not SCSI/xHCI; `U-054`) | ✅ (`usb-storage`, verified: reads block 0) |
 | **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
 | **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (`usb-braille`/none-native; test via CUPS-less raw) |
 | **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
@@ -35,9 +35,11 @@ already handles hubs, so hub topology (many devices) works.
 
 ### USB work plan (priority order)
 
-1. **Re-enable mass storage (`usbscsid`).** Highest value, driver already exists — the
-   task is debugging the xHCI error that got it commented out (likely a bulk-endpoint or
-   SCSI-command-set issue). QEMU-verifiable end-to-end with `-device usb-storage`.
+1. **Re-enable mass storage (`usbscsid`).** ✅ **Done (`U-054`).** The "xHCI error" turned
+   out to be a `daemon`-crate `INIT_NOTIFY` bug (a subdriver spawned by `xhcid` got an invalid
+   notify-pipe fd → abort), *not* a SCSI/xHCI issue. Fixed the daemon crate, re-enabled the
+   mapping, verified reading a USB flash drive in QEMU (`-device usb-storage`). The daemon fix
+   also unblocks any future xHCI subdriver (audio/printer/CDC).
 2. **`usbserial` (CDC-ACM).** The *simplest* new class driver (two bulk endpoints, a
    control interface) — good first "new class" and immediately useful (serial consoles,
    Arduino, modems). QEMU-verifiable with `-device usb-serial`.
