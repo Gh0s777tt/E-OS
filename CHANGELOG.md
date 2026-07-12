@@ -13,6 +13,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `[U-056]` **`usbnetd` bring-up: real endpoint-numbering bug fixed; TX *and* RX proven
+  end-to-end.** Follow-up to `U-055`. The RNDIS receive path had delivered zero frames; a
+  deterministic ARP self-test (send a broadcast ARP request for the QEMU slirp gateway, let
+  the RX thread log the reply) plus a `filter-dump` pcap localised and then closed the gap:
+  - **Root bug — endpoint numbering.** xhcid's `endpoints/<n>` handle numbers endpoints by a
+    *global* 1-based counter that runs across **every interface** of the chosen config (its
+    `get_endp_desc`), not the position within a single interface. RNDIS puts a Communications
+    control interface (one interrupt endpoint) *before* the CDC-Data interface, so the data
+    interface's bulk **IN/OUT are global indices 2/3, not 1/2**. usbnetd had used position+1
+    (which only coincidentally works for `usbscsid`, whose interface is first), so it was
+    reading the control interrupt endpoint and writing the bulk-IN endpoint — both hung.
+    Fixed by mirroring xhcid's global walk. A descriptor dump confirmed QEMU `usb-net` config
+    2 = RNDIS (control `class 2/2 proto 0xff`, data bulk `0x82` IN / `0x02` OUT).
+  - **Proof.** With the corrected endpoints, a synchronous ARP request egressed
+    (`TX ok, 86 bytes`) and its reply came back on the bulk-IN
+    (`RX Ok ShortPacket 108 bytes, RNDIS_PACKET_MSG → 64-byte frame`), visible on the wire in
+    the pcap. TX and RX both work.
+  - **Remaining blocker (an xhcid limitation, not a usbnetd bug).** xhcid serves its scheme
+    single-threaded with a `block_on` per transfer, so a blocking bulk-IN read outstanding on
+    the RX thread stalls a concurrent bulk-OUT write (TX) — and empirically also stalls a
+    second USB subdriver's concurrent init on the same controller. A steady DHCP/ping flow
+    therefore deadlocks. The fix is an xhcid enhancement (non-blocking / `fevent`-completed
+    transfers); it touches the shared USB transfer path (`usbhidd`/`usbscsid`/`usbhubd`), so
+    it wants hardware/CI regression coverage before landing. usbnetd itself is left correct
+    and minimal (diagnostics removed). Documented in `docs/roadmap-connectivity.md`.
+  - **Note.** The fix lives in `eos-base` commit `04c75139`, which is not yet pushed to the
+    GitHub fork (chat tokens are compromised and must be regenerated first), so the base
+    recipe stays pinned at the `U-055` rev `bcb359dd` for now. Bumping the pin to `04c75139`
+    is a one-liner once the fork is pushed. The fix was built and boot-verified locally via an
+    offline inject (`git fetch <local-clone> <sha>` into `recipes/core/base/source` +
+    `REPO_OFFLINE=1`), which needs no network/token.
+
 ### Added
 - `[U-055]` **New driver: `usbnetd` — USB networking (RNDIS), written from scratch in Rust.**
   E-OS gains a **USB network class driver** (USB-Ethernet dongles / QEMU `usb-net`) — the

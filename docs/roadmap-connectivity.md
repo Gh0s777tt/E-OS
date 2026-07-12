@@ -30,7 +30,7 @@ already handles hubs, so hub topology (many devices) works.
 | **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
 | **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (`usb-braille`/none-native; test via CUPS-less raw) |
 | **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
-| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | ✅ **done** — RNDIS driver, enumerate + handshake + MAC + `network.*` scheme (`U-055`) | ✅ (`usb-net`, verified) |
+| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | 🟡 driver correct; enumerate + RNDIS handshake + MAC + `network.*` scheme + **TX/RX proven** (`U-055`/`U-056`); continuous flow gated on an `xhcid` transfer-model fix (below) | 🟡 (`usb-net`: half-duplex verified) |
 | **UVC** — webcams | 14 | *(none)* | 🔬 later | 🟡 |
 
 ### USB work plan (priority order)
@@ -44,7 +44,25 @@ already handles hubs, so hub topology (many devices) works.
    control interface) — good first "new class" and immediately useful (serial consoles,
    Arduino, modems). QEMU-verifiable with `-device usb-serial`.
 3. **`usbnetd` (CDC-ECM/RNDIS).** USB-Ethernet dongles → plug into the existing `netstack`
-   as another link. Moderate effort. QEMU-verifiable with `-device usb-net`.
+   as another link. Moderate effort. QEMU-verifiable with `-device usb-net`. **Status
+   (`U-056`):** the driver is correct and both directions are proven end-to-end — a broadcast
+   ARP request egressed through the RNDIS bulk-OUT and QEMU's ARP reply was received on the
+   bulk-IN, unwrapped and queued (captured in a `filter-dump` pcap). Two real bugs were fixed
+   along the way: (a) **endpoint numbering** — xhcid numbers `endpoints/<n>` by a *global*
+   1-based counter across every interface of the config (see its `get_endp_desc`), not the
+   position within one interface, so RNDIS's data bulk IN/OUT are indices **2/3** (a control
+   interrupt endpoint precedes them), not 1/2; usbscsid only works with position+1 because its
+   interface is first. (b) a TX log that fired *before* the write, masking the real state.
+   **Remaining blocker (not a usbnetd bug):** xhcid serves its scheme single-threaded with a
+   `block_on` per transfer, so a blocking bulk-IN read outstanding on usbnetd's RX thread
+   stalls a concurrent bulk-OUT write (TX) — and, empirically, also stalls a *second* USB
+   subdriver's concurrent init on the same controller. A steady DHCP/ping flow therefore
+   deadlocks. **Fix = an xhcid enhancement:** non-blocking / event-completed transfers (honour
+   `O_NONBLOCK` on the endpoint data fd → return `EAGAIN` and post a completion `fevent` when
+   the reactor signals the transfer done), so a pending RX read never blocks TX or other
+   devices. This is a change to a *core, shared* USB driver (also used by `usbhidd`/`usbscsid`/
+   `usbhubd`), so it wants hardware/CI regression coverage — interactive HID input in
+   particular isn't verifiable under QEMU-on-macOS.
 4. **`usbaudiod` (USB Audio Class 1.0, then 2.0).** Headsets / speakers / mics. **Largest
    of these** — isochronous endpoints, format/rate negotiation, feedback endpoints — and
    it must plug into the audio scheme alongside the PCI audio drivers
