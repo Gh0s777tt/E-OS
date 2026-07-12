@@ -14,6 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-055]` **New driver: `usbnetd` — USB networking (RNDIS), written from scratch in Rust.**
+  E-OS gains a **USB network class driver** (USB-Ethernet dongles / QEMU `usb-net`) — the
+  first brand-new USB class E-OS adds on top of the base Redox set. It is a userspace xHCI
+  subdriver that enumerates the **CDC-Data** interface, runs the **RNDIS control handshake**
+  (`INITIALIZE` → `QUERY OID_802_3_PERMANENT_ADDRESS` → `SET OID_GEN_CURRENT_PACKET_FILTER`
+  over EP0 `SEND`/`GET_ENCAPSULATED_*` class requests), and exposes a standard `network.*`
+  scheme via the shared `driver-network` crate, so the **smoltcp netstack treats a USB NIC
+  exactly like a PCI one**. TX wraps Ethernet frames in `RNDIS_PACKET_MSG`; RX runs on a
+  background thread + queue so the scheme event loop never blocks on the synchronous xHCI
+  transfer API. **Written clean from the public RNDIS/CDC specifications** (protocol constants
+  are non-copyrightable facts) per E-OS's licensing policy — no GPL code, memory-safe Rust,
+  userspace/microkernel-isolated, matching E-OS's security model. **Boot-verified** (aarch64,
+  `-device usb-net`): `xhcid` loads the subdriver for the class-10 interface, RNDIS comes up
+  and reads the correct MAC (`52:54:00:12:34:56`), the network scheme registers, and the
+  system reaches login with **0 exceptions / 0 panics**. *(Follow-up: full end-to-end traffic
+  depends on `netcfg` binding the interface; the driver-level path — enumerate → RNDIS → MAC →
+  scheme + TX/RX plumbing — is complete and verified.)* `eos-base@62b74096`, recipe re-pinned.
+  This was unblocked by the `daemon` INIT_NOTIFY fix (`U-054`). See
+  [docs/roadmap-connectivity.md](docs/roadmap-connectivity.md).
 - `[U-054]` **USB mass storage works — root-caused a daemon-framework bug and re-enabled it.**
   USB flash drives / disks (`usbscsid`, class 8) were **disabled upstream** ("until it is more
   reliable" — "causes XHCI errors"). Investigation showed the failure was **not** in the SCSI

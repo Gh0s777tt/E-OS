@@ -30,7 +30,7 @@ already handles hubs, so hub topology (many devices) works.
 | **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
 | **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (`usb-braille`/none-native; test via CUPS-less raw) |
 | **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
-| **CDC-ECM/NCM / RNDIS** — USB-Ethernet | 2/6, 0xE0 | *(none — `usbnetd` to write)* | ⏳ planned | ✅ (`usb-net`) |
+| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | ✅ **done** — RNDIS driver, enumerate + handshake + MAC + `network.*` scheme (`U-055`) | ✅ (`usb-net`, verified) |
 | **UVC** — webcams | 14 | *(none)* | 🔬 later | 🟡 |
 
 ### USB work plan (priority order)
