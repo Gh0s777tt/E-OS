@@ -90,6 +90,15 @@ Original Phase-0 checklist (kept for reference):
 
 ## Phase 1 — Floating glass taskbar + diamond Start + tray (rewrite `launcher`)
 
+**Status (2026-07-12): Phase 1a done** — the `launcher` bar now floats (inset side/bottom margins)
+with rounded translucent-red-glass corners (`orbclient::rounded_rect`), verified via screendump.
+Safe because the item layout stays index-based and window-relative, so hit-testing is unchanged.
+*Remaining Phase 1b/c:* big **centered** diamond-E Start (needs the layout to place index 0 at
+center + a matching hit-test change), a system **tray** (clock is there; add volume/network/battery),
+and registering the bar geometry with the compositor (replace the `48px` magic number in
+`compositor.rs:92-104`).
+
+
 Rewrite `eos-orbutils` `launcher`. The bar window is already `Async+Borderless+Transparent`
 (`launcher/src/main.rs:347-358`), so translucency works immediately.
 
