@@ -1,9 +1,12 @@
 # Design: non-blocking endpoint transfers in `xhcid`
 
-> Status: **designed & de-risked, not yet implemented.** This is the concrete plan to lift the
-> one remaining blocker on `usbnetd` (and any future full-duplex USB driver): a blocking bulk-IN
-> read currently deadlocks a concurrent bulk-OUT write. Companion to `U-056`
-> (`docs/roadmap-connectivity.md`, `CHANGELOG`).
+> Status: **IMPLEMENTED and verified (`U-057`, `eos-base` @ `a3a98fd4`).** This document is the
+> design that was built; it now doubles as the reference for how the non-blocking path works. It
+> lifted the one remaining blocker on `usbnetd` (a blocking bulk-IN read deadlocking a concurrent
+> bulk-OUT write). Verified under QEMU: a full DHCP handshake flows through `usbnetd` concurrently
+> with a `usb-storage` device, `login`, 0 exceptions; `usbscsid` still reaches `SCSI initialized`
+> (blocking path untouched). Interactive HID input remains to be confirmed on an x86 rig.
+> Companion to `U-056`/`U-057` (`docs/roadmap-connectivity.md`, `CHANGELOG`).
 
 ## The problem (proven)
 

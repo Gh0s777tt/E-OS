@@ -30,7 +30,7 @@ already handles hubs, so hub topology (many devices) works.
 | **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
 | **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (`usb-braille`/none-native; test via CUPS-less raw) |
 | **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
-| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | 🟡 driver correct; enumerate + RNDIS handshake + MAC + `network.*` scheme + **TX/RX proven** (`U-055`/`U-056`); continuous flow gated on an `xhcid` transfer-model fix (below) | 🟡 (`usb-net`: half-duplex verified) |
+| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | ✅ **done** — enumerate + RNDIS handshake + MAC + `network.*` scheme + **full-duplex** (`U-055`/`U-056`/`U-057`); needed a real endpoint-numbering fix and an additive `O_NONBLOCK` bulk-IN path in `xhcid` | ✅ (`usb-net`: full DHCP handshake verified, alongside `usb-storage`) |
 | **UVC** — webcams | 14 | *(none)* | 🔬 later | 🟡 |
 
 ### USB work plan (priority order)
@@ -53,21 +53,20 @@ already handles hubs, so hub topology (many devices) works.
    position within one interface, so RNDIS's data bulk IN/OUT are indices **2/3** (a control
    interrupt endpoint precedes them), not 1/2; usbscsid only works with position+1 because its
    interface is first. (b) a TX log that fired *before* the write, masking the real state.
-   **Remaining blocker (not a usbnetd bug):** xhcid serves its scheme single-threaded with a
-   `block_on` per transfer, so a blocking bulk-IN read outstanding on usbnetd's RX thread
-   stalls a concurrent bulk-OUT write (TX) — and, empirically, also stalls a *second* USB
-   subdriver's concurrent init on the same controller. A steady DHCP/ping flow therefore
-   deadlocks. **Fix = an xhcid enhancement:** non-blocking / event-completed transfers (honour
-   `O_NONBLOCK` on the endpoint data fd → return `EAGAIN` and post a completion `fevent` when
-   the reactor signals the transfer done), so a pending RX read never blocks TX or other
-   devices. This is a change to a *core, shared* USB driver (also used by `usbhidd`/`usbscsid`/
-   `usbhubd`), so it wants hardware/CI regression coverage — interactive HID input in
-   particular isn't verifiable under QEMU-on-macOS. **The concrete, de-risked implementation
-   plan is written up in [`design-xhcid-nonblocking-transfers.md`](design-xhcid-nonblocking-transfers.md)**
-   (the key enabler: `next_transfer_event_trb` already returns a `'static` completion future, so
-   a transfer can be split into arm + poll with no self-referential-future gymnastics; the path
-   is additive and gated on `O_NONBLOCK`, leaving the blocking path used by the other USB drivers
-   untouched).
+   **Was blocked on an xhcid limitation — now fixed (`U-057`).** xhcid serves its scheme
+   single-threaded with a `block_on` per transfer, so a blocking bulk-IN read outstanding on
+   usbnetd's RX thread stalled a concurrent bulk-OUT write (TX) — and even a second USB
+   subdriver's init on the same controller. The fix (see
+   [`design-xhcid-nonblocking-transfers.md`](design-xhcid-nonblocking-transfers.md)) adds an
+   **additive `O_NONBLOCK` bulk-IN path**: `execute_transfer`/`transfer` split into arm (submit
+   the TRB, return the already-`'static` completion future) + await; the non-blocking
+   `on_read_endp_data` arms once, returns `EWOULDBLOCK`, and only re-polls once the IRQ reactor
+   sets a waker flag. `usbnetd`'s RX opens its data fd `O_NONBLOCK` and uses
+   `arm_read`/`poll_read`; TX stays blocking. **Verified:** a full DHCP handshake
+   (`DISCOVER/OFFER/REQUEST/ACK`, netstack takes its lease) flows through `usbnetd` concurrently
+   with a `usb-storage` device, `login`, 0 exceptions. The blocking path is untouched, so
+   `usbhidd`/`usbscsid`/`usbhubd` are unaffected — though interactive HID input can't be
+   verified under QEMU-on-macOS and should be confirmed on an x86 rig.
 4. **`usbaudiod` (USB Audio Class 1.0, then 2.0).** Headsets / speakers / mics. **Largest
    of these** — isochronous endpoints, format/rate negotiation, feedback endpoints — and
    it must plug into the audio scheme alongside the PCI audio drivers

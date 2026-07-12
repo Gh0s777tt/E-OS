@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `[U-057]` **`xhcid`: non-blocking (`O_NONBLOCK`) bulk-IN transfers — `usbnetd` now does
+  full-duplex networking (a full DHCP handshake, verified).** Lifts the deadlock identified in
+  `U-056`. `xhcid` serves its scheme single-threaded with a `block_on` per transfer, so a
+  blocking bulk-IN read outstanding on `usbnetd`'s RX thread stalled a concurrent bulk-OUT
+  write (TX) — and even a second USB subdriver's init on the same controller.
+  - **Additive, bounded blast radius.** A new non-blocking read path is gated on `O_NONBLOCK`;
+    the existing blocking path is byte-for-byte unchanged, so `usbhidd`/`usbscsid`/`usbhubd`
+    keep their exact runtime behaviour.
+  - **How.** `execute_transfer`/`transfer` are split into *arm* (submit the TRB, return the
+    already-`'static` completion future from `next_transfer_event_trb`) + *await*. The
+    non-blocking `on_read_endp_data` arms once, returns `EWOULDBLOCK`, and only re-polls the
+    stored future once the IRQ reactor sets a `std::task::Wake` flag — so it never re-registers
+    with the reactor or spins. `driver_interface` gains `open_endpoint_nonblock` +
+    `arm_read`/`poll_read`; `usbnetd`'s RX thread uses them (TX stays blocking — a write
+    completes as soon as the device accepts it).
+  - **Verified (QEMU aarch64, `usb-net` + `usb-storage` together).** The pcap shows a complete
+    DHCP exchange through `usbnetd` — `DISCOVER → OFFER → REQUEST → ACK` — and the netstack
+    takes its `10.0.2.15` lease; `usbscsid` still reaches `SCSI initialized` and the earlier
+    two-device init stall is gone; `login`, 0 exceptions. **Not verifiable here:** interactive
+    HID input under QEMU-on-macOS — the blocking path is untouched so `usbhidd` *should* be
+    unaffected, but confirm on an x86 hardware rig. Design: `docs/design-xhcid-nonblocking-transfers.md`.
+    (`eos-base` @ `a3a98fd4`, pin bump deferred until the fork is pushed — tokens compromised.)
+
 ### Fixed
 - `[U-056]` **`usbnetd` bring-up: real endpoint-numbering bug fixed; TX *and* RX proven
   end-to-end.** Follow-up to `U-055`. The RNDIS receive path had delivered zero frames; a
