@@ -93,8 +93,9 @@ Original Phase-0 checklist (kept for reference):
 **Status (2026-07-12): Phase 1a done** — the `launcher` bar now floats (inset side/bottom margins)
 with rounded translucent-red-glass corners (`orbclient::rounded_rect`), verified via screendump.
 Safe because the item layout stays index-based and window-relative, so hit-testing is unchanged.
-*Remaining Phase 1b/c:* big **centered** diamond-E Start (needs the layout to place index 0 at
-center + a matching hit-test change), a system **tray** (clock is there; add volume/network/battery),
+*Phase 1b done (2026-07-12):* the diamond-E Start is now **centered** (apps flow from the left, clock
+right), draw + hit-test kept in sync via the index model — verified by screendump. *Remaining
+Phase 1c:* a system **tray** (clock is there; add volume/network/battery),
 and registering the bar geometry with the compositor (replace the `48px` magic number in
 `compositor.rs:92-104`).
 
