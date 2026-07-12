@@ -62,7 +62,12 @@ already handles hubs, so hub topology (many devices) works.
    the reactor signals the transfer done), so a pending RX read never blocks TX or other
    devices. This is a change to a *core, shared* USB driver (also used by `usbhidd`/`usbscsid`/
    `usbhubd`), so it wants hardware/CI regression coverage — interactive HID input in
-   particular isn't verifiable under QEMU-on-macOS.
+   particular isn't verifiable under QEMU-on-macOS. **The concrete, de-risked implementation
+   plan is written up in [`design-xhcid-nonblocking-transfers.md`](design-xhcid-nonblocking-transfers.md)**
+   (the key enabler: `next_transfer_event_trb` already returns a `'static` completion future, so
+   a transfer can be split into arm + poll with no self-referential-future gymnastics; the path
+   is additive and gated on `O_NONBLOCK`, leaving the blocking path used by the other USB drivers
+   untouched).
 4. **`usbaudiod` (USB Audio Class 1.0, then 2.0).** Headsets / speakers / mics. **Largest
    of these** — isochronous endpoints, format/rate negotiation, feedback endpoints — and
    it must plug into the audio scheme alongside the PCI audio drivers
