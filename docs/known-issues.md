@@ -5,6 +5,36 @@ Resolved items are kept below for the record.
 
 ---
 
+## 🔴 netsurf-fb crashes at startup on aarch64 (OPEN, 2026-07-12, U-039)
+
+`netsurf-fb` is the **only ET_EXEC (non-PIE) dynamic binary** in the image, and
+relibc's `ld.so` ET_EXEC support is immature. After the `R-402b` loader fixes
+(weak-PLT-to-0 per the gABI + wrapping `d_val` arithmetic — which un-broke every
+COSMIC app) netsurf gets **through the loader** but dies in a data abort
+(`ESR 0x92000047` = write, translation fault L3) at an address **outside its own
+segments**, i.e. in the shared-library mapping region — some library-side
+relocation or COPY-relocation interaction unique to an ET_EXEC main.
+
+Findings so far:
+- The cross-gcc **does support PIE** (`-fPIE -pie` on a test program → `DYN`).
+- Rebuilding netsurf as PIE failed three times: its `buildsystem/makefiles/
+  Makefile.tools` (cross branch) reconstructs `CC__` via `which $(CC)`, which
+  mangles a multi-word `CC`, and the flags never reach the final link.
+- `ld.so`'s COPY-relocation path *reads* correctly (sizes asserted, copy
+  direction right, skip-first lookup) — but ET_EXEC+shared-libs is its only
+  user, so it remains the prime suspect.
+
+Two fix paths (dedicated session): patch netsurf's **link rule itself** to force
+`-pie` (netsurf/Makefile `$(CC) -o $(EXETARGET)` line), or audit `ld.so` ET_EXEC
+handling with an in-guest test loop (cosmic-term + `curl` from a host HTTP
+server — the guest has networking and a working terminal now).
+
+Cosmetic: the crash leaves an orphaned "SDL" window on the desktop.
+
+---
+
+---
+
 ## ✅ Upstream-drift: unpinned `redoxfs` aborted every aarch64 boot (RESOLVED 2026-07-10, U-030)
 
 A fresh build shipped **upstream redoxfs 0.9.1 (July HEAD)** — the recipe was

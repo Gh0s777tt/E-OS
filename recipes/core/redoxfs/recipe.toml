@@ -2,11 +2,18 @@
 # E-OS vendored mirror of redox-os/redoxfs (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-redoxfs.git"
 branch = "master"
-rev = "6ade863ea5867e1beb96cba3b9749943c2fd9ef4"
+rev = "ce461328b3c31c8436ec78bd0de991b8c42bf2ec"
 
 [build]
 template = "custom"
 script = """
+# E-OS R-502: enable the aes crate ARMv8 hardware AES backend. The vendored
+# cpufeatures patch (source/Cargo.toml) makes it autodetect on Redox via
+# /scheme/sys/cpu, so it uses hardware only when the CPU has AES, software
+# otherwise. --cfg aes_armv8 is inert on other arches.
+export RUSTFLAGS="--cfg aes_armv8 ${RUSTFLAGS}"
+# The [patch.crates-io] entry changes Cargo.lock; allow it to update.
+COOKBOOK_CARGO_FLAGS=(--offline)
 # Must be statically linked
 cookbook_cargo
 """

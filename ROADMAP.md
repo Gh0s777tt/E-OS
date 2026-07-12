@@ -143,6 +143,23 @@ timeline
 
 ---
 
+## 🧱 Hardware capabilities (`R-50x`)
+
+**Theme: storage resilience + crypto performance + future-proof signing.**
+Recommended order, realistic per-item scope and QEMU verification plans live in
+[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-roadmap.md).
+
+- ✅ `R-501` **RAID-1 mirror daemon (`raid1d`)** — userspace block-scheme mirror
+  over two disks, degraded-mode reads, `create`/`status` tooling.
+- ✅ `R-502` **aarch64 crypto-extension acceleration** for the RedoxFS FDE path
+  (ARMv8 CE via the `aes` crate hardware backend; benchmarked).
+- ✅ `R-503` **Post-quantum (hybrid) package signing** — ed25519 + ML-DSA on the
+  pkgar repo tooling, with a written migration plan.
+
+---
+
+---
+
 ## 💡 v1.0.0 — "Prime" (horizon)
 
 **Theme: a daily-drivable desktop.**

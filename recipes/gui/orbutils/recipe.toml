@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/orbutils (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-orbutils.git"
 branch = "master"
-rev = "8cacc920e37596ab237dbd2d92321c224aa1dee3"
+rev = "63d120281cfb946c3e3e3d425c3015bbf2fa944a"
 
 [build]
 template = "custom"

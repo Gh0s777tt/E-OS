@@ -14,6 +14,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-056]` **DE Phase 2 — animated smoke wallpaper** (eos-orbutils `0a114f3`):
+  `background` rewritten from a static blit into a ~30 fps particle loop —
+  150 pre-blurred crimson smoke puffs (15 Hz tick) + up to 16 sparks (30 Hz),
+  sprites pre-rendered per (color, size, alpha level), dirty 32 px tiles restored
+  from the cached base image and sent to orbital as merged Y-damage spans.
+  Verified: consecutive QEMU screendumps all differ; diff bbox equals the smoke
+  band; the launcher clock keeps ticking.
+- `[U-057]` **DE Phase 3 — desktop icons layer + COSMIC crimson theme.** New
+  `desktop` binary in the launcher crate (eos-orbutils `59ab58b`): labelled,
+  double-clickable icons for apps and `~/Desktop` files on a transparent Back
+  window; deterministic z-order via a DESKTOP-READY handshake with the bar
+  (Back windows keep creation order); shared launcher code extracted to
+  `launcher/src/ui.rs`. Plus `config/aarch64/eos.toml` (`4a022180`): a
+  `~/Desktop/Welcome.txt` starter file and 24 cosmic-config files generated with
+  the exact libcosmic checkout cosmic-files 1.2.0 is built from — dark mode
+  pinned, accent `#E50914` (verified visually in cosmic-files after U-058).
+- `[U-059]` **Desktop icon dedupe** (eos-orbutils `63d1202`): the same app used to
+  appear twice (UI_PATH manifest + XDG desktop entry). Entries are now keyed by
+  the exec binary name, preferring the XDG variant; 12 -> 9 unique icons.
+- `[U-060]` **Hardware-capabilities roadmap recreated** —
+  [docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-roadmap.md)
+  (the original was lost with a working-notes wipe): the `R-50x` series —
+  RAID-1 mirror daemon → aarch64 crypto-extension acceleration for FDE →
+  post-quantum (hybrid) package signing — with recommended order, realistic
+  per-item scope and QEMU verification plans. Linked from [ROADMAP.md](ROADMAP.md).
+- `[U-061]` **R-501: RAID-1 mirror daemon (`raid1d`) — implemented and verified
+  end-to-end on aarch64.** New `drivers/storage/raid1d` crate in eos-base
+  (modeled on `lived` + driver-block `DiskScheme`): members are whole disks
+  with an E-OS superblock in their last 4 KiB (magic/UUID/index/generation);
+  the boot service assembles `disk.raid1`, writes go to all active members,
+  reads fall back, stale members are excluded by generation. Verified in QEMU:
+  `create` -> boot-assembly -> `redoxfs-mkfs`/mount -> write -> **boot with one
+  member removed -> data still readable (degraded)**. Constraints learned:
+  disk schemes require block-multiple I/O; scheme dir listings carry trailing
+  newlines; `daemon::Daemon` forbids manual starts (assembly is service-only).
+  **Platform bug found on the way** (R-401d follow-up, open): a second storage
+  controller on aarch64 hangs the boot on an unrouted INTx line, or panics
+  nvmed (`drivers/executor` IRQ ack) on a shared one — verification used
+  multiple namespaces on the system controller; a real multi-controller fix
+  is kernel-side work.
+- `[U-063]` **R-502: hardware AES-XTS for the FDE path (ARMv8 Crypto Extensions),
+  runtime-detected.** RedoxFS's AES-XTS now uses the `aes` crate's ARMv8 hardware
+  backend when the CPU advertises AES, constant-time software otherwise — no
+  SIGILL risk, clean fallback. Upstream `cpufeatures` has no Redox aarch64
+  detection (the ISAR registers are EL1-only), so the redoxfs fork vendors
+  `cpufeatures` with a Redox branch that reads `/scheme/sys/cpu` (the same role
+  `getauxval(AT_HWCAP)` plays on Linux); the recipe sets `--cfg aes_armv8`.
+  RedoxFS prints the selected backend at mkfs/open. **Verified in QEMU**:
+  `redoxfs-mkfs --encrypt` on `-cpu max` and `-cpu cortex-a53` both report
+  `AES-XTS backend: hardware (ARMv8 Crypto Extensions)` and create a valid
+  encrypted volume. Note: every aarch64 CPU model in QEMU/TCG here exposes AES,
+  so the software branch isn't reachable by CPU choice (verified by build +
+  code); and throughput is not measurable under TCG (both paths run as host
+  software) — real-hardware benchmarking is deferred to `R-403`.
+- `[U-064]` **R-503: hybrid post-quantum package signing (prototype).** New
+  build-host tool `tools/eos-repo-sign` signs the repo manifest (`repo.toml`,
+  which carries every package's blake3 hash) with **ed25519 + ML-DSA-65**
+  (FIPS 204, RustCrypto `ml-dsa` 0.1) — a forgery must break both, and the
+  transition never weakens today's ed25519 trust. Verified against the real
+  `repo/aarch64-unknown-redox/repo.toml`: hybrid verify passes, `--classical-only`
+  passes (pre-migration verifiers keep working), and a one-byte tamper fails both
+  algorithms. Rollout stages, key custody and non-goals documented in
+  [docs/security.md](docs/security.md). Completes the `R-50x` hardware-capabilities
+  series (`R-501` RAID-1, `R-502` aarch64 crypto acceleration, `R-503` PQ signing).
+- `[U-065]` **R-501b: raid1d resync/rebuild + split-brain safety + status.**
+  A degraded member is now rebuilt (data copied from the authoritative member)
+  instead of merely excluded. Superblock v2 adds `last_full_sync` + `member_count`
+  so the daemon tells an in-sync mirror from divergence. **Two data-loss holes
+  found by an adversarial pre-build review and fixed before shipping:** (1) a
+  runtime write failure now bumps the survivors' on-disk generation, so the next
+  assembly resyncs the dropped disk instead of silently blessing it; (2)
+  `last_full_sync` detects split-brain (two members each advanced to the same
+  generation while the other was absent) and rebuilds deterministically with a
+  loud warning. `raid1d status` reads a daemon-written state file so it works
+  while the daemon holds the members. **Verified end-to-end in QEMU (5-boot
+  sequence):** create -> write `v1` (A+B) -> degraded write `v2`+`extra` (A only,
+  A gen 3 / B gen 2) -> reunite -> serial shows `resync 25..100% / rebuild
+  complete`, both at gen 4 -> **boot B alone -> `v2`+`extra` present**, proving B
+  received A's degraded-window writes. eos-base `1ab5035f`.
 - `[U-055]` **New driver: `usbnetd` — USB networking (RNDIS), written from scratch in Rust.**
   E-OS gains a **USB network class driver** (USB-Ethernet dongles / QEMU `usb-net`) — the
   first brand-new USB class E-OS adds on top of the base Redox set. It is a userspace xHCI
@@ -493,6 +572,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   previously they tracked a branch, so a push to a fork could silently change the build.
 
 ### Fixed
+- `[U-058]` **Every dynamically linked GUI app crashed on aarch64 at startup**
+  (`UNHANDLED EXCEPTION`; latent since the first aarch64 desktop — apps had never
+  been launched during earlier phase verifications). Root cause: two `ld.so` bugs
+  in relibc, both only reachable on `Resolve::Now` targets (aarch64 — x86_64
+  defaults to lazy binding): (1) an unresolved **weak** PLT symbol panicked the
+  loader instead of binding to 0 per the System V gABI (killed cosmic-files on
+  zstd's optional `ZSTD_trace_*` hooks); (2) eager `d_val - load_base` arithmetic
+  in dynamic-section parsing overflowed for non-PIE executables under our
+  release overflow-checks hardening. Fixed in eos-relibc `7e9a95d0` (`R-402b`);
+  cosmic-files and cosmic-term now run (crimson-themed). Known issue: netsurf-fb
+  (the image's only ET_EXEC binary) still crashes deeper in library-region
+  relocations — findings and two fix paths documented in
+  [docs/known-issues.md](docs/known-issues.md).
+- `[U-062]` **aarch64 AES/PMULL/SHA feature detection was broken** (`R-502a`).
+  `ID_AA64ISAR0_EL1` crypto fields are cumulative (AES: `0b0001`=AES,
+  `0b0010`=AES+PMULL; SHA2: `0b0001`=SHA256, `0b0010`=+SHA512), but the
+  detectors used exact-equality and `cpu_info` printed `aes` only when
+  `has_feat_aes() && has_feat_pmull()` — i.e. `aes==1 && aes==2`, never true —
+  so `/scheme/sys/cpu` hid AES even on CPUs that have it. Use `>=` for the
+  cumulative fields and print `aes`/`pmull`/`sha2` independently. Verified:
+  `-cpu max`, `cortex-a72` and `cortex-a53` now correctly list `sha2 aes pmull`.
+  This is the detection channel RedoxFS FDE (U-063) consumes.
 - `[U-011]` **`R-401b` — the real aarch64 boot blocker (mis-diagnosed for a whole
   prior session).** `randd` executed `mrs xN, RNDRRS` (FEAT_RNG / ARMv8.5)
   **unconditionally** → an UNDEFINED instruction on non-FEAT_RNG CPUs (Cortex-A72/A53,

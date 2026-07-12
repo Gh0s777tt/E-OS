@@ -1,0 +1,17 @@
+[package]
+name = "eos-repo-sign"
+version = "0.1.0"
+edition = "2021"
+description = "E-OS R-503: hybrid (classical + post-quantum) signatures for the pkgar repo manifest"
+license = "MIT"
+
+# Standalone build-host tool — NOT part of the cookbook workspace and not shipped
+# to Redox. Signs repo.toml with ed25519 (classical) AND ML-DSA-65 (FIPS 204 PQ);
+# classical-only verifiers still work, so the transition never weakens trust.
+[workspace]
+
+[dependencies]
+ml-dsa = { version = "0.1", features = ["alloc"] }
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+signature = "2"
