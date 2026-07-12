@@ -137,6 +137,43 @@ HW / not applicable to a hobby microkernel)
 
 ## The actual near-term plan (what's worth building, ranked)
 
+### Scouted execution notes (2026-07-12) — each item's *real* scope, after code investigation
+
+The "do now" list below is real work, not flag-flips. Per-item findings from scouting the actual
+tree (so the next builder starts informed):
+- **smoltcp IPv6** — *not* a feature flag. `netstack/src/link/ethernet.rs` hand-rolls the IPv4/ARP
+  link layer (`Ipv4Cidr`, `ArpRepr::EthernetIpv4`) instead of using smoltcp's `Interface`. IPv6
+  needs either a rewrite onto smoltcp's `Interface` (gets NDP+dual-stack for free) or a hand-rolled
+  NDP path + `proto-ipv6` feature + `netcfg` IPv6. Medium-large.
+- **AES-NI / SHA FDE accel** — RedoxFS uses `aes = 0.8` + `xts-mode`. On **x86_64 this already uses
+  AES-NI at runtime** (the `aes` crate autodetects) — so x86_64 is effectively done; verify + doc.
+  **aarch64** hardware AES needs the ARMv8 crypto backend (`--cfg aes_armv8` + target-feature `+aes`,
+  and a QEMU `-cpu` with crypto). Small-medium (build-flag surgery + verify).
+- **USB serial** — QEMU's `-device usb-serial` is an **FTDI FT232 (vendor class 0xFF)**, *not*
+  CDC-ACM, so the QEMU-verifiable driver is an **FTDI** driver (vendor control reqs for baud), while
+  generic CDC-ACM would be a separate, non-QEMU-testable driver. Also: usbnetd currently binds the
+  CDC-Data class (10); to add any class-10 sibling cleanly, re-bind usbnetd on the **comm interface**
+  (`class 2 / sub 2 / proto 0xFF` = RNDIS) and match the sibling by its own proto. Medium.
+- **Software RAID** — the cleanest self-contained + QEMU-verifiable item: a new block driver that
+  presents a RAID device over N disk-scheme block devices (RAID1 mirror simplest, then RAID0). No
+  USB/emulation wrinkles; test with multiple `-device nvme`. Medium (~300 lines + a block scheme).
+- **Post-quantum crypto** — a userspace tool/lib using RustCrypto `ml-kem`/`ml-dsa`. Wrinkle: it's a
+  **new registry dep**, so the build can't be fully `REPO_OFFLINE` (needs a cargo fetch + Cargo.lock
+  update). Self-contained + init.d self-test verifiable once fetched. Small-medium.
+- **TPM 2.0** — a TIS/CRB MMIO driver + PCR extend. **Verification gap on this Mac:** the local QEMU
+  build reports **no TPM backend** (`-tpmdev help` empty / no swtpm) → the driver is buildable but
+  *not verifiable here*; it's effectively rig-gated for testing.
+- **USB Audio** — the biggest: add **isochronous** endpoint support to `xhcid` (today `transfer`
+  returns `ENOSYS` for isoch) — TDs/intervals/feedback endpoints — then a UAC1 driver. Large, and
+  hard to verify meaningfully headless (no real audio out).
+- **DE Phase 1** — rewrite `launcher` for a floating rounded bar + big centered diamond-E Start +
+  tray. Visual, screendump-verifiable, uses orbclient `rounded_rect`/`box_shadow`/gradients. Medium.
+
+**Recommended build order** (cleanest/highest-confidence first): Software RAID → aarch64 AES-NI FDE
+→ DE Phase 1 → FTDI usb-serial → PQ-crypto tool → IPv6 → USB Audio (isoch) → TPM (build now, verify
+on the rig). Each is a focused multi-cycle job; the fork-pinning isolation (host stays on pushed
+revs) means partial work is always safe.
+
 ### Do now on the MacBook (QEMU-verifiable, fits E-OS's security/connectivity niche)
 1. **Post-quantum crypto** — adopt ML-KEM/ML-DSA in TLS/signing/FDE-key-wrap (RustCrypto). Pure software, high-value, on-brand.
 2. **TPM 2.0 driver + measured boot** — QEMU emulates TPM 2.0; a TIS/CRB driver + PCR extension. Anchors the "hardened" story.
