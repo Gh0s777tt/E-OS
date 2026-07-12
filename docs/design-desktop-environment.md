@@ -94,10 +94,11 @@ Original Phase-0 checklist (kept for reference):
 with rounded translucent-red-glass corners (`orbclient::rounded_rect`), verified via screendump.
 Safe because the item layout stays index-based and window-relative, so hit-testing is unchanged.
 *Phase 1b done (2026-07-12):* the diamond-E Start is now **centered** (apps flow from the left, clock
-right), draw + hit-test kept in sync via the index model — verified by screendump. *Remaining
-Phase 1c:* a system **tray** (clock is there; add volume/network/battery),
-and registering the bar geometry with the compositor (replace the `48px` magic number in
-`compositor.rs:92-104`).
+right), draw + hit-test kept in sync via the index model — verified by screendump. *Phase 1c done (2026-07-12):* a system **tray** — network / volume / settings glyphs (red-glow PNGs
+in `orbdata` `icons/status/`) render to the left of the clock. *Note:* the tray icons are visual for
+now; wiring live state (volume/net/battery) and click actions is a follow-up when those scheme APIs
+are available. Also still open: registering the bar geometry with the compositor (replace the `48px`
+magic number in `compositor.rs:92-104`). **Phase 1 (a/b/c) is complete and boot-verified.**
 
 
 Rewrite `eos-orbutils` `launcher`. The bar window is already `Async+Borderless+Transparent`
