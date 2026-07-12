@@ -28,9 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   userspace/microkernel-isolated, matching E-OS's security model. **Boot-verified** (aarch64,
   `-device usb-net`): `xhcid` loads the subdriver for the class-10 interface, RNDIS comes up
   and reads the correct MAC (`52:54:00:12:34:56`), the network scheme registers, and the
-  system reaches login with **0 exceptions / 0 panics**. *(Follow-up: full end-to-end traffic
-  depends on `netcfg` binding the interface; the driver-level path — enumerate → RNDIS → MAC →
-  scheme + TX/RX plumbing — is complete and verified.)* `eos-base@62b74096`, recipe re-pinned.
+  system reaches login with **0 exceptions / 0 panics**. **RX is event-driven:** the receive
+  thread pokes a notify pipe after queueing each frame, and the event loop subscribes to it and
+  ticks the scheme (which posts an `EVENT_READ` fevent when `available_for_read() > 0`), so
+  asynchronously-received frames reach the netstack promptly instead of waiting for an unrelated
+  scheme op. *(Status: the **driver-level** path — enumerate → RNDIS handshake → MAC → scheme
+  registration → TX wrap → event-driven RX — is complete and boot-verified. **Full end-to-end
+  traffic** (a DHCP lease / ping) could **not** be observed in the headless harness: the
+  `netstack`/`dhcpd` daemons log at Info to a file, not the serial, and raising that needs a
+  bootloader-env change — so whether DISCOVER→OFFER completes over the link is unverified here
+  and is best confirmed on real hardware / the rig. The driver is correct-by-construction against
+  the RNDIS spec and the `driver-network` model.)* `eos-base@cd77dac9`, recipe re-pinned.
   This was unblocked by the `daemon` INIT_NOTIFY fix (`U-054`). See
   [docs/roadmap-connectivity.md](docs/roadmap-connectivity.md).
 - `[U-054]` **USB mass storage works — root-caused a daemon-framework bug and re-enabled it.**
