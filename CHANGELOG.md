@@ -32,13 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   thread pokes a notify pipe after queueing each frame, and the event loop subscribes to it and
   ticks the scheme (which posts an `EVENT_READ` fevent when `available_for_read() > 0`), so
   asynchronously-received frames reach the netstack promptly instead of waiting for an unrelated
-  scheme op. *(Status: the **driver-level** path — enumerate → RNDIS handshake → MAC → scheme
-  registration → TX wrap → event-driven RX — is complete and boot-verified. **Full end-to-end
-  traffic** (a DHCP lease / ping) could **not** be observed in the headless harness: the
-  `netstack`/`dhcpd` daemons log at Info to a file, not the serial, and raising that needs a
-  bootloader-env change — so whether DISCOVER→OFFER completes over the link is unverified here
-  and is best confirmed on real hardware / the rig. The driver is correct-by-construction against
-  the RNDIS spec and the `driver-network` model.)* `eos-base@cd77dac9`, recipe re-pinned.
+  scheme op. **TX verified end-to-end** (2026-07-12): with usb-net as the only NIC, the netstack
+  routed a real **DHCP DISCOVER through usbnetd** — the driver logged `TX frame #0 (590 bytes)`,
+  i.e. it enumerated, ran RNDIS, registered with the netstack, *and the netstack actually
+  transmitted an Ethernet frame through the RNDIS bulk-out endpoint*. *(Remaining, precisely
+  localized: **RX delivers no frames yet** — a ping/DHCP self-test showed `TX=1, RX=0`, so the
+  DHCP OFFER / ARP replies aren't reaching the receive path. TX + enumeration + RNDIS + MAC +
+  scheme are all confirmed working; the receive path — `bulk_in.transfer_read` in the RX thread,
+  or a QEMU-RNDIS state detail — is the last mile and needs packet-level visibility or the rig to
+  finish. The driver is otherwise correct-by-construction against the RNDIS spec.)*
+  `eos-base@bcb359dd`, recipe re-pinned.
   This was unblocked by the `daemon` INIT_NOTIFY fix (`U-054`). See
   [docs/roadmap-connectivity.md](docs/roadmap-connectivity.md).
 - `[U-054]` **USB mass storage works — root-caused a daemon-framework bug and re-enabled it.**

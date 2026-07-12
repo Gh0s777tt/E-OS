@@ -7,7 +7,7 @@
 # Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "eos-july"
-rev = "cd77dac9002e036ec53cbd282a0b4c1518c56b91"
+rev = "bcb359ddfb24153b54fe6d5c877133e79fe0c8cd"
 
 [build]
 template = "custom"
