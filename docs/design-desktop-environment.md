@@ -42,7 +42,28 @@ for apps if libcosmic's fork-sync burden grows; it also runs in software on Redo
 
 ---
 
-## Phase 0 — Theme foundation (biggest visual win, least code)
+## Phase 0 — Theme foundation (biggest visual win, least code) — ✅ DONE & VERIFIED
+
+**Status (2026-07-12):** implemented and boot-verified on the MacBook (QEMU aarch64, ramfb +
+`screendump`). Both the greeter and the full desktop render red/black:
+[`assets/screenshots/eos-crimson-greeter.png`](../assets/screenshots/eos-crimson-greeter.png)
+(black+crimson radial glow, glowing red **diamond**, red Login button) and
+[`assets/screenshots/eos-crimson-desktop.png`](../assets/screenshots/eos-crimson-desktop.png)
+(deep-black/blood-red wallpaper with ember particles, **diamond Start** button, red folder icon,
+red clock). Landed in the local `eos-orbital`/`eos-orbutils`/`eos-orbdata` forks (not yet pushed —
+tokens compromised). What was done, concretely:
+- `eos-orbital` `src/config.rs` default colors → crimson (`background_color=rgb(12,2,2)`,
+  `bar_color=rgba(22,3,3,210)`, `bar_highlight=rgba(140,10,10,220)`, `text_highlight=rgb(255,64,64)`).
+- `eos-orbutils` `launcher/src/theme.rs` (the 4 constants) → same palette; `orblogin/main.rs`
+  button colors → red (`rgb(120,12,12)`/`rgb(180,24,24)`).
+- `eos-orbdata` assets (generated with PIL): radial black+blood-red wallpaper with ember sparks,
+  a glowing red diamond `start-here.png`, a red-recolored folder `inode-directory.png`, red
+  `window_close/max` glyphs, and a matching red `login.png`.
+- *Not yet done in Phase 0:* `orbterm` colors (it's already translucent `alpha=224` so it picks up
+  the red desktop through transparency — a dedicated dark-red scheme is a small follow-up), a full
+  `cosmic-theme` for the COSMIC apps, and @2x HiDPI icon variants.
+
+Original Phase-0 checklist (kept for reference):
 
 **Goal:** the whole desktop turns red/black on the next boot, with zero new programs.
 
