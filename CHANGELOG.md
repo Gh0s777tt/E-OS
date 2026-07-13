@@ -38,3 +38,14 @@
   default-creds exposure for the text/getty login path. Fork `eos-userutils` `260d7725`→`b12240d`; recipe pin
   bumped. Follow-ups: the graphical greeter (`orblogin`) blank-password path and root's weak default
   `password` (not caught by `is_passwd_blank`).
+- `[U-077]` **First-boot also forces a change of the default `root/password` (`R-602`)** — extends
+  `U-076`: `login` (eos-userutils) now refuses to open a shell for an account still using the shipped
+  default password. The blank-password loop and a new default-password check share one helper
+  (`force_first_boot_passwd`); the check is **order-independent** — since `root`'s hash isn't blank
+  (`is_passwd_blank` can't catch it), it triggers whenever `password` is actually used to log in.
+  **Verified end-to-end in aarch64 QEMU**: `login: root` + `password` → `The account 'root' is using the
+  default password.` → `passwd` → `Password set.` → `root:~#` shell
+  (`assets/screenshots/eos-oobe-root.png`). This retires the second half of the live P0 default-creds
+  exposure (`root/password`) on the text/getty path. `cargo check` `aarch64-unknown-redox`: clean. Fork
+  `eos-userutils` `b12240d`→`799088a`; recipe pin bumped. Remaining `R-602` follow-up: the graphical
+  greeter (`orblogin`) login path and per-machine identity (hostname/locale/keymap/machine-id/SSH keys).
