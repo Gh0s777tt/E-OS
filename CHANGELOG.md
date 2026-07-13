@@ -14,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-066]` **Execution roadmap to an installable daily-driver + reality ledger** — a
+  23-agent grounded audit (recon → adversarial verify → flagship design → completeness
+  critic) distilled into a living execution roadmap in [ROADMAP.md](ROADMAP.md): seven new
+  series — `R-0xx` CI/release-integrity recovery (**GitHub Actions is disabled
+  account-wide**, so the advertised CI image build / Pages site / release signing / CodeQL /
+  gitleaks / cargo-audit pipeline is inert), `R-Fxx` immediate correctness+security fixes,
+  `R-Dxx` native Settings shell, `R-6xx` installer→daily-driver + first-boot OOBE, `R-7xx`
+  in-OS update system (`Settings → Update`), `R-8xx` secure driver manager
+  (`Settings → Drivers`), `R-9xx` connectivity + an honest T1–T4 hardware triage of the
+  full capability wishlist. Flagship designs in
+  [docs/update-system-design.md](docs/update-system-design.md) and
+  [docs/driver-manager-design.md](docs/driver-manager-design.md); 14 additional feature
+  proposals in [docs/feature-proposals.md](docs/feature-proposals.md); the honest
+  done-vs-claimed baseline in [docs/reality-ledger.md](docs/reality-ledger.md) (`R-001`).
+  Planning + docs only — no runtime change.
 - `[U-056]` **DE Phase 2 — animated smoke wallpaper** (eos-orbutils `0a114f3`):
   `background` rewritten from a static blit into a ~30 fps particle loop —
   150 pre-blurred crimson smoke puffs (15 Hz tick) + up to 16 sparks (30 Hz),
