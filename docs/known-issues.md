@@ -307,24 +307,23 @@ in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** a
 `master`; the upstream-ready patch is `upstream/relibc/0001-*` and includes a regression test
 (`tests/pthread/tls_initexit.c`) covering both failure modes.
 
-## `R-F08` — Graphical desktop not visible under QEMU (orbital output not reaching the ramfb)
+## `R-F08` — Greeter/desktop VT not auto-activated on boot
 
-**Status:** open (P0 for the visible desktop). Surfaced 2026-07-13 after fixing `R-F07`.
+**Status:** open, **P1** (first-boot UX only — the desktop itself works). Root cause found 2026-07-13.
 
-The graphical session **now starts** (fix `R-F07`: the greeter `20_orbital` no longer
-`requires_weak 20_audiod.service`, so `audiod` failing on no-audio hardware no longer hangs
-the session). Verified: `orbital` and `display.vesa` are present in `/scheme`, and a client
-(`eos-settings`) launches against the live server without crashing.
+The graphical session starts (`R-F07`) and **renders correctly** — verified in QEMU: after boot,
+`Super+F3` switches the active framebuffer VT to orbital's VT and the crimson greeter, the full
+desktop, and the `eos-settings` window all render (`assets/screenshots/eos-settings-panel.png`,
+`eos-desktop.png`). The only defect is that the session's VT is **not auto-activated** on boot, so
+the QEMU ramfb keeps showing the text console until the user presses `Super+F3` once.
 
-**But** the QEMU `ramfb` keeps showing the **text console** (fbcond) instead of orbital's
-output. The greeter service runs `nowait VT=3 orbital orblogin launcher`, so orbital renders
-on **VT 3**, but nothing switches the active framebuffer VT to 3 — function-key VT switches
-(`F1..F7`, `Ctrl+Alt+F3`, `Alt+F3`) do not change what the ramfb shows. In the DE-phase image
-(2026-07-12) the same QEMU-on-macOS setup *did* show the crimson greeter, so this is a
-regression from the R-50x/integration era (masked until now because `R-F07` blocked the
-session entirely, and recent work was verified on the text getty).
+**Root cause:** `inputd` (`drivers/input/inputd/src/main.rs` ~L178) sets the active VT to the
+**first** VT created (`if self.active_vt.is_none() { self.switch_vt(vt) }`). VT 1 is reserved for the
+bootlog and grabs `active_vt` first; the greeter's VT (created later) never auto-activates. The init
+reorg (`Move some init configs into the base recipe`, `Build the base system and initfs in a single
+recipe`) changed the ordering so the console/bootlog now wins — in the DE-phase image the greeter's
+VT was activated. VT switching works via `Super+F<n>` (inputd L405: `K_SUPER` + `K_F1..F12`, F<n>→VT n).
 
-**Leads for diagnosis:** vesad/fbcond arbitration for the single ramfb; whether orbital
-activates its VT on startup; the `30_console` override ("do not switch to VT 2") interaction;
-whether a boot arg sets the default active VT. Fixing this unblocks the visible desktop and
-the pixel-render verification of `eos-settings` (`R-D01`).
+**Fix candidates:** (a) have orbital/the greeter call `inputd.activate_vt()` for its VT after startup;
+(b) a one-shot init step that activates the graphical VT once orbital is up (no orbital rebuild); (c)
+assign the greeter a fixed VT and activate it. Low-risk; unblocks the auto-visible desktop.

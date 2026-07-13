@@ -13,3 +13,10 @@
   Dropped the audiod dependency in `config/desktop-minimal.toml`; verified `orbital` now starts
   (`/scheme/orbital` present). Open (`R-F08`): orbital runs but its output doesn't reach the QEMU ramfb
   (greeter on VT3, not visible) — see [docs/known-issues.md](docs/known-issues.md).
+- `[U-073]` **R-D01 Settings render-verified end-to-end + `R-F08` root-caused** — booted the aarch64
+  image to the graphical desktop (fix `R-F07`) and confirmed the `eos-settings` window renders correctly:
+  crimson sidebar with all 9 panels, real System data (`aarch64`, Genesis), themed footer
+  (`assets/screenshots/eos-settings-panel.png`, `eos-desktop.png`). The desktop is reached with `Super+F3`;
+  `R-F08` (greeter VT not auto-activated on boot) root-caused to `inputd` activating only the first-created
+  VT (the bootlog wins after the init reorg) — downgraded P0→P1 with fix candidates in
+  [docs/known-issues.md](docs/known-issues.md).
