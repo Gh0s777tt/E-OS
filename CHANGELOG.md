@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `[U-070]` **GitLab CI + local security gates replace dead GitHub Actions scanning (`R-004`, `R-005`)** —
+  the inherited upstream `.gitlab-ci.yml` was namespace-gated to `redox-os` (inert on this fork);
+  replaced with an E-OS config that runs a `gitleaks` secret-scan + a dependency-free
+  `scripts/ci-integrity.sh` gate (no debug/password prints, no phantom release-image doc refs,
+  README SYNC marker present) on every push mirrored from GitHub. Added `scripts/local-scan.sh`
+  (gitleaks + cargo-audit, best-effort) and `scripts/hooks/pre-push`
+  (`git config core.hooksPath scripts/hooks`). GitHub Actions stays disabled account-wide; this
+  restores continuous secret + integrity scanning off-Actions. Proves GitLab CI runs on this account.
 - `[U-066]` **Execution roadmap to an installable daily-driver + reality ledger** — a
   23-agent grounded audit (recon → adversarial verify → flagship design → completeness
   critic) distilled into a living execution roadmap in [ROADMAP.md](ROADMAP.md): seven new

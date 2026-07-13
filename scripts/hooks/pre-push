@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# E-OS pre-push gate (R-005). Enable once: git config core.hooksPath scripts/hooks
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+bash "$ROOT/scripts/ci-integrity.sh" || { echo "pre-push blocked: integrity gate failed"; exit 1; }
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --source "$ROOT" --no-banner --redact || { echo "pre-push blocked: gitleaks found secrets"; exit 1; }
+fi
