@@ -25,3 +25,8 @@
   service (`00_fbcond`, VT2) spawns after orbital and its display-open activates VT2, stealing the
   framebuffer. `getty 2`, `on_close` and the keyboard were ruled out. Precise trace + three fix
   candidates in [docs/known-issues.md](docs/known-issues.md); no code shipped (instrumentation reverted).
+- `[U-075]` **vesad: don't panic on a malformed bootloader-env line (`R-F09`)** — `vesad`
+  (`drivers/graphics/vesad/src/main.rs`) parsed `/scheme/sys/env` with `line.split_once('=').unwrap()`,
+  aborting the display driver on any line without `=` (found while debugging `R-F08`). Now uses `filter_map`
+  to skip malformed lines. `cargo check` `aarch64-unknown-redox`: clean. Fork `eos-base` `d4f193c9`→`98f22879`;
+  recipe pin bumped.
