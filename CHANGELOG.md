@@ -20,3 +20,8 @@
   `R-F08` (greeter VT not auto-activated on boot) root-caused to `inputd` activating only the first-created
   VT (the bootlog wins after the init reorg) — downgraded P0→P1 with fix candidates in
   [docs/known-issues.md](docs/known-issues.md).
+- `[U-074]` **`R-F08` fully root-caused** (docs only) — instrumented `inputd` to trace the VT
+  lifecycle on the serial console: the greeter renders on VT3, then the lazy `fbcond` text-console
+  service (`00_fbcond`, VT2) spawns after orbital and its display-open activates VT2, stealing the
+  framebuffer. `getty 2`, `on_close` and the keyboard were ruled out. Precise trace + three fix
+  candidates in [docs/known-issues.md](docs/known-issues.md); no code shipped (instrumentation reverted).

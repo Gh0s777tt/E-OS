@@ -309,21 +309,17 @@ in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** a
 
 ## `R-F08` — Greeter/desktop VT not auto-activated on boot
 
-**Status:** open, **P1** (first-boot UX only — the desktop itself works). Root cause found 2026-07-13.
+**Status:** open, **P1** (first-boot UX; the desktop itself works via `Super+F3`). **Root cause fully diagnosed 2026-07-13** (inputd instrumented with serial writes).
 
-The graphical session starts (`R-F07`) and **renders correctly** — verified in QEMU: after boot,
-`Super+F3` switches the active framebuffer VT to orbital's VT and the crimson greeter, the full
-desktop, and the `eos-settings` window all render (`assets/screenshots/eos-settings-panel.png`,
-`eos-desktop.png`). The only defect is that the session's VT is **not auto-activated** on boot, so
-the QEMU ramfb keeps showing the text console until the user presses `Super+F3` once.
+The graphical session starts and renders correctly (`R-F07`); `Super+F3` reaches the crimson greeter, the desktop, and `eos-settings` (`assets/screenshots/`). The defect is only that the framebuffer keeps showing the text console at boot until `Super+F3`.
 
-**Root cause:** `inputd` (`drivers/input/inputd/src/main.rs` ~L178) sets the active VT to the
-**first** VT created (`if self.active_vt.is_none() { self.switch_vt(vt) }`). VT 1 is reserved for the
-bootlog and grabs `active_vt` first; the greeter's VT (created later) never auto-activates. The init
-reorg (`Move some init configs into the base recipe`, `Build the base system and initfs in a single
-recipe`) changed the ordering so the console/bootlog now wins — in the DE-phase image the greeter's
-VT was activated. VT switching works via `Super+F<n>` (inputd L405: `K_SUPER` + `K_F1..F12`, F<n>→VT n).
+**Exact VT lifecycle** (from instrumented `inputd`, serial trace):
+```
+consumer_bootlog VT=1 -> switch_vt->1        (fbbootlogd / boot log)
+consumer VT=2 (fbcond), consumer VT=3 (orbital)   [is_none guard: no auto-switch]
+CONTROL activate_vt(3) pid=37 -> switch_vt->3     (orbital shows the greeter)
+CONTROL activate_vt(2) pid=38 -> switch_vt->2     (VT2 STEALS the display)
+```
+`inputd` (`drivers/inputd/src/main.rs`) auto-activates only the FIRST VT created (`if active_vt.is_none()`, ~L178); VT1 (bootlog) grabs it. Then two clients call `activate_vt` via the control scheme: orbital (pid 37) activates its VT3 (greeter visible), and **pid 38 activates VT2 and steals focus**. Pid 38 is **`fbcond`** — the framebuffer text console (`00_fbcond.service`, `cmd="fbcond"`, `args=["2"]`, `type={scheme="fbcon"}`). Because it is a lazy `scheme`-type service it spawns *after* orbital, and opening its VT2 display activates VT2 via the same display library orbital uses. **Ruled out:** `getty 2` (removing it did not change the trace), `on_close` (never fired), keyboard. VT switching itself works via `Super+F<n>` (inputd L405: `K_SUPER`+`K_F1..F12`).
 
-**Fix candidates:** (a) have orbital/the greeter call `inputd.activate_vt()` for its VT after startup;
-(b) a one-shot init step that activates the graphical VT once orbital is up (no orbital rebuild); (c)
-assign the greeter a fixed VT and activate it. Low-risk; unblocks the auto-visible desktop.
+**Fix candidates** (need one build+boot cycle to verify): (a) make `fbcond` spawn **eagerly before** `20_orbital` so orbital's activation is the last one to win; (b) make `fbcond` (or the shared display-open path) **not activate** its VT when a higher graphical VT is already active; (c) drop the framebuffer text console for the graphical image variant (VT2 console then only via the serial getty + desktop terminal). **Repro/diagnosis method:** instrument `inputd` `switch_vt`/`consumer`/control-write to append to `/scheme/debug` (serial), since inputd's own `log::debug!` goes only to logd. Capture the window without a mouse: log in on a getty, run `eos-settings &`, then `Super+F3`.
