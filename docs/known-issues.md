@@ -306,3 +306,25 @@ in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** a
 **3/3 → 0 (x86_64)**; full production boots clean on both arches. Upstream has no fix on
 `master`; the upstream-ready patch is `upstream/relibc/0001-*` and includes a regression test
 (`tests/pthread/tls_initexit.c`) covering both failure modes.
+
+## `R-F08` — Graphical desktop not visible under QEMU (orbital output not reaching the ramfb)
+
+**Status:** open (P0 for the visible desktop). Surfaced 2026-07-13 after fixing `R-F07`.
+
+The graphical session **now starts** (fix `R-F07`: the greeter `20_orbital` no longer
+`requires_weak 20_audiod.service`, so `audiod` failing on no-audio hardware no longer hangs
+the session). Verified: `orbital` and `display.vesa` are present in `/scheme`, and a client
+(`eos-settings`) launches against the live server without crashing.
+
+**But** the QEMU `ramfb` keeps showing the **text console** (fbcond) instead of orbital's
+output. The greeter service runs `nowait VT=3 orbital orblogin launcher`, so orbital renders
+on **VT 3**, but nothing switches the active framebuffer VT to 3 — function-key VT switches
+(`F1..F7`, `Ctrl+Alt+F3`, `Alt+F3`) do not change what the ramfb shows. In the DE-phase image
+(2026-07-12) the same QEMU-on-macOS setup *did* show the crimson greeter, so this is a
+regression from the R-50x/integration era (masked until now because `R-F07` blocked the
+session entirely, and recent work was verified on the text getty).
+
+**Leads for diagnosis:** vesad/fbcond arbitration for the single ramfb; whether orbital
+activates its VT on startup; the `30_console` override ("do not switch to VT 2") interaction;
+whether a boot arg sets the default active VT. Fixing this unblocks the visible desktop and
+the pixel-render verification of `eos-settings` (`R-D01`).
