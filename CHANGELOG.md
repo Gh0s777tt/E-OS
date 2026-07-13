@@ -49,6 +49,20 @@
   exposure (`root/password`) on the text/getty path. `cargo check` `aarch64-unknown-redox`: clean. Fork
   `eos-userutils` `b12240d`→`799088a`; recipe pin bumped. Remaining `R-602` follow-up: the graphical
   greeter (`orblogin`) login path and per-machine identity (hostname/locale/keymap/machine-id/SSH keys).
+- `[U-079]` **The graphical greeter now enforces the first-boot password too (`R-602`)** — closes the
+  final, and since `R-F08` the **default**, exposure: the desktop greeter (`orblogin`, eos-orbutils) let a
+  default-credential account (blank `user`, or `root`/"password") log **straight to the desktop** because
+  it only called `verify_passwd` (a blank password verifies against `""`). It now runs the same first-boot
+  rule as the text `login`, in-window: on a default-credential login it switches to **New password → Confirm
+  password**, sets the password (`set_passwd` + `save`), and only then starts the session. **Verified
+  end-to-end in aarch64 QEMU** (keyboard-driven): boot → greeter → empty password → `First-boot setup: /
+  New password:` → `Confirm password:` → full crimson desktop (`assets/screenshots/eos-greeter-setpw.png`,
+  `eos-desktop-after-oobe.png`). Fix detail worth noting: `save()` needs `Config::default().writeable(true)`
+  — plain `Config::default()` opens the users DB read-only (`EBADF` on save), the same builder `passwd`
+  uses. Field labels update live (the panel is re-rendered on the mode switch). Fork `eos-orbutils`
+  `061dfd3`→`3ac6436`; recipe pin bumped. This makes the P0 shipped-default-credentials exposure closed on
+  **every** login path (text/getty + serial + graphical greeter). Remaining `R-602`: per-machine identity
+  (hostname/locale/keymap/machine-id/SSH host keys).
 
 ### Fixed
 - `[U-078]` **Boot lands directly on the graphical greeter — no more `Super+F3` (`R-F08`)** — the
