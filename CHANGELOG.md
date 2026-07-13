@@ -789,6 +789,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group (`/dev/kvm` is `root:kvm 0660`).
 
 ### Security
+- `[U-067]` **pkgar-core: `read_at` no longer panics on a truncated package (`R-F03`)** —
+  `PackageBuf::read_at` called `buf.copy_from_slice(&src[start..end])`, but `calculate_range`
+  clamps `end` to the source length, so a truncated/short `.pkgar` (or an offset past the end)
+  made `end-start != buf.len()` and the copy **panicked** — reachable from the install/update
+  trust path via a crafted short archive. It now copies only the available bytes and returns
+  the real count; the absolute offset in `read_entry` uses `checked_add` against a hostile
+  `entry.offset`. Regression test `read_at_truncated_source_does_not_panic`
+  (`cargo test -p pkgar-core`: 3 ok). Fork `eos-pkgar` `ee2bcb2a`→`cb8ae7b`; recipe pin bumped.
+  Also **verified `R-F01`** (the audit's plaintext-password print) does **not** reproduce on the
+  shipping installer rev `05bf2eb` — it was a stale-clone artifact, tracked by `R-F02`.
 - `[0.1.0-009]` Strong-copyleft licensing (AGPL-3.0) adopted as a deliberate
   anti-appropriation measure for the distribution.
 
