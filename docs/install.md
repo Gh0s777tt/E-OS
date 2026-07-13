@@ -5,8 +5,13 @@ image — pick whichever fits. Before anything, **verify your download** (see
 [hardening.md](hardening.md)):
 
 ```sh
-minisign -Vm SHA256SUMS -p eos-release.pub   # key: keys/eos-release.pub
-sha256sum -c SHA256SUMS                        # checks the .img files
+# No CI-published signed download exists yet — GitHub Actions is disabled on the
+# account (see ROADMAP R-004). Build locally, then verify against the checksums
+# the build emits:
+scripts/make-release.sh                         # -> release/eos-<ver>-<arch>.img + SHA256SUMS
+( cd release && sha256sum -c SHA256SUMS )        # verify the images
+# If you signed with the release key, also:
+#   minisign -Vm release/SHA256SUMS -p keys/eos-release.pub
 ```
 
 ---
@@ -17,7 +22,7 @@ The release image **is** a bootable system. Run it in a VM:
 
 ```sh
 make CONFIG_NAME=eos qemu          # x86_64, KVM-accelerated
-# or boot eos-0.1.0-x86_64.img in any UEFI VM (NVMe disk)
+# or boot build/x86_64/eos/harddrive.img in any UEFI VM (NVMe disk)
 ```
 
 Default logins: **`user`** (no password) · **`root`** / `password`
@@ -70,7 +75,7 @@ The `harddrive.img` is a ready GPT/UEFI disk image — write it straight to a US
 stick or disk:
 
 ```sh
-sudo dd if=eos-0.1.0-x86_64.img of=/dev/sdX bs=4M conv=fsync status=progress
+sudo dd if=build/x86_64/eos/harddrive.img of=/dev/sdX bs=4M conv=fsync status=progress
 ```
 
 (Replace `/dev/sdX` with the real device — this **erases** it.) This path does not

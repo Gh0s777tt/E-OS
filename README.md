@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-068 · 2026-07-13 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-069 · 2026-07-13 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -169,7 +169,7 @@ is a **scheme**, accessed through a URL-like path (`file:`, `disk.*:`,
 | Drivers | user-space: `nvmed`, `virtio-blkd`, `e1000d`, `xhcid`, `usbnetd`, `ihdad`, `ahcid`, … |
 | Build | **Podman** containers · cookbook · `pkgar` packages |
 | Emulation | **QEMU 10+**, OVMF/EDK2 (UEFI), KVM/HVF |
-| CI / Quality | GitHub Actions · CodeQL · gitleaks · Dependabot |
+| CI / Quality | ⚠️ GitHub Actions **disabled account-wide** (ROADMAP R-004) · local gitleaks/cargo-audit scans (R-005) · Dependabot |
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'pie1':'#E50914','pie2':'#b00610','pie3':'#7a0a14','pie4':'#3d3d3d','pie5':'#1a1a1a','pieStrokeColor':'#0b0b0b','pieOuterStrokeColor':'#0b0b0b','pieTitleTextColor':'#E50914','pieSectionTextColor':'#ffffff','fontFamily':'Fira Code'}}}%%
@@ -276,8 +276,8 @@ deliberate **anti-appropriation** choice.
   Crypto Extensions) with a constant-time software fallback.
 - 🧬 **Post-quantum-ready** — prototype **hybrid ed25519 + ML-DSA-65** signing for
   the package repo; migration plan in [docs/security.md](docs/security.md).
-- 🔑 **Secret scanning + push protection** (GitHub) and **gitleaks** CI.
-- 🤖 **Dependabot** + **CodeQL** code scanning.
+- 🔑 **gitleaks** secret scanning — runs **locally** (launchd + git hooks, R-005); the GitHub Actions job is inert while Actions is disabled account-wide.
+- 🤖 **Dependabot** active; **cargo-audit** runs locally. CodeQL is Actions-gated (currently disabled, R-004).
 - 👮 **Branch protection** on the default branch + **CODEOWNERS** reviews.
 - ✍️ **Signed commits** encouraged (see [docs/security.md](docs/security.md)).
 

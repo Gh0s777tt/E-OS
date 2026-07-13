@@ -789,6 +789,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group (`/dev/kvm` is `root:kvm 0660`).
 
 ### Security
+- `[U-069]` **Release integrity: real checksums + honest install/CI docs (`R-002`, `R-003`)** —
+  `release/SHA256SUMS` listed phantom `eos-0.1.0-<arch>.img` hashes that matched no file on disk;
+  regenerated over the ACTUAL built images (`build/<arch>/eos/harddrive.img`, 1400 MiB) and removed
+  the now-stale `SHA256SUMS.minisig`. New `scripts/make-release.sh` reproduces the (dead-Actions)
+  release step locally: names the images, regenerates SHA256SUMS, and minisigns when
+  `MINISIGN_SECRET_KEY` is supplied. `docs/install.md` no longer tells users to `dd` / `sha256sum -c`
+  a non-existent download — it points at the local build + make-release. README CI/security rows now
+  state that GitHub Actions is disabled account-wide (`R-004`) and that gitleaks/cargo-audit run
+  locally (`R-005`), instead of advertising inactive scanning.
 - `[U-068]` **raid1d: overflow-safe `byte_off` + N-way read fallback (`R-F04`)** —
   `byte_off` computed `off + len as u64` unchecked, so a wrapped end could pass the bounds
   check and drive I/O at a bogus offset; it now uses `checked_add`. The read fallback
