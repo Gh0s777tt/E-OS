@@ -30,3 +30,11 @@
   aborting the display driver on any line without `=` (found while debugging `R-F08`). Now uses `filter_map`
   to skip malformed lines. `cargo check` `aarch64-unknown-redox`: clean. Fork `eos-base` `d4f193c9`→`98f22879`;
   recipe pin bumped.
+- `[U-076]` **First-boot forces a password on the shipped passwordless account (`R-602`)** — the
+  `login` program (eos-userutils) now, in its blank-password branch, runs `passwd <user>` (as root, before
+  the shell starts) in a loop until a password is set, so the default `user` (no password) can no longer log
+  straight into a shell. **Verified end-to-end in aarch64 QEMU**: `login: user` → `E-OS first-boot setup` →
+  `passwd` → `Password set.` → shell (`assets/screenshots/eos-oobe-firstboot.png`). Closes the live P0
+  default-creds exposure for the text/getty login path. Fork `eos-userutils` `260d7725`→`b12240d`; recipe pin
+  bumped. Follow-ups: the graphical greeter (`orblogin`) blank-password path and root's weak default
+  `password` (not caught by `is_passwd_blank`).

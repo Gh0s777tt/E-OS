@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-075 · 2026-07-13 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-076 · 2026-07-13 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
