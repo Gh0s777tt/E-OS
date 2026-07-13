@@ -65,6 +65,27 @@
   (hostname/locale/keymap/machine-id/SSH host keys).
 
 ### Fixed
+- `[U-080]` **Live-ISO text console (VT2) works again — `getty 2` no longer starved at boot (`R-601`)** —
+  on the live ISO the fbcon text console (`Super+F2`) was black: `getty 2` never ran, so install-to-disk could
+  not be driven from a text login. Root-caused (4-way parallel source analysis + empirical mount-diff) to the
+  E-OS-custom `25_raid1d.service` being declared **`type = "notify"`**. `init` drains services on a single
+  thread and blocks on a `notify` service until it signals readiness; `raid1d` calls `daemon.ready()` only
+  **after** `assemble()` probes every `/scheme/disk.*` (open R+W + read the trailing 4 KiB superblock). On the
+  live medium that probe hits the physical NVMe the bootloader read from, whose I/O stalls on an INTx IRQ that
+  never routes on aarch64 (the `R-401d`/`R-501` platform bug) — so `raid1d` never signals ready, `init`'s drain
+  freezes, and `30_console` (queued immediately after it, and after both the greeter `20_orbital` and the
+  dep-free `30_serial-getty.service`) never spawns `getty 2`. The on-disk filesystem is byte-identical between
+  live and installed (verified by mounting both images and diffing `/usr/lib/init.d` — every file md5-identical),
+  which **corrects** the earlier "a live init.d fallback lacks `getty 2`" hypothesis: the fault was purely
+  runtime. **Fix:** `config/{aarch64,x86_64}/eos.toml` set `25_raid1d.service` to **`type = "oneshot_async"`** —
+  nothing does `requires_weak 25_raid1d` and root is mounted by `50_rootfs` in the initfs phase (never from
+  `disk.raid1`), so `init` gains nothing by awaiting raid1d and can spawn it and move on. **Verified end-to-end
+  in aarch64 QEMU**: the live ISO's `Super+F2` now shows the full getty
+  (`assets/screenshots/eos-live-vt2-getty.png`) — E-OS issue banner + `eos login:` (bright 3846 px vs 0 before)
+  — with the greeter (VT3) and bootlog (VT1) unchanged and boot still landing straight on the greeter (`R-F08`
+  intact). Config-only, no `init`/`raid1d` code change; both arches in parity. Unblocks the `R-601`
+  install-to-disk harness. Deeper hardening tracked as a follow-up (raid1d should `ready()` before
+  `assemble()`, and `init`'s notify wait should time out so no single service can freeze boot).
 - `[U-078]` **Boot lands directly on the graphical greeter — no more `Super+F3` (`R-F08`)** — the
   aarch64 image now boots straight to the crimson E-OS greeter (`assets/screenshots/eos-greeter.png`),
   zero key presses. Real root cause, found via an `inputd` serial trace (it **corrects** the earlier

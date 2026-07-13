@@ -680,6 +680,13 @@ gid = 1000
 recursive_chown = true
 
 # E-OS R-501: assemble RAID-1 mirrors (daemon exits quietly when no array).
+# R-601: type MUST stay "oneshot_async", NOT "notify". init drains services on a single
+# thread and a "notify" service blocks the whole drain until it signals readiness; raid1d
+# signals ready only AFTER assemble() probes every /scheme/disk.* (open R+W + read the
+# trailing 4 KiB superblock), so a slow/stalled disk probe would freeze init and prevent
+# 30_console (queued right after it) from ever spawning `getty 2` — this exact head-of-line
+# block blanked the live-ISO text console on aarch64 (physical NVMe I/O stalling on an
+# unrouted INTx IRQ). Nothing does `requires_weak 25_raid1d`, so oneshot_async is correct.
 [[files]]
 path = "/usr/lib/init.d/25_raid1d.service"
 data = """
@@ -689,5 +696,5 @@ requires_weak = ["00_base.target"]
 
 [service]
 cmd = "raid1d"
-type = "notify"
+type = "oneshot_async"
 """
