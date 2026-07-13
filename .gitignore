@@ -30,6 +30,11 @@ wget-log
 /book
 /release/*.img
 /release/*.tar.gz
+# Release checksums + signature are build outputs regenerated per-release by
+# scripts/make-release.sh and shipped as release ASSETS — never a committed
+# trust anchor (a committed copy goes stale and references non-shipped images).
+/release/SHA256SUMS
+/release/*.minisig
 .eos-kernel-src
 .eos-drivers-src
 .eos-base-src

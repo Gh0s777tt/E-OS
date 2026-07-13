@@ -17,7 +17,7 @@
 use std::process::exit;
 
 use ed25519_dalek::{
-    Signature as EdSignature, Signer as _, SigningKey as EdSigningKey, Verifier as _,
+    Signature as EdSignature, Signer as _, SigningKey as EdSigningKey,
     VerifyingKey as EdVerifyingKey,
 };
 use ml_dsa::{
@@ -38,13 +38,23 @@ fn hex_encode(bytes: &[u8]) -> String {
 }
 
 fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
-    let s = s.trim();
-    if s.len() % 2 != 0 {
+    // Operate on bytes, not char slices: `&s[i..i+2]` panics on a multi-byte
+    // UTF-8 char at an odd boundary, and this parses attacker-controlled .sig text.
+    let b = s.trim().as_bytes();
+    if b.len() % 2 != 0 {
         return Err("odd-length hex".into());
     }
-    (0..s.len())
+    let nib = |c: u8| -> Result<u8, String> {
+        match c {
+            b'0'..=b'9' => Ok(c - b'0'),
+            b'a'..=b'f' => Ok(c - b'a' + 10),
+            b'A'..=b'F' => Ok(c - b'A' + 10),
+            _ => Err(format!("invalid hex byte 0x{c:02x}")),
+        }
+    };
+    (0..b.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| e.to_string()))
+        .map(|i| Ok((nib(b[i])? << 4) | nib(b[i + 1])?))
         .collect()
 }
 
@@ -174,7 +184,9 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
         .unwrap_or_else(|e| die(format!("ed25519 sig: {e}")));
     let ed_sig_arr: [u8; 64] = ed_sig_bytes.as_slice().try_into().unwrap_or_else(|_| die("ed25519 sig must be 64 bytes"));
     let ed_sig = EdSignature::from_bytes(&ed_sig_arr);
-    let ed_ok = ed_vk.verify(&msg, &ed_sig).is_ok();
+    // verify_strict: reject non-canonical S and small-order/mixed-order edge
+    // cases — the recommended API for an authentication trust anchor.
+    let ed_ok = ed_vk.verify_strict(&msg, &ed_sig).is_ok();
     println!("ed25519 (classical):  {}", if ed_ok { "OK" } else { "FAIL" });
 
     let mut pq_ok = true;

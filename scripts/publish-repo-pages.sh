@@ -15,6 +15,7 @@
 # Override the push remote with EOS_PKG_REMOTE. See docs/packages.md.
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TARGET="${1:-x86_64-unknown-redox}"
 ARCH="${TARGET%%-*}"
 REPO="repo/${TARGET}"
@@ -43,6 +44,31 @@ if [ -f "$PUB" ]; then
 else
     echo "warning: $PUB missing (packages unverifiable by clients)"
 fi
+
+# R-703: sign the repo.toml MANIFEST (which lists every package's blake3 hash)
+# with the hybrid ed25519+ML-DSA-65 key, so a host/MITM cannot swap the index
+# to freeze, roll back or substitute packages. The SECRET key is user-held and
+# passed via $EOS_REPO_SIGN_KEY — NEVER in the repo. Clients verify repo.toml.sig
+# against the in-image-pinned public key (keys/eos-repo-sign.pub.toml, R-702).
+sign_manifest() {
+    local dir="$1"
+    local bin="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"
+    [ -x "$bin" ] || bin="$(command -v eos-repo-sign 2>/dev/null || true)"
+    local pub="${EOS_REPO_SIGN_PUB:-$ROOT/keys/eos-repo-sign.pub.toml}"
+    if [ -z "${EOS_REPO_SIGN_KEY:-}" ]; then
+        echo "WARNING: EOS_REPO_SIGN_KEY unset — repo.toml published UNSIGNED (no PQ manifest signature). A MITM can swap an unsigned index; see docs/security.md and R-703." >&2
+        return 0
+    fi
+    [ -n "$bin" ] && [ -x "$bin" ] || { echo "error: eos-repo-sign not built — run: (cd tools/eos-repo-sign && cargo build --release)"; exit 1; }
+    "$bin" sign "$EOS_REPO_SIGN_KEY" "$dir/repo.toml"
+    if [ -f "$pub" ]; then
+        cp "$pub" "$dir/../eos-repo-sign.pub.toml"   # convenience mirror; clients still pin the in-image key
+    else
+        echo "WARNING: $pub missing — commit your eos-repo-sign public key so clients have a pinned trust anchor (keygen: eos-repo-sign keygen secret.toml keys/eos-repo-sign.pub.toml)." >&2
+    fi
+    echo "signed repo.toml (hybrid ed25519 + ML-DSA-65) -> repo.toml.sig"
+}
+sign_manifest "$stage/pkg/$TARGET"
 
 # Pages plumbing: no Jekyll processing; a minimal index for humans.
 touch "$stage/.nojekyll"
