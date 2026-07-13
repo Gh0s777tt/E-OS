@@ -49,3 +49,18 @@
   exposure (`root/password`) on the text/getty path. `cargo check` `aarch64-unknown-redox`: clean. Fork
   `eos-userutils` `b12240d`→`799088a`; recipe pin bumped. Remaining `R-602` follow-up: the graphical
   greeter (`orblogin`) login path and per-machine identity (hostname/locale/keymap/machine-id/SSH keys).
+
+### Fixed
+- `[U-078]` **Boot lands directly on the graphical greeter — no more `Super+F3` (`R-F08`)** — the
+  aarch64 image now boots straight to the crimson E-OS greeter (`assets/screenshots/eos-greeter.png`),
+  zero key presses. Real root cause, found via an `inputd` serial trace (it **corrects** the earlier
+  display-handoff hypothesis in `U-073`/`U-074`): the VT-2 activation is the init service
+  `/usr/lib/init.d/30_console` running **`inputd -A 2`**. The installer concatenates all `[[files]]`
+  with no dedup (`redox_installer`'s `Config::merge` → `files.extend`), and because `desktop.toml`
+  includes BOTH `desktop-minimal.toml` and `server.toml` (each pulling `minimal.toml`), the
+  `server→minimal` copy of `30_console` (with `inputd -A 2`) lands **last** on disk and wins — stealing
+  the foreground to the text console (VT2) *after* `20_orbital` activates the greeter's VT3. **Fix:**
+  `config/{aarch64,x86_64}/eos.toml` (the root config, merged dead-last) pins `30_console` **without**
+  `inputd -A 2` — the VT2 getty stays reachable via `Super+F2`, and `requires_weak 20_orbital` orders it
+  after the greeter. Config-only; no `inputd`/recipe code change (instrumentation reverted). Both arches
+  kept in parity. Full trace + reasoning in [docs/known-issues.md](docs/known-issues.md).

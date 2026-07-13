@@ -309,7 +309,15 @@ in TLSDESC/TPOFF. **Verified:** the ion job repro goes **5/5 → 0 (aarch64)** a
 
 ## `R-F08` — Greeter/desktop VT not auto-activated on boot
 
-**Status:** open, **P1** (first-boot UX; the desktop itself works via `Super+F3`). **Root cause fully diagnosed 2026-07-13** (inputd instrumented with serial writes).
+**Status:** ✅ **RESOLVED `U-078` (2026-07-13)** — booting the aarch64 image now lands directly on the crimson greeter, no `Super+F3` (`assets/screenshots/eos-greeter.png`).
+
+**Actual root cause** (found via a fresh `inputd` serial trace — it corrects the display-handoff hypothesis below): the VT2 activation is the init service `/usr/lib/init.d/30_console` running **`inputd -A 2`** (a CLI that writes a `VtActivate` control event). The installer **concatenates** all `[[files]]` entries with no dedup (`redox_installer::Config::merge` → `self.files.extend(other_files)`), self merged last. `minimal.toml` defines `30_console` **with** `inputd -A 2`; `desktop-minimal.toml` overrides it **without**. But `desktop.toml` includes BOTH `desktop-minimal.toml` AND `server.toml`, and `server.toml` also pulls `minimal.toml` — so in `desktop.toml`'s merge the order is `resolve(desktop-minimal).files ++ resolve(server).files ++ …`, and `server→minimal`'s `inputd -A 2` copy lands **after** desktop-minimal's clean one, winning on disk. At boot: bootlog activates VT1, `20_orbital` activates the greeter's VT3, then the late `30_console` (`requires_weak 10_net.target`) runs `inputd -A 2` → steals to the text console VT2.
+
+**Fix (`U-078`):** `config/{aarch64,x86_64}/eos.toml` — the root config, merged dead-last, so its `[[files]]` win — pin `/usr/lib/init.d/30_console` **without** `inputd -A 2` (keep `nowait getty 2` so VT2 stays reachable via `Super+F2`, and `requires_weak 20_orbital` to order after the greeter). No `inputd`/recipe code change; `inputd` instrumentation reverted. Verified end-to-end: clean image boots straight to the greeter with no key press.
+
+---
+
+**Original diagnosis (superseded — kept for the record):** open, **P1** (first-boot UX; the desktop itself works via `Super+F3`). Root cause was believed to be an inputd/display-handoff activation.
 
 The graphical session starts and renders correctly (`R-F07`); `Super+F3` reaches the crimson greeter, the desktop, and `eos-settings` (`assets/screenshots/`). The defect is only that the framebuffer keeps showing the text console at boot until `Super+F3`.
 
