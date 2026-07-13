@@ -789,6 +789,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   group (`/dev/kvm` is `root:kvm 0660`).
 
 ### Security
+- `[U-068]` **raid1d: overflow-safe `byte_off` + N-way read fallback (`R-F04`)** —
+  `byte_off` computed `off + len as u64` unchecked, so a wrapped end could pass the bounds
+  check and drive I/O at a bogus offset; it now uses `checked_add`. The read fallback
+  `[primary, 1 - primary]` underflowed (usize) once a mirror had more than two members; it
+  now rotates through every member starting at the primary. `cargo check`
+  `aarch64-unknown-redox`: clean. Fork `eos-base` `1ab5035f`→`d4f193c9`; recipe pin bumped.
+  Follow-ups (roadmap `R-F04`): a `raid1d resolve` subcommand + a repo-wide
+  `clippy::arithmetic_side_effects` gate.
 - `[U-067]` **pkgar-core: `read_at` no longer panics on a truncated package (`R-F03`)** —
   `PackageBuf::read_at` called `buf.copy_from_slice(&src[start..end])`, but `calculate_range`
   clamps `end` to the source length, so a truncated/short `.pkgar` (or an offset past the end)
