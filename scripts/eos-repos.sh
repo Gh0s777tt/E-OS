@@ -69,12 +69,12 @@ cmd_status() {
   local sync=0 drift=0 missing=0
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
     local a b an bn
-    a=$(git ls-remote "$gh" 2>/dev/null); b=$(git ls-remote "$gl" 2>/dev/null)
+    a=$(git ls-remote "$gh" </dev/null 2>/dev/null); b=$(git ls-remote "$gl" </dev/null 2>/dev/null)
     an=$(echo "$a" | grep -E 'refs/(heads|tags)/' | awk '{print $2" "$1}' | sort)
     bn=$(echo "$b" | grep -E 'refs/(heads|tags)/' | awk '{print $2" "$1}' | sort)
     local ah at bh bt v gext="yes"
-    ah=$(echo "$a"|grep -c 'refs/heads/'); at=$(echo "$a"|grep -c 'refs/tags/')
-    bh=$(echo "$b"|grep -c 'refs/heads/'); bt=$(echo "$b"|grep -c 'refs/tags/')
+    ah=$(echo "$a"|grep -c 'refs/heads/' || true); at=$(echo "$a"|grep -c 'refs/tags/' || true)
+    bh=$(echo "$b"|grep -c 'refs/heads/' || true); bt=$(echo "$b"|grep -c 'refs/tags/' || true)
     if [ -z "$b" ]; then v="GITLAB-MISSING"; gext="NO"; missing=$((missing+1))
     elif [ "$an" = "$bn" ]; then v="IN-SYNC"; sync=$((sync+1))
     else v="DRIFT"; drift=$((drift+1)); fi
@@ -89,7 +89,7 @@ cmd_pins() {
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
     [ "$pinned" = "true" ] || continue
     local head
-    head=$(git ls-remote "$gh" "refs/heads/$br" 2>/dev/null | awk '{print $1}')
+    head=$(git ls-remote "$gh" "refs/heads/$br" </dev/null 2>/dev/null | awk '{print $1}')
     local st
     if [ -z "$head" ]; then st="BRANCH-GONE:$br"; drift=$((drift+1))
     elif [ "$rev" = "$head" ]; then st="OK(tip)"; ok=$((ok+1))
