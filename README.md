@@ -35,7 +35,7 @@
   <b>
   <a href="#-what-is-e-os">What</a> ·
   <a href="#-quick-start">Quick&nbsp;Start</a> ·
-  <a href="docs/getting-started.md">Docs</a> ·
+  <a href="https://e-os.gitlab.io/e-os/">Docs</a> ·
   <a href="ROADMAP.md">Roadmap</a> ·
   <a href="CHANGELOG.md">Changelog</a> ·
   <a href="SECURITY.md">Security</a> ·

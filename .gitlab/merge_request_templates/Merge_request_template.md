@@ -20,6 +20,13 @@
 
 **Other**: [optional: for other relevant information that should be known or cannot be described in the other fields.]
 
+**Checklist**:
+
+- [ ] **Docs updated?** If this changes behaviour, a public API/config, or a command, the relevant `docs/*.md` (and README if a headline claim) are updated in the same MR.
+- [ ] `CHANGELOG.md` entry added with the next `[U-NNN]` if user-facing.
+- [ ] If a fork pin changed: `scripts/eos-repos.sh pins` is clean.
+- [ ] `cargo fmt` (and clippy where it applies) run on any Rust changes.
+
 ------
 
 _The above template is not necessary for smaller PRs._

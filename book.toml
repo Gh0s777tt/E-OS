@@ -5,12 +5,18 @@ authors = ["Gh0s777tt"]
 src = "docs"
 language = "en"
 
+# Render ```mermaid``` fenced blocks (architecture / flow diagrams). CI runs
+# `mdbook-mermaid install .` first, which drops mermaid.min.js + mermaid-init.js.
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/Gh0s777tt/E-OS"
 edit-url-template = "https://github.com/Gh0s777tt/E-OS/edit/main/{path}"
 no-section-label = false
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [output.html.search]
 enable = true
