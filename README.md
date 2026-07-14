@@ -43,6 +43,10 @@
   </b>
 </p>
 
+<p align="center">
+  <sub>🦊 <b>Development &amp; CI live on <a href="https://gitlab.com/e-os/e-os">GitLab</a></b> — this GitHub repo is a <b>read-only mirror</b> (GitHub Actions is off account-wide). File issues / merge requests on GitLab.</sub>
+</p>
+
 <p align="center"><img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="" /></p>
 
 ---
@@ -214,8 +218,10 @@ make qemu gpu=no          # headless serial console
 > [`EOS_BUILD_STATE.md`](EOS_BUILD_STATE.md) and [docs/building.md](docs/building.md).
 
 Output images: `build/x86_64/desktop/harddrive.img` ·
-`build/aarch64/eos/harddrive.img`. Default logins: `user` (no password) ·
-`root` / `password`.
+`build/aarch64/eos/harddrive.img`. First-boot logins: `user` (no password) ·
+`root` / `password` — the **OOBE forces a password change on first login** on
+every path (text, serial and the graphical greeter), so the shipped defaults
+can't reach a shell (`R-602`).
 
 ➡️ Full guide: **[docs/getting-started.md](docs/getting-started.md)** ·
 Troubleshooting: **[docs/building.md](docs/building.md)** ·
