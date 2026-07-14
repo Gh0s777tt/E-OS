@@ -45,9 +45,14 @@ cmd_list() {
 }
 
 cmd_clone() {
-  local dir="${1:-eos-ecosystem}" from="gitlab"
-  shift || true
-  [ "${1:-}" = "--from" ] && from="${2:-gitlab}"
+  # clone [DIR] [--from github|gitlab] — order-independent so `--from` first works.
+  local dir="eos-ecosystem" from="gitlab"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --from) from="${2:-gitlab}"; shift 2 || shift;;
+      *) dir="$1"; shift;;
+    esac
+  done
   mkdir -p "$dir"
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
     local url; [ "$from" = "github" ] && url="$gh" || url="$gl"

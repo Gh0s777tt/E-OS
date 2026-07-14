@@ -1,15 +1,9 @@
 version: 2
+# NOTE: GitHub Actions is disabled account-wide (ROADMAP R-004) and the
+# workflows were removed, so the "github-actions" ecosystem was dropped (it only
+# churned PRs against a dead pipeline). Rust dep surfacing stays until Renovate
+# on GitLab replaces Dependabot (ETAP 4 / R-007).
 updates:
-  # Keep GitHub Actions pinned versions fresh & patched
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    labels: ["dependencies", "ci"]
-    commit-message:
-      prefix: "ci(deps)"
-
   # Rust dependencies (root workspace). Grouped to reduce PR noise.
   - package-ecosystem: "cargo"
     directory: "/"

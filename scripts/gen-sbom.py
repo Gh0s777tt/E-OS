@@ -6,7 +6,7 @@ Reads the per-package metadata the cookbook writes to repo/<target>/*.toml
 Deterministic: pass --timestamp (e.g. the E-OS HEAD commit date) so the same
 tree always yields the same SBOM.
 """
-import sys, os, json, glob, argparse
+import os, json, glob, argparse
 
 
 def parse_meta(path):

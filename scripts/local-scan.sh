@@ -11,7 +11,8 @@ else echo "gitleaks: not installed (brew install gitleaks) — skipped"; fi
 if command -v cargo >/dev/null 2>&1; then
   command -v cargo-audit >/dev/null 2>&1 || cargo install --locked cargo-audit >/dev/null 2>&1 || true
   for lock in Cargo.lock tools/eos-repo-sign/Cargo.lock; do
-    [ -f "$lock" ] && ( cd "$(dirname "$lock")" && cargo audit ) || true
+    # A real advisory MUST fail the scan (was `|| true`, which hid every CVE).
+    if [ -f "$lock" ]; then ( cd "$(dirname "$lock")" && cargo audit ) || rc=1; fi
   done
 else echo "cargo-audit: cargo absent here (run in the build container: podman exec eosbuild ...)"; fi
 exit $rc

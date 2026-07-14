@@ -1,7 +1,12 @@
-# E-OS lightweight CI on GitLab. GitHub Actions is disabled account-wide
-# (ROADMAP R-004), so these fast integrity/secret gates run here instead — on
-# every push mirrored from GitHub. Kept deliberately light to fit free-tier
-# shared-runner minutes; the heavy OS image build belongs on a self-hosted runner.
+# E-OS lightweight CI on GitLab. GitLab is the source of truth; GitHub is a
+# read-only push-mirror, and GitHub Actions is disabled account-wide (ROADMAP
+# R-004), so these fast integrity/secret gates run here on every push to GitLab.
+# Kept deliberately light to fit free-tier shared-runner minutes; the heavy OS
+# image build belongs on a self-hosted runner.
+variables:
+  # Full clone so gitleaks scans the WHOLE history, not just the last few commits.
+  GIT_DEPTH: 0
+
 stages:
   - verify
 
