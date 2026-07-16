@@ -1,16 +1,24 @@
-# E-OS lightweight CI on GitLab. GitLab is the source of truth; GitHub is a
-# read-only push-mirror, and GitHub Actions is disabled account-wide (ROADMAP
-# R-004), so these fast integrity/secret gates run here on every push to GitLab.
-# Kept deliberately light to fit free-tier shared-runner minutes; the heavy OS
-# image build belongs on a self-hosted runner.
+# E-OS CI/CD on GitLab. GitLab is the source of truth; GitHub is a read-only
+# push-mirror, and GitHub Actions is disabled account-wide (ROADMAP R-004).
+#
+# TWO TIERS to fit free-tier minutes (~400/mo):
+#   * LIGHT (shared runners, every MR/main): secret-scan, integrity, docs-currency,
+#     pin-check, rust fmt/clippy/test + cargo-deny, docs pages.  — this file, default.
+#   * HEAVY (self-hosted runner, tag `eos-heavy`): full OS image build + QEMU
+#     smoke test, only on tags / schedules (see `build-image`). Register your own
+#     runner — see docs/ci.md. Never runs on shared runners.
 variables:
   # Full clone so gitleaks scans the WHOLE history, not just the last few commits.
   GIT_DEPTH: 0
 
 stages:
   - verify
+  - test
   - docs
+  - release
+  - build
 
+# ─────────────────────────────  LIGHT: verify  ─────────────────────────────
 secret-scan:
   stage: verify
   image:
@@ -27,6 +35,15 @@ integrity:
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
     - bash scripts/ci-integrity.sh
 
+# Validate that every recipe pin still matches its fork tip (repos.toml is truth).
+pin-check:
+  stage: verify
+  image: alpine:3
+  script:
+    - apk add --no-cache bash git python3 grep >/dev/null
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - bash scripts/eos-repos.sh pins
+
 # Keep docs in step with code: on a merge request, if E-OS source/scripts changed
 # but no docs/README/CHANGELOG did, fail — unless the MR says "docs: n/a".
 docs-currency:
@@ -35,7 +52,7 @@ docs-currency:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   script:
-    - apk add --no-cache git bash >/dev/null
+    - apk add --no-cache git bash grep >/dev/null
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
     - |
       base="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-HEAD~1}"
@@ -52,9 +69,29 @@ docs-currency:
       fi
       echo "docs-currency: OK"
 
-# Build the mdBook and publish it to GitLab Pages (docs live at the Pages URL,
-# linked from the README). Uses prebuilt binaries — no cargo compile — to stay
-# cheap on free-tier minutes. Only on the default branch.
+# ──────────────────────────────  LIGHT: test  ──────────────────────────────
+# Format, lint, unit-test and supply-chain-check the E-OS host tooling in one job
+# (one compile). cargo-deny covers RustSec advisories + licenses + bans + sources,
+# so a separate cargo-audit is redundant here (local-scan.sh still runs it locally).
+rust-checks:
+  stage: test
+  image: rust:slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  variables:
+    M: tools/eos-repo-sign/Cargo.toml
+    DENY_VER: "0.18.0"
+  script:
+    - rustup component add rustfmt clippy
+    - cargo fmt --manifest-path "$M" -- --check
+    - cargo clippy --manifest-path "$M" -- -D warnings
+    - cargo test --manifest-path "$M"
+    - apt-get update -qq && apt-get install -y -qq curl >/dev/null
+    - curl -fsSL "https://github.com/EmbarkStudios/cargo-deny/releases/download/${DENY_VER}/cargo-deny-${DENY_VER}-x86_64-unknown-linux-musl.tar.gz" | tar xz --strip-components=1
+    - ./cargo-deny --manifest-path "$M" check
+
+# ──────────────────────────────  LIGHT: docs  ──────────────────────────────
 pages:
   stage: docs
   image: debian:stable-slim
@@ -72,3 +109,55 @@ pages:
   artifacts:
     paths:
       - public
+
+# ─────────────────────────────  LIGHT: release  ────────────────────────────
+# semantic-release: derive the version from Conventional Commits, tag and cut a
+# GitLab Release (it does NOT rewrite the manual U-NNN CHANGELOG.md). DORMANT until
+# you set a masked, protected CI variable GITLAB_TOKEN (scope: api) — see docs/ci.md.
+semantic-release:
+  stage: release
+  image: node:20-slim
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $GITLAB_TOKEN'
+  script:
+    - apt-get update -qq && apt-get install -y -qq git >/dev/null
+    - npx --yes -p semantic-release -p @semantic-release/gitlab semantic-release
+
+# ─────────────────  HEAVY: full image build (self-hosted only)  ─────────────
+# Registers ONLY on a runner tagged `eos-heavy` (your machine/server). Builds the
+# real x86_64 + aarch64 images (hours) — runs on tags and scheduled pipelines
+# only, never on shared runners. See docs/ci.md to register the runner.
+build-image:
+  stage: build
+  tags: [eos-heavy]
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  timeout: 6h
+  script:
+    - make CI=1 ARCH=x86_64 CONFIG_NAME=desktop all
+    - make CI=1 ARCH=aarch64 CONFIG_NAME=eos all
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+      - build/x86_64/desktop/harddrive.img
+      - build/aarch64/eos/harddrive.img
+
+# ──────────────────  Renovate (scheduled dependency updates)  ───────────────
+# Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
+# DORMANT until you add a scheduled pipeline + a masked CI variable RENOVATE_TOKEN
+# (a GitLab PAT, scope: api). See docs/ci.md.
+renovate:
+  stage: verify
+  image: renovate/renovate:slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $RENOVATE_TOKEN'
+  variables:
+    RENOVATE_PLATFORM: gitlab
+    RENOVATE_ENDPOINT: "https://gitlab.com/api/v4/"
+    RENOVATE_TOKEN: "$RENOVATE_TOKEN"
+    RENOVATE_AUTODISCOVER: "false"
+    RENOVATE_REPOSITORIES: "e-os/e-os"
+  script:
+    - renovate

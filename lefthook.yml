@@ -1,0 +1,27 @@
+# Local git hooks — install once: `lefthook install` (brew install lefthook).
+# Mirrors the GitLab CI light tier so problems are caught before they reach CI.
+
+pre-commit:
+  parallel: true
+  commands:
+    rustfmt:
+      glob: "tools/**/*.rs"
+      run: cargo fmt --manifest-path tools/eos-repo-sign/Cargo.toml -- --check
+    gitleaks:
+      run: 'command -v gitleaks >/dev/null && gitleaks protect --staged --no-banner --redact || true'
+
+pre-push:
+  parallel: true
+  commands:
+    clippy:
+      run: cargo clippy --manifest-path tools/eos-repo-sign/Cargo.toml -- -D warnings
+    integrity:
+      run: bash scripts/ci-integrity.sh
+
+commit-msg:
+  commands:
+    conventional-commits:
+      # Enforce Conventional Commits (feat: / fix: / docs: … ) — matches semantic-release.
+      run: |
+        head -1 "{1}" | grep -qE '^(feat|fix|docs|chore|refactor|perf|test|ci|build|style|revert)(\(.+\))?!?: .+' \
+          || { echo "commit must be Conventional Commits, e.g. 'fix(boot): ...'"; exit 1; }

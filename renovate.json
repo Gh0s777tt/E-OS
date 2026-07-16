@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "cargo": { "enabled": true },
+  "packageRules": [
+    {
+      "description": "Auto-merge patch bumps that pass CI",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "branch"
+    },
+    {
+      "description": "Group the eos-repo-sign host tool deps",
+      "matchFileNames": ["tools/eos-repo-sign/**"],
+      "groupName": "eos-repo-sign deps"
+    }
+  ],
+  "vulnerabilityAlerts": { "labels": ["security"] }
+}

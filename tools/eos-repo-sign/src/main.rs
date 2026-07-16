@@ -41,7 +41,7 @@ fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
     // Operate on bytes, not char slices: `&s[i..i+2]` panics on a multi-byte
     // UTF-8 char at an odd boundary, and this parses attacker-controlled .sig text.
     let b = s.trim().as_bytes();
-    if b.len() % 2 != 0 {
+    if !b.len().is_multiple_of(2) {
         return Err("odd-length hex".into());
     }
     let nib = |c: u8| -> Result<u8, String> {
@@ -74,8 +74,13 @@ fn parse_kv(text: &str) -> std::collections::BTreeMap<String, String> {
     map
 }
 
-fn get<'a>(map: &'a std::collections::BTreeMap<String, String>, key: &str) -> Result<&'a str, String> {
-    map.get(key).map(|s| s.as_str()).ok_or_else(|| format!("missing field '{key}'"))
+fn get<'a>(
+    map: &'a std::collections::BTreeMap<String, String>,
+    key: &str,
+) -> Result<&'a str, String> {
+    map.get(key)
+        .map(|s| s.as_str())
+        .ok_or_else(|| format!("missing field '{key}'"))
 }
 
 fn die(msg: impl AsRef<str>) -> ! {
@@ -111,8 +116,10 @@ fn keygen(secret_path: &str, public_path: &str) {
         hex_encode(pq_vk.encode().as_slice()),
     );
 
-    std::fs::write(secret_path, secret).unwrap_or_else(|e| die(format!("write {secret_path}: {e}")));
-    std::fs::write(public_path, public).unwrap_or_else(|e| die(format!("write {public_path}: {e}")));
+    std::fs::write(secret_path, secret)
+        .unwrap_or_else(|e| die(format!("write {secret_path}: {e}")));
+    std::fs::write(public_path, public)
+        .unwrap_or_else(|e| die(format!("write {public_path}: {e}")));
     println!("eos-repo-sign: wrote secret keys -> {secret_path}");
     println!("eos-repo-sign: wrote public keys -> {public_path}");
     println!(
@@ -129,7 +136,10 @@ fn sign(secret_path: &str, file_path: &str) {
 
     let ed_bytes = hex_decode(get(&sk, "ed25519").unwrap_or_else(|e| die(e)))
         .unwrap_or_else(|e| die(format!("ed25519 secret: {e}")));
-    let ed_arr: [u8; 32] = ed_bytes.as_slice().try_into().unwrap_or_else(|_| die("ed25519 secret must be 32 bytes"));
+    let ed_arr: [u8; 32] = ed_bytes
+        .as_slice()
+        .try_into()
+        .unwrap_or_else(|_| die("ed25519 secret must be 32 bytes"));
     let ed_sk = EdSigningKey::from_bytes(&ed_arr);
 
     let seed_bytes = hex_decode(get(&sk, "ml_dsa_65_seed").unwrap_or_else(|e| die(e)))
@@ -169,8 +179,8 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
     let pk = parse_kv(&pub_text);
 
     let sig_path = format!("{file_path}.sig");
-    let sig_text = std::fs::read_to_string(&sig_path)
-        .unwrap_or_else(|e| die(format!("read {sig_path}: {e}")));
+    let sig_text =
+        std::fs::read_to_string(&sig_path).unwrap_or_else(|e| die(format!("read {sig_path}: {e}")));
     let sig = parse_kv(&sig_text);
 
     let msg = std::fs::read(file_path).unwrap_or_else(|e| die(format!("read {file_path}: {e}")));
@@ -178,16 +188,26 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
     // ---- ed25519 (classical) — always checked ----
     let ed_vk_bytes = hex_decode(get(&pk, "ed25519").unwrap_or_else(|e| die(e)))
         .unwrap_or_else(|e| die(format!("ed25519 pubkey: {e}")));
-    let ed_vk_arr: [u8; 32] = ed_vk_bytes.as_slice().try_into().unwrap_or_else(|_| die("ed25519 pubkey must be 32 bytes"));
-    let ed_vk = EdVerifyingKey::from_bytes(&ed_vk_arr).unwrap_or_else(|e| die(format!("ed25519 pubkey: {e}")));
+    let ed_vk_arr: [u8; 32] = ed_vk_bytes
+        .as_slice()
+        .try_into()
+        .unwrap_or_else(|_| die("ed25519 pubkey must be 32 bytes"));
+    let ed_vk = EdVerifyingKey::from_bytes(&ed_vk_arr)
+        .unwrap_or_else(|e| die(format!("ed25519 pubkey: {e}")));
     let ed_sig_bytes = hex_decode(get(&sig, "ed25519").unwrap_or_else(|e| die(e)))
         .unwrap_or_else(|e| die(format!("ed25519 sig: {e}")));
-    let ed_sig_arr: [u8; 64] = ed_sig_bytes.as_slice().try_into().unwrap_or_else(|_| die("ed25519 sig must be 64 bytes"));
+    let ed_sig_arr: [u8; 64] = ed_sig_bytes
+        .as_slice()
+        .try_into()
+        .unwrap_or_else(|_| die("ed25519 sig must be 64 bytes"));
     let ed_sig = EdSignature::from_bytes(&ed_sig_arr);
     // verify_strict: reject non-canonical S and small-order/mixed-order edge
     // cases — the recommended API for an authentication trust anchor.
     let ed_ok = ed_vk.verify_strict(&msg, &ed_sig).is_ok();
-    println!("ed25519 (classical):  {}", if ed_ok { "OK" } else { "FAIL" });
+    println!(
+        "ed25519 (classical):  {}",
+        if ed_ok { "OK" } else { "FAIL" }
+    );
 
     let mut pq_ok = true;
     if classical_only {
@@ -208,7 +228,10 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
             None => die("ml-dsa sig malformed"),
         };
         pq_ok = pq_vk.verify(&msg, &pq_sig).is_ok();
-        println!("ml-dsa-65 (PQ):        {}", if pq_ok { "OK" } else { "FAIL" });
+        println!(
+            "ml-dsa-65 (PQ):        {}",
+            if pq_ok { "OK" } else { "FAIL" }
+        );
     }
 
     if ed_ok && pq_ok {

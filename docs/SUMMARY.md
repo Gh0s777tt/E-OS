@@ -18,6 +18,7 @@
 
 - [Build from source](building.md)
 - [Troubleshooting](build-troubleshooting.md)
+- [CI/CD & automation](ci.md)
 
 # Stability
 
