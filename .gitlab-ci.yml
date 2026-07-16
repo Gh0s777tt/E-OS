@@ -125,9 +125,16 @@ semantic-release:
     - npx --yes -p semantic-release -p @semantic-release/gitlab semantic-release
 
 # ─────────────────  HEAVY: full image build (self-hosted only)  ─────────────
-# Registers ONLY on a runner tagged `eos-heavy` (your machine/server). Builds the
-# real x86_64 + aarch64 images (hours) — runs on tags and scheduled pipelines
-# only, never on shared runners. See docs/ci.md to register the runner.
+# Runs ONLY on a runner tagged `eos-heavy` (your Mac, shell executor). The build
+# happens inside the persistent podman container `eosbuild`, whose /work/redox
+# tree already carries the Rust toolchain + relibc + prefix caches — so builds
+# are incremental (minutes) rather than from-scratch (hours). Steps:
+#   1. bring the podman machine + container up (idempotent),
+#   2. sync THIS commit's tracked sources into the container via `git archive`
+#      (overwrites source, preserves the untracked build/ + prefix/ caches),
+#   3. `make CI=1 all` for aarch64 inside the container,
+#   4. copy the image out and boot-smoke it headlessly (scripts/ci-boot-smoke.sh).
+# Triggers on tags + scheduled pipelines only — never on shared runners.
 build-image:
   stage: build
   tags: [eos-heavy]
@@ -135,15 +142,58 @@ build-image:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_PIPELINE_SOURCE == "schedule"'
   timeout: 6h
+  variables:
+    EOS_CONTAINER: eosbuild
+    EOS_MACHINE: eos-build
+    ARCH: aarch64
+    CONFIG_NAME: eos
   script:
-    - make CI=1 ARCH=x86_64 CONFIG_NAME=desktop all
-    - make CI=1 ARCH=aarch64 CONFIG_NAME=eos all
+    - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"  # Homebrew podman/qemu/git
+    - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    - podman start "$EOS_CONTAINER" 2>/dev/null || true
+    - podman exec "$EOS_CONTAINER" true            # fail fast if container unreachable
+    - echo "sync $CI_COMMIT_SHORT_SHA -> $EOS_CONTAINER:/work/redox (tracked sources only)"
+    - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME all"
+    - podman cp "$EOS_CONTAINER:/work/redox/build/$ARCH/$CONFIG_NAME/harddrive.img" "harddrive-$ARCH.img"
+    - bash scripts/ci-boot-smoke.sh "harddrive-$ARCH.img" 420
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
-      - build/x86_64/desktop/harddrive.img
-      - build/aarch64/eos/harddrive.img
+      - harddrive-aarch64.img
+
+# x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
+# Apple Silicon runs under TCG (slow/flaky), so this is MANUAL and non-blocking.
+# Trigger it from the pipeline UI, or move it to a dedicated x86_64 `eos-heavy`
+# runner (your separate x86 rig) for a native boot-smoke. See docs/ci.md.
+build-image-x86_64:
+  stage: build
+  tags: [eos-heavy]
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: manual
+      allow_failure: true
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: manual
+      allow_failure: true
+  timeout: 6h
+  variables:
+    EOS_CONTAINER: eosbuild
+    EOS_MACHINE: eos-build
+  script:
+    - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+    - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    - podman start "$EOS_CONTAINER" 2>/dev/null || true
+    - podman exec "$EOS_CONTAINER" true
+    - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=x86_64 CONFIG_NAME=eos all"
+    - podman cp "$EOS_CONTAINER:/work/redox/build/x86_64/eos/harddrive.img" "harddrive-x86_64.img"
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+      - harddrive-x86_64.img
 
 # ──────────────────  Renovate (scheduled dependency updates)  ───────────────
 # Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
