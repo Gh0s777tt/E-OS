@@ -75,21 +75,22 @@ timeline
 
 **Theme: supply-chain & release integrity.**
 
-- ✅ `R-301` **Signed** release checksums — `release/SHA256SUMS` + a **minisign**
-  signature (`release/SHA256SUMS.minisig`), public key `keys/eos-release.pub`;
-  `.github/workflows/release.yml` attaches them (+ the SBOM) and re-signs on tag
-  when `MINISIGN_SECRET_KEY` is configured.
+- ✅ `R-301` **Signed** release checksums — `SHA256SUMS` + a **minisign**
+  signature (`SHA256SUMS.minisig`), public key `keys/eos-release.pub`. Produced +
+  signed **locally** by `scripts/make-release.sh` when `MINISIGN_SECRET_KEY` is set
+  (GitHub Actions is disabled, so the old `release.yml` never ran; checksums ship as
+  release assets, not a committed file — see `U-080`).
 - ✅ `R-302` **SBOM** (CycloneDX 1.5) generated per build — `scripts/gen-sbom.py`
   → `sbom/eos-<ver>-<arch>.cdx.json` (59 components, each with its source git ref
   + BLAKE3 hash; provenance includes the E-OS source forks).
-- 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release).
-  **Source builds are reproducible** (recipes pinned to the `Gh0s777tt/eos-*` forks);
-  the **release-artifact pipeline is live** (`release.yml`: tag → signed `SHA256SUMS`
-  + SBOM + assets, [v0.1.0](https://github.com/Gh0s777tt/E-OS/releases/tag/v0.1.0)).
-  The **CI image build works** — `build.yml` built a branded x86_64 image in GitHub
-  Actions in **~12 min** (verified `eos login:`=1, `E-OS Bootloader`=4, `redox login:`=0;
-  artifact uploaded). Remaining: wiring build → release on tag with byte-reproducible
-  checksums (image timestamps differ run-to-run).
+- 🚧 `R-303` Reproducible, automated release pipeline (tag → image → release), now on
+  **GitLab CI** (GitHub Actions is inert — see the R-0xx note below). **Source builds are
+  reproducible** (recipes pinned to the `Gh0s777tt/eos-*` forks). The wiring is in
+  `.gitlab-ci.yml`: `semantic-release` cuts a tag + GitLab Release from Conventional
+  Commits, and `build-image` builds the x86_64 + aarch64 images on a **self-hosted**
+  runner (tag `eos-heavy`) on tags/schedules. Remaining: enable the release token +
+  register the heavy runner (see [docs/ci.md](docs/ci.md)), and byte-reproducible
+  checksums (image timestamps still differ run-to-run).
 - ✅ `R-304` Security policy v2 — **threat model** (`docs/threat-model.md`) +
   **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
 - ✅ `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented

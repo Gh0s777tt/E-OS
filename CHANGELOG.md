@@ -1,3 +1,13 @@
+# Changelog
+
+All notable changes to E-OS, following [Keep a Changelog](https://keepachangelog.com)
+and [Semantic Versioning](https://semver.org). Every change is numbered `[U-NNN]`.
+History before `U-071` predates this file and lives in the git log (`git log`).
+
+## [Unreleased]
+
+### Added & Changed
+
 - `[U-071]` **E-OS Settings — native Crimson control panel (`R-D01`, Foundation B)** — new
   `eos-settings` bin in the launcher crate (eos-orbutils `061dfd3`): an orbital/orbclient panel host with
   NO libcosmic/fontconfig dependency (builds on the aarch64 host, dodges the cosmic-settings toolchain gap),

@@ -66,13 +66,18 @@ E-OS's OS-level security posture is documented in:
 
 ## 🛡️ How we harden this repository
 
-- 🔑 **Secret scanning + push protection** and **gitleaks** in CI — credentials
-  never land in history.
-- 🤖 **Dependabot** (dependencies) and **CodeQL** (code scanning).
+CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* used).
+
+- 🔑 **gitleaks** scans the **whole history** on GitLab CI (`secret-scan`), and
+  **cargo-deny** checks RustSec advisories / licenses / sources on every merge
+  request. GitHub secret-scanning alerts may be enabled as a mirror-side notice.
+- 🤖 **Renovate** (GitLab, replaced Dependabot) keeps dependencies patched;
+  optional GitLab SAST/Dependency-Scanning templates (see [docs/ci.md](docs/ci.md)).
 - 👮 **Branch protection** on the default branch; **CODEOWNERS** review required.
-- ✍️ **Signed commits** encouraged; releases publish **SHA256SUMS** + a CycloneDX
-  **SBOM**, with the checksums **minisign-signed** in CI when a key is configured
-  (see ROADMAP `R-301`/`R-302`).
+- ✍️ **Signed commits** encouraged. Releases publish **SHA256SUMS** + a CycloneDX
+  **SBOM**; the checksums are **minisign-signed** by `scripts/make-release.sh` (the
+  key is user-held, off-repo). The package `repo.toml` manifest is signed with a
+  hybrid **ed25519 + ML-DSA-65** signature (`tools/eos-repo-sign`, `R-703`).
 - ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
 
 See [docs/security.md](docs/security.md) for the contributor security guide.
