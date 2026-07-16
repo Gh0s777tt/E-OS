@@ -25,7 +25,7 @@ gitlab = "https://gitlab.com/e-os/eos-base.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/base"
 pinned_branch = "eos-july"
-pinned_rev    = "98f22879f80802a871bf820ba67288d482fa6cdb"
+pinned_rev    = "a5cf1b0c1c548eae247bce2931c45bf443c97faa"
 
 [[repo]]
 name   = "eos-bootloader"
@@ -55,7 +55,7 @@ gitlab = "https://gitlab.com/e-os/eos-redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
-pinned_rev    = "ce461328b3c31c8436ec78bd0de991b8c42bf2ec"
+pinned_rev    = "ec25394ad76eabd42aff21f56b3a5a1031e571c3"
 
 [[repo]]
 name   = "eos-relibc"
@@ -145,8 +145,8 @@ github = "https://github.com/Gh0s777tt/eos-pkgutils.git"
 gitlab = "https://gitlab.com/e-os/eos-pkgutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgutils"
-pinned_branch = "master"
-pinned_rev    = "7e89ac2ebad663de8d15a75a599a073004d1c8c2"
+pinned_branch = "eos"
+pinned_rev    = "5643d21b66875b2478afee995a17b72a69713a06"
 
 [[repo]]
 name   = "eos-userutils"

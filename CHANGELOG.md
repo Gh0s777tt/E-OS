@@ -75,6 +75,16 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   (hostname/locale/keymap/machine-id/SSH host keys).
 
 ### Fixed
+- `[U-081]` **Security-fix pins land in the image — base/redoxfs/pkgutils bumped (K-01, K-06, UB fix, R-703)** —
+  three deferred fork fixes, verified by the heavy-tier CI build + QEMU boot-smoke, are now pinned into the
+  built image: **eos-base** `98f22879`→`a5cf1b0c` (K-01: `raid1d` validates the superblock before assembling;
+  K-06: `randd` mixes CNTVCT+splitmix jitter into the seed after the RNDRRS loop; `pcid` resolves link-GSI by
+  walking ACPI resource descriptors instead of scanning raw `0x89` bytes), **eos-redoxfs** `ce461328`→`ec25394`
+  (vendored `cpufeatures`: `from_utf8_unchecked` on `/scheme/sys/cpu` replaced with validated `from_utf8` —
+  removes UB on malformed scheme output), **eos-pkgutils** `master@7e89ac2e`→`eos@5643d21` (R-703: client-side
+  ed25519 verification of the `repo.toml` manifest signature + regression test rejecting a tampered index).
+  The GitHub mirrors for `eos-base`/`eos-redoxfs` (which recipes fetch from) were fast-forward-synced first —
+  they lagged the GitLab source of truth. `repos.toml` pins regenerated to match.
 - `[U-080]` **Live-ISO text console (VT2) works again — `getty 2` no longer starved at boot (`R-601`)** —
   on the live ISO the fbcon text console (`Super+F2`) was black: `getty 2` never ran, so install-to-disk could
   not be driven from a text login. Root-caused (4-way parallel source analysis + empirical mount-diff) to the

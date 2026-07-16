@@ -7,7 +7,9 @@
 # Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "eos-july"
-rev = "98f22879f80802a871bf820ba67288d482fa6cdb"
+# U-081: K-01 raid1d superblock validation (f00f4825) + K-06 randd seed hardening
+# and pcid ACPI _PRT walk (a5cf1b0c).
+rev = "a5cf1b0c1c548eae247bce2931c45bf443c97faa"
 
 [build]
 template = "custom"

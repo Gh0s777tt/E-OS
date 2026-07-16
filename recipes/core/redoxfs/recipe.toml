@@ -2,7 +2,8 @@
 # E-OS vendored mirror of redox-os/redoxfs (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-redoxfs.git"
 branch = "master"
-rev = "ce461328b3c31c8436ec78bd0de991b8c42bf2ec"
+# U-081: vendored cpufeatures — from_utf8_unchecked -> validated from_utf8 (UB fix).
+rev = "ec25394ad76eabd42aff21f56b3a5a1031e571c3"
 
 [build]
 template = "custom"
