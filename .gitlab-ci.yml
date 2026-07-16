@@ -157,11 +157,16 @@ build-image:
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME all"
     - podman cp "$EOS_CONTAINER:/work/redox/build/$ARCH/$CONFIG_NAME/harddrive.img" "harddrive-$ARCH.img"
     - bash scripts/ci-boot-smoke.sh "harddrive-$ARCH.img" 420
+    # SBOM (R-302): regenerate from THIS build's cooked package metadata (real
+    # blake3 + source revs), deterministic via the commit timestamp, then export it.
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && python3 scripts/gen-sbom.py --repo-dir repo/$ARCH-unknown-redox --target $ARCH-unknown-redox --eos-commit $CI_COMMIT_SHA --timestamp $CI_COMMIT_TIMESTAMP --out sbom/eos-$ARCH.cdx.json"
+    - podman cp "$EOS_CONTAINER:/work/redox/sbom/eos-$ARCH.cdx.json" "sbom-$ARCH.cdx.json"
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
       - harddrive-aarch64.img
+      - sbom-aarch64.cdx.json
 
 # x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
 # Apple Silicon runs under TCG (slow/flaky), so this is MANUAL and non-blocking.
