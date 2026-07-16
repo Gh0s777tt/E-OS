@@ -8,8 +8,9 @@
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "eos-july"
 # U-081: K-01 raid1d superblock validation (f00f4825) + K-06 randd seed hardening
-# and pcid ACPI _PRT walk (a5cf1b0c).
-rev = "a5cf1b0c1c548eae247bce2931c45bf443c97faa"
+# and pcid ACPI _PRT walk (a5cf1b0c). U-082: randd retries rdrand on carry-flag
+# failure instead of trusting a possibly-zero value (dd41f1da).
+rev = "dd41f1dac57e088005e9b390eeb1a6200e23c048"
 
 [build]
 template = "custom"

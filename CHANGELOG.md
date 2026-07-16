@@ -75,6 +75,16 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   (hostname/locale/keymap/machine-id/SSH host keys).
 
 ### Fixed
+- `[U-082]` **Installer GUI produced a non-bootable disk; randd trusted failed rdrand (`G1`, entropy)** —
+  two audit-surfaced fork fixes, pins bumped. **eos-installer** `05bf2eb`→`75b6bd5`: the GUI installer read
+  the bootloader from the stale path `<root>/boot/bootloader.{bios,efi}` (removed years ago — the `bootloader`
+  package installs to `usr/lib/boot/`, and the TUI already reads from there). The `else` branch silently
+  substituted an empty buffer, so a GUI install wrote a **0-byte `EFI/BOOT/*.EFI`** and the disk would not
+  boot; the GUI now reads `usr/lib/boot/` like the TUI. **eos-base** `a5cf1b0c`→`dd41f1da`: `randd` read the
+  x86 `rdrand` instruction without checking the carry flag (CF=0 ⇒ generation failed, destination is 0) and
+  marked the RNG seeded regardless — it now retries up to 10× per word, reads CF via `setc`, and only sets
+  `have_seeded` when every word succeeded. Verified: aarch64 heavy build + boot-smoke; the x86 `rdrand` path
+  is exercised by the manual `build-image-x86_64` job (it is `cfg(target_arch = "x86_64")`).
 - `[U-081]` **Security-fix pins land in the image — base/redoxfs/pkgutils bumped (K-01, K-06, UB fix, R-703)** —
   three deferred fork fixes, verified by the heavy-tier CI build + QEMU boot-smoke, are now pinned into the
   built image: **eos-base** `98f22879`→`a5cf1b0c` (K-01: `raid1d` validates the superblock before assembling;
