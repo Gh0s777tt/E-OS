@@ -81,7 +81,7 @@ rust-checks:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
     M: tools/eos-repo-sign/Cargo.toml
-    DENY_VER: "0.18.0"
+    DENY_VER: "0.20.2"
   script:
     - rustup component add rustfmt clippy
     - cargo fmt --manifest-path "$M" -- --check
