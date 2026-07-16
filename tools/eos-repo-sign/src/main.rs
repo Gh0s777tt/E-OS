@@ -241,6 +241,67 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{get, hex_decode, hex_encode, parse_kv};
+
+    #[test]
+    fn hex_roundtrip() {
+        let data = [0x00u8, 0x0f, 0x10, 0xff, 0xa5, 0x5a];
+        let hex = hex_encode(&data);
+        assert_eq!(hex, "000f10ffa55a");
+        assert_eq!(hex_decode(&hex).unwrap(), data);
+    }
+
+    #[test]
+    fn hex_decode_empty_is_ok() {
+        assert_eq!(hex_decode("").unwrap(), Vec::<u8>::new());
+    }
+
+    #[test]
+    fn hex_decode_accepts_uppercase_and_surrounding_whitespace() {
+        assert_eq!(
+            hex_decode("  DEADbeef\n").unwrap(),
+            [0xde, 0xad, 0xbe, 0xef]
+        );
+    }
+
+    #[test]
+    fn hex_decode_rejects_odd_length() {
+        assert!(hex_decode("abc").is_err());
+    }
+
+    #[test]
+    fn hex_decode_rejects_non_hex_byte() {
+        assert!(hex_decode("zz").is_err());
+    }
+
+    #[test]
+    fn hex_decode_multibyte_utf8_errs_without_panicking() {
+        // Regression: `.sig` text is attacker-controlled. A multi-byte UTF-8 char
+        // must be rejected as invalid hex, never panic on a non-char-boundary
+        // slice (the reason hex_decode operates on bytes, not char slices).
+        assert!(hex_decode("é").is_err()); // 0xc3 0xa9 — even length, invalid nibble
+        assert!(hex_decode("aé").is_err()); // odd length
+    }
+
+    #[test]
+    fn parse_kv_reads_pairs_ignoring_comments_and_sections() {
+        let text = "# comment\n[section]\ned25519 = \"abc123\"\n  ml_dsa_65 =  \"def\"  \n\n";
+        let m = parse_kv(text);
+        assert_eq!(m.get("ed25519").map(String::as_str), Some("abc123"));
+        assert_eq!(m.get("ml_dsa_65").map(String::as_str), Some("def"));
+        assert_eq!(m.len(), 2);
+    }
+
+    #[test]
+    fn get_reports_missing_field() {
+        let m = parse_kv("a = \"1\"\n");
+        assert!(get(&m, "a").is_ok());
+        assert!(get(&m, "b").is_err());
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(|s| s.as_str()) {
