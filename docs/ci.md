@@ -11,7 +11,7 @@ To fit the free-tier budget (~400 shared-runner minutes/month), CI is split:
 | Tier | Where | When | Jobs |
 |------|-------|------|------|
 | **Light** | GitLab shared runners | every MR + `main` | `secret-scan` (gitleaks, full history), `integrity`, `pin-check`, `docs-currency` (MR), `rust-checks` (fmt + clippy + test + cargo-deny), `pages` |
-| **Heavy** | your **self-hosted** runner (tag `eos-heavy`) | tags + schedules | `build-image` — full `make CI=1 all` (x86_64 + aarch64), hours |
+| **Heavy** | your **self-hosted** runner (tag `eos-heavy`) | tags + schedules | `build-image` — `make CI=1 all` for **aarch64** in the podman container + headless **boot-smoke**; `build-image-x86_64` is **manual** |
 
 The heavy image build **never** runs on shared runners (it would blow the minute
 budget and time out). It only picks up on a runner you register.
@@ -31,15 +31,49 @@ budget and time out). It only picks up on a runner you register.
 
 ### 1. Self-hosted heavy runner (`build-image`)
 
-The full OS build needs Podman + the cookbook toolchain, so run it on your own machine
-(or a server), not a shared runner:
+The full OS build needs Podman + the cookbook toolchain, so it runs on your own machine
+via a **shell executor**, and the build itself happens **inside** the persistent podman
+container `eosbuild` (whose `/work/redox` tree carries the Rust toolchain + relibc +
+prefix caches — so builds are incremental, minutes not hours). The job:
 
-1. **Project → Settings → CI/CD → Runners → New project runner.**
-2. Tags: **`eos-heavy`**. Untick *"Run untagged jobs"*.
-3. Follow the shown `gitlab-runner register` command; pick the **docker** (or **shell**)
-   executor. For docker, use a privileged image with Podman, or the shell executor on a
-   host that already has the E-OS build container.
-4. To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`).
+1. brings the podman machine (`eos-build`) + container (`eosbuild`) up (idempotent);
+2. syncs the pipeline's commit into `/work/redox` with `git archive HEAD | tar -x`
+   (overwrites tracked sources, keeps the untracked `build/` + `prefix/` caches);
+3. runs `make CI=1 ARCH=aarch64 CONFIG_NAME=eos all` in the container;
+4. copies `harddrive.img` out and **boot-smokes** it headlessly with
+   [`scripts/ci-boot-smoke.sh`](https://github.com/Gh0s777tt/E-OS/blob/main/scripts/ci-boot-smoke.sh)
+   (QEMU `virt`/`cortex-a72`, same invocation as `out/rf08_boot.sh`; asserts the boot
+   reaches the login prompt).
+
+`build-image-x86_64` cross-compiles in the same container but is **manual + non-blocking**
+(a full x86_64 boot on Apple Silicon runs under slow TCG); trigger it from the pipeline UI,
+or register a second `eos-heavy` runner on a native x86_64 host for its boot-smoke.
+
+**Register the runner** (this project, id `82957024`; done once — the current runner is
+already online). On macOS with Homebrew:
+
+```sh
+# 1. create a project runner, tag eos-heavy, no untagged jobs (needs a GitLab session)
+glab api --method POST user/runners \
+  -f runner_type=project_type -f project_id=82957024 \
+  -f tag_list=eos-heavy -f run_untagged=false -f "description=eos-heavy (mac podman)"
+# -> returns { "id": …, "token": "glrt-…" }
+
+# 2. register the runner on this machine (shell executor)
+gitlab-runner register --non-interactive --url "https://gitlab.com/" \
+  --token "glrt-…" --executor shell --shell bash --description "eos-heavy (mac podman)"
+
+# 3. run it as a login-session service (so it inherits your podman machine)
+brew services start gitlab-runner
+```
+
+The shell executor runs as your login user, so it shares your `podman` machine and the
+`eosbuild` container. The job prepends `/opt/homebrew/bin` to `PATH` so `podman`, `qemu`
+and `git` resolve under the service's minimal environment.
+
+To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`,
+target `main`). Scheduled pipelines set `CI_PIPELINE_SOURCE == "schedule"`, which is what
+`build-image` keys on.
 
 ### 2. Releases — `semantic-release` (dormant until enabled)
 
