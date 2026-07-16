@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/netutils (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-netutils.git"
 branch = "master"
-rev = "ffea9718d42533c63af777ae9337e26d9a47301e"
+rev = "d3f578488802717318fcdb6f01fe4243cf401cff"
 
 [build]
 template = "cargo"

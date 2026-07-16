@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/coreutils (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-coreutils.git"
 branch = "master"
-rev = "575a46d3b624ad9cd222c9e3250073e9269c3462"
+rev = "049a259565ea9830cee34b594660f16547a073b3"
 
 [build]
 template = "cargo"

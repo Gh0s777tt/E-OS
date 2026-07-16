@@ -12,7 +12,7 @@
 #   scripts/eos-repos.sh clone  [DIR] [--from github|gitlab]
 #   scripts/eos-repos.sh update [DIR]         # fetch --all --prune in each clone
 #   scripts/eos-repos.sh status               # GitHub <-> GitLab sync matrix
-#   scripts/eos-repos.sh pins                 # recipe pin == fork tip? (drift check)
+#   scripts/eos-repos.sh pins [--strict]      # recipe pin == fork tip? (--strict: exit 1 on drift)
 #   scripts/eos-repos.sh mirrors              # GitLab push-mirror state per repo (needs glab)
 #
 # Env: EOS_REPOS_MANIFEST overrides the manifest path.
@@ -89,19 +89,41 @@ cmd_status() {
 }
 
 cmd_pins() {
+  # `pins`          — informational (always exit 0), for humans.
+  # `pins --strict` — exit 1 if any pin drifts from its fork tip UNLESS the repo
+  #                   is listed in scripts/pin-allowlist.txt (deliberate drift).
+  #                   CI uses --strict so accidental staleness turns the pipeline red.
+  local strict=0
+  [ "${1:-}" = "--strict" ] && strict=1
+  local allow_file="$HERE/scripts/pin-allowlist.txt"
   printf "%-16s | %-12s | %-11s | %-11s | %s\n" "FORK" "BRANCH" "PIN" "FORK-TIP" "STATUS"
-  local ok=0 drift=0
+  local ok=0 drift=0 baddrift=0
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
     [ "$pinned" = "true" ] || continue
     local head
     head=$(git ls-remote "$gh" "refs/heads/$br" </dev/null 2>/dev/null | awk '{print $1}')
     local st
-    if [ -z "$head" ]; then st="BRANCH-GONE:$br"; drift=$((drift+1))
-    elif [ "$rev" = "$head" ]; then st="OK(tip)"; ok=$((ok+1))
-    else st="DRIFT (recipe behind fork)"; drift=$((drift+1)); fi
+    if [ -z "$head" ]; then
+      st="BRANCH-GONE:$br"; drift=$((drift+1)); baddrift=$((baddrift+1))
+    elif [ "$rev" = "$head" ]; then
+      st="OK(tip)"; ok=$((ok+1))
+    else
+      drift=$((drift+1))
+      if [ -f "$allow_file" ] && awk '!/^[[:space:]]*#/{print $1}' "$allow_file" | grep -qxF "$name"; then
+        st="DRIFT (allowlisted)"
+      else
+        st="DRIFT (recipe behind fork)"; baddrift=$((baddrift+1))
+      fi
+    fi
     printf "%-16s | %-12s | %-11s | %-11s | %s\n" "$name" "$br" "${rev:0:10}" "${head:0:10}" "$st"
   done < <(_parse)
-  echo "---- pins ok=$ok drift=$drift ----"
+  echo "---- pins ok=$ok drift=$drift (non-allowlisted=$baddrift) ----"
+  if [ "$strict" = "1" ] && [ "$baddrift" -gt 0 ]; then
+    echo "pin-check: FAIL — $baddrift pin(s) drift from the fork tip and are not allowlisted." >&2
+    echo "  Fix: bump the recipe rev to the fork tip (docs-only drift is safe to bump)," >&2
+    echo "  or add the repo name + reason to scripts/pin-allowlist.txt for deliberate drift." >&2
+    return 1
+  fi
 }
 
 cmd_mirrors() {
@@ -128,7 +150,7 @@ case "${1:-}" in
   clone)   shift; cmd_clone "$@" ;;
   update)  shift; cmd_update "$@" ;;
   status)  cmd_status ;;
-  pins)    cmd_pins ;;
+  pins)    shift; cmd_pins "$@" ;;
   mirrors) cmd_mirrors ;;
   *) sed -n '2,20p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

@@ -1,0 +1,11 @@
+# Deliberate pin drift allowlist for `eos-repos.sh pins --strict` (CI pin-check).
+#
+# One repo name per line (first token); everything after is a free-text reason.
+# A repo listed here is allowed to have its recipe pin behind the fork tip without
+# failing CI — use ONLY for intentional holds (e.g. a fork tip that is unverified
+# or deliberately not yet shipped). Accidental staleness must be fixed by bumping
+# the recipe rev, NOT by adding it here.
+#
+# Format:  <repo-name>   <reason>
+#
+# (empty — every pin currently matches its fork tip as of U-081)

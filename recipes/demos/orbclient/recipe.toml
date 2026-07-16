@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/orbclient (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-orbclient.git"
 branch = "master"
-rev = "fff0c81708ae1ff5400a85c05324a560ddee024f"
+rev = "fbc938c0ae79e3cbeec9599ff05d5a3cf8dc6b32"
 
 [build]
 template = "cargo"

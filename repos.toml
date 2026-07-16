@@ -76,7 +76,7 @@ gitlab = "https://gitlab.com/e-os/eos-coreutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/coreutils"
 pinned_branch = "master"
-pinned_rev    = "575a46d3b624ad9cd222c9e3250073e9269c3462"
+pinned_rev    = "049a259565ea9830cee34b594660f16547a073b3"
 
 [[repo]]
 name   = "eos-extrautils"
@@ -86,7 +86,7 @@ gitlab = "https://gitlab.com/e-os/eos-extrautils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/extrautils"
 pinned_branch = "master"
-pinned_rev    = "97bf8c6b6eade670e98de18a04a6f1b08ebcaf84"
+pinned_rev    = "afbac08e38e87102e06e0f0b90668e29cf72bf6f"
 
 [[repo]]
 name   = "eos-installer"
@@ -106,7 +106,7 @@ gitlab = "https://gitlab.com/e-os/eos-ion.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/ion"
 pinned_branch = "master"
-pinned_rev    = "1440704f7456fa4c9f873b7b17dd4f0369b0c4ab"
+pinned_rev    = "1da444c86705289a40a0bed4c33b9565d1d2f8a1"
 
 [[repo]]
 name   = "eos-netdb"
@@ -116,7 +116,7 @@ gitlab = "https://gitlab.com/e-os/eos-netdb.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/netdb"
 pinned_branch = "master"
-pinned_rev    = "2c1560629852f10c8cc3dde3d254f7c753d7557d"
+pinned_rev    = "8977054ec602f5dfc366272d82f81f21fcbe0ee9"
 
 [[repo]]
 name   = "eos-netutils"
@@ -126,7 +126,7 @@ gitlab = "https://gitlab.com/e-os/eos-netutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/netutils"
 pinned_branch = "master"
-pinned_rev    = "ffea9718d42533c63af777ae9337e26d9a47301e"
+pinned_rev    = "d3f578488802717318fcdb6f01fe4243cf401cff"
 
 [[repo]]
 name   = "eos-pkgar"
@@ -136,7 +136,7 @@ gitlab = "https://gitlab.com/e-os/eos-pkgar.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgar"
 pinned_branch = "master"
-pinned_rev    = "cb8ae7b12011dd4d3601660fe799f4191694fcaf"
+pinned_rev    = "78e644ad5fa8d5eddfc15fed71ea3e93fea71b5e"
 
 [[repo]]
 name   = "eos-pkgutils"
@@ -167,7 +167,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbclient.git"
 pinned_in_recipe = true
 recipe        = "recipes/demos/orbclient"
 pinned_branch = "master"
-pinned_rev    = "fff0c81708ae1ff5400a85c05324a560ddee024f"
+pinned_rev    = "fbc938c0ae79e3cbeec9599ff05d5a3cf8dc6b32"
 
 [[repo]]
 name   = "eos-orbdata"
@@ -177,7 +177,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbdata.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbdata"
 pinned_branch = "master"
-pinned_rev    = "27131a5326b44b193530a3ce1f75ac1c13c2ddaa"
+pinned_rev    = "bda3e430941b07cc278927aa553bf54e67ca669a"
 
 [[repo]]
 name   = "eos-orbital"
@@ -197,7 +197,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbterm.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbterm"
 pinned_branch = "master"
-pinned_rev    = "8ac498177e0913034ab8e1879e1127c2034eed30"
+pinned_rev    = "c2a1026a0ffb24b85ab37543b9f8d228163e8353"
 
 [[repo]]
 name   = "eos-orbutils"
@@ -207,7 +207,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
-pinned_rev    = "3ac6436a0e4a7f7194976500e4ecdd59bcd004ab"
+pinned_rev    = "a41aa3fba196c6afd0642099c08b8feb98b2d136"
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
@@ -218,7 +218,7 @@ gitlab = "https://gitlab.com/e-os/eos-liborbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/libs/liborbital"
 pinned_branch = "master"
-pinned_rev    = "b0388fa74d27c4930dfa5e7b52b6c173eabe5553"
+pinned_rev    = "a5396193f04ece22c7bab5050b739b842b5c3483"
 
 [[repo]]
 name   = "eos-redox-fatfs"
@@ -228,7 +228,7 @@ gitlab = "https://gitlab.com/e-os/eos-redox-fatfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/libs/redox-fatfs"
 pinned_branch = "master"
-pinned_rev    = "b033abf0dba8ecae1a50f5bbbe01f569efbf1310"
+pinned_rev    = "26caa0908977976c424762f10ba4ed2176cba2a3"
 
 # ── dev ─────────────────────────────────────────────────────────
 [[repo]]
@@ -239,7 +239,7 @@ gitlab = "https://gitlab.com/e-os/eos-redoxer.git"
 pinned_in_recipe = true
 recipe        = "recipes/dev/redoxer"
 pinned_branch = "master"
-pinned_rev    = "a78d6b516ad55a696eecee664b007a0cfbed5919"
+pinned_rev    = "974c1482c2b2663873603a052e8df8161cd97da8"
 
 # ── pkg ─────────────────────────────────────────────────────────
 [[repo]]

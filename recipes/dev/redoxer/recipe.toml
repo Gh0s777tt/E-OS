@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/redoxer (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-redoxer.git"
 branch = "master"
-rev = "a78d6b516ad55a696eecee664b007a0cfbed5919"
+rev = "974c1482c2b2663873603a052e8df8161cd97da8"
 
 [build]
 template = "cargo"

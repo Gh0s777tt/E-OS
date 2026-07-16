@@ -2,6 +2,6 @@
 # E-OS vendored mirror of redox-os/redox-fatfs (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-redox-fatfs.git"
 branch = "master"
-rev = "b033abf0dba8ecae1a50f5bbbe01f569efbf1310"
+rev = "26caa0908977976c424762f10ba4ed2176cba2a3"
 [build]
 template = "cargo"

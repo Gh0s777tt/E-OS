@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/orbterm (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-orbterm.git"
 branch = "master"
-rev = "8ac498177e0913034ab8e1879e1127c2034eed30"
+rev = "c2a1026a0ffb24b85ab37543b9f8d228163e8353"
 
 [build]
 template = "custom"

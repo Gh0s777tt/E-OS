@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/netdb (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-netdb.git"
 branch = "master"
-rev = "2c1560629852f10c8cc3dde3d254f7c753d7557d"
+rev = "8977054ec602f5dfc366272d82f81f21fcbe0ee9"
 
 [build]
 template = "custom"

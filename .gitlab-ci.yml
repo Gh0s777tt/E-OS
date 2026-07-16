@@ -42,7 +42,7 @@ pin-check:
   script:
     - apk add --no-cache bash git python3 grep >/dev/null
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
-    - bash scripts/eos-repos.sh pins
+    - bash scripts/eos-repos.sh pins --strict
 
 # Keep docs in step with code: on a merge request, if E-OS source/scripts changed
 # but no docs/README/CHANGELOG did, fail — unless the MR says "docs: n/a".

@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/extrautils (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-extrautils.git"
 branch = "master"
-rev = "97bf8c6b6eade670e98de18a04a6f1b08ebcaf84"
+rev = "afbac08e38e87102e06e0f0b90668e29cf72bf6f"
 
 [build]
 template = "custom"

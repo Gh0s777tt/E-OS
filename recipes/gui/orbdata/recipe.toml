@@ -1,7 +1,7 @@
 [source]
 git = "https://github.com/Gh0s777tt/eos-orbdata.git"
 branch = "master"
-rev = "27131a5326b44b193530a3ce1f75ac1c13c2ddaa"
+rev = "bda3e430941b07cc278927aa553bf54e67ca669a"
 
 [build]
 template = "custom"
