@@ -140,7 +140,7 @@ build-image:
   tags: [eos-heavy]
   rules:
     - if: '$CI_COMMIT_TAG'
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TASK == "heavy"'
   timeout: 6h
   variables:
     EOS_CONTAINER: eosbuild
@@ -174,7 +174,7 @@ build-image-x86_64:
     - if: '$CI_COMMIT_TAG'
       when: manual
       allow_failure: true
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TASK == "heavy"'
       when: manual
       allow_failure: true
   timeout: 6h
@@ -202,8 +202,11 @@ build-image-x86_64:
 renovate:
   stage: verify
   image: renovate/renovate:slim
+  # A dependency-bump bot must NEVER block the OS pipeline, and must only fire on
+  # its OWN schedule (SCHEDULE_TASK=renovate) — not on the heavy-build schedule.
+  allow_failure: true
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "schedule" && $RENOVATE_TOKEN'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TASK == "renovate" && $RENOVATE_TOKEN'
   variables:
     RENOVATE_PLATFORM: gitlab
     RENOVATE_ENDPOINT: "https://gitlab.com/api/v4/"

@@ -72,8 +72,9 @@ The shell executor runs as your login user, so it shares your `podman` machine a
 and `git` resolve under the service's minimal environment.
 
 To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`,
-target `main`). Scheduled pipelines set `CI_PIPELINE_SOURCE == "schedule"`, which is what
-`build-image` keys on.
+target `main`) and add a schedule **variable** `SCHEDULE_TASK` = `heavy`. Each scheduled
+job keys on its own `SCHEDULE_TASK` value, so the heavy-build schedule and the Renovate
+schedule (below) never cross-trigger each other.
 
 ### 2. Releases — `semantic-release` (dormant until enabled)
 
@@ -92,9 +93,13 @@ Dependabot's `github-actions` ecosystem was dropped (dead pipeline); Renovate on
 replaces it. Config is in [`renovate.json`](https://github.com/Gh0s777tt/E-OS/blob/main/renovate.json):
 
 1. Create a GitLab PAT with scope **`api`**; add it as a masked variable `RENOVATE_TOKEN`.
-2. **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. nightly). The `renovate`
-   job runs only on schedules when `RENOVATE_TOKEN` is set, and opens MRs for bumps
-   (patch updates auto-merge once CI is green).
+   (A stale/rotated token here makes `renovate` fail with *"Authentication failure"* — the
+   job is `allow_failure: true` so it can't block the pipeline, but fix the token to make
+   it useful.)
+2. **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. nightly) and add a
+   schedule **variable** `SCHEDULE_TASK` = `renovate`. The `renovate` job runs only on a
+   schedule whose `SCHEDULE_TASK` is `renovate` and only when `RENOVATE_TOKEN` is set, and
+   opens MRs for bumps (patch updates auto-merge once CI is green).
 
 ### 4. Protect `main`
 
