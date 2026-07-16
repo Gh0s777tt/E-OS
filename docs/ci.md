@@ -72,9 +72,9 @@ The shell executor runs as your login user, so it shares your `podman` machine a
 and `git` resolve under the service's minimal environment.
 
 To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`,
-target `main`) and add a schedule **variable** `SCHEDULE_TASK` = `heavy`. Each scheduled
-job keys on its own `SCHEDULE_TASK` value, so the heavy-build schedule and the Renovate
-schedule (below) never cross-trigger each other.
+target `main`). No schedule variable is needed — `build-image` runs on any schedule whose
+`SCHEDULE_TASK` isn't `renovate`, so the heavy build and the Renovate schedule (below) never
+cross-trigger.
 
 ### 2. Releases — `semantic-release` (dormant until enabled)
 
