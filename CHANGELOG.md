@@ -75,6 +75,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   (hostname/locale/keymap/machine-id/SSH host keys).
 
 ### Fixed
+- `[U-083]` **aarch64 system clock no longer stuck at 1970 on an ACPI boot — TLS cert validation unblocked** —
+  the kernel only programs the RTC on a Device-Tree boot (`rtc::init`, reached from `init_devicetree`); the
+  E-OS aarch64 image boots via UEFI/ACPI (since `R-401f`), so `init_devicetree` never ran, the clock stayed at
+  the Unix epoch, and every TLS certificate-validity check failed (a silent blocker for HTTPS, package updates,
+  and the browser). Fixed **without a kernel/ABI change**: the **bootloader** (`eos-bootloader`
+  `f1ba665`→`05dadec`) already runs in UEFI, so it reads the firmware wall-clock via Runtime Services `GetTime`
+  and exports it to the kernel env as `BOOT_TIME=<unix_secs>` (new `Os::boot_time_epoch()`, overridden only for
+  UEFI; `days_from_civil` converts the broken-down UTC). **`rtcd`** (`eos-base` `dd41f1da`→`efc07c3e`), which was
+  a no-op on aarch64, now reads `BOOT_TIME` from `/scheme/sys/env` and writes the offset to
+  `/scheme/sys/update_time_offset` — the same sink x86 uses for the CMOS RTC. Platform-independent (works on
+  QEMU + real UEFI hardware); absent `BOOT_TIME` (e.g. a BIOS boot) is a no-op. Both pieces compile-verified
+  (bootloader for `aarch64-unknown-uefi`, rtcd for `aarch64-unknown-redox`) before pinning.
 - `[U-082]` **Installer GUI produced a non-bootable disk; randd trusted failed rdrand (`G1`, entropy)** —
   two audit-surfaced fork fixes, pins bumped. **eos-installer** `05bf2eb`→`75b6bd5`: the GUI installer read
   the bootloader from the stale path `<root>/boot/bootloader.{bios,efi}` (removed years ago — the `bootloader`
