@@ -129,7 +129,7 @@ PYEOF
 # ------------------------------------------------------------------ nic -> qemu device
 dev_for() {
   case "$1" in
-    virtio)  echo "virtio-net-pci,disable-legacy=off,disable-modern=on" ;;  # force id 0x1000 (virtio-netd matches only 0x1000)
+    virtio)  echo "virtio-net-pci,disable-legacy=off,disable-modern=off" ;;  # TRANSITIONAL: id 0x1000 (virtio-netd matches) WITH modern caps (virtio-core is modern-only; disable-modern=on strips them -> "virtio common capability missing" panic)
     e1000)   echo "e1000" ;;                                                # 82540em, 0x100e (stock e1000d)
     e1000e)  echo "e1000e" ;;                                               # 82574L, 0x10d3 (x86_64 e1000e.toml overlay)
     rtl8139) echo "rtl8139" ;;                                              # rtl8139d (present, untested per cross-siec.md)
