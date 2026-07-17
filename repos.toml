@@ -25,7 +25,7 @@ gitlab = "https://gitlab.com/e-os/eos-base.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/base"
 pinned_branch = "eos-july"
-pinned_rev    = "544d76dfd9b8a7666f94c3170af7ef96b8cf2132"
+pinned_rev    = "d6336419277cbe38cb92612eb45f6abe43905513"
 
 [[repo]]
 name   = "eos-bootloader"
@@ -96,7 +96,7 @@ gitlab = "https://gitlab.com/e-os/eos-installer.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/installer"
 pinned_branch = "master"
-pinned_rev    = "75b6bd56c6b65df8a16a63317a1c5a4d41cae878"
+pinned_rev    = "f9d82a1b8a1f85dc8e22fa96b6d53efacd24940c"
 
 [[repo]]
 name   = "eos-ion"

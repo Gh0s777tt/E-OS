@@ -9,6 +9,9 @@ include = ["../desktop.toml"]
 [general]
 # Room for E-OS branding + the richer desktop app set below.
 filesystem_size = 1400
+# Target triple this filesystem is built for (U-085): a standalone installer run
+# (no TARGET in the env) picks it up from here instead of guessing.
+target = "x86_64-unknown-redox"
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and

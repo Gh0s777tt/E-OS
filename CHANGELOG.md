@@ -96,6 +96,27 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   boot-smoke. Docs: [docs/ci.md](docs/ci.md) gained a *Fork pipelines* section.
 
 ### Fixed
+- `[U-085]` **Standalone installer writes the right EFI boot file without env `TARGET`; virtio drivers no
+  longer abort on a legacy-only device** — two backlog follow-ups, pins bumped. **eos-installer**
+  `75b6bd5`→`f9d82a1`: `get_target()` read only the `TARGET` env var (with a compile-time fallback) and
+  defaulted to `x86_64-unknown-redox` — a standalone run without the env wrote `BOOTX64.EFI` into an
+  aarch64 disk's ESP, which boots to the EFI shell. The target now resolves as `TARGET` env >
+  `[general] target` (new config field, set in `config/*/eos.toml`) > compile-time `TARGET` > warned
+  default, and is carried explicitly via `DiskOption::target` (TUI/GUI in-image installs keep the baked
+  compile-time target). **Proven at the artifact level** (fixed installer, local cookbook, no `TARGET` in
+  the env): config `target=aarch64-unknown-redox` → `EFI/BOOT/BOOTAA64.EFI`, PE machine ARM64; no target
+  anywhere → a warning + the historical `BOOTX64.EFI` (PE x86-64). The fork's `gui-build` CI job also got
+  an image (it ran on the runner default, no cargo — permanently red). **eos-base** `544d76d`→`d633641`:
+  `virtio-core::probe_device` expect-panicked (= abort) when a device exposed no modern (virtio 1.0) PCI
+  capabilities, so a pure-legacy virtio device took the driver down (the `T9`/harness class). Missing
+  capabilities now map to the existing `Error::InCapable`; the first legacy-only boot-probe then caught the
+  second half of the bug — the drivers' own `daemon_runner` wrappers `.unwrap()`-ed the returned error,
+  turning it right back into an abort — so virtio-netd/blkd/gpud now log the error and `process::exit(1)`
+  cleanly. QEMU exposes a transitional device only with `disable-legacy=off,disable-modern=off`.
+  Verified: aarch64 container build + boot-smoke PASS, plus a legacy-only boot-probe
+  (`virtio-net-pci,disable-modern=on` attached): serial shows `virtio-core: … legacy-only devices are
+  unsupported` → `virtio-netd: exiting: the device is incapable of Common` → a clean spawner-logged exit,
+  0 panics, boot reaches `eos login:`.
 - `[U-083]` **aarch64 system clock no longer stuck at 1970 on an ACPI boot — TLS cert validation unblocked** —
   the kernel only programs the RTC on a Device-Tree boot (`rtc::init`, reached from `init_devicetree`); the
   E-OS aarch64 image boots via UEFI/ACPI (since `R-401f`), so `init_devicetree` never ran, the clock stayed at
