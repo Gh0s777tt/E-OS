@@ -73,6 +73,27 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   `061dfd3`→`3ac6436`; recipe pin bumped. This makes the P0 shipped-default-credentials exposure closed on
   **every** login path (text/getty + serial + graphical greeter). Remaining `R-602`: per-machine identity
   (hostname/locale/keymap/machine-id/SSH host keys).
+- `[U-084]` **Fork CI revived — pipelines run in the `e-os` namespace (9 forks) + collective build-neutral
+  pin bump** — upstream `.gitlab-ci.yml` workflow rules gate pipelines to `$CI_PROJECT_NAMESPACE ==
+  "redox-os"` (or to a branch name the fork doesn't develop on — `eos-pkgutils` lives on `eos`), so every
+  pipeline in these forks was silently dead in the `e-os` namespace. The 9 affected forks (kernel, relibc,
+  base, redoxfs, pkgutils, orbclient, orbital, orbutils, liborbital) now add a namespace-only rule ahead of
+  the upstream arms (branch names vary — `eos-july`/`eos`/`master` — so the rule must not depend on them);
+  QEMU-based test jobs (`redoxer exec/test`) are `allow_failure` because gitlab.com shared runners have no
+  KVM — they run best-effort and cannot permanently redden the pipeline (real boot coverage stays with the
+  heavy `build-image` boot-smoke). All 9 files validated via the GitLab CI lint API; pushed to GitLab +
+  GitHub before the bump. The revived gates paid off on the very first runs: `fmt` caught unformatted
+  E-OS code in **three** forks (pkgutils `pkg-lib`; base drivers — daemon/rtl8139d/usbnetd/pcid/raid1d/
+  xhcid/virtio-core; relibc `ld_so` — all reformatted, zero semantic change), and pkgutils'
+  `cargo test --locked` exposed a **stale `Cargo.lock`** from `U-081`: the R-703 ed25519 code shipped
+  without its lock entries (the image build never noticed — the cook doesn't build `--locked`); the lock
+  now adds exactly the ed25519-dalek dependency tree, no existing entry changes, and the CI test command
+  passes (2/2). redoxfs `test:linux` is gated best-effort — the FUSE unmount races the test's
+  `remove_dir` on shared runners (environment flake, not a code failure). First fully green pipelines:
+  **kernel** (fmt + x86_64/aarch64/i586/riscv64gc builds; even the QEMU boot test passed on a shared
+  runner), orbclient, orbital, orbutils, liborbital. Pins bumped collectively (build-neutral: CI rules +
+  formatting + lockfile only), `pins --strict` 22 ok / 0 drift; verified by aarch64 container build +
+  boot-smoke. Docs: [docs/ci.md](docs/ci.md) gained a *Fork pipelines* section.
 
 ### Fixed
 - `[U-083]` **aarch64 system clock no longer stuck at 1970 on an ACPI boot — TLS cert validation unblocked** —

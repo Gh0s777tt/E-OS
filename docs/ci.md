@@ -27,6 +27,29 @@ budget and time out). It only picks up on a runner you register.
 - **Docs** — `pages` publishes the mdBook to <https://e-os.gitlab.io/e-os/>; `docs-currency`
   fails an MR that changes code without touching docs (opt-out: put `docs: n/a` in the MR).
 
+## Fork pipelines
+
+Every pinned fork (see `repos.toml`) also runs CI in the `e-os` namespace. Upstream
+`.gitlab-ci.yml` workflow rules gate pipelines to `$CI_PROJECT_NAMESPACE == "redox-os"`
+(or to a branch name the fork doesn't develop on), so out of the box fork pipelines were
+silently dead. The nine forks that carried such guards — kernel, relibc, base, redoxfs,
+pkgutils, orbclient, orbital, orbutils, liborbital — add a namespace-only rule for `e-os`
+ahead of the upstream arms (`U-084`); branch names vary across forks
+(`eos-july`/`eos`/`master`), so the rule must not depend on them.
+
+Two caveats, by design:
+
+- **QEMU jobs are best-effort** — `redoxer exec`/`redoxer test` jobs are `allow_failure`:
+  gitlab.com shared runners have no KVM, so TCG runs are slow and can time out. Real boot
+  coverage is the meta `build-image` heavy job's boot-smoke, not fork CI.
+- **Minute budget** — fork pipelines run on shared runners and count against the namespace
+  budget; kernel/relibc pushes are the expensive ones (multi-arch `redoxer env make`, and
+  relibc's `before_script` builds cbindgen in every job). Push to fork branches deliberately.
+
+When rebasing a fork onto upstream, re-apply the namespace rule if the upstream file
+overwrites it — `git log --oneline -- .gitlab-ci.yml` in the fork shows the
+`ci: run pipelines in the e-os namespace` commit to cherry-pick.
+
 ## What you must set up (one-time, in the GitLab UI)
 
 ### 1. Self-hosted heavy runner (`build-image`)

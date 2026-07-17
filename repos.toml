@@ -6,7 +6,7 @@
 [meta]
 github_owner = "Gh0s777tt"       # GitHub = read-only mirror (owner namespace)
 gitlab_owner = "e-os"            # GitLab = source of truth, group e-os (dev + CI)
-generated    = "2026-07-13"
+generated    = "2026-07-17"
 
 # ── meta ────────────────────────────────────────────────────────
 [[repo]]
@@ -25,7 +25,7 @@ gitlab = "https://gitlab.com/e-os/eos-base.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/base"
 pinned_branch = "eos-july"
-pinned_rev    = "efc07c3ed83703e7b86e714c5cbb620b24faf04e"
+pinned_rev    = "544d76dfd9b8a7666f94c3170af7ef96b8cf2132"
 
 [[repo]]
 name   = "eos-bootloader"
@@ -45,7 +45,7 @@ gitlab = "https://gitlab.com/e-os/eos-kernel.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/kernel"
 pinned_branch = "eos-july"
-pinned_rev    = "c918080f13fcc2719e9ea5e6c414656c0c5a75b9"
+pinned_rev    = "9687852732dda24dd7ed2e14840f3ac3de4ced02"
 
 [[repo]]
 name   = "eos-redoxfs"
@@ -55,7 +55,7 @@ gitlab = "https://gitlab.com/e-os/eos-redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
-pinned_rev    = "ec25394ad76eabd42aff21f56b3a5a1031e571c3"
+pinned_rev    = "b0f6dff623fa709ed088372c5f4f889ddcbc6b37"
 
 [[repo]]
 name   = "eos-relibc"
@@ -65,7 +65,7 @@ gitlab = "https://gitlab.com/e-os/eos-relibc.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/relibc"
 pinned_branch = "eos-july"
-pinned_rev    = "7e9a95d06ebffb9a1fcb4dba3ae916a3cb02a558"
+pinned_rev    = "c9345130e21ea18ad22052bcfcd97ee2197b370c"
 
 # ── core ────────────────────────────────────────────────────────
 [[repo]]
@@ -146,7 +146,7 @@ gitlab = "https://gitlab.com/e-os/eos-pkgutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgutils"
 pinned_branch = "eos"
-pinned_rev    = "5643d21b66875b2478afee995a17b72a69713a06"
+pinned_rev    = "5978425ecdc01fa80c72ccfe722845f45e66b27b"
 
 [[repo]]
 name   = "eos-userutils"
@@ -167,7 +167,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbclient.git"
 pinned_in_recipe = true
 recipe        = "recipes/demos/orbclient"
 pinned_branch = "master"
-pinned_rev    = "fbc938c0ae79e3cbeec9599ff05d5a3cf8dc6b32"
+pinned_rev    = "be1d51efce7efdce171e82d1f5fcaf7709cea6d3"
 
 [[repo]]
 name   = "eos-orbdata"
@@ -187,7 +187,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbital"
 pinned_branch = "master"
-pinned_rev    = "b6de07ef268b130f8c0fd7143617e72840f33193"
+pinned_rev    = "7ee7c04752c3b4dd2d159d29e0ed8e2b3bcba55b"
 
 [[repo]]
 name   = "eos-orbterm"
@@ -207,7 +207,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
-pinned_rev    = "a41aa3fba196c6afd0642099c08b8feb98b2d136"
+pinned_rev    = "cf121dc2b9a8d68af880df188e591813d084aefb"
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
@@ -218,7 +218,7 @@ gitlab = "https://gitlab.com/e-os/eos-liborbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/libs/liborbital"
 pinned_branch = "master"
-pinned_rev    = "a5396193f04ece22c7bab5050b739b842b5c3483"
+pinned_rev    = "76ba2e79ac16fbd7a37ef622108e6c60f10cebe2"
 
 [[repo]]
 name   = "eos-redox-fatfs"

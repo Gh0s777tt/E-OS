@@ -5,7 +5,7 @@
 # redox-os/kernel mainline (July). Upstream: https://gitlab.redox-os.org/redox-os/kernel.git
 git = "https://github.com/Gh0s777tt/eos-kernel.git"
 branch = "eos-july"
-rev = "c918080f13fcc2719e9ea5e6c414656c0c5a75b9"
+rev = "9687852732dda24dd7ed2e14840f3ac3de4ced02"
 
 [build]
 template = "custom"
