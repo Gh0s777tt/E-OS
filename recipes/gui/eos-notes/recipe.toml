@@ -1,0 +1,20 @@
+[source]
+# E-OS original app — Crimson notes (Slint software renderer + SQLite/WAL).
+# Dev + CI: https://gitlab.com/e-os/eos-notes (recipes fetch the GitHub mirror).
+git = "https://github.com/Gh0s777tt/eos-notes.git"
+branch = "main"
+rev = "5ca5c49034af80048335ae6cd4d19112ba6c6985"
+
+[build]
+template = "custom"
+script = """
+# relibc has no LFS64 aliases (open64/mmap64/…) — bundled SQLite must use the
+# plain calls. Append to the cookbook's target CFLAGS (they carry the sysroot
+# include path, so they must not be replaced).
+tgt_cflags_var="CFLAGS_${TARGET//-/_}"
+export "${tgt_cflags_var}"="${!tgt_cflags_var} -DSQLITE_DISABLE_LFS"
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/30_eos-notes" "${COOKBOOK_STAGE}/usr/share/ui/apps/30_eos-notes"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-notes.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-notes.png"
+"""

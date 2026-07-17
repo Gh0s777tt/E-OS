@@ -11,6 +11,11 @@ filesystem_size = 1400
 # not the historical BOOTX64.EFI default that boots to the EFI shell.
 target = "aarch64-unknown-redox"
 
+# ── E-OS original apps ───────────────────────
+# U-086: E-OS Notes — Crimson notes app (Slint software renderer + SQLite/WAL),
+# the first E-OS original application. Recipe: recipes/gui/eos-notes.
+[packages.eos-notes]
+
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
 # /usr/share/eos/eos-release. Recipe: recipes/other/eos.

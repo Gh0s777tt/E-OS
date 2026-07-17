@@ -94,6 +94,33 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   runner), orbclient, orbital, orbutils, liborbital. Pins bumped collectively (build-neutral: CI rules +
   formatting + lockfile only), `pins --strict` 22 ok / 0 drift; verified by aarch64 container build +
   boot-smoke. Docs: [docs/ci.md](docs/ci.md) gained a *Fork pipelines* section.
+- `[U-086]` **E-OS Notes — the first E-OS original application ships in the image (Slint 1.17 +
+  SQLite/WAL over a custom Orbital backend)** — new pinned repo `eos-notes` (dev+CI:
+  gitlab.com/e-os/eos-notes, GitHub mirror recipes fetch from; AGPL-3.0-or-later), recipe
+  `recipes/gui/eos-notes`, enabled in `config/{aarch64,x86_64}/eos.toml`, launcher entry + crimson icon
+  (`usr/share/ui/apps/30_eos-notes`). Sidebar with substring search, autosaving title+body editor,
+  WAL-mode SQLite at `~/.local/share/eos-notes/notes.db`; `eos-notes --selftest` is the headless storage
+  proof (create → reopen → readback → search → delete + `journal_mode == wal`), gated in the repo CI and
+  used as a boot probe. **The stack choice is the real story:** the backlog's *iced* is a dead end (the
+  Redox iced fork is 0.6 — no multiline text widget; modern iced/libcosmic is blocked by host:gperf on
+  the aarch64 build host), and BOTH winit paths fail on today's Redox — slint ≥1.13's winit backend does
+  not even compile for Redox (unconditional x11 imports, orbital lacks pump_events), while the
+  upstream-proven slint 1.1.1 + winit 0.28 pair aborts at runtime because its event loop opens the
+  legacy `event:` scheme the modern kernel removed (ENOSYS). E-OS therefore drives modern Slint through
+  its **own `slint::platform::Platform` over orbclient** (`src/orbital_platform.rs`:
+  MinimalSoftwareWindow + SoftwareRenderer → ARGB swizzle into the orbital window; orbital events →
+  slint pointer/key/scroll/resize; timers drive animations), with the image's DejaVu TTFs registered
+  into fontique at startup (fontique has no Redox font discovery — an empty collection panics the
+  renderer) and a `/scheme/orbital` DISPLAY default for shell launches. Bundled SQLite builds with
+  `-DSQLITE_DISABLE_LFS` (relibc ships no LFS64 aliases); the GUI sits behind the default `gui` feature
+  so hosts/CI build the CLI half with `--no-default-features`. **Verified:** eos-notes CI green; aarch64
+  image build + boot-smoke PASS; the boot probe prints `EOS-NOTES-SELFTEST-OK` on the serial console
+  (0 panics); GUI render-verified on the image — the window shows sidebar/editor and a live `0 notatek`
+  status straight from SQLite (screendumps `assets/screenshots/eos-notes-v1.png` and
+  `eos-notes-desktop-icon.png`). **Known limits (QEMU-macOS harness, not app code):** interactive
+  typing/mouse cannot be exercised headlessly — QEMU tablet events never reach orbital at all (platform
+  gap affecting every app) and out-of-session launches complicate focus; keyboard delivery into the app
+  is evidenced (the focus caret moves on Tab). First interactive pass lands with the `T8` rig.
 
 ### Fixed
 - `[U-085]` **Standalone installer writes the right EFI boot file without env `TARGET`; virtio drivers no

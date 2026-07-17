@@ -209,6 +209,16 @@ recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
 pinned_rev    = "cf121dc2b9a8d68af880df188e591813d084aefb"
 
+[[repo]]
+name   = "eos-notes"
+role   = "gui"
+github = "https://github.com/Gh0s777tt/eos-notes.git"
+gitlab = "https://gitlab.com/e-os/eos-notes.git"
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-notes"
+pinned_branch = "main"
+pinned_rev    = "5ca5c49034af80048335ae6cd4d19112ba6c6985"
+
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
 name   = "eos-liborbital"
