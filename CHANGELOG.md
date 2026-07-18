@@ -7,6 +7,20 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-090]` **Guard v2 — a permission audit on every scan + a tamper-evident baseline** — two hardening
+  additions to `eos-guard` (`544476b`→`0626360`, v0.1.0→v0.2.0). (1) **Permission audit:** every scan now
+  flags setuid (`0o4000`), setgid (`0o2000`) and world-writable (`0o0002`) files as **OSTRZEŻENIE**
+  regardless of whether they changed — so a setuid binary is surfaced on the very first scan, not only if
+  it's modified (v1 only warned on world-writable *unchanged* files). (2) **Baseline integrity digest:**
+  `set_baseline` records a blake3 digest over the canonical (path-sorted) baseline rows in `meta`; a scan
+  recomputes it and reports **⚠ WZORZEC NARUSZONY** if the baseline was edited out of band or corrupted —
+  a file-integrity monitor whose baseline can be silently rewritten is theatre. (Honest scope: the digest
+  lives in the same DB, so it catches corruption and naive tampering, not an attacker who also recomputes
+  it; a key-signed baseline is the `R-711` class, future work.) The `--selftest` grew matching assertions:
+  a setuid file in the throwaway tree must produce a WARN, a fresh baseline must pass its own digest, and a
+  raw out-of-band `UPDATE baseline SET hash=…` must be caught (`verify_baseline()` returns false). Verified:
+  cross-build for `aarch64-unknown-redox` + host `GUARD-SELFTEST-OK`; eos-guard CI green; aarch64 image
+  build + boot-smoke, `GUARD-SELFTEST-OK` on the serial console.
 - `[U-089]` **E-OS Guard — the second E-OS original application: a filesystem integrity monitor
   (blake3 + SQLite), and the first proof that `eos-ui` carries a second app** — new pinned repo
   `eos-guard` (dev+CI: gitlab.com/e-os/eos-guard, GitHub mirror; AGPL-3.0-or-later), recipe

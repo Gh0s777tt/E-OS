@@ -217,7 +217,7 @@ gitlab = "https://gitlab.com/e-os/eos-guard.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-guard"
 pinned_branch = "main"
-pinned_rev    = "544476ba291eca6f44bbff0e9004c3da9b243843"
+pinned_rev    = "06263607526b0d47eb77147f149aa17f00d8e0e3"
 
 [[repo]]
 name   = "eos-notes"
