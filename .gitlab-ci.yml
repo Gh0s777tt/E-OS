@@ -67,6 +67,17 @@ docs-currency:
         echo "Update the relevant docs, or add 'docs: n/a' to the MR description."
         exit 1
       fi
+      # Advisory (non-blocking): new public items should carry a doc-comment.
+      # The hard, precise gate is crate-level missing_docs (see CLAUDE.md §3);
+      # this is only a reminder, so it never fails the pipeline.
+      undoc=$(git diff -U1 "$base"...HEAD -- '*.rs' | awk '
+        /^\+.*\bpub (fn|struct|enum|trait|mod|const|type) / { if (prev !~ /\/\/\/|\/\/!|#\[/) print }
+        { prev = $0 }' | sed "s/^+//" | head -20)
+      if [ -n "$undoc" ]; then
+        echo "advisory: new public item(s) without an adjacent doc-comment (///):"
+        echo "$undoc"
+        echo "  (reminder only — document what it does + why; see CLAUDE.md §3)"
+      fi
       echo "docs-currency: OK"
 
 # ──────────────────────────────  LIGHT: test  ──────────────────────────────
@@ -117,6 +128,39 @@ pages:
   artifacts:
     paths:
       - public
+
+# The docs PDF is rendered from the mdBook HTML (via `print.html` → headless
+# Chromium, see scripts/docs-pdf.sh — no fragile mdbook-PDF plugin) on the
+# self-hosted eos-heavy runner, which has the toolchain + Chromium and spends no
+# shared CI minutes. `needs: []` detaches it from stage order so a quota-exhausted
+# light tier can't skip it; allow_failure keeps a docs hiccup non-blocking. Runs
+# on tags + schedules (not every push). See docs/ci.md.
+docs-pdf:
+  stage: docs
+  tags: [eos-heavy]
+  needs: []
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TASK != "renovate"'
+  variables:
+    EOS_CONTAINER: eosbuild
+    EOS_MACHINE: eos-build
+  script:
+    - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+    - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    - podman start "$EOS_CONTAINER" 2>/dev/null || true
+    - podman exec "$EOS_CONTAINER" true
+    - podman exec "$EOS_CONTAINER" rm -rf /tmp/eos-docs
+    - podman exec "$EOS_CONTAINER" mkdir -p /tmp/eos-docs
+    - git archive --format=tar HEAD book.toml docs scripts | podman exec -i "$EOS_CONTAINER" tar -C /tmp/eos-docs -xf -
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /tmp/eos-docs && bash scripts/docs-pdf.sh public/eos-docs.pdf"
+    - podman cp "$EOS_CONTAINER:/tmp/eos-docs/public/eos-docs.pdf" "eos-docs.pdf"
+  artifacts:
+    when: on_success
+    expire_in: 1 month
+    paths:
+      - eos-docs.pdf
 
 # ─────────────────────────────  LIGHT: release  ────────────────────────────
 # semantic-release: derive the version from Conventional Commits, tag and cut a

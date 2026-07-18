@@ -25,7 +25,12 @@ budget and time out). It only picks up on a runner you register.
   on the E-OS host tooling, against the shared [`rustfmt.toml`](https://github.com/Gh0s777tt/E-OS/blob/main/rustfmt.toml) / [`clippy.toml`](https://github.com/Gh0s777tt/E-OS/blob/main/clippy.toml).
 - **Pins** — `pin-check` fails if any recipe pin drifts from its fork tip (`repos.toml`).
 - **Docs** — `pages` publishes the mdBook to <https://e-os.gitlab.io/e-os/>; `docs-currency`
-  fails an MR that changes code without touching docs (opt-out: put `docs: n/a` in the MR).
+  fails an MR that changes code without touching docs (opt-out: put `docs: n/a` in the MR) and
+  advises on new public items lacking a doc-comment. `docs-pdf` (self-hosted `eos-heavy`, tags +
+  schedules, `allow_failure`) renders the whole manual to a downloadable `eos-docs.pdf` via
+  [`scripts/docs-pdf.sh`](https://github.com/Gh0s777tt/E-OS/blob/main/scripts/docs-pdf.sh)
+  (mdBook `print.html` → headless Chromium — no fragile PDF plugin). Generate it locally the same way:
+  `scripts/docs-pdf.sh`.
 
 ## CI minutes (free tier)
 

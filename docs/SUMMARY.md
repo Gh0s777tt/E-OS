@@ -18,6 +18,7 @@
 
 - [Build from source](building.md)
 - [Troubleshooting](build-troubleshooting.md)
+- [Creating an E-OS app](creating-an-eos-app.md)
 - [CI/CD & automation](ci.md)
 - [Maintenance & operations](MAINTENANCE.md)
 

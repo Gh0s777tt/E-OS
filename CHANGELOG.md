@@ -7,6 +7,33 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-093]` **Documentation standard + tooling — `CLAUDE.md`, `ARCHITECTURE.md`, an app guide, a docs PDF,
+  and enforcement** — makes "every change updates its docs" an explicit, discoverable, partly-enforced
+  standard. Adds **`CLAUDE.md`** (the working agreement: three verification gates, a Definition of Done, a
+  documentation map, code/comment standards, hosting invariants — linked from `CONTRIBUTING.md`), a root
+  **`ARCHITECTURE.md`** (top-down layer map + hosting, cross-linked with `docs/architecture.md`),
+  **`docs/creating-an-eos-app.md`** (the `eos-ui`-based app skeleton pattern), and a downloadable
+  **docs PDF**: `scripts/docs-pdf.sh` renders the mdBook `print.html` with headless Chromium (no fragile
+  PDF plugin — verified locally, 3.6 MB / whole manual) and a self-hosted `docs-pdf` CI job publishes it
+  (`needs: []`, `allow_failure`, tags/schedules). Enforcement: `docs-currency` now also advises on new
+  public items missing a doc-comment, `eos-ui` gains `#![warn(missing_docs)]` (clean), a
+  `.gitlab/merge_request_templates/Default.md` carries the Definition-of-Done checklist, and
+  `scripts/eos-check.sh` gives a fast per-crate compile check before a full image rebuild. Also restores
+  `docs/design-desktop-environment.md` + `docs/design-xhcid-nonblocking-transfers.md`, which the GitLab
+  migration had dropped (they existed only in the stale Desktop checkout). The mdBook build was verified
+  locally (35 pages, `print.html`, new pages listed in `SUMMARY.md`).
+- `[U-092]` **Heavy `build-image` detached from the shared-runner light tier (`needs: []`)** — the
+  self-hosted `eos-heavy` OS build + boot-smoke — the only job that actually boots the OS — spends no
+  shared CI minutes, but sat in a stage after the light tier, so a `ci_quota_exceeded` failure there
+  skipped it. `needs: []` (on `build-image` and the manual x86_64 variant) makes OS verification survive an
+  exhausted free-tier budget. Verified: with the whole light tier failing on quota, `build-image` still ran
+  and passed on `eos-heavy`. See [docs/ci.md](docs/ci.md) *CI minutes*. The cap itself is a resource choice
+  (monthly reset / buy minutes / a light-tier self-hosted runner).
+- `[U-091]` **`pages` must not block the OS build (`allow_failure`)** — the docs-publish job runs on
+  budget-limited shared runners and failed with `stuck_pending_no_matching_runners` once free minutes were
+  spent; because `docs` sits before `build`, that hard failure had skipped `build-image` and reddened
+  `main`. `allow_failure: true` keeps a cosmetic docs hiccup from failing the pipeline or blocking OS
+  verification.
 - `[U-090]` **Guard v2 — a permission audit on every scan + a tamper-evident baseline** — two hardening
   additions to `eos-guard` (`544476b`→`0626360`, v0.1.0→v0.2.0). (1) **Permission audit:** every scan now
   flags setuid (`0o4000`), setgid (`0o2000`) and world-writable (`0o0002`) files as **OSTRZEŻENIE**

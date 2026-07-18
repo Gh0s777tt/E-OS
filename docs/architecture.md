@@ -1,5 +1,10 @@
 # 🧱 E-OS Architecture
 
+> This page covers the **internals** (boot flow, schemes, the trusted computing
+> base). For the top-level repo/component map, the layer diagram, and how the
+> project is assembled + hosted, start at [`ARCHITECTURE.md`](../ARCHITECTURE.md)
+> at the repo root.
+
 E-OS inherits Redox's **microkernel** design: keep the kernel tiny, push
 everything else (drivers, filesystems, networking, display) into **user space**
 as isolated processes that communicate via **schemes**.
