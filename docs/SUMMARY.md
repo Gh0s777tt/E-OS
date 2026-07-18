@@ -34,6 +34,8 @@
 
 # Design & proposals
 
+- [Desktop environment — Crimson](design-desktop-environment.md)
+- [xhcid non-blocking transfers](design-xhcid-nonblocking-transfers.md)
 - [Update system](update-system-design.md)
 - [Driver manager](driver-manager-design.md)
 - [Feature proposals](feature-proposals.md)
