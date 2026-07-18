@@ -118,6 +118,21 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   (0 panics); GUI render-verified on the image — the window shows sidebar/editor and a live `0 notatek`
   status straight from SQLite (screendumps `assets/screenshots/eos-notes-v1.png` and
   `eos-notes-desktop-icon.png`). Full interactive verification (mouse + typing) landed in `U-087`.
+- `[U-088]` **`eos-ui` — the Slint-on-Orbital backend is now a shared crate; `eos-notes` consumes it** —
+  extracted the ~200-line custom `slint::platform::Platform` (software renderer over orbclient:
+  pointer/keyboard/scroll/resize + the `TextInput` glyph path) and the fontique bootstrap out of
+  `eos-notes` into a new reusable library, new repo `eos-ui` (dev+CI: gitlab.com/e-os/eos-ui, GitHub
+  mirror; AGPL-3.0-or-later). A GUI app is now one `eos_ui::init("Title")` call away from a window
+  (no-op on non-Redox hosts, so a host development build still works). `eos-notes` drops its inlined
+  `orbital_platform.rs` + `register_system_fonts` and takes `eos-ui` as a rev-pinned git dependency
+  (`c53180d`); `orbclient` and the `unstable-fontique-010` feature move into `eos-ui`. Done now — before
+  the second GUI app (guard/veil) exists — so the backend is written once, not copy-pasted. The window
+  title is parameterized (was hard-coded `E-OS Notes`); behaviour is otherwise identical. Verified:
+  `eos-ui` cross-checks clean for `aarch64-unknown-redox` and its CI is green; `eos-notes`
+  (`bad75e5`→`9f9eae6`) cross-builds against the git-pinned `eos-ui` + host selftest green; aarch64 image
+  build + boot-smoke, `EOS-NOTES-SELFTEST-OK` on the serial, and the app window still renders.
+  `eos-ui` is tracked in `repos.toml` (a git dependency locked by each consumer's `Cargo.lock`, not a
+  standalone image package).
 - `[U-087]` **E-OS Notes verified fully interactive — and a headless GUI click-harness that proves it** —
   drove the built image end-to-end with real input events: the mouse cursor tracks, the desktop
   **E-OS Notes** icon highlights on hover, a **double-click opens the app window**, the sidebar `+` button

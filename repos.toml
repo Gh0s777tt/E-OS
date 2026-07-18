@@ -217,7 +217,16 @@ gitlab = "https://gitlab.com/e-os/eos-notes.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-notes"
 pinned_branch = "main"
-pinned_rev    = "bad75e570d899329ef2d1659c1d8c402ea96704e"
+pinned_rev    = "9f9eae6e7a03adba07fa6dc577b1074b2a6cc8ff"
+
+[[repo]]
+name   = "eos-ui"
+role   = "lib"
+github = "https://github.com/Gh0s777tt/eos-ui.git"
+gitlab = "https://gitlab.com/e-os/eos-ui.git"
+# Not pinned in a recipe: eos-ui is a git dependency of eos-notes (and future
+# GUI apps), locked by each consumer's Cargo.lock — not a standalone image pkg.
+pinned_in_recipe = false
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
