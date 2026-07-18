@@ -132,9 +132,14 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   navigation), and the orbclient platform backend only handled `KeyEvent`. Now it handles
   `EventOption::TextInput` → `WindowEvent::KeyPressed` (Enter/Backspace/arrows still come through the
   KeyEvent scancode path; no double-insert since those KeyEvents carry `character='\0'`). eos-notes
-  `5ca5c49`→`bad75e5`. New reusable harness `scratchpad` scripts drive greeter login + QMP clicks +
-  keyboard; the `sendkey` limit (lowercase/no-shift only) is a QEMU-monitor limitation, not E-OS.
-  Verified: cross-build + host selftest green, aarch64 image build, click-test screendumps.
+  `5ca5c49`→`bad75e5`. **Proven end-to-end on the built image** (`assets/screenshots/eos-notes-typed.png`):
+  launched `eos-notes` from the GUI terminal → clicked `+` (a note appears, `Zapisano`/saved) → clicked the
+  title, typed **`ghost`** → clicked the body, typed **`eos dziala`** (with a space) — both land in the
+  fields, autosaved to SQLite. Harness notes for the next run: log in by **clicking** the greeter's
+  Password field + Login button (keyboard focus on the modal greeter is unreliable); the desktop-icon
+  double-click is flaky under QMP timing (launch from the taskbar terminal instead); `sendkey` only
+  covers lowercase/space/minus (a QEMU-monitor limit, not E-OS). Verified: cross-build + host selftest
+  green, aarch64 image build + boot-smoke, interactive click/type screendumps.
 
 ### Fixed
 - `[U-085]` **Standalone installer writes the right EFI boot file without env `TARGET`; virtio drivers no
