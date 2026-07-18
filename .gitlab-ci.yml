@@ -96,6 +96,13 @@ rust-checks:
 pages:
   stage: docs
   image: debian:stable-slim
+  # Publishing the docs site is cosmetic and runs on budget-limited shared
+  # runners; when free-tier minutes are exhausted it fails with
+  # `stuck_pending_no_matching_runners`. Because `docs` sits before the `build`
+  # stage, a hard failure here used to SKIP the heavy `build-image` OS/boot-smoke
+  # job entirely. allow_failure keeps a docs hiccup from reddening the pipeline
+  # or blocking OS build verification (same rationale as the QEMU fork jobs).
+  allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
