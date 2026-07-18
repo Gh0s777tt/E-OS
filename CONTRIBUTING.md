@@ -7,6 +7,10 @@ code, docs, design, testing, and ideas.
 > and, for vulnerabilities, the **[Security Policy](SECURITY.md)** (never file
 > security bugs in public). New here? Start with
 > **[docs/getting-started.md](docs/getting-started.md)**.
+>
+> 🧭 **Standards & Definition of Done:** **[CLAUDE.md](CLAUDE.md)** is the working
+> agreement for everyone (humans and AI assistants) — the three verification gates,
+> what "done" means, and the rule that every change updates the docs it affects.
 
 ## Ways to contribute
 
