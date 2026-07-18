@@ -217,7 +217,7 @@ gitlab = "https://gitlab.com/e-os/eos-notes.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-notes"
 pinned_branch = "main"
-pinned_rev    = "5ca5c49034af80048335ae6cd4d19112ba6c6985"
+pinned_rev    = "bad75e570d899329ef2d1659c1d8c402ea96704e"
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]

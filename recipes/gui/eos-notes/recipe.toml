@@ -3,7 +3,7 @@
 # Dev + CI: https://gitlab.com/e-os/eos-notes (recipes fetch the GitHub mirror).
 git = "https://github.com/Gh0s777tt/eos-notes.git"
 branch = "main"
-rev = "5ca5c49034af80048335ae6cd4d19112ba6c6985"
+rev = "bad75e570d899329ef2d1659c1d8c402ea96704e"
 
 [build]
 template = "custom"

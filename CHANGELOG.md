@@ -117,10 +117,24 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   image build + boot-smoke PASS; the boot probe prints `EOS-NOTES-SELFTEST-OK` on the serial console
   (0 panics); GUI render-verified on the image — the window shows sidebar/editor and a live `0 notatek`
   status straight from SQLite (screendumps `assets/screenshots/eos-notes-v1.png` and
-  `eos-notes-desktop-icon.png`). **Known limits (QEMU-macOS harness, not app code):** interactive
-  typing/mouse cannot be exercised headlessly — QEMU tablet events never reach orbital at all (platform
-  gap affecting every app) and out-of-session launches complicate focus; keyboard delivery into the app
-  is evidenced (the focus caret moves on Tab). First interactive pass lands with the `T8` rig.
+  `eos-notes-desktop-icon.png`). Full interactive verification (mouse + typing) landed in `U-087`.
+- `[U-087]` **E-OS Notes verified fully interactive — and a headless GUI click-harness that proves it** —
+  drove the built image end-to-end with real input events: the mouse cursor tracks, the desktop
+  **E-OS Notes** icon highlights on hover, a **double-click opens the app window**, the sidebar `+` button
+  **creates a note** (status flips `0 notatek`→`1 notatek`, a dated row appears — a live SQLite `INSERT`
+  with a correct `2026-07-18` timestamp, i.e. `U-083`'s RTC working), and **typed text now lands in the
+  title/body fields**. Two findings on the way: (1) the earlier "mouse doesn't work" belief was a
+  **harness bug, not E-OS** — QEMU HMP `mouse_move` is *relative* and never drives an absolute device;
+  QMP `input-send-event` with `abs` axes reaches the usb-tablet fine (cursor moved to exactly the sent
+  `value·resolution/32767`). (2) A real backend bug: **typed glyphs never reached a focused field** —
+  orbital delivers printable characters as a separate `TextInputEvent` (inputd runs the scancode through
+  the active keymap, then *clears* `character` on the following `KeyEvent`, which carries only
+  navigation), and the orbclient platform backend only handled `KeyEvent`. Now it handles
+  `EventOption::TextInput` → `WindowEvent::KeyPressed` (Enter/Backspace/arrows still come through the
+  KeyEvent scancode path; no double-insert since those KeyEvents carry `character='\0'`). eos-notes
+  `5ca5c49`→`bad75e5`. New reusable harness `scratchpad` scripts drive greeter login + QMP clicks +
+  keyboard; the `sendkey` limit (lowercase/no-shift only) is a QEMU-monitor limitation, not E-OS.
+  Verified: cross-build + host selftest green, aarch64 image build, click-test screendumps.
 
 ### Fixed
 - `[U-085]` **Standalone installer writes the right EFI boot file without env `TARGET`; virtio drivers no
