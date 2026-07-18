@@ -1,0 +1,21 @@
+[source]
+# E-OS original app #2 — Crimson filesystem integrity monitor (blake3 + SQLite,
+# Slint GUI over the shared eos-ui Orbital backend).
+# Dev + CI: https://gitlab.com/e-os/eos-guard (recipes fetch the GitHub mirror).
+git = "https://github.com/Gh0s777tt/eos-guard.git"
+branch = "main"
+rev = "544476ba291eca6f44bbff0e9004c3da9b243843"
+
+[build]
+template = "custom"
+script = """
+# relibc has no LFS64 aliases (open64/mmap64/…) — bundled SQLite must use the
+# plain calls. Append to the cookbook's target CFLAGS (they carry the sysroot
+# include path, so they must not be replaced).
+tgt_cflags_var="CFLAGS_${TARGET//-/_}"
+export "${tgt_cflags_var}"="${!tgt_cflags_var} -DSQLITE_DISABLE_LFS"
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/40_eos-guard" "${COOKBOOK_STAGE}/usr/share/ui/apps/40_eos-guard"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-guard.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-guard.png"
+"""

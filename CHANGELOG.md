@@ -7,6 +7,25 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-089]` **E-OS Guard — the second E-OS original application: a filesystem integrity monitor
+  (blake3 + SQLite), and the first proof that `eos-ui` carries a second app** — new pinned repo
+  `eos-guard` (dev+CI: gitlab.com/e-os/eos-guard, GitHub mirror; AGPL-3.0-or-later), recipe
+  `recipes/gui/eos-guard`, enabled in `config/{aarch64,x86_64}/eos.toml`, launcher entry + crimson shield
+  icon (`usr/share/ui/apps/40_eos-guard`). Guard baselines directory trees — the blake3 hash + size/mode/
+  mtime of every regular file, stored in SQLite/WAL at `~/.local/share/eos-guard/baseline.db` — and diffs
+  a later scan against the baseline, surfacing **ZMIENIONY** (hash changed), **NOWY**, **USUNIĘTY**, and
+  **OSTRZEŻENIE** (a world-writable security lint), with a colour-coded Crimson Slint UI (roots field,
+  Baseline/Scan buttons, summary chips, findings list). blake3 is the portable-Rust build
+  (`default-features = false` — the same hash `pkgar`/the SBOM use); SQLite is bundled with
+  `-DSQLITE_DISABLE_LFS`; scans are capped at 20k files so a huge tree can't wedge the single-threaded
+  event loop. **The whole GUI is one `eos_ui::init("E-OS Guard")` call** — Guard reuses the `U-088`
+  shared backend with zero new platform code, validating the crate for a second consumer. `eos-guard
+  --selftest` is the headless proof (baseline a throwaway tree → assert a clean re-scan is all-OK →
+  mutate/add/remove files → assert the diff reports exactly 1 MODIFIED + 1 NEW + 1 REMOVED, and WAL is
+  active), printing `GUARD-SELFTEST-OK`; wired into the repo CI and used as a boot probe. Verified:
+  blake3 cross-compiles for `aarch64-unknown-redox`; eos-guard CI green; cross-build against the
+  git-pinned `eos-ui` + host selftest green; aarch64 image build + boot-smoke, `GUARD-SELFTEST-OK` on the
+  serial console, and the app window renders + scans via clicks (screendumps `assets/screenshots/`).
 
 - `[U-071]` **E-OS Settings — native Crimson control panel (`R-D01`, Foundation B)** — new
   `eos-settings` bin in the launcher crate (eos-orbutils `061dfd3`): an orbital/orbclient panel host with

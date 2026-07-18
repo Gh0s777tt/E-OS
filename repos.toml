@@ -210,6 +210,16 @@ pinned_branch = "master"
 pinned_rev    = "cf121dc2b9a8d68af880df188e591813d084aefb"
 
 [[repo]]
+name   = "eos-guard"
+role   = "gui"
+github = "https://github.com/Gh0s777tt/eos-guard.git"
+gitlab = "https://gitlab.com/e-os/eos-guard.git"
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-guard"
+pinned_branch = "main"
+pinned_rev    = "544476ba291eca6f44bbff0e9004c3da9b243843"
+
+[[repo]]
 name   = "eos-notes"
 role   = "gui"
 github = "https://github.com/Gh0s777tt/eos-notes.git"

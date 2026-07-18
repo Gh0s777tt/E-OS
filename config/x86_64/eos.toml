@@ -14,9 +14,12 @@ filesystem_size = 1400
 target = "x86_64-unknown-redox"
 
 # ── E-OS original apps ───────────────────────
-# U-086: E-OS Notes — Crimson notes app (Slint software renderer + SQLite/WAL),
-# the first E-OS original application. Recipe: recipes/gui/eos-notes.
+# U-086: E-OS Notes — Crimson notes app (Slint + SQLite/WAL), the first E-OS
+#   original application. Recipe: recipes/gui/eos-notes.
+# U-089: E-OS Guard — filesystem integrity monitor (blake3 + SQLite), the second.
+#   Both build on the shared eos-ui backend. Recipe: recipes/gui/eos-guard.
 [packages.eos-notes]
+[packages.eos-guard]
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
