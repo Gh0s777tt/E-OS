@@ -145,6 +145,13 @@ semantic-release:
 build-image:
   stage: build
   tags: [eos-heavy]
+  # Run independently of the shared-runner light tier. The self-hosted eos-heavy
+  # runner consumes NO shared CI minutes, so when the free-tier budget is
+  # exhausted (`ci_quota_exceeded` on the light jobs) this — the only
+  # verification that actually boots the OS — must still run instead of being
+  # skipped by the failed earlier stages. `needs: []` detaches it from stage
+  # ordering. See docs/ci.md (CI minutes).
+  needs: []
   rules:
     - if: '$CI_COMMIT_TAG'
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TASK != "renovate"'
@@ -182,6 +189,7 @@ build-image:
 build-image-x86_64:
   stage: build
   tags: [eos-heavy]
+  needs: []            # independent of the shared-runner light tier (see build-image)
   rules:
     - if: '$CI_COMMIT_TAG'
       when: manual

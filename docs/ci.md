@@ -27,6 +27,23 @@ budget and time out). It only picks up on a runner you register.
 - **Docs** — `pages` publishes the mdBook to <https://e-os.gitlab.io/e-os/>; `docs-currency`
   fails an MR that changes code without touching docs (opt-out: put `docs: n/a` in the MR).
 
+## CI minutes (free tier)
+
+The `e-os` namespace is on the **free tier (~400 shared-runner minutes/month)**.
+The light tier (secret-scan, integrity, pin-check, rust-checks, pages) runs on
+GitLab.com **shared** runners and spends those minutes; the fork pipelines
+(especially kernel/relibc multi-arch `redoxer` builds) are the expensive part.
+When the budget is exhausted every shared-runner job fails immediately with
+`ci_quota_exceeded` (pages surfaces it first as `stuck_pending_no_matching_runners`).
+
+The heavy `build-image` job runs on the **self-hosted `eos-heavy`** runner, which
+consumes **no** shared minutes — so it carries `needs: []` to run independently of
+the light tier. That way the only job that actually boots the OS still verifies a
+commit even when the shared budget is spent (it would otherwise be skipped by the
+failed earlier stages). Options when you hit the cap: wait for the monthly reset,
+buy additional compute minutes, or register a second self-hosted runner for the
+light tier too.
+
 ## Fork pipelines
 
 Every pinned fork (see `repos.toml`) also runs CI in the `e-os` namespace. Upstream
