@@ -7,6 +7,19 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-106]` **eos-control: Network tab (live `/etc/net` config + stack status)** — eos-control
+  `7729720 → 301e054`. Adds a **"Sieć"** tab to the control panel showing the current network
+  configuration read from the files the base image ships (dhcpd keeps them current): **IP**
+  (`/etc/net/ip`), **gateway** (`/etc/net/ip_router`), **DNS** (`/etc/net/dns`), **subnet mask**
+  (`/etc/net/ip_subnet`), plus a **stack-up** indicator derived by probing the scheme list for `ip`
+  (netstack/smolnetd). `sys::net()` is plain file/dir reads — identical on E-OS and host (a host has
+  no `/etc/net`, so fields degrade to empty and the stack reads "brak"); it never panics. The
+  `--selftest` gains `net_core` (tolerant on a host without `/etc/net`). Directly reuses the R-D10
+  investigation (the exact `/etc/net` paths + scheme names). Verified: slint UI + Rust cross-compile
+  for aarch64-redox (`cook eos-control - successful`); host `--selftest` prints
+  `EOS-CONTROL-SELFTEST-OK`; aarch64 image cooked from the new pin; **render-verified** — launching
+  E-OS Control and opening the Sieć tab shows **IP 10.0.2.15 · Brama 10.0.2.2 · DNS 9.9.9.9 · Maska
+  255.255.255.0 · Stos sieciowy: aktywny** (`assets/screenshots/eos-control-network.png`).
 - `[U-105]` **netsurf: local default homepage + click-to-launch verified** — meta-repo only
   (`recipes/web/netsurf/recipe.toml`, `docs/design-netsurf-pie.md`). Verified the **real desktop
   path**: clicking the Netsurf icon on the launcher bar opens the browser (not just a shell launch) —
