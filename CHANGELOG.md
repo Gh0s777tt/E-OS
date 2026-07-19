@@ -7,6 +7,16 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-102]` **Notifications: a minimal daemon + client (`eos-notifyd` / `eos-notify`)** — `R-D03`
+  (eos-orbutils `60c262d → 8ad7cd8`). E-OS had no way to surface "updates available" / driver events.
+  Adds two launcher-crate binaries: **`eos-notifyd`** polls `/tmp/eos-notify` for a `"title\nbody"`
+  message and shows it as a crimson **top-right toast** (orbclient, `WindowFlag::Front`, rounded panel +
+  accent bar, ~4 s auto-dismiss); **`eos-notify <title> [body]`** writes that file. The launcher spawns
+  `eos-notifyd` alongside `desktop`/`background`. Deliberately **minimal** — the file transport is a
+  placeholder for a proper `notify:` scheme / socket, and a toast blocks new ones while up — but enough
+  for the update daemon (`R-705`) to notify. Verified: the launcher crate cross-compiles all five bins;
+  both `eos-notify`/`eos-notifyd` staged to `/usr/bin`; aarch64 image cooked; **render-verified** —
+  `eos-notify "Aktualizacje" "…"` popped the themed toast top-right (`assets/screenshots/eos-notify-toast.png`).
 - `[U-101]` **Status tray: real icons + click-to-Settings** — first step of `R-D02` (eos-orbutils
   `7b1268b → 60c262d`). The launcher loaded `/usr/share/ui/icons/status/tray-{net,vol,set}.png`, but those
   files **never existed anywhere**, so the tray was invisible *and* a dead click target. Ship three 32-px
