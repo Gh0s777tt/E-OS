@@ -7,6 +7,21 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-095]` **E-OS Control — one unified control center replaces the separate system + security tools** —
+  new pinned repo `eos-control` (dev+CI: gitlab.com/e-os/eos-control, GitHub mirror; AGPL-3.0-or-later),
+  recipe `recipes/gui/eos-control`, shipped in `config/{aarch64,x86_64}/eos.toml` **instead of**
+  `eos-sysmon` + `eos-guard` (whose repos remain, archived). One tabbed app: **Overview** (system health),
+  **Processes**, and **Security**. Rationale (the user's call — why split security/monitoring across apps?):
+  on a capability-secure microkernel *what a process can touch* is at once its resource profile and its
+  security profile, so they're two views of one truth. The Processes tab is a task manager meant to beat
+  Windows': every process carries a **human label** ("orbital = desktop server", "pcid = PCI driver
+  manager") so cryptic names never lose you, and a **capability inspector** shows, per process, exactly
+  which schemes/resources it holds open (parsed from `sys:iostat`) — impossible on Windows. The Security
+  tab is the ported `eos-guard` (blake3 integrity baseline + diff, permission audit, tamper-evident
+  digest). Built on the shared `eos-ui`; `sys:` scheme reads on Redox, `/proc` on a host.
+  `eos-control --selftest` proves both the system and security cores (`EOS-CONTROL-SELFTEST-OK`). Verified:
+  cross-build + host selftest green; aarch64 image build + boot-smoke; boot probe prints the selftest
+  marker on the serial; GUI render-verified (all three tabs) on the image.
 - `[U-094]` **E-OS Sysmon — the third original app (system monitor), first built straight from the app
   guide** — new pinned repo `eos-sysmon` (dev+CI: gitlab.com/e-os/eos-sysmon, GitHub mirror;
   AGPL-3.0-or-later), recipe `recipes/gui/eos-sysmon`, enabled in `config/{aarch64,x86_64}/eos.toml`,

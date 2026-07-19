@@ -1,0 +1,20 @@
+[source]
+# E-OS original app — unified control center (system + processes + capabilities
+# + security). Supersedes eos-sysmon and eos-guard in the image (their standalone
+# repos remain, archived). Dev + CI: https://gitlab.com/e-os/eos-control.
+git = "https://github.com/Gh0s777tt/eos-control.git"
+branch = "main"
+rev = "af7a9323d9f4250bb5e51e84c4e2d00a88e99544"
+
+[build]
+template = "custom"
+script = """
+# relibc has no LFS64 aliases — bundled SQLite (Security tab baseline) uses the
+# plain calls. Append to the cookbook's target CFLAGS (keep the sysroot include).
+tgt_cflags_var="CFLAGS_${TARGET//-/_}"
+export "${tgt_cflags_var}"="${!tgt_cflags_var} -DSQLITE_DISABLE_LFS"
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/45_eos-control" "${COOKBOOK_STAGE}/usr/share/ui/apps/45_eos-control"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-control.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-control.png"
+"""

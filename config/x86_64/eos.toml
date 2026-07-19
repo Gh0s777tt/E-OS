@@ -19,8 +19,10 @@ target = "x86_64-unknown-redox"
 # U-089: E-OS Guard — filesystem integrity monitor (blake3 + SQLite), the second.
 #   Both build on the shared eos-ui backend. Recipe: recipes/gui/eos-guard.
 [packages.eos-notes]
-[packages.eos-guard]
-[packages.eos-sysmon]
+# U-095: E-OS Control consolidates the system monitor (eos-sysmon)
+# and the integrity monitor (eos-guard) into one tabbed control center.
+# The standalone repos remain (archived); only eos-control ships.
+[packages.eos-control]
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and

@@ -248,6 +248,16 @@ recipe        = "recipes/gui/eos-sysmon"
 pinned_branch = "main"
 pinned_rev    = "b50f81a8b7fde5c85b2440e673d95b06b47950ac"
 
+[[repo]]
+name   = "eos-control"
+role   = "gui"
+github = "https://github.com/Gh0s777tt/eos-control.git"
+gitlab = "https://gitlab.com/e-os/eos-control.git"
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-control"
+pinned_branch = "main"
+pinned_rev    = "af7a9323d9f4250bb5e51e84c4e2d00a88e99544"
+
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
 name   = "eos-liborbital"
