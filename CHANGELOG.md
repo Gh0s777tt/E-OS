@@ -7,6 +7,19 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-099]` **Launcher Start-menu type-to-search — completes `R-D05`** (eos-orbutils `94dcc91 → 7b1268b`).
+  Opening Start showed a fixed category list with no keyboard input. The top-level menu now carries a
+  **search box**: typing filters a flat list of **every** app by name (case-insensitive) and shows a live
+  **result count**; **Enter** launches the highlighted (or first) match, **Backspace** narrows, **Esc**
+  closes, and an empty query restores the category view (nothing regresses). The query is fed from
+  orbital **`TextInput`** events — a `Key` event carries only the scancode, which is why the first
+  attempt (reading `key_event.character`) typed nothing. The Start window is created **once at a
+  worst-case fixed height** and never resized or recreated, so it keeps focus (stays open while typing)
+  and never clips results — resizing a live transparent window clipped later matches, and recreating it
+  dropped focus and closed the menu. Verified: launcher cross-compiles for `aarch64-unknown-redox`;
+  aarch64 image cooked from the pin; **render-verified** — the Start menu reads *"Szukaj: vi_
+  (3 wyników)"* and shows all three matches (`GVim`, `Viewer`, `Vim`) with the menu staying open. With
+  `U-098` this closes `R-D05` (search **+** local-time clock).
 - `[U-098]` **Launcher clock: local date + timezone (was UTC `HH:MM` only)** — first half of `R-D05`.
   The bar clock computed `ts % 86400` straight from `CLOCK_REALTIME`, so it showed raw **UTC** with no
   date. The launcher (`eos-orbutils` `cf121dc → 94dcc91`) now reads a timezone offset (seconds east of
