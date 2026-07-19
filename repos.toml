@@ -207,7 +207,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
-pinned_rev    = "cf121dc2b9a8d68af880df188e591813d084aefb"
+pinned_rev    = "94dcc91c821487004ac727932892a66984c233e6"
 
 [[repo]]
 name   = "eos-guard"

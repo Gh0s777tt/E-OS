@@ -62,6 +62,15 @@ path = "/etc/hostname"
 postinstall = true
 data = "eos"
 
+# Launcher clock timezone: seconds east of UTC. 7200 = UTC+2 (Poland CEST,
+# correct for the current season). A fixed offset — no DST/named-zone until a tz
+# database + per-machine timezone at OOBE (R-606). Edit this value (or set a
+# numeric TZ env) to relocalise the bar clock.
+[[files]]
+path = "/etc/tz-offset"
+postinstall = true
+data = "7200"
+
 # R-F08: keep the graphical greeter (VT3) in the foreground at boot.
 # minimal.toml's 30_console runs `inputd -A 2`; because desktop.toml includes
 # BOTH desktop-minimal.toml and server.toml (each pulling minimal.toml), the

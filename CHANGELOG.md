@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-098]` **Launcher clock: local date + timezone (was UTC `HH:MM` only)** — first half of `R-D05`.
+  The bar clock computed `ts % 86400` straight from `CLOCK_REALTIME`, so it showed raw **UTC** with no
+  date. The launcher (`eos-orbutils` `cf121dc → 94dcc91`) now reads a timezone offset (seconds east of
+  UTC) from **`/etc/tz-offset`** — a distinct path from Debian's zone-*name* file — falling back to a
+  numeric `TZ` env, default UTC; applies it; and renders the full local **`YYYY-MM-DD  HH:MM  UTC±H`**
+  via a small Howard-Hinnant civil-from-epoch helper (no `chrono` dependency), at 1× font (the string is
+  wider than the old `HH:MM`). Ships a default **`/etc/tz-offset = 7200`** (UTC+2, Poland CEST — correct
+  for the current season) in `config/{aarch64,x86_64}/eos.toml`. A fixed offset has **no DST/named-zone**;
+  that waits on a tz database + per-machine timezone at OOBE (`R-606`). Verified: launcher cross-compiles
+  (`cargo check` for `aarch64-unknown-redox`); aarch64 image cooked from the pin + config; **render-verified**
+  — captured at host **UTC 10:58**, the bar reads **`2026-07-19  12:58  UTC+2`** (exactly +2 h), fed by
+  the shipped `/etc/tz-offset`. Remaining half of `R-D05`: type-to-search in the Start menu.
 - `[U-097]` **E-OS Control v3 — rank processes by memory + a total-memory readout** (a task
   manager's first job is answering "what's eating my RAM?"; the list was in kernel order, which
   doesn't). Bumps `eos-control` recipe pin `fed7e32 → 7729720`. The Processes tab now **ranks rows
