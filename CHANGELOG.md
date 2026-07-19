@@ -7,6 +7,17 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-105]` **netsurf: local default homepage + click-to-launch verified** — meta-repo only
+  (`recipes/web/netsurf/recipe.toml`, `docs/design-netsurf-pie.md`). Verified the **real desktop
+  path**: clicking the Netsurf icon on the launcher bar opens the browser (not just a shell launch) —
+  no crash, window renders. But the Redox netsurf config **overrode netsurf's own `about:welcome`
+  default with `https://www.redox-os.org/`**, and Redox networking (DNS/TLS/netstack) is not
+  functional here yet, so a click-launch landed on a **blank white page**. A `sed` in the recipe
+  restores the local `about:welcome` default (netsurf's `Makefile.config` override → `about:welcome`),
+  so clicking Netsurf now renders the welcome page immediately. **Verified (boot + click-launch +
+  screendump):** the bar icon opens netsurf to the local welcome page in full — nav links, headings,
+  a search box, the link grid (`assets/screenshots/eos-netsurf-welcome.png`, now a clean shot).
+  Web browsing over the network is a separate, larger effort tracked as `R-D10`.
 - `[U-104]` **netsurf: fix the first-render crash — the browser renders now (`R-D06` ✅)** — meta-repo
   only (`recipes/web/netsurf/recipe.toml`, `docs/design-netsurf-pie.md`). After U-103 the PIE netsurf
   loaded and opened a window, but the body stayed black and it crashed on the first content render — a

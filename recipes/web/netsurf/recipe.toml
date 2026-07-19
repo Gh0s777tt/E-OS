@@ -45,6 +45,15 @@ rsync -av --delete "${COOKBOOK_SOURCE}/" ./
 # docs/design-netsurf-pie.md). Two call sites (sdl_initialise, sdl_set_geometry).
 sed -i 's/SDL_SWSURFACE | SDL_RESIZABLE/SDL_SWSURFACE/g' libnsfb/src/surface/sdl.c
 
+# --- E-OS: default homepage = the local welcome page -------------------------
+# netsurf's own default is "about:welcome" (a bundled local page), but the Redox
+# netsurf config overrides it to https://www.redox-os.org/. Redox networking
+# (DNS/TLS/netstack) is not functional here yet, so a no-arg launch of that
+# homepage just shows a blank white page. Restore the local default so clicking
+# Netsurf renders a real, useful page immediately. Flip back to a web URL once
+# networking works (tracked as R-D10).
+sed -i 's|override NETSURF_HOMEPAGE := "https://www.redox-os.org/"|override NETSURF_HOMEPAGE := "about:welcome"|' netsurf/Makefile.config
+
 # obscure crash from sccache if jobs number is too much
 COOKBOOK_MAKE_JOBS="$(( ${COOKBOOK_MAKE_JOBS} > 8 ? 8 : ${COOKBOOK_MAKE_JOBS} ))"
 

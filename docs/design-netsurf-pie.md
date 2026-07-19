@@ -116,3 +116,15 @@ an `UNHANDLED EXCEPTION` for `netsurf-fb`.
 resize support needs libnsfb to re-fetch `nsfb->ptr` (and post an
 `SDL_VIDEORESIZE`) *after* orbclient remaps — the correct home for that is the
 SDL orbital driver / libnsfb, not this recipe. Until then, resizable is off.
+
+## Launch & homepage
+
+Verified the real desktop path (not just a shell launch): clicking the **Netsurf
+icon on the launcher bar** opens the browser, no crash. The Redox netsurf config
+overrode netsurf's own `about:welcome` default with `https://www.redox-os.org/`,
+but Redox networking (netstack/DNS/TLS + the curl/openssl fetch path) is not
+functional on the aarch64/QEMU loop yet — a click-launch of that homepage showed
+a blank page. A `sed` in the recipe restores the local `about:welcome` default
+(netsurf's `Makefile.config` override), so clicking Netsurf renders the welcome
+page immediately. Flip the homepage back to a web URL once networking works
+(`R-D10`).
