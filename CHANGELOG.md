@@ -7,6 +7,19 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-097]` **E-OS Control v3 — rank processes by memory + a total-memory readout** (a task
+  manager's first job is answering "what's eating my RAM?"; the list was in kernel order, which
+  doesn't). Bumps `eos-control` recipe pin `fed7e32 → 7729720`. The Processes tab now **ranks rows
+  by private memory descending** — groups by their *summed* total, instances within an expanded
+  group likewise, ties broken by name so refreshes stay deterministic — so the biggest users float
+  to the top. The aggregate is surfaced too: a new **"Pamięć (prywatna)"** tile on Overview and a
+  **"N procesów · X pamięci · wg pamięci ↓"** footer on the Processes tab, both fed by a summed
+  `Overview.mem_bytes`. Verified: cross-build links for `aarch64-unknown-redox`; host `--selftest`
+  green; aarch64 image cooked from the pinned rev; **GUI render-verified** on the image — Overview
+  shows *"Pamięć (prywatna) 468.4 MB"*, and the Processes list is ordered strictly by the memory
+  column (`redoxfs` 81.3 MB → `virtio-netd ×3` 65.7 MB → `background ×2` 46.4 MB → `eos-control`
+  39.5 MB → `login ×3` 29.2 MB) with the footer reading *"44 procesów · 468.4 MB pamięci · wg
+  pamięci ↓"*. Grouping, human labels and force-kill from `U-096` remain intact.
 - `[U-096]` **E-OS Control v2 — process grouping + force-kill on the Processes tab** (user's request:
   don't scatter duplicate windows like Windows' task manager, and let me force-close a stuck process).
   Bumps `eos-control` recipe pin `af7a932 → fed7e32`. **Grouping:** many instances of one program (a
