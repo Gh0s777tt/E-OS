@@ -4,7 +4,7 @@
 # repos remain, archived). Dev + CI: https://gitlab.com/e-os/eos-control.
 git = "https://github.com/Gh0s777tt/eos-control.git"
 branch = "main"
-rev = "af7a9323d9f4250bb5e51e84c4e2d00a88e99544"
+rev = "fed7e32a48473186a072cabebdf3918df1dc5cd8"
 
 [build]
 template = "custom"

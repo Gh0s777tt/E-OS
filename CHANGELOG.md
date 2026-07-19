@@ -7,6 +7,25 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-096]` **E-OS Control v2 — process grouping + force-kill on the Processes tab** (user's request:
+  don't scatter duplicate windows like Windows' task manager, and let me force-close a stuck process).
+  Bumps `eos-control` recipe pin `af7a932 → fed7e32`. **Grouping:** many instances of one program (a
+  browser with several windows is the motivating case) collapse into a single `name ×N` header carrying
+  the *summed* private memory and the *union* of the group's open resources; collapsed by default for a
+  tidy view, expand/collapse remembered per app name — no more hunting duplicates down a flat list.
+  **Force-kill:** select a process and confirm (the dialog names the exact pid + process) to end it; on
+  Redox this is `libredox::call::kill` with `SIGKILL` — relibc routes it to the kernel's unblockable
+  **ForceKill** (the raw `redox_syscall` crate no longer exposes `kill`), POSIX `kill(2)` on a host.
+  `selftest.rs` gains an end-to-end kill proof (spawn a child, force-kill it, confirm it dies ≤3 s) and a
+  byte parse/format roundtrip that underpins the group memory sums. Verified: cross-build links for
+  `aarch64-unknown-redox`; host `--selftest` green (system + security + **kill** + byte roundtrip);
+  aarch64 image cooked from the pinned rev; on the image, **GUI render-verified** — the Processes tab
+  shows live group headers (`[init] ×3` 25.4 MB, `logd ×2` 7.5 MB) beside ungrouped single rows, and a
+  selected process (`PID 52 /usr/bin/sleep`) is force-killed through the confirm dialog → status
+  *"Zakończono PID 52"*; the boot/console selftest marker `EOS-CONTROL-SELFTEST-OK` proves `kill_core`
+  (spawn + ForceKill + confirm-gone) on the **real E-OS kernel**. (A force-killed process may linger
+  briefly as an unreaped zombie in `sys:context` until its parent reaps it — standard Unix semantics,
+  not a kill failure; the manager faithfully shows what the kernel reports.)
 - `[U-095]` **E-OS Control — one unified control center replaces the separate system + security tools** —
   new pinned repo `eos-control` (dev+CI: gitlab.com/e-os/eos-control, GitHub mirror; AGPL-3.0-or-later),
   recipe `recipes/gui/eos-control`, shipped in `config/{aarch64,x86_64}/eos.toml` **instead of**
