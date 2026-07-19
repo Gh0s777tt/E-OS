@@ -7,6 +7,17 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-107]` **eos-control: Storage tab (root filesystem usage via `statvfs`)** — eos-control
+  `301e054 → 847220c`. Adds a **"Dyski"** tab showing the root filesystem's **capacity / used / free /
+  use-%**. `sys::storage()` reads it via `statvfs`: on E-OS through **`libredox::call::fstatvfs`**
+  (redoxfs answers with real block counts — `f_blocks`, `f_bavail`), on a host through POSIX
+  `statvfs(2)`; cross-platform and never panics (a failed query → all-zero → the tab shows "—"). The
+  `--selftest` gains `storage_core` (self-consistency: free ≤ total; tolerant of an unsupported
+  statvfs). Sibling of the Network tab, same Tile pattern. Verified: slint UI + Rust cross-compile
+  for aarch64-redox (`cook eos-control - successful`); host `--selftest` prints
+  `EOS-CONTROL-SELFTEST-OK`; aarch64 image cooked; **render-verified** — the Dyski tab reads the live
+  redoxfs: **Pojemność 1.4 GB · Zajęte 436.8 MB · Wolne 960.2 MB · Wykorzystanie 31 %** (the 1.4 GB
+  matches `filesystem_size = 1400`; `assets/screenshots/eos-control-storage.png`).
 - `[U-106]` **eos-control: Network tab (live `/etc/net` config + stack status)** — eos-control
   `7729720 → 301e054`. Adds a **"Sieć"** tab to the control panel showing the current network
   configuration read from the files the base image ships (dhcpd keeps them current): **IP**
