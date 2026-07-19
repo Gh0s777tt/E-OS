@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/orbutils (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-orbutils.git"
 branch = "master"
-rev = "7b1268b9ca69075fedc0ac9e7403be73aac59f02"
+rev = "60c262d0808b4b35a90082b49612f2afd843288c"
 
 [build]
 template = "custom"
@@ -10,6 +10,8 @@ script = """
 DYNAMIC_INIT
 mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui"
 cp -rv "${COOKBOOK_SOURCE}/apps" "${COOKBOOK_STAGE}/usr/share/ui/apps"
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/icons/status"
+cp -v "${COOKBOOK_SOURCE}/status/"*.png "${COOKBOOK_STAGE}/usr/share/icons/status/"
 
 COOKBOOK_CARGO_PATH="orbutils" cookbook_cargo
 COOKBOOK_CARGO_PATH="launcher" cookbook_cargo

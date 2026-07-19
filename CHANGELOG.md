@@ -7,6 +7,17 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-101]` **Status tray: real icons + click-to-Settings** — first step of `R-D02` (eos-orbutils
+  `7b1268b → 60c262d`). The launcher loaded `/usr/share/ui/icons/status/tray-{net,vol,set}.png`, but those
+  files **never existed anywhere**, so the tray was invisible *and* a dead click target. Ship three 32-px
+  crimson glyphs — a signal-bars network icon, a speaker with sound arcs, a settings gear — staged by the
+  recipe to `/usr/share/icons/status` (which `/usr/share/ui/icons` symlinks to); and make a click anywhere
+  on the tray open **E-OS Settings** (`draw()` records the tray's x-span, which depends on the clock-text
+  width, and the bar's click handler hit-tests it). This lands the R-D02 "gear launches Settings" goal now
+  that the Settings shell (`R-D01`) exists. Verified: aarch64 image cooked from the pin with the icons
+  staged; **render-verified** — the bar now shows the three tray glyphs left of the clock, and clicking the
+  tray opens the E-OS Settings window (`assets/screenshots/eos-tray-settings.png`). Live state reflection
+  (net from netstack, a volume popup via audiod — audio is absent on the QEMU dev loop) is the R-D02 follow-up.
 - `[U-100]` **Compositor screenshot — Super-P → `/home/user/screenshot-N.bmp`** (`R-D04`; eos-orbital
   `7ee7c04 → 38226c7`). E-OS had no screenshot tool, and a standalone one **can't** work: orbital is the
   DRM master, so the full composited desktop image exists only in orbital's own CPU shadow buffer — the
