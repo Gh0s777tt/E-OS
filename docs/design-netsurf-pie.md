@@ -1,9 +1,11 @@
 # NetSurf on E-OS: the PIE / host-toolchain story (R-D06)
 
 **What this is:** why E-OS builds NetSurf *from source as a PIE* instead of using
-the upstream prebuilt, how the build was unblocked, and the one wall that still
-stands. **Status: partial** — the browser now *loads, runs and opens a window*;
-it still crashes during the first content render. Read this before touching
+the upstream prebuilt, and the three bugs that stood between "clicking the
+browser instantly crashes" and a working browser. **Status: working** — NetSurf
+now launches and renders (proof: it paints `welcome.html` — toolbar, address bar,
+the NetSurf logo image, headings, links and a search box; `assets/screenshots/
+eos-netsurf-welcome.png`). Read this before touching
 `recipes/web/netsurf/recipe.toml` or `scripts/redoxer-host-stub.sh`.
 
 ## The symptom
@@ -74,28 +76,43 @@ remote prebuilt and `cook` always builds from source → the image always gets t
 PIE. (Confirmed: cooking with `--repo-binary` leaves the locally-built pkgar
 byte-identical; it is not re-downloaded.)
 
-## Current status — what works, what doesn't
+## Layer 4 — the render crash: use-after-munmap of the window buffer
 
-**Works (proven by boot + screendump):** the PIE `netsurf-fb` now *loads and
-runs* — no more load-time fault. It initialises SDL over the orbital video
-driver (`Setting mode 800x600@32`) and **opens an 800×600 window on the
-desktop** with orbital decorations.
+With a PIE that loaded and ran, NetSurf opened an 800×600 window but its body
+stayed black and it then crashed during the first content render — a userspace
+data abort at a *deterministic code location* (crash `ELR` page-offset `0x718`,
+fault `FAR` offset `0xf83`; absolute addresses varied run-to-run because a PIE
+loads at a randomised base). The tell was the `funmap` warning logged just
+before the fault: `length 0x1d4c00` = **1,920,000 = 800 × 600 × 4** — exactly the
+32-bpp framebuffer surface. So the crash was a **use-after-munmap of the window
+pixel buffer**, and the fault offset `0xf83` sits near the top-left of that
+buffer — where NetSurf starts plotting the page.
 
-**Open (R-D06 remains):** the window body stays black and the process then
-crashes during its first content render — a userspace data abort at a
-*deterministic code location* (crash `ELR` page-offset `0x718`, fault `FAR`
-offset `0xf83`; the absolute addresses vary run-to-run because a PIE is loaded at
-a randomised base). A non-page-aligned `funmap` warning
-(`length 0x1d4c00 instead of 0x1d5000`) is logged just before the fault and is
-the leading suspect. This is a separate, deeper NetSurf-on-Redox rendering bug
-(framebuffer/`libnsfb` surface handling, the SDL-orbital surface, or freetype),
-independent of the toolchain and PIE work above.
+The chain, read from source:
 
-### Next step for the render crash
+1. libnsfb's SDL surface (`libnsfb/src/surface/sdl.c`) opens the screen with
+   `SDL_SetVideoMode(…, SDL_SWSURFACE | SDL_RESIZABLE)` and caches the pixel
+   pointer: `nsfb->ptr = sdl_screen->pixels`.
+2. The Redox SDL orbital driver backs that surface with an orbital window:
+   `current->pixels = orb_window_data(window)` — a pointer into orbclient's mmap
+   of the window (the 1,920,000-byte buffer). `SDL_RESIZABLE` →
+   `ORB_WINDOW_RESIZABLE` → orbclient's `Window { resizable: true }`.
+3. In orbclient's event pump (`Window::events()`), a **resizable** window reacts
+   to the `EVENT_RESIZE` orbital sends on first map by calling `set_size()`,
+   which `unmap()`s the old buffer (**the 1,920,000 `funmap`**) and `remap()`s a
+   new one at a new address — but libnsfb still holds the *old* `nsfb->ptr`.
+4. NetSurf's first plot writes into the freed buffer → data abort.
 
-Symbolicate the fault: NetSurf is built with `-g`, so `ELR − load_base` →
-`addr2line` gives the exact source line. The blocker is obtaining the PIE load
-base at crash time on Redox (no `/proc/<pid>/maps`); options are an `ld.so`
-debug env, a fixed-base (ASLR-off) load for one diagnostic run, or bisecting the
-render path. Once the line is known the fix likely lands in the NetSurf
-framebuffer frontend or the SDL-orbital surface, not in this recipe.
+### The fix (`recipes/web/netsurf/recipe.toml`)
+
+Drop `SDL_RESIZABLE` from libnsfb's two `SDL_SetVideoMode` call sites (a `sed`
+after the source rsync). That leaves orbclient's `resizable` false, so
+`events()` never remaps the buffer out from under `nsfb->ptr`, and the page
+renders. Verified by boot + screendump: NetSurf paints `welcome.html` in full
+(`assets/screenshots/eos-netsurf-welcome.png`), and the serial no longer records
+an `UNHANDLED EXCEPTION` for `netsurf-fb`.
+
+**Trade-off / follow-up:** the NetSurf window is fixed-size for now. Proper
+resize support needs libnsfb to re-fetch `nsfb->ptr` (and post an
+`SDL_VIDEORESIZE`) *after* orbclient remaps — the correct home for that is the
+SDL orbital driver / libnsfb, not this recipe. Until then, resizable is off.

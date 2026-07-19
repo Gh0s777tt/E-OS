@@ -30,6 +30,21 @@ DYNAMIC_INIT
 # Netsurf does not currently support out-of-tree builds :(
 rsync -av --delete "${COOKBOOK_SOURCE}/" ./
 
+# --- E-OS: netsurf's SDL window must not be resizable ------------------------
+# libnsfb's SDL surface caches the framebuffer pointer (nsfb->ptr = the SDL
+# screen surface's pixels, which on Redox is orbclient's mmap of the orbital
+# window). When the window is SDL_RESIZABLE, orbclient's event pump (events())
+# reacts to the resize event orbital sends on first map by calling set_size(),
+# which munmaps the old 800x600x4 buffer and mmaps a new one — but libnsfb still
+# holds the *old* pointer. netsurf's first plot then writes into the freed buffer
+# and faults (data abort / use-after-munmap; FAR lands at a small offset inside
+# the ~1.83 MB surface). Dropping SDL_RESIZABLE keeps orbclient's `resizable`
+# false, so the buffer is never remapped out from under nsfb->ptr and the page
+# renders. Trade-off: the netsurf window is fixed-size for now; proper resize
+# needs libnsfb to re-fetch the pointer after each remap (see
+# docs/design-netsurf-pie.md). Two call sites (sdl_initialise, sdl_set_geometry).
+sed -i 's/SDL_SWSURFACE | SDL_RESIZABLE/SDL_SWSURFACE/g' libnsfb/src/surface/sdl.c
+
 # obscure crash from sccache if jobs number is too much
 COOKBOOK_MAKE_JOBS="$(( ${COOKBOOK_MAKE_JOBS} > 8 ? 8 : ${COOKBOOK_MAKE_JOBS} ))"
 

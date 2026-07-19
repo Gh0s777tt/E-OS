@@ -7,6 +7,21 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-104]` **netsurf: fix the first-render crash — the browser renders now (`R-D06` ✅)** — meta-repo
+  only (`recipes/web/netsurf/recipe.toml`, `docs/design-netsurf-pie.md`). After U-103 the PIE netsurf
+  loaded and opened a window, but the body stayed black and it crashed on the first content render — a
+  **use-after-munmap of the 800×600×4 window buffer** (`funmap length 0x1d4c00` = 1,920,000 = 800·600·4
+  was the tell; fault `FAR` offset `0xf83` = near the top-left of that buffer). Chain, read from source:
+  libnsfb (`surface/sdl.c`) caches `nsfb->ptr = SDL surface pixels`; the Redox SDL orbital driver backs
+  that with `orb_window_data()` (orbclient's mmap of the window); a `SDL_RESIZABLE` window makes
+  orbclient's `Window::events()` `unmap`+`remap` that buffer on the resize event orbital sends on first
+  map — invalidating the pointer libnsfb still holds → netsurf's first plot writes into freed memory.
+  Fix: a `sed` in the recipe drops `SDL_RESIZABLE` from libnsfb's two `SDL_SetVideoMode` sites, so
+  orbclient's `resizable` stays false and the buffer is never remapped out from under `nsfb->ptr`.
+  **Verified (boot + screendump):** netsurf renders `welcome.html` in full — toolbar, address bar, the
+  NetSurf logo image, headings, links, a search box (`assets/screenshots/eos-netsurf-welcome.png`); the
+  serial no longer logs an `UNHANDLED EXCEPTION` for `netsurf-fb`. Trade-off: the window is fixed-size
+  for now (proper resize = libnsfb re-fetching the pointer after each remap; tracked as `R-D07`).
 - `[U-103]` **netsurf: build from source as a PIE (partial — `R-D06`)** — meta-repo only
   (`recipes/web/netsurf/recipe.toml`, `scripts/redoxer-host-stub.sh`, `docs/design-netsurf-pie.md`).
   The browser died the instant it was clicked (data abort, `ESR 0x92000047`): the image shipped the
