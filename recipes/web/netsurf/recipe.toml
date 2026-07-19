@@ -41,6 +41,31 @@ export LDFLAGS="${LDFLAGS} -lcurl -lnghttp2"
 # netsurf mixes up CFLAGS for host and build
 export CC="${CC} ${CPPFLAGS}"
 
+# --- E-OS: force a position-independent executable ---------------------------
+# aarch64-unknown-redox only loads PIE binaries; a plain ET_EXEC faults at load
+# (data abort, ESR 0x92000047 — the "netsurf dies the instant you click it"
+# symptom). netsurf-all is a tree of nested sub-makes that build static libs
+# later linked into netsurf-fb, so we cannot trust CFLAGS to reach every object.
+# Instead we wrap CC: *every* compile gets -fPIC and the *final* link (an
+# invocation with neither -c nor -shared) gets -pie. The quoted heredoc keeps
+# $@/$pie/$REALCC literal in the wrapper (expanded at wrapper run-time), so the
+# recipe needs no backslashes and stays a plain TOML triple-quoted string. Drop
+# this and the from-source build silently reproduces the upstream non-PIE
+# prebuilt that crashes on boot. See docs/design-netsurf-pie.md for the full why.
+export REALCC="${CC}"
+mkdir -p "${PWD}/.pie"
+cat > "${PWD}/.pie/cc" <<'PIEWRAP'
+#!/bin/sh
+pie=-pie
+for a in "$@"; do
+    [ "$a" = "-c" ] && pie=
+    [ "$a" = "-shared" ] && pie=
+done
+exec $REALCC -fPIC $pie "$@"
+PIEWRAP
+chmod +x "${PWD}/.pie/cc"
+export CC="${PWD}/.pie/cc"
+
 "$COOKBOOK_MAKE" PREFIX=/usr V=1 -j"$COOKBOOK_MAKE_JOBS"
 "$COOKBOOK_MAKE" DESTDIR="$COOKBOOK_STAGE" PREFIX=/usr install -j"$COOKBOOK_MAKE_JOBS"
 mkdir -pv "$COOKBOOK_STAGE/usr/share/ui/apps"

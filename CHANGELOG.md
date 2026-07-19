@@ -7,6 +7,23 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-103]` **netsurf: build from source as a PIE (partial — `R-D06`)** — meta-repo only
+  (`recipes/web/netsurf/recipe.toml`, `scripts/redoxer-host-stub.sh`, `docs/design-netsurf-pie.md`).
+  The browser died the instant it was clicked (data abort, `ESR 0x92000047`): the image shipped the
+  **upstream non-PIE `ET_EXEC` prebuilt** (pulled by `--repo-binary`), and aarch64-Redox only loads PIEs.
+  A from-source build was itself blocked because `host:gperf` builds via `cookbook_redoxer`, whose
+  `toolchain()` tried to **download a host→host relibc toolchain that redox never publishes → 404**
+  (`unable to init toolchain`). Fixes: **(1)** `scripts/redoxer-host-stub.sh` pre-creates the per-target
+  `~/.redoxer/<host>/toolchain` stub so redoxer skips the misfired download (host builds use system
+  `gcc`/`g++`); it never touches the real cross toolchain. **(2)** a **CC-wrapper** in the recipe forces
+  `-fPIC` on every compile and `-pie` on the final link. Verified: `host:gperf` + `cook netsurf` now build
+  from source; `netsurf-fb` is a `DYN`/`pie executable` (`readelf`/`file`) both staged and inside the
+  image; with the recipe now differing from upstream, `--repo-binary` no longer re-downloads the prebuilt
+  (local pkgar stays byte-identical). **Runtime: partial** — the PIE `netsurf-fb` now *loads, runs and
+  opens an 800×600 window* on the desktop (boot + screendump; the load-time crash is gone), **but** the
+  window body stays black and it then crashes during the first content render — a deterministic-location
+  data abort (crash `ELR` page-offset `0x718`, `FAR` offset `0xf83`). That render crash is a separate,
+  deeper netsurf-on-Redox bug and stays open under `R-D06`; full analysis in `docs/design-netsurf-pie.md`.
 - `[U-102]` **Notifications: a minimal daemon + client (`eos-notifyd` / `eos-notify`)** — `R-D03`
   (eos-orbutils `60c262d → 8ad7cd8`). E-OS had no way to surface "updates available" / driver events.
   Adds two launcher-crate binaries: **`eos-notifyd`** polls `/tmp/eos-notify` for a `"title\nbody"`
