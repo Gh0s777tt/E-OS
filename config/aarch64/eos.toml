@@ -18,6 +18,7 @@ target = "aarch64-unknown-redox"
 #   Both build on the shared eos-ui backend. Recipe: recipes/gui/eos-guard.
 [packages.eos-notes]
 [packages.eos-guard]
+[packages.eos-sysmon]
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and

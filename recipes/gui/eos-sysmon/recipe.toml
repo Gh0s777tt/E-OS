@@ -1,0 +1,15 @@
+[source]
+# E-OS original app — Crimson system monitor (Slint + sys: scheme reads).
+# Dev + CI: https://gitlab.com/e-os/eos-sysmon (recipes fetch the GitHub mirror).
+git = "https://github.com/Gh0s777tt/eos-sysmon.git"
+branch = "main"
+rev = "b50f81a8b7fde5c85b2440e673d95b06b47950ac"
+
+[build]
+template = "custom"
+script = """
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/50_eos-sysmon" "${COOKBOOK_STAGE}/usr/share/ui/apps/50_eos-sysmon"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-sysmon.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-sysmon.png"
+"""

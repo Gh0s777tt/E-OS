@@ -238,6 +238,16 @@ gitlab = "https://gitlab.com/e-os/eos-ui.git"
 # GUI apps), locked by each consumer's Cargo.lock — not a standalone image pkg.
 pinned_in_recipe = false
 
+[[repo]]
+name   = "eos-sysmon"
+role   = "gui"
+github = "https://github.com/Gh0s777tt/eos-sysmon.git"
+gitlab = "https://gitlab.com/e-os/eos-sysmon.git"
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-sysmon"
+pinned_branch = "main"
+pinned_rev    = "b50f81a8b7fde5c85b2440e673d95b06b47950ac"
+
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
 name   = "eos-liborbital"

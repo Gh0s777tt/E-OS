@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-094]` **E-OS Sysmon — the third original app (system monitor), first built straight from the app
+  guide** — new pinned repo `eos-sysmon` (dev+CI: gitlab.com/e-os/eos-sysmon, GitHub mirror;
+  AGPL-3.0-or-later), recipe `recipes/gui/eos-sysmon`, enabled in `config/{aarch64,x86_64}/eos.toml`,
+  launcher entry + crimson icon (`usr/share/ui/apps/50_eos-sysmon`). A Crimson system monitor: system
+  identity, logical CPU count and the **live process list** (2 s refresh), read from the kernel `sys:`
+  scheme (`sys:uname` / `sys:cpu` / `sys:context`); a host build reads `/proc` so the CLI/selftest half
+  stays honest. It's the first app written **directly from the new `docs/creating-an-eos-app.md`
+  skeleton** — logic (`sysinfo.rs`) split from UI, GUI behind the default `gui` feature on the shared
+  `eos-ui` backend, no storage — and it cross-built for `aarch64-unknown-redox` and passed
+  `EOS-SYSMON-SELFTEST-OK` on the first try, validating the guide. Verified: cross-build + host selftest
+  green; aarch64 image build + boot-smoke; boot probe prints `EOS-SYSMON-SELFTEST-OK` on the serial;
+  GUI render-verified on the image.
 - `[U-093]` **Documentation standard + tooling — `CLAUDE.md`, `ARCHITECTURE.md`, an app guide, a docs PDF,
   and enforcement** — makes "every change updates its docs" an explicit, discoverable, partly-enforced
   standard. Adds **`CLAUDE.md`** (the working agreement: three verification gates, a Definition of Done, a
