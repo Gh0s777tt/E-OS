@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-100]` **Compositor screenshot — Super-P → `/home/user/screenshot-N.bmp`** (`R-D04`; eos-orbital
+  `7ee7c04 → 38226c7`). E-OS had no screenshot tool, and a standalone one **can't** work: orbital is the
+  DRM master, so the full composited desktop image exists only in orbital's own CPU shadow buffer — the
+  capture has to live in the compositor. **Super-P** copies that shadow buffer (`Display::screenshot`) and
+  writes it as an uncompressed 32-bit (BGRA) BMP via a tiny hand-rolled encoder — **no image-codec
+  dependency** — with a per-shot counter so captures don't overwrite. Adds `Compositor::displays_mut` and
+  a shortcuts-list entry. Verified: orbital cross-compiles for `aarch64-unknown-redox`; aarch64 image
+  cooked from the pin; **render-verified end-to-end** — pressing Super-P created `/home/user/screenshot-0.bmp`
+  of exactly **1,920,054 bytes** (= 54-byte header + 800×600×4), a valid BMP (magic `BM`, header 800×600),
+  and the file, **extracted from the image via redoxfs and viewed**, shows the real desktop at that instant
+  (icons, taskbar with the `U-098` local-time clock, and — since Super was held — the shortcuts overlay,
+  which now lists the new *"Super-P: Screenshot"* entry). `assets/screenshots/eos-screenshot-selfshot.png`.
 - `[U-099]` **Launcher Start-menu type-to-search — completes `R-D05`** (eos-orbutils `94dcc91 → 7b1268b`).
   Opening Start showed a fixed category list with no keyboard input. The top-level menu now carries a
   **search box**: typing filters a flat list of **every** app by name (case-insensitive) and shows a live

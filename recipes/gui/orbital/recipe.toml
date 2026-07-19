@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/orbital (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-orbital.git"
 branch = "master"
-rev = "7ee7c04752c3b4dd2d159d29e0ed8e2b3bcba55b"
+rev = "38226c74b0b1e88c5ce487208474fc55b43a25a1"
 
 [build]
 template = "cargo"

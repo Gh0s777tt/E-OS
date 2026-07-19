@@ -187,7 +187,7 @@ gitlab = "https://gitlab.com/e-os/eos-orbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbital"
 pinned_branch = "master"
-pinned_rev    = "7ee7c04752c3b4dd2d159d29e0ed8e2b3bcba55b"
+pinned_rev    = "38226c74b0b1e88c5ce487208474fc55b43a25a1"
 
 [[repo]]
 name   = "eos-orbterm"
