@@ -62,6 +62,7 @@ space** — a compromised driver is a compromised *process*, not a kernel.
 - **Drivers** (nvmed, e1000d, xhcid, …) → userspace, per-scheme confinement.
 - **Bootloader** → built from source (E-OS fork), verifiable; handles the encrypted-disk password prompt.
 - **Login / auth** → `redox_users` with **argon2** password hashing; per-user scheme namespaces (`/etc/login_schemes.toml`).
+- **Privileged GUI actions** (`eos-power`, the control-panel reboot/shutdown) → `sys:kstop` is root-only, and the GUI runs as the desktop user. Rather than run the GUI as root, a **short-lived `eos-power` shim** elevates via `/scheme/sudo` (the same daemon `sudo` uses — it checks sudo-group membership **and** the user's password, which the GUI pipes on the shim's **stdin**, never argv, so it never appears in `ps`) and then does exactly one thing: write `sys:kstop`. Blast radius even if the shim were abused is a **local reboot/poweroff** — and it still requires the user's password plus local access, which a password-holding user could already spend on `sudo shutdown`. The GUI process itself is **never elevated**; the password is held only transiently in the GUI and cleared after use. See `docs/design-eos-power.md`.
 - **Build pipeline** → forks + reproducible source + SBOM + checksums (+ optional minisign signing).
 
 ## 5. Inherited strengths (from Redox, kept by E-OS)
