@@ -7,6 +7,38 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-111]` **build: fix the Podman container build for repo paths containing a space** — `mk/podman.mk`.
+  The repo lives at `.../Moje Projekty/E-OS` (a space in "Moje Projekty"). `PODMAN_VOLUMES` and the
+  `mkdir -p $(PODMAN_HOME)` in the `build/container.tag` rule interpolated `$(ROOT)` **unquoted**, so
+  the shell word-split `--volume /Users/.../Moje Projekty/E-OS:/mnt/redox:Z` into separate tokens →
+  `podman build`/`podman run` got stray positional args and died (`Error: accepts at most 1 arg(s),
+  received 2` / `invalid reference format`). Worse, the rule ran `podman image rm --force redox-base`
+  **before** the (now-failing) build, so it deleted the working image and couldn't rebuild it. Fix:
+  **quote the mount specs** in `PODMAN_VOLUMES` (covers both `PODMAN_RUN` and the `container.tag`
+  `podman build`) and the `mkdir`/`rm -rf` of `PODMAN_HOME`, and **drop the pre-emptive `podman image
+  rm`** (`podman build --tag` replaces the tag on success, so a failed build can no longer leave the
+  machine image-less). Verified with `make -n ARCH=aarch64 CONFIG_NAME=eos build/container.tag` +
+  `… env`: every mount now emits quoted, e.g. `--volume "/Users/.../Moje Projekty/E-OS:/mnt/redox:Z"`.
+  Build-neutral (no image/recipe change); unblocks building from a space-bearing path.
+- `[U-110]` **eos-control: Sound tab (master volume via audiod's `audio:volume`) — `R-D07` mixer half** —
+  eos-control `aa9029a → a76d0587`. Adds a **"Dźwięk"** tab. audiod serves the `audio:` scheme; its
+  **`audio:volume`** control is a plain decimal `0–100` read/written as a file, so `sys::audio()` reads
+  it and `sys::set_volume()` writes the slider value back (a **mute** button sets 0 and restores the
+  remembered level — audiod has no mute flag). audiod only serves `audio:` once an `audiohw:` driver is
+  up, so the tab **detects an absent stack** (the open fails → `available = false`) and shows an honest
+  **"Audio niedostępne"** explanation rather than a slider that controls nothing. The interface was
+  recon'd from the audiod source (`scheme.rs` `Volume` handle: read → `{volume}`, write parses + clamps
+  `0..=100`). `--selftest` gains `audio_core` — it exercises the pure `clamp_volume` / `parse_volume`
+  helpers + the read path but only *references* `set_volume` (writing would move the live level
+  mid-boot), like `power_core`; host `EOS-CONTROL-SELFTEST-OK`. **Honest gap (see
+  `docs/known-issues.md` + ROADMAP `R-D07`):** on the aarch64/QEMU loop there is **no audio** — `ihdad`
+  binds the QEMU Intel-HDA controller but times out on the codec **RIRB** response, so audiod exits and
+  `audio:` never appears (proven by serial). So the end-to-end volume change is **provable only on real
+  HDA hardware**, and the tab is designed to render its honest "unavailable" state there. The read/write
+  contract is verified against the audiod source; the **gui cross-compile + boot are gated by the
+  heavy CI `build-image` job** (this pin bump triggers it). **Local render-verify of the tab is
+  deferred** — this build host has no cooked tree, so a screendump needs a full from-scratch OS build;
+  noted honestly rather than claimed. rustfmt clean; host build + `--selftest` green.
 - `[U-109]` **eos-control: power actions now WORK — `eos-power` shim + password dialog (`R-D11` ✅)** —
   eos-control `2c043b4 → aa9029a`. Completes U-108: reboot/shutdown from the GUI now actually take the
   machine down. The control `sys:kstop` is root-only and the GUI runs as the desktop user (whose

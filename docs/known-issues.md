@@ -5,6 +5,45 @@ Resolved items are kept below for the record.
 
 ---
 
+## 🟡 No audio on the aarch64/QEMU loop — `ihdad` times out on the HDA RIRB (OPEN, 2026-07-23, U-110)
+
+Does **not** block boot — audio is a peripheral — but it means the E-OS Control
+**Sound** tab (`R-D07`) cannot have its volume control proven on the dev loop,
+and any audio app is silent there.
+
+With a QEMU HDA device present (`-device intel-hda -device hda-duplex`) the audio
+stack gets **most** of the way up and then stalls at the codec handshake:
+
+```
+PCI 0000:00:04.0 8086:2668 04.03.00.01 4        ← QEMU presents an Intel HDA (ICH6)
+pcid-spawner: spawn "/usr/lib/drivers/ihdad"     ← ihdad IS in the aarch64 image; pcid maps it
+IHDA pci-0000-00-04.0 on: 0=10040000 IRQ: …      ← controller BAR mapped, IRQ allocated
+ihdad::hda::cmdbuff: timeout on RIRB response     ← ⚠ the codec never answers (CORB/RIRB DMA)
+ihdad: HDA initialization failed (I/O error); audio unavailable
+audiod: No such device → exited without notifying readiness
+```
+
+The device **and** the driver are both present — the failure is `ihdad` timing
+out on the codec's **RIRB** (Response Input Ring Buffer) after it posts a CORB
+command. audiod then can't open `audiohw:` and exits (its `main.rs` opens
+`/scheme/audiohw` *before* creating the `audio:` scheme), so `audio:` — and its
+`audio:volume` control — never appears.
+
+**Likely cause:** an aarch64-specific **DMA / cache-coherency** issue in the
+CORB/RIRB ring setup. `ihdad`'s device comments list QEMU ICH9 (`8086:293E`) as a
+tested target and it works on x86 QEMU, so the driver logic is sound; the ring
+buffers it hands the controller aren't observed coherently on aarch64 (device-DMA
+memory attributes / cache maintenance), so the RIRB write never becomes visible
+and the read times out.
+
+**Fix path (dedicated session, a `drivers` fork change):** audit `ihdad`'s
+CORB/RIRB allocation for aarch64 — map the ring memory uncached/device (or
+maintain caches around the controller's writes) and re-check the RIRB
+write-pointer / interrupt path. Until then the Sound tab detects the absent
+`audio:` scheme and says so plainly instead of showing a dead slider.
+
+---
+
 ## 🔴 netsurf-fb crashes at startup on aarch64 (OPEN, 2026-07-12, U-039)
 
 `netsurf-fb` is the **only ET_EXEC (non-PIE) dynamic binary** in the image, and

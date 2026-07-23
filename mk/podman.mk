@@ -30,8 +30,11 @@ endif
 
 ## Podman Home Directory
 PODMAN_HOME=$(ROOT)/build/podman
-## Podman command with its many arguments
-PODMAN_VOLUMES=--volume $(ROOT):$(CONTAINER_WORKDIR)$(PODMAN_VOLUME_FLAG) --volume $(PODMAN_HOME):/root$(PODMAN_VOLUME_FLAG)
+## Podman command with its many arguments.
+## The mount specs are quoted so a space in the repo path (e.g. ".../Moje
+## Projekty/E-OS") isn't word-split by the shell — an unquoted --volume there
+## made podman see stray args and fail (`accepts at most 1 arg(s)`).
+PODMAN_VOLUMES=--volume "$(ROOT):$(CONTAINER_WORKDIR)$(PODMAN_VOLUME_FLAG)" --volume "$(PODMAN_HOME):/root$(PODMAN_VOLUME_FLAG)"
 PODMAN_ENV=--env PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PODMAN_BUILD=0
 PODMAN_CONFIG=--env ARCH=$(ARCH) --env BOARD=$(BOARD) --env CONFIG_NAME=$(CONFIG_NAME) --env FILESYSTEM_CONFIG=$(FILESYSTEM_CONFIG) --env PREFIX_BINARY=$(PREFIX_BINARY) \
                --env CI=$(CI) --env COOKBOOK_MAKE_JOBS=$(COOKBOOK_MAKE_JOBS) --env COOKBOOK_LOGS=$(COOKBOOK_LOGS) --env COOKBOOK_VERBOSE=$(COOKBOOK_VERBOSE) --env COOKBOOK_COMPRESSED=$(COOKBOOK_COMPRESSED) \
@@ -50,7 +53,7 @@ endif
 container_clean: FORCE
 	rm -f build/container.tag
 	@echo "If podman dir cannot be removed, remove with \"sudo rm\"."
-	-rm -rf $(PODMAN_HOME) || true
+	-rm -rf "$(PODMAN_HOME)" || true
 	@echo "For complete clean of images and containers, use \"podman system reset\""
 	-podman image rm --force $(IMAGE_TAG) || true
 
@@ -70,8 +73,10 @@ container_kill: FORCE
 build/container.tag: $(CONTAINERFILE)
 ifeq ($(PODMAN_BUILD),1)
 	rm -f $@ $(FSTOOLS_TAG)
-	-podman image rm --force $(IMAGE_TAG) || true
-	mkdir -p $(PODMAN_HOME)
+	# Don't delete the working image up front: `podman build --tag` replaces the
+	# tag on success, and pre-deleting meant a *failed* build (e.g. the old
+	# unquoted-volume bug) left the machine with no image at all.
+	mkdir -p "$(PODMAN_HOME)"
 	@echo "Building Podman image. This may take some time."
 	cat $(CONTAINERFILE) | podman build --file - $(PODMAN_VOLUMES) $(PODMAN_CACHE) --tag $(IMAGE_TAG)
 	$(PODMAN_RUN) bash -e podman/rustinstall.sh

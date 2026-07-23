@@ -256,7 +256,7 @@ gitlab = "https://gitlab.com/e-os/eos-control.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-control"
 pinned_branch = "main"
-pinned_rev    = "aa9029acb2ea9b4f6aff213b5cb272b23e22307a"
+pinned_rev    = "a76d0587dab1aea841f65caab3679c7374b18e5c"
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
