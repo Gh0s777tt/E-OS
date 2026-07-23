@@ -3,6 +3,54 @@
 Practical fixes for issues hit while building and testing E-OS in the containerised
 (Podman) WSL2 environment described in [EOS_BUILD_STATE.md](../EOS_BUILD_STATE.md).
 
+## Apple-Silicon macOS + Podman: the build dies at the first `cargo build` (`Input/output error (os error 5)`)
+
+**Symptom** — on an Apple-Silicon Mac driving `podman machine` (applehv), `make … all`
+gets through the container image **and** the prefix toolchain, then dies at the first
+host-side `cargo build` (e.g. `build/fstools.tag`):
+
+```
+error: failed to read `/mnt/redox/Cargo.toml`
+  Input/output error (os error 5)
+make: *** [mk/fstools.mk:47: build/fstools.tag] Error 101
+```
+
+**Cause — the Podman `virtiofs` bind mount can't serve cargo/rustc's file access.**
+The repo is bind-mounted into the build container (`--volume $ROOT:/mnt/redox`). On
+podman-machine (macOS) that mount is **virtiofs**, and it does **not** reliably serve
+the memory-mapped / metadata-heavy reads cargo and rustc use. A plain read of a file
+works while a *cargo* read of the **same** file fails with `EIO` — proving it's the
+access pattern, not the file:
+
+```
+$ podman run … redox-base bash -c 'cat /mnt/redox/Cargo.toml >/dev/null && echo OK'
+OK                                     # plain read — fine
+$ podman run … redox-base bash -c 'cd /mnt/redox && cargo metadata …'
+… Input/output error (os error 5)      # cargo/mmap read — fails
+```
+
+This is why a local from-scratch build has **never** worked from a macOS checkout (the
+recipe `target/` trees stay empty) — every `cargo`/`rustc` step would hit it. It is
+**not** an E-OS bug; it's a podman-macOS virtiofs limitation.
+
+**What *does* work on macOS.** The container build itself, the space-in-path fix
+(`U-111`, `mk/podman.mk`), and downloading the prefix toolchain all work — they don't
+drive cargo over the bind mount. (Extracting the prefix tarballs *inside* the container
+also fails, on a related virtiofs symlink bug: tar writes a 0-byte `0400` file where a
+symlink should be. Work around it by extracting the already-downloaded
+`prefix/<target>/{clang,rust}-install.tar.gz` on the **host** with the native `tar`
+before re-running `make`.)
+
+**Fixes / where to actually build.**
+- **Build on Linux** — the CI heavy `build-image` job (self-hosted `eos-heavy`), or any
+  Linux host, has no virtiofs and builds fine. This is the supported path: treat CI as
+  the authoritative image build + boot-smoke gate.
+- **Build inside the VM's native filesystem** — copy the repo into a Podman *named
+  volume* (ext4 in the VM, not a virtiofs bind mount) and build there, then `podman cp`
+  the image out. Bypasses virtiofs; involved to set up.
+- Use a macOS checkout for editing, git, the host `cargo … --no-default-features`
+  self-tests, and QEMU render-verify of **already-built** images — not for `make all`.
+
 ## `make CONFIG_NAME=eos all` fails: "Package … not found" (e.g. `ncursesw`)
 
 **Symptom** — during the `installer` step:
