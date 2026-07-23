@@ -7,6 +7,20 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-108]` **eos-control: Power tab (reboot / shutdown) — UI done, action needs privilege (partial)**
+  — eos-control `847220c → 2c043b4`. Adds a **"Zasilanie"** tab: *Uruchom ponownie* / *Wyłącz*, each a
+  **two-step confirm** (arm → "⚠ Potwierdź…", plus *Anuluj*) so a stray click can't take the machine
+  down. **Verified working:** the tab renders and the two-step confirm behaves (screendumps). **Known
+  limitation (honest):** the reboot/shutdown *mechanism* is `sys:kstop`, which is **root-only** —
+  eos-control runs as the desktop user, so a direct write is EPERM, and elevating via `sudo` from a GUI
+  fails because sudo reads its password from a **TTY the GUI process doesn't have**. So under QEMU the
+  buttons don't actually reboot/poweroff; they now report **honestly** ("Wysłano żądanie… jeśli system
+  nie zareaguje, w terminalu: `sudo shutdown [-r]`") instead of a false "rebooting". The mechanism
+  itself is proven — **root `shutdown -r` does trigger a restart** (serial shows UEFI running again;
+  note a separate EDK2 warm-reboot firmware flake under QEMU-aarch64). A real in-GUI power action needs
+  a small **privileged helper**; tracked as `R-D11`. `--selftest` gains `power_core` (references the
+  functions only — it runs during boot and must never invoke them); host `EOS-CONTROL-SELFTEST-OK`.
+  Screendump: `assets/screenshots/eos-control-power.png`.
 - `[U-107]` **eos-control: Storage tab (root filesystem usage via `statvfs`)** — eos-control
   `301e054 → 847220c`. Adds a **"Dyski"** tab showing the root filesystem's **capacity / used / free /
   use-%**. `sys::storage()` reads it via `statvfs`: on E-OS through **`libredox::call::fstatvfs`**
