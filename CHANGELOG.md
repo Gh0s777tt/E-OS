@@ -7,6 +7,21 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-109]` **eos-control: power actions now WORK — `eos-power` shim + password dialog (`R-D11` ✅)** —
+  eos-control `2c043b4 → aa9029a`. Completes U-108: reboot/shutdown from the GUI now actually take the
+  machine down. The control `sys:kstop` is root-only and the GUI runs as the desktop user (whose
+  password is **not** empty — first-boot sets it), so there was no shortcut. Done properly: a new
+  **`eos-power`** bin elevates the way `sudo` does *internally* — open `/scheme/sudo`, write the
+  password (the daemon checks sudo-group + the password), elevate our own procfd (`call_wo` +
+  `CallFlags::FD`), `setns`, then write `sys:kstop`. The **GUI never runs as root**: it spawns
+  `eos-power` and pipes the user's password to its **stdin** (so no TTY-password problem), and waits —
+  Ok = authenticated + `sys:kstop` written (machine going down), Err = bad password / no permission.
+  The Zasilanie tab now reveals a **password field** (`input-type: password`) once an action is armed.
+  Deps for the elevation: `libredox 0.1.18 +mkns`, `redox_syscall 0.9`, the `redox_cur_procfd_v0`
+  relibc hook. **Verified end-to-end (boot + click):** arming *Wyłącz*, typing the password, and
+  confirming **powered the VM off — the QEMU process exited** (`assets/screenshots/eos-control-power.png`
+  shows the password dialog). `--selftest` still only *references* the power fns (never invokes them);
+  host `EOS-CONTROL-SELFTEST-OK`. Two bins now (eos-control + eos-power); `default-run = eos-control`.
 - `[U-108]` **eos-control: Power tab (reboot / shutdown) — UI done, action needs privilege (partial)**
   — eos-control `847220c → 2c043b4`. Adds a **"Zasilanie"** tab: *Uruchom ponownie* / *Wyłącz*, each a
   **two-step confirm** (arm → "⚠ Potwierdź…", plus *Anuluj*) so a stray click can't take the machine
