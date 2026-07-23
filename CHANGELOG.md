@@ -7,6 +7,36 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-112]` **eos-control: Network settings pane — live netcfg read + static apply (`R-902`)** —
+  eos-control `a76d0587 → 9e95c32`. The **"Sieć"** tab becomes a real settings pane. **Read side**
+  now prefers the **live `netcfg:` scheme** smolnetd serves (was: only the persistent `/etc/net/*`
+  files): interface + IPv4 from `ifaces/<if>/addr/list` (`10.0.2.15/24` → ip + derived netmask), the
+  default-route gateway from the `default … via <ip>` line of `route/list`, the resolver from
+  `resolv/nameserver`, and the MAC from `ifaces/<if>/mac`; each falls back to the matching `/etc/net/*`
+  file (and to empty on a host), and smolnetd's placeholders (`Not configured` / `Device not found`)
+  are mapped to "unknown" so they can't masquerade as a value. **Write side** applies a **static**
+  IPv4 config live. The one hard constraint (recon'd from the smolnetd `netcfg` source): its `write()`
+  **rejects any caller whose uid isn't 0** with `EACCES`, and eos-control runs as the desktop user — so
+  the change goes through a new privileged **`eos-netcfg`** shim, the same never-run-the-GUI-as-root
+  model as `eos-power` (U-109): elevate via `/scheme/sudo`, then write `ifaces/<if>/addr/set` (the
+  `IpCidr`) → `route/rm 0.0.0.0/0` + `route/add default via <gw>` → `resolv/nameserver`, **in that
+  order** so the gateway is on-link. The sudo→procfd→setns handshake is **factored into a shared
+  `src/elevate.rs`** used by both shims (CLAUDE.md §6, shared code over copies), leaving `eos-power`
+  behaviour-identical. The GUI reveals a **password field** on a two-step confirm and pipes the
+  password on the shim's **stdin** (never argv); `sys::apply_static` validates IP/prefix/gateway/DNS
+  **before** spawning, so a bad field is a clear message, not a half-write. `--selftest` gains an
+  expanded `net_core`: it exercises every pure helper (`parse_addr_list`, `prefix_to_netmask` ↔
+  `netmask_to_prefix`, `valid_ipv4`/`valid_prefix`, `parse_default_gateway`) and the read path, and
+  asserts `apply_static` **rejects** bad input; the setter is only *referenced* (a valid-input call
+  would reconfigure the live network mid-boot), like `power_core`/`audio_core`. **Verified:** contract
+  checked against the smolnetd source (`cfg_node!` tree + `route_table` `Display`), not guessed; host
+  build (`--no-default-features`) + `EOS-CONTROL-SELFTEST-OK`; rustfmt clean. The **gui cross-compile +
+  boot are gated by the heavy CI `build-image`** (this pin bump triggers it); the **live apply + render
+  screendump** are *deferred locally* only because this build host has no cooked tree (a screendump
+  needs a full from-scratch OS build) — unlike audio, the apply is **not** HW-blocked (wired networking
+  works on the QEMU loop, `R-D10`), so it is provable on the built image. `R-902` stays 🚧 — the
+  persistent DHCP/static toggle (`dhcpd` lifecycle + `/etc/net/*`) and the installer front-ends remain,
+  tracked as the follow-up. Design: `docs/design-eos-control-network.md`.
 - `[U-111]` **build: fix the Podman container build for repo paths containing a space** — `mk/podman.mk`.
   The repo lives at `.../Moje Projekty/E-OS` (a space in "Moje Projekty"). `PODMAN_VOLUMES` and the
   `mkdir -p $(PODMAN_HOME)` in the `build/container.tag` rule interpolated `$(ROOT)` **unquoted**, so

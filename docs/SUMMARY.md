@@ -39,6 +39,7 @@
 - [xhcid non-blocking transfers](design-xhcid-nonblocking-transfers.md)
 - [NetSurf: PIE + host-toolchain (R-D06)](design-netsurf-pie.md)
 - [eos-power: privileged reboot/shutdown (R-D11)](design-eos-power.md)
+- [eos-control: Network settings pane (R-902)](design-eos-control-network.md)
 - [Update system](update-system-design.md)
 - [Driver manager](driver-manager-design.md)
 - [Feature proposals](feature-proposals.md)
