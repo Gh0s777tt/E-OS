@@ -44,31 +44,31 @@ write-pointer / interrupt path. Until then the Sound tab detects the absent
 
 ---
 
-## 🔴 netsurf-fb crashes at startup on aarch64 (OPEN, 2026-07-12, U-039)
+## ✅ netsurf-fb crashed at startup on aarch64 — rebuilt as PIE (RESOLVED 2026-07-19, U-103/U-104, R-D06)
 
-`netsurf-fb` is the **only ET_EXEC (non-PIE) dynamic binary** in the image, and
-relibc's `ld.so` ET_EXEC support is immature. After the `R-402b` loader fixes
-(weak-PLT-to-0 per the gABI + wrapping `d_val` arithmetic — which un-broke every
-COSMIC app) netsurf gets **through the loader** but dies in a data abort
-(`ESR 0x92000047` = write, translation fault L3) at an address **outside its own
-segments**, i.e. in the shared-library mapping region — some library-side
-relocation or COPY-relocation interaction unique to an ET_EXEC main.
+`netsurf-fb` was the **only ET_EXEC (non-PIE) dynamic binary** in the image, and
+relibc's `ld.so` ET_EXEC support is immature: after the `R-402b` loader fixes
+(weak-PLT-to-0 + wrapping `d_val` arithmetic, which un-broke every COSMIC app)
+netsurf got **through the loader** but died in a data abort (`ESR 0x92000047` =
+write, translation fault L3) at an address **outside its own segments** — a
+COPY-relocation interaction unique to an ET_EXEC main against shared libs.
 
-Findings so far:
-- The cross-gcc **does support PIE** (`-fPIE -pie` on a test program → `DYN`).
-- Rebuilding netsurf as PIE failed three times: its `buildsystem/makefiles/
-  Makefile.tools` (cross branch) reconstructs `CC__` via `which $(CC)`, which
-  mangles a multi-word `CC`, and the flags never reach the final link.
-- `ld.so`'s COPY-relocation path *reads* correctly (sizes asserted, copy
-  direction right, skip-first lookup) — but ET_EXEC+shared-libs is its only
-  user, so it remains the prime suspect.
-
-Two fix paths (dedicated session): patch netsurf's **link rule itself** to force
-`-pie` (netsurf/Makefile `$(CC) -o $(EXETARGET)` line), or audit `ld.so` ET_EXEC
-handling with an in-guest test loop (cosmic-term + `curl` from a host HTTP
-server — the guest has networking and a working terminal now).
-
-Cosmetic: the crash leaves an orphaned "SDL" window on the desktop.
+**Fix (`R-D06`):** stop shipping the upstream non-PIE prebuilt and **build netsurf
+from source as a PIE** — exactly the "patch the link rule to force `-pie`" path
+this issue predicted. Three layers (`U-103` + `U-104`): (1)
+`scripts/redoxer-host-stub.sh` unblocks the from-source build (the `host:gperf`
+toolchain 404 — `cookbook_redoxer`'s misfired host→host download); (2) a recipe
+**CC-wrapper** forces `-fPIC` on every compile and `-pie` on the final link →
+`netsurf-fb` is a verified `DYN`/`pie executable`, and since the recipe now
+differs from upstream, `--repo-binary` no longer re-downloads the ET_EXEC
+prebuilt; (3) the PIE then crashed on first render — a **use-after-munmap of the
+800×600×4 window buffer** because a `SDL_RESIZABLE` window makes orbclient
+`munmap`+remap it on the first-map resize event → dropping `SDL_RESIZABLE` in
+libnsfb keeps the buffer put. **Result (boot + screendump):** netsurf launches,
+renders `welcome.html` in full, and (`R-D10`) browses the **live web** — no more
+`UNHANDLED EXCEPTION`, no orphaned SDL window. Full write-up:
+`docs/design-netsurf-pie.md`. Follow-up `R-D09` (resizable window, P3) tracks the
+remaining fixed-size limitation.
 
 ---
 

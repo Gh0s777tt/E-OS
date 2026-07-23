@@ -2,6 +2,32 @@
 
 > `R-001`. Single source of truth reconciling ROADMAP/README/CHANGELOG claims against what actually runs, after the discovery that **GitHub Actions is disabled account-wide** (so every CI-dependent claim is inert) and that nearly all runtime verification is **aarch64 QEMU-TCG** on the Apple-Silicon dev host. Generated 2026-07-13.
 
+> **Update note — 2026-07-23 (delta since generation).** The body below is the
+> 2026-07-13 snapshot; several premises have since changed and are corrected here
+> (the forward-looking risk/gap analysis mostly still holds). For the current
+> record see `CHANGELOG` `U-071`…`U-111` and `ROADMAP`.
+> - **CI is no longer dead / the GitLab mirror is no longer phantom.** GitLab
+>   `gitlab.com/e-os/e-os` is now the **source of truth** with a live **two-tier
+>   GitLab CI** — light gates (secret-scan, integrity, `pins --strict`,
+>   `rust-checks`, docs-currency) on shared runners (`U-070`) and the heavy
+>   **`build-image` + boot-smoke** on the self-hosted `eos-heavy` runner detached
+>   with `needs: []` (`U-092`); GitHub `Gh0s777tt/*` is the mirror recipes fetch
+>   from. So the "dead Actions → every CI claim inert" and "single origin=GitHub /
+>   phantom mirror" framing (top premise, "dead CI" bullets, the mirror + CI rows
+>   in *Claimed but broken*) **no longer applies** — those are resolved (`R-006`,
+>   the GitLab-CI half of `R-003`/`R-005`).
+> - **netsurf ET_EXEC crash is RESOLVED** (`R-D06`, `U-103`/`U-104`): netsurf is
+>   rebuilt from source as a **PIE**, renders `welcome.html`, and browses the live
+>   web (`R-D10`). The "netsurf ET_EXEC crash" cited as an open substrate defect
+>   below is fixed (see `docs/known-issues.md`).
+> - **Still true / still open:** the local-build reality is now sharper —
+>   `make … all` **cannot** run from the macOS checkout at all (podman-macOS
+>   virtiofs can't serve cargo/rustc mmap reads; see `docs/build-troubleshooting.md`),
+>   so image builds are authoritative **only on Linux/CI**. The trust-chain
+>   ordering (`R-702`→`R-703`→`R-701`), live default-credentials (`R-602`),
+>   install.md overstatement (`R-608`), usbnetd RX=0 (`R-901`), and the i18n /
+>   trusted-time / recovery-path gaps below remain open.
+
 ## Genuinely done and verified (the strong foundation)
 
 | Item | Evidence | Confidence |
