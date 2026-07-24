@@ -28,11 +28,14 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   scheme writes — so an apply is **visible to the user-session GUI** (which reads those files) **and
   persists across reboot** (a bonus the netcfg-only writes lacked). Doc-comments in `sys.rs`/`netcfg.rs`
   corrected to state the namespace reality. Host build + `EOS-CONTROL-SELFTEST-OK`; rustfmt clean; the
-  fix cross-compiled + cooked into the image. **Honest gap:** the *final on-screen re-confirmation* (apply
-  → tile updates) is **pending** — the greeter's input handling proved flaky to script on the re-verify
-  boots (it advances only when the password field holds initial focus, which varied boot-to-boot), so I
-  stopped after the fix was host-verified and the root cause confirmed rather than burn more boot cycles;
-  the fix writes the exact files the read reads, so the path is sound. `R-902` stays 🚧.
+  fix cross-compiled + cooked into the image. **Re-verified on-screen, end-to-end:** on the rebuilt image,
+  editing the Sieć tab's IP to `10.0.2.50` and confirming with the password **flipped the "Adres IP" tile
+  from `10.0.2.15` → `10.0.2.50`** — `eos-netcfg` wrote `/etc/net/ip` and the GUI's refresh read it back,
+  the exact reflection missing before the fix (`assets/screenshots/`). (Asides the re-verify established:
+  `eos-netcfg` from a root boot-probe returns non-zero — its elevation is correctly gated to a sudo-group
+  user with a password, not root-at-boot; and the greeter accepts scripted input only when the password
+  field holds initial focus, which varied boot-to-boot.) `R-902` stays 🚧 for the remaining DHCP toggle +
+  installer panes.
 - `[U-112]` **eos-control: Network settings pane — live netcfg read + static apply (`R-902`)** —
   eos-control `a76d0587 → 9e95c32`. The **"Sieć"** tab becomes a real settings pane. **Read side**
   now prefers the **live `netcfg:` scheme** smolnetd serves (was: only the persistent `/etc/net/*`

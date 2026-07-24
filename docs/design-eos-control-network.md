@@ -125,14 +125,13 @@ local access.
   It also **caught the namespace gap**: the applied IP didn't reflect because the
   GUI reads `/etc/net/*` (no `netcfg:` in the session namespace), which the
   netcfg-only writes hadn't touched — the reason the shim now also writes
-  `/etc/net/*` (proven root cause via a serial probe + `ls /scheme`). The
-  *post-fix* on-screen re-confirmation is **pending**: the greeter's scripted
-  input was flaky boot-to-boot, so the fix rests on host-verify + the confirmed
-  root cause (it writes the exact files the read reads) rather than a final
-  screendump.
+  `/etc/net/*` (proven root cause via a serial probe + `ls /scheme`). **After the
+  fix, re-verified on-screen:** editing the IP to `10.0.2.50` and confirming
+  flipped the *Adres IP* tile from `10.0.2.15` → `10.0.2.50` (the shim wrote
+  `/etc/net/ip`; the refresh read it back) — the reflection that was missing
+  before.
 
 ## Follow-up (`R-902` remaining)
 
-The post-fix on-screen re-confirmation (apply → tile reflects the new IP);
-persistent DHCP/static selection (managing `dhcpd`); IPv6 (blocked on `R-903`);
+Persistent DHCP/static selection (managing `dhcpd`); IPv6 (blocked on `R-903`);
 and the same pane in the installer front-ends (`R-603`). Tracked on the roadmap.
