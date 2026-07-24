@@ -30,22 +30,27 @@ root-only.
 
 ## What we do
 
-### Read side (any uid)
+### Read side — `/etc/net/*` is the effective source in the GUI
 
-`sys::net()` reads the **live** scheme and derives the display fields, falling
-back to the persistent `/etc/net/*` files when the scheme isn't up (and to empty
-on a host, where neither exists):
+`sys::net()` tries the `netcfg:` scheme first and falls back to the persistent
+`/etc/net/*` files. **In the desktop GUI the files always win**, because — the
+render-verify's key finding (`U-113`) — the desktop user's **orbital session
+namespace does not include `netcfg:`**: `ls /scheme` as the user shows the
+`ip`/`tcp`/`udp` sockets but *not* the privileged `netcfg:` config scheme, so
+every `netcfg:` open fails for the GUI and the `/etc/net/*` fallback is what's
+shown. (The scheme branch still matters for a *privileged* caller — e.g. a boot
+probe — and it's why `read_netcfg` uses a plain `File::open`+`read` loop, not
+`read_to_string`, which errors on scheme files.) The fields:
 
-- interface ← first entry of `ifaces` (default `eth0`);
-- IP + netmask ← `ifaces/<if>/addr/list`, parsed to `ip/prefix` then the prefix
-  expanded to a dotted mask (`parse_addr_list`, `prefix_to_netmask`);
-- gateway ← the `default` line's `via` token in `route/list`
-  (`parse_default_gateway`), else `/etc/net/ip_router`;
-- DNS ← `resolv/nameserver`, else `/etc/net/dns`;
-- MAC ← `ifaces/<if>/mac` (informational).
+- interface — first entry of `ifaces` (default `eth0`);
+- IP + netmask — `ifaces/<if>/addr/list` → `ip/prefix`; else `/etc/net/ip` +
+  `/etc/net/ip_subnet`;
+- gateway — the `default` route's `via`; else `/etc/net/ip_router`;
+- DNS — `resolv/nameserver`; else `/etc/net/dns`;
+- MAC — `ifaces/<if>/mac` (informational; unavailable to the GUI, so `—`).
 
-smolnetd's placeholder strings (`Not configured`, `Device not found`) are mapped
-to "unknown" so they can never masquerade as a real value.
+Because the GUI reads `/etc/net/*`, the apply **must** update those files for the
+change to be visible — see the write side.
 
 ### Write side (root, via the shim)
 
@@ -57,13 +62,18 @@ field, then spawns **`eos-netcfg`** with the values on argv and the password on
 1. `eos-netcfg` elevates via the shared [`elevate::to_root`](design-eos-power.md)
    handshake (open `/scheme/sudo`, write the password, elevate our procfd,
    `setns`).
-2. Now root, it writes, **in order**:
+2. Now root, it writes the **live** scheme, **in order**:
    1. `ifaces/<if>/addr/set` ← `ip/prefix` — smolnetd applies the address live
       and inserts the on-link network route;
    2. if a gateway was given: `route/rm` ← `0.0.0.0/0` (idempotent — drop any old
       default), then `route/add` ← `default via <gw>` (needs step 1's address so
       the gateway is on-link);
    3. if a DNS was given: `resolv/nameserver` ← `<dns>`.
+3. It then writes the **persistent** files `/etc/net/{ip,ip_subnet,ip_router,dns}`
+   to match. This is not optional: the GUI reads those files (it can't reach
+   `netcfg:`), so without this step the applied config is invisible in the tiles;
+   it also makes the change **survive a reboot**. Best-effort — a file-write
+   failure doesn't undo the live change.
 
 Inputs are validated **twice**: `sys::apply_static` rejects a bad IP / prefix /
 gateway / DNS before ever spawning the shim (a clear message, no half-write), and
@@ -93,10 +103,11 @@ gateway / DNS before ever spawning the shim (a clear message, no half-write), an
 
 Identical trust model to eos-power: the **GUI never runs as root**; elevation is
 **password-gated** by `/scheme/sudo` (wrong password / non-sudo user → no change);
-the shim has **minimal capability** (it writes only `netcfg:` paths, never
-`exec`s an arbitrary command); and there is **no password leakage** (stdin, never
-argv, cleared after confirm). Blast radius even if abused is a local network
-reconfiguration, which already requires the user's password + local access.
+the shim has **minimal capability** (it writes only the `netcfg:` control paths +
+`/etc/net/*`, never `exec`s an arbitrary command); and there is **no password
+leakage** (stdin, never argv, cleared after confirm). Blast radius even if abused
+is a local network reconfiguration, which already requires the user's password +
+local access.
 
 ## Verification
 
@@ -106,17 +117,22 @@ reconfiguration, which already requires the user's password + local access.
   (`parse_addr_list`, `prefix_to_netmask` ↔ `netmask_to_prefix`, `valid_ipv4`,
   `valid_prefix`, `parse_default_gateway`) and the read path, and asserts
   `apply_static` **rejects** bad input before spawning; the shim itself is only
-  *referenced* (a valid-input call would reconfigure the live network mid-boot),
-  exactly as `power_core`/`audio_core` treat their setters. `EOS-CONTROL-SELFTEST-OK`.
-- **Gated to CI / boot render-verify** — the gui cross-compile + boot are gated by
-  the heavy CI `build-image` job (the pin bump triggers it). The **live apply**
-  (type a static IP, confirm with the password, watch the *Sieć* tiles update) is
-  the render-test proof, run on the built image — the same class of proof as
-  eos-power's power-off. A local render screendump is **deferred**: this build host
-  has no cooked tree, so a screendump needs a full from-scratch OS build.
+  *referenced*. `EOS-CONTROL-SELFTEST-OK`.
+- **On-device render-verify (`U-113`)** — the built aarch64 image, driven through
+  the real desktop in QEMU (greeter → OOBE → launcher → eos-control → *Sieć*),
+  render-verified the tab and the whole static-apply flow (edit → confirm →
+  password → `eos-netcfg` elevates + exits 0 → "Zastosowano konfigurację sieci").
+  It also **caught the namespace gap**: the applied IP didn't reflect because the
+  GUI reads `/etc/net/*` (no `netcfg:` in the session namespace), which the
+  netcfg-only writes hadn't touched — the reason the shim now also writes
+  `/etc/net/*` (proven root cause via a serial probe + `ls /scheme`). The
+  *post-fix* on-screen re-confirmation is **pending**: the greeter's scripted
+  input was flaky boot-to-boot, so the fix rests on host-verify + the confirmed
+  root cause (it writes the exact files the read reads) rather than a final
+  screendump.
 
 ## Follow-up (`R-902` remaining)
 
-Persistent DHCP/static selection (managing `dhcpd` + `/etc/net/*`), IPv6 (blocked
-on `R-903`), and the same pane in the installer front-ends (`R-603`). Tracked on
-the roadmap; the shipped increment is live-read + static live-apply.
+The post-fix on-screen re-confirmation (apply → tile reflects the new IP);
+persistent DHCP/static selection (managing `dhcpd`); IPv6 (blocked on `R-903`);
+and the same pane in the installer front-ends (`R-603`). Tracked on the roadmap.

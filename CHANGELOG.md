@@ -7,6 +7,32 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-113]` **eos-control: render-verify of the Sieć tab surfaced (and fixed) a real on-device gap (`R-902`)** —
+  eos-control `9e95c32 → 5a0c6d3`. Driving the built aarch64 image in QEMU (ramfb + QMP mouse) through the
+  **full desktop** — crimson greeter → first-boot OOBE (set/confirm password) → desktop → launch
+  eos-control → **Sieć tab** — render-verified the read side (tiles: `eth0 · 10.0.2.15 · 255.255.255.0 ·
+  gw 10.0.2.2 · DNS 9.9.9.9 · stos aktywny`, static editor pre-filled) **and** the whole static-apply
+  flow (edit IP → *Zastosuj* arms → password field → *Potwierdź* → `eos-netcfg` elevates via sudo and
+  exits 0 → **"Zastosowano konfigurację sieci."**). But the applied IP **didn't reflect** in the tile —
+  runtime truth the source-review + host `--selftest` could not catch. **Root cause, confirmed on-device**
+  (a throwaway init.d serial probe + `ls /scheme` in the user session): the desktop user's **orbital
+  session namespace has no `netcfg:` scheme** — it has the `ip`/`tcp`/`udp` sockets but not the privileged
+  network *config* scheme — so **every `sys::net()` read of `/scheme/netcfg/*` fails for the GUI and it
+  silently falls back to `/etc/net/*`** (proven: the pre-apply DNS tile showed the file's `9.9.9.9`, while
+  a root `cat` of the live `netcfg:` `resolv/nameserver` returned the DHCP-set `10.0.2.3`). The live apply,
+  which runs as **root** in the `eos-netcfg` shim and *does* have `netcfg:`, changed the running stack but
+  not the files the GUI reads. **Two fixes:** (1) `read_netcfg` now uses `File::open` + a manual `read()`
+  loop instead of `std::fs::read_to_string` (`read_to_end`'s size-hinted path also errors on scheme files;
+  `cat`'s plain loop works) — correct, though moot for the GUI since the open itself fails in the
+  namespace; (2) **`eos-netcfg` now also writes `/etc/net/{ip,ip_subnet,ip_router,dns}`** after the live
+  scheme writes — so an apply is **visible to the user-session GUI** (which reads those files) **and
+  persists across reboot** (a bonus the netcfg-only writes lacked). Doc-comments in `sys.rs`/`netcfg.rs`
+  corrected to state the namespace reality. Host build + `EOS-CONTROL-SELFTEST-OK`; rustfmt clean; the
+  fix cross-compiled + cooked into the image. **Honest gap:** the *final on-screen re-confirmation* (apply
+  → tile updates) is **pending** — the greeter's input handling proved flaky to script on the re-verify
+  boots (it advances only when the password field holds initial focus, which varied boot-to-boot), so I
+  stopped after the fix was host-verified and the root cause confirmed rather than burn more boot cycles;
+  the fix writes the exact files the read reads, so the path is sound. `R-902` stays 🚧.
 - `[U-112]` **eos-control: Network settings pane — live netcfg read + static apply (`R-902`)** —
   eos-control `a76d0587 → 9e95c32`. The **"Sieć"** tab becomes a real settings pane. **Read side**
   now prefers the **live `netcfg:` scheme** smolnetd serves (was: only the persistent `/etc/net/*`
