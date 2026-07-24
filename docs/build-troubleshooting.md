@@ -45,9 +45,38 @@ before re-running `make`.)
 - **Build on Linux** — the CI heavy `build-image` job (self-hosted `eos-heavy`), or any
   Linux host, has no virtiofs and builds fine. This is the supported path: treat CI as
   the authoritative image build + boot-smoke gate.
-- **Build inside the VM's native filesystem** — copy the repo into a Podman *named
-  volume* (ext4 in the VM, not a virtiofs bind mount) and build there, then `podman cp`
-  the image out. Bypasses virtiofs; involved to set up.
+- **Build inside the VM's native filesystem** — put the whole build tree in a Podman
+  *named volume* (ext4 in the VM, not a virtiofs bind mount) and drive `make` from
+  *inside* a container. Bypasses virtiofs entirely. **Verified end-to-end on
+  2026-07-24** (a full aarch64/eos image cooked + boot-smoke PASS, incl. `U-112`). The
+  working layout uses two volumes: **`eos-work`** mounted at `/work` (so the checkout is
+  `/work/redox`, matching the sysroot paths baked into the cook — mount it at the *same*
+  point every time) and **`eos-root`** at `/root` (the build HOME with `.cargo`/`.rustup`).
+
+  ```sh
+  # one long-lived container (fuse + SYS_ADMIN needed: the image assembly mounts redoxfs)
+  podman run -d --name ec-build --cap-add SYS_ADMIN --device /dev/fuse --network=host \
+      -v eos-work:/work -v eos-root:/root -w /work/redox redox-base sleep infinity
+  # drive the full build INSIDE it — PODMAN_BUILD=0 (already in a container) and CI=1 are
+  # both mandatory (see the CI=1 gotcha below)
+  podman exec ec-build bash -lc 'cd /work/redox && export PATH=/root/.cargo/bin:$PATH && \
+      make PODMAN_BUILD=0 CI=1 CONFIG_NAME=eos ARCH=aarch64 COOKBOOK_MAKE_JOBS=6 all'
+  # copy the image out and boot-smoke it on the host (homebrew qemu + edk2 firmware)
+  podman cp ec-build:/work/redox/build/aarch64/eos/harddrive.img /tmp/eos.img
+  scripts/ci-boot-smoke.sh /tmp/eos.img 420
+  ```
+
+  **`CI=1` is mandatory** — without it `repo cook` panics immediately with
+  `Result::unwrap() … Os { code: 25, … "Inappropriate ioctl for device" }` because a
+  `podman exec` has **no TTY** and the cook's progress-TUI does a terminal ioctl (the
+  `R-103` headless panic). To rebuild one recipe at a new pin, edit its
+  `recipes/*/recipe.toml` `rev`, then `make c.<recipe>`, `rm build/<arch>/eos/repo.tag
+  build/<arch>/eos/harddrive.img`, and re-run the `make … all` above (removing `repo.tag`
+  is what forces the repo re-assembly to notice the cleaned recipe). Editing the tree on
+  the host means re-syncing into the volume each iteration — the ergonomic cost of losing
+  the live bind mount. Cold bootstrap (populating the volumes with a checkout + the
+  `prefix/` toolchain + a first from-scratch cook) is the involved part; once warm,
+  incremental full builds are minutes.
 - Use a macOS checkout for editing, git, the host `cargo … --no-default-features`
   self-tests, and QEMU render-verify of **already-built** images — not for `make all`.
 

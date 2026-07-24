@@ -30,13 +30,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
   asserts `apply_static` **rejects** bad input; the setter is only *referenced* (a valid-input call
   would reconfigure the live network mid-boot), like `power_core`/`audio_core`. **Verified:** contract
   checked against the smolnetd source (`cfg_node!` tree + `route_table` `Display`), not guessed; host
-  build (`--no-default-features`) + `EOS-CONTROL-SELFTEST-OK`; rustfmt clean. The **gui cross-compile +
-  boot are gated by the heavy CI `build-image`** (this pin bump triggers it); the **live apply + render
-  screendump** are *deferred locally* only because this build host has no cooked tree (a screendump
-  needs a full from-scratch OS build) — unlike audio, the apply is **not** HW-blocked (wired networking
-  works on the QEMU loop, `R-D10`), so it is provable on the built image. `R-902` stays 🚧 — the
-  persistent DHCP/static toggle (`dhcpd` lifecycle + `/etc/net/*`) and the installer front-ends remain,
-  tracked as the follow-up. Design: `docs/design-eos-control-network.md`.
+  build (`--no-default-features`) + `EOS-CONTROL-SELFTEST-OK`; rustfmt clean. **Cross-compile + integrate
+  + boot proven locally (2026-07-24):** a full aarch64 image was cooked on the native-fs build path
+  (podman named volume, dodging the virtiofs↔mmap blocker — cook needs `CI=1` to skip the headless-TTY
+  panic, `R-103`), during which **eos-control@`9e95c32` cross-compiled for `aarch64-unknown-redox`** (slint
+  + eos-ui + rusqlite + blake3 + `redox_syscall 0.9`/`libredox 0.1.18`) and installed all three bins —
+  **`eos-control` + `eos-netcfg` + `eos-power`** — into the image; the resulting `harddrive.img`
+  **boot-smoke PASSed** (reached `eos login:`) under QEMU-aarch64 on the host. Still deferred: the
+  **interactive live-apply render** (boot to desktop → Sieć tab → type a static IP → confirm with the
+  password → watch the tiles update) — boot-smoke proves the image boots, not that path; the apply is
+  **not** HW-blocked (wired networking works on the QEMU loop, `R-D10`), so it is provable on this image.
+  `R-902` stays 🚧 — the persistent DHCP/static toggle (`dhcpd` lifecycle + `/etc/net/*`) and the
+  installer front-ends remain, tracked as the follow-up. Design: `docs/design-eos-control-network.md`.
 - `[U-111]` **build: fix the Podman container build for repo paths containing a space** — `mk/podman.mk`.
   The repo lives at `.../Moje Projekty/E-OS` (a space in "Moje Projekty"). `PODMAN_VOLUMES` and the
   `mkdir -p $(PODMAN_HOME)` in the `build/container.tag` rule interpolated `$(ROOT)` **unquoted**, so
