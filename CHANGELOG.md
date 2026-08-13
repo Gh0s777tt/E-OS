@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-117]` **docs(coverage): close the "why is this here?" gaps the audit found in our own tree** —
+  `patches/` gains a README stating the load-bearing fact nothing in the repo stated: the two patches
+  are **reference copies** of branding diffs whose real life is commits in the forks — *nothing applies
+  them at build time* (and `ci-boot-smoke.sh` depends on the `eos login:` string one of them introduces).
+  `recipes/gui/orbdata/recipe.toml` — the only fork pin of 27 with no provenance comment — now says it's
+  a *modified* branding fork, not a mirror. `ARCHITECTURE.md` gains the meta-repo map a newcomer needed:
+  `src/` is the **vendored upstream `redox_cookbook`** (no E-OS changes → §3 doc rules don't apply),
+  plus what `recipes/ · patches/ · tools/ · mk/ · scripts/` each are. `tools/eos-repo-sign` gains its
+  per-component README (CLAUDE.md §2): what/why of the hybrid ed25519+ML-DSA-65 signing, usage, and the
+  key-handling sharp edges (keep the secret key off-tree; `keygen`'s umask/no-clobber issue is queued).
+  **Verified:** docs-only; every stated fact cross-checked against the tree (grep: no build reference to
+  `patches/`; `src/` grep shows zero E-OS markers).
 - `[U-116]` **docs(claude): CLAUDE.md re-synced with reality (its own "keep this file honest" rule)** —
   the working agreement drifted from the repo in ways that would misdirect the next session: (1) §1.6/§5
   said "push GitLab AND GitHub" while docs/MAINTENANCE.md says **never dual-push** — resolved with the

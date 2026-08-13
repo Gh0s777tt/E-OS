@@ -1,3 +1,6 @@
+# E-OS fork of redox-os/orbdata — NOT a pure mirror: carries the Crimson
+# branding assets (red/black login theme, wallpaper, launcher icon). Bump `rev`
+# to the eos-orbdata tip after any asset change (see repos.toml + docs/forks.md).
 [source]
 git = "https://github.com/Gh0s777tt/eos-orbdata.git"
 branch = "master"

@@ -89,6 +89,17 @@ accompanied by a generated **SBOM** (`scripts/gen-sbom.py`). Hosting: GitLab
 recipes fetch from. Two-tier CI (light shared-runner checks + a self-hosted heavy
 OS build) is documented in [docs/ci.md](docs/ci.md).
 
+A map of the meta repo itself: `src/` is the **vendored upstream
+`redox_cookbook`** (the recipe build engine — upstream code, carrying no E-OS
+modifications, so the CLAUDE.md §3 doc-comment standard does not apply to it);
+`recipes/` are the package definitions with the E-OS fork pins; `patches/`
+holds *reference copies* of the branding diffs whose real life is commits in
+the forks (see `patches/README.md` — nothing applies them at build time);
+`tools/` is E-OS-authored host tooling (e.g. `eos-repo-sign`); `mk/` +
+`Makefile` + `build.sh` are the upstream build entry points; `scripts/` mixes
+upstream helpers with the E-OS-authored CI/ops scripts (each E-OS script
+carries a what+why header).
+
 ## Where to go next
 
 - **Internals** (boot flow, schemes, the trusted computing base): [docs/architecture.md](docs/architecture.md)
