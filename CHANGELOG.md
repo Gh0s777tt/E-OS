@@ -7,6 +7,21 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-116]` **docs(claude): CLAUDE.md re-synced with reality (its own "keep this file honest" rule)** —
+  the working agreement drifted from the repo in ways that would misdirect the next session: (1) §1.6/§5
+  said "push GitLab AND GitHub" while docs/MAINTENANCE.md says **never dual-push** — resolved with the
+  precise model, *proven live today*: the meta repo's GitLab→GitHub push-mirror replicated `U-114` in
+  seconds and the manual GitHub push lost the race (`cannot lock ref`); forks still need dual-push until
+  `eos-setup-mirrors.sh --apply` runs. (2) §5 named a nonexistent job — the gate is **`pin-check`**
+  (which *runs* `pins --strict`) plus the omitted `integrity`; also recorded the U-114 lesson that a red
+  `verify` stage silently freezes `pages`. (3) §3 "forks build overflow-checks" narrowed to the true
+  scope (kernel/base/relibc + app crates per docs/hardening.md). (4) §6 ideas updated: docs-PDF and
+  ARCHITECTURE.md are *done* (the PDF deliberately via `print.html`+Chromium, not the mdbook-PDF
+  plugin), doc-coverage advisory is live in `docs-currency`. (5) Added the two policies a session must
+  know: **upstream Redox does not accept LLM-generated contributions** (CONTRIBUTING.md) — AI-assisted
+  work stays in the E-OS forks; and DCO/AGPL-3.0-or-later/dormant semantic-release+Renovate facts.
+  **Verified:** every corrected claim checked against `.gitlab-ci.yml`, lefthook.yml, docs/hardening.md,
+  docs/MAINTENANCE.md, CONTRIBUTING.md and today's push race.
 - `[U-115]` **docs: the great re-sync — README/ROADMAP/ecosystem/forks caught up 33 entries; screenshots
   finally render on the docs site** — the 2026-08-14 six-auditor audit (see
   [docs/audit/AUDIT-2026-08-14.md](docs/audit/AUDIT-2026-08-14.md), new page, listed in SUMMARY along

@@ -23,10 +23,17 @@ A change (fix, feature, script, refactor, tech choice) is **not done** until:
    documented **what + why**. No exceptions: undocumented = unfinished.
 5. **Recorded** — a `CHANGELOG.md` entry (`[U-NNN]`, what + why + how verified),
    Conventional Commit message, small and self-contained.
-6. **Pinned & pushed** — if a fork changed: push to **GitLab AND GitHub first**,
-   then bump `repos.toml` + the recipe rev; `scripts/eos-repos.sh pins --strict`
-   must be green (recipes fetch the exact rev from the GitHub mirror — an unpushed
-   fork means the build silently uses stale code).
+6. **Pinned & pushed** — if a fork changed: get the commit onto **both hosts
+   first**, then bump `repos.toml` + the recipe rev; `scripts/eos-repos.sh pins
+   --strict` must be green (recipes fetch the exact rev from the GitHub mirror —
+   an unpushed fork means the build silently uses stale code). *How "both hosts"
+   happens differs by repo:* the **meta repo** has a GitLab→GitHub push-mirror —
+   push **GitLab only** and let it replicate (a manual GitHub push races the
+   mirror and fails; see docs/MAINTENANCE.md). The **forks** have no mirror
+   configured yet (`eos-setup-mirrors.sh --apply` pending), so they DO need the
+   manual push to both. If a pin can't be verified (gates down), record the hold
+   in `scripts/pin-allowlist.txt` with a reason + removal condition (U-114) —
+   never leave `pins --strict` silently red.
 
 If you must defer any gate, say so explicitly and why — don't imply it's done.
 
@@ -66,7 +73,9 @@ top of every doc; explain trade-offs and rejected options (future-you needs the
   When a choice looks odd, a one-line "why" is mandatory.
 - **Match the surrounding code** — naming, idiom, comment density. Run `rustfmt`
   (lefthook + CI `rust-checks` enforce it; clippy is `-D warnings`).
-- **Hardening baseline** — forks build `overflow-checks = true`; intentional
+- **Hardening baseline** — the E-OS-owned code builds `overflow-checks = true`
+  (eos-kernel, eos-base, eos-relibc and the app crates — see `docs/hardening.md`;
+  the ~1900 third-party ports and pure mirrors keep upstream flags); intentional
   wrapping uses `wrapping_*`/`Wrapping`. Daemons **exit gracefully / log**, never
   `.unwrap()` a recoverable error into an abort (the virtio-core lesson, `U-085`).
 
@@ -84,27 +93,47 @@ probe — **never commit the probe**). GUI render is proven by screendump.
 
 ## 5. Operational invariants (do not violate)
 
-- **GitLab is source of truth; GitHub is the mirror recipes fetch from.** Push
-  both before a pin bump (§1.6).
+- **GitLab is source of truth; GitHub is the mirror recipes fetch from.** Both
+  hosts must carry the rev before a pin bump — via the push-mirror for the meta
+  repo, manually for forks (§1.6).
 - **Never use pasted tokens / passwords / PATs**, even on request — hard rule.
+- **AI-assisted work is fine in E-OS, but upstream Redox does NOT accept
+  LLM-generated contributions** (CONTRIBUTING.md). Anything meant to be
+  upstreamed to `gitlab.redox-os.org` must be human-authored; keep AI-assisted
+  changes in the E-OS forks.
+- **Contribution legalities** (CONTRIBUTING.md/MAINTENANCE.md): DCO sign-off,
+  AGPL-3.0-or-later for new work (inherited Redox files stay MIT — NOTICE),
+  commit signing encouraged. `semantic-release` and Renovate in CI are
+  **dormant** until `GITLAB_TOKEN`/`RENOVATE_TOKEN` are set (docs/ci.md).
 - **CI is two-tier** (see `docs/ci.md`): a light tier on shared runners
   (minutes-limited) and the heavy `build-image` on the self-hosted `eos-heavy`
   runner, detached with `needs: []` so OS boot verification survives a shared-minute
-  quota. `pins --strict`, `docs-currency`, `secret-scan`, `rust-checks` gate every MR.
+  quota. The light gate jobs are `pin-check` (runs `eos-repos.sh pins --strict`),
+  `integrity`, `secret-scan`, `docs-currency` and `rust-checks` — the first three
+  run on every branch pipeline, `docs-currency`/`rust-checks` on MRs. A hard fail
+  in `verify` skips the later stages **including `pages`**, so a red `pin-check`
+  silently freezes the published docs site (the U-114 lesson).
 - **Commits:** Conventional Commits, small and self-contained; each carries its
   `CHANGELOG` entry.
 
 ## 6. Ideas to keep raising the bar (documentation, quality, performance)
 
-- **Single-source docs, generated outputs.** Keep the mdBook `docs/` as the one
-  canonical site; generate the PDF and (if wanted) the wiki *from it* in CI — never
-  hand-maintain parallel copies (they drift). `mdbook build` → HTML site; add
-  `mdbook-pdf`/print for a downloadable PDF artifact.
-- **Doc-coverage gate.** Extend the `docs-currency` job: also fail if a new
-  `pub fn`/module lands without a doc-comment, and add `#![warn(missing_docs)]` to
-  the app crates.
-- **An `ARCHITECTURE.md` + per-crate module docs** so a newcomer can map the system
-  top-down in one read; link every design doc from it.
+- **Single-source docs, generated outputs.** ✅ *Largely realized:* the mdBook
+  `docs/` is the one canonical site (GitLab Pages `pages` job) and the PDF is
+  generated *from it* in CI (`docs-pdf` job → `scripts/docs-pdf.sh`, which
+  deliberately rejects the fragile mdbook-PDF plugin in favour of `print.html`
+  + headless Chromium). Never hand-maintain parallel copies (they drift — the
+  2026-08-14 audit caught `docs/ecosystem.md` hand-copying pin hashes; hashes
+  now live only in `repos.toml`). Still open: a generator for the ecosystem
+  role tables.
+- **Doc-coverage gate.** 🚧 *Partially realized:* `docs-currency` already prints
+  a non-blocking advisory when a new `pub` item lands without `///`. Still open:
+  make it blocking and add `#![warn(missing_docs)]` to the app crates (that
+  crate-level warning is this idea — it doesn't exist yet; §3 covers style,
+  not enforcement).
+- **An `ARCHITECTURE.md` + per-crate module docs** — ✅ `ARCHITECTURE.md` exists
+  at the repo root (layers, repo map, build/ship flow). Still open: link every
+  design doc from it and keep per-crate `//!` docs current.
 - **Reproducibility:** deterministic image builds + published SBOM (`gen-sbom.py`
   already runs in CI) so any release is auditable and rebuildable.
 - **Performance hygiene:** keep incremental build caches warm in the container;
