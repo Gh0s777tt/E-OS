@@ -31,7 +31,7 @@ timeline
 
 ---
 
-## 🚧 v0.2.0 — "Identity" (target: 2026-07)
+## 🚧 v0.2.0 — "Identity" (original target: 2026-07 — still 🚧 as of 2026-08-14)
 
 **Theme: E-OS looks and feels like E-OS.**
 
@@ -88,9 +88,12 @@ timeline
   reproducible** (recipes pinned to the `Gh0s777tt/eos-*` forks). The wiring is in
   `.gitlab-ci.yml`: `semantic-release` cuts a tag + GitLab Release from Conventional
   Commits, and `build-image` builds the x86_64 + aarch64 images on a **self-hosted**
-  runner (tag `eos-heavy`) on tags/schedules. Remaining: enable the release token +
-  register the heavy runner (see [docs/ci.md](docs/ci.md)), and byte-reproducible
-  checksums (image timestamps still differ run-to-run).
+  runner (tag `eos-heavy`) on tags/schedules. The heavy runner is **registered and
+  proven** (`U-092`: build-image + boot-smoke passed on it). Remaining: enable the
+  release token, **restore the `eosbuild` build container on the runner** (gone
+  since early Aug — `build-image`/`docs-pdf` fail with *"no container … eosbuild"*,
+  see `U-114`), and byte-reproducible checksums (image timestamps still differ
+  run-to-run).
 - ✅ `R-304` Security policy v2 — **threat model** (`docs/threat-model.md`) +
   **hardening guide** (`docs/hardening.md`), linked from `SECURITY.md`.
 - ✅ `R-305` Optional full-disk encryption (RedoxFS **AES-XTS-128**) — documented
@@ -185,9 +188,11 @@ Recommended order, realistic per-item scope and QEMU verification plans live in
   hosting repos never grow). Remaining: first publish from a build rig, wire
   `/etc/pkg.d/50_eos` into the images, an E-OS-owned signing key, and the app
   ecosystem.
-- ✅ `R-1004` **Documentation site** — mdBook built + deployed to **GitHub Pages**,
-  **live at <https://gh0s777tt.github.io/E-OS/>** (`.github/workflows/pages.yml`).
-  A *custom domain* is a one-step add (Settings → Pages) once a domain is owned.
+- ✅ `R-1004` **Documentation site** — mdBook built + deployed by the GitLab CI
+  `pages` job, **live at <https://e-os.gitlab.io/e-os/>**. (The old GitHub Pages
+  copy at gh0s777tt.github.io/E-OS is frozen — its Actions workflow was removed
+  with the CI migration; treat the GitLab site as canonical.) A *custom domain*
+  is a one-step add once a domain is owned.
 
 ## 🧭 Execution roadmap — from QEMU to an installable daily-driver
 
@@ -205,15 +210,40 @@ Recommended order, realistic per-item scope and QEMU verification plans live in
 
 ### `R-0xx` — CI / Release-integrity recovery (Actions dead) — cross-cut
 
-*GitHub Actions is disabled account-wide (HTTP 422, 0 runs complete), so every advertised pipeline — CI image build (R-303), release signing (R-301), pkgar Pages publish (R-1003), docs-site (R-1004), CodeQL/gitleaks/cargo-audit — is inert. This cross-cut moves integrity off Actions and reconciles doc-vs-reality before anything downstream can claim to be trustworthy.*
+*Historical context: GitHub Actions is disabled account-wide (HTTP 422, 0 runs
+complete), which at audit time (2026-07-13) made every advertised pipeline inert.
+**That framing no longer applies** (see [docs/reality-ledger.md](reality-ledger.md)
+note of 2026-07-23): integrity has moved to **GitLab CI** — light gates
+(`secret-scan` · `integrity` · `pin-check` · `docs-currency` · `rust-checks`) on
+shared runners plus the heavy `build-image` + boot-smoke on the self-hosted
+`eos-heavy` runner ([docs/ci.md](ci.md)). Only the `.github/` workflows themselves
+remain dead, and GitHub `Gh0s777tt/*` is a read-only mirror. The items below are
+kept with their final statuses as the record of that recovery.*
 
-- ⏳ `R-001` **Reality-ledger / verification matrix doc** — Add a single source-of-truth doc tagging every ROADMAP item with {arch-verified: aarch64/x86_64/both, QEMU-vs-metal, CI-dependent y/n, artifact-retained y/n} so 'done' cannot drift from what is actually runnable. `[P0·S·any]`
+- ✅ `R-001` **Reality-ledger / verification matrix doc** — DONE: the doc exists
+  and is maintained at [docs/reality-ledger.md](reality-ledger.md) (generated
+  2026-07-13, reconciliation note 2026-07-23; listed in `docs/SUMMARY.md`).
+  Follow-up: refresh it at every release. `[P0·S·any]`
 - ✅ `R-002` **Local `make release` (non-Actions) with real checksums** — DONE (`U-069`: `scripts/make-release.sh`; `release/SHA256SUMS` regenerated over the real images). — Build eos-<ver>-<arch>.img, regenerate SHA256SUMS over the ACTUAL retained artifact (current release/SHA256SUMS is dated Jul-5 and lists phantom eos-0.1.0-<arch>.img while builds are build/<arch>/eos/harddrive.img at 1400 MiB), and minisign locally so install.md's verify/dd steps work. `[P0·M·any]`
 - ✅ `R-003` **Correct doc↔reality claims now blocked by Actions** — DONE (`U-069`: install.md + README no longer advertise a phantom download / inactive scanning). — Downgrade R-303 CI-build prose and R-1004 'live Pages site' claims, mark CodeQL/gitleaks/cargo-audit/release-signing as Actions-blocked in SECURITY.md/README, and remove the phantom-artifact instructions. `[P0·S·any]` · needs `R-002`
-- 🚧 `R-004` **Non-Actions CI: self-hosted runner or GitLab CI** — GitLab CI light gates LIVE (`U-070`: secret-scan + integrity on every mirrored push); heavy image build on a self-hosted runner remains. — Stand up a build+boot-smoke gate on the x86 rig (self-hosted runner) or GitLab CI that reproduces the image build and login-smoke without GitHub Actions. `[P1·L·x86-rig]` · needs `R-002`
+- ✅ `R-004` **Non-Actions CI: self-hosted runner or GitLab CI** — DONE: GitLab CI
+  light gates live since `U-070`; the heavy `build-image` + boot-smoke runs on the
+  registered self-hosted **`eos-heavy`** runner and passed even with shared minutes
+  exhausted (`U-092`). *Current operational note (2026-08-14): the `eosbuild`
+  container on that runner is missing and must be recreated before heavy jobs go
+  green again — see `U-114`.* `[P1·L·x86-rig]` · needs `R-002`
 - ✅ `R-005` **Local scheduled security scans + git hooks** — DONE (`U-070`: `.gitlab-ci.yml` gitleaks+integrity, `scripts/local-scan.sh`, `scripts/hooks/pre-push`; launchd timer optional). — Replace dead Actions scanning with launchd-timed gitleaks + cargo-audit + cargo-deny plus a pre-commit/pre-push hook; add a grep gate failing on `println!.*password` / `TODO: Remove this debug`. `[P1·S·Mac/QEMU]`
-- ⏳ `R-006` **Configure and verify the GitLab mirror** — README/CHANGELOG U-015 and ROADMAP R-1002 claim a synced GitLab mirror, but `git remote -v` shows only origin=GitHub; add the gitlab remote and a push so the mirror claim becomes true. `[P2·S·any]`
-- ⏳ `R-007` **Push unpushed main; prune moot Dependabot branches** — Push the unpushed README-sync commit (ee0f15cd) and close the github_actions/* Dependabot branches (configure-pages/upload-artifact/codeql) that maintain a dead pipeline; keep the useful cargo/* ones. `[P2·S·any]`
+- ✅ `R-006` **Configure and verify the GitLab mirror** — DONE, and the roles have
+  since inverted: **gitlab.com/e-os is the source of truth** (dev + CI) and GitHub
+  `Gh0s777tt/*` is the read-only mirror (GitLab→GitHub push-mirroring for the meta
+  repo). Verified 2026-08-14: all 30 `repos.toml` repos have identical branches +
+  tags on both hosts. `[P2·S·any]`
+- ✅ `R-007` **Push unpushed main; prune moot Dependabot branches** — DONE: `main`
+  has long been pushed (the GitLab migration superseded the unpushed-commit
+  concern), and the three `github_actions/*` Dependabot PRs (#8 #9 #10 — they
+  targeted the deleted `.github/workflows/build.yml`) were closed 2026-08-14.
+  The `cargo/*` bumps stay open pending a build-container-verified update round.
+  `[P2·S·any]`
 - ⏳ `R-008` **First non-Actions signed pkgar repo publish** — Run scripts/publish-repo-pages.sh (orphan-commit git push to eos-pkg-<arch> Pages, already Actions-independent) for the first time to produce a live signed repo/Pages host that the update system and driver manager can pull from. `[P0·M·any]` · needs `R-002`, `R-701`
 
 

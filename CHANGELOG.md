@@ -7,6 +7,31 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-115]` **docs: the great re-sync — README/ROADMAP/ecosystem/forks caught up 33 entries; screenshots
+  finally render on the docs site** — the 2026-08-14 six-auditor audit (see
+  [docs/audit/AUDIT-2026-08-14.md](docs/audit/AUDIT-2026-08-14.md), new page, listed in SUMMARY along
+  with the previously-orphaned 2026-07-13 audit) found the public story frozen at `U-080`/13 Jul while
+  the code reached `U-113`/24 Jul. Fixed: **README** — SYNC header current; Highlights gain the whole
+  native wave (eos-control · eos-notes+eos-ui · eos-guard · eos-sysmon · NetSurf-as-PIE browsing ·
+  graphical OOBE · tray/toasts/screenshot/launcher-search); `usbnetd` claim made honest (TX ✓, RX
+  broken — R-901); CI/Quality + Security sections now describe the *live* two-tier GitLab CI instead of
+  "dead Actions + local scans"; Components table completed (eos-bootloader + the native apps).
+  **ROADMAP** — R-0xx intro rewritten (the "every pipeline is inert" framing is history per
+  reality-ledger); `R-001`/`R-004`/`R-006`/`R-007` closed with evidence (R-007 finished today: the 3
+  `github_actions/*` Dependabot PRs targeting the deleted workflow were closed on the mirror);
+  `R-1004`/`R-303` point at GitLab Pages + the real remaining infra (restore `eosbuild`).
+  **docs/ecosystem.md** — no longer lies about being generated; the hand-copied hash column (21/22
+  stale!) is **gone** — revs live only in `repos.toml`; the 5 missing native-app repos added.
+  **docs/forks.md** — the 5 forks carrying E-OS commits (redoxfs · orbutils · pkgar · pkgutils ·
+  installer) moved out of "pure mirrors" so nobody fast-forwards over our work.
+  **Screenshots:** embeds used `../assets/…`, which mdBook can't ship — the published site 404'd every
+  image. New `docs/img/` holds web-optimized copies (16 shots, 1100px/256-colour PNG: **740 KB total vs
+  16 MB** originals; provenance + regen recipe in docs/img/README.md), a new
+  [visual tour](docs/screenshots.md) page embeds them all, and install/known-issues embeds are fixed.
+  **book.toml** edit-links now target GitLab (the mirror is read-only). `EOS_BUILD_STATE.md` no longer
+  names the host user account. **Verified:** every corrected status traced to its CHANGELOG/audit
+  evidence; image paths resolve inside `docs/`; findings adversarially re-verified by a second agent
+  pass before editing.
 - `[U-114]` **ci(pins): un-redden the daily pipeline — record the two R-902 pin holds as deliberate** —
   every scheduled pipeline on `main` had been failing since late July: `pin-check` (hard-fail, `verify`
   stage) flagged `eos-control` (`5a0c6d3 → 40dc67f`, DHCP↔static toggle) and `eos-installer`

@@ -13,8 +13,10 @@ command = "mdbook-mermaid"
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/Gh0s777tt/E-OS"
-edit-url-template = "https://github.com/Gh0s777tt/E-OS/edit/main/{path}"
+# Point contributors at GitLab — the source of truth (GitHub is a read-only
+# mirror; edits/MRs opened there go nowhere).
+git-repository-url = "https://gitlab.com/e-os/e-os"
+edit-url-template = "https://gitlab.com/e-os/e-os/-/edit/main/{path}"
 no-section-label = false
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 

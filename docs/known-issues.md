@@ -205,7 +205,7 @@ answer is periodic fork rebases onto upstream, not more pins.
 E-OS **aarch64** now boots under QEMU `virt` all the way to the graphical E-OS
 COSMIC desktop (login greeter, wallpaper, taskbar, working USB keyboard).
 
-![E-OS aarch64 desktop](../assets/screenshots/eos-aarch64-desktop.png)
+![E-OS aarch64 desktop](img/eos-aarch64-desktop.png)
 
 The original report — a `redoxfs` root-mount Data Abort — turned out to be the
 **last** symptom of a chain of **four** aarch64 bugs. The earlier diagnosis (an

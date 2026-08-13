@@ -18,7 +18,7 @@ modern upstream Redox OS. It is the clean starting point for E-OS development
 
 ## Build environment
 
-- Windows 11 host + WSL2 **Ubuntu 26.04**, user `damian`, passwordless sudo, systemd on.
+- Windows 11 host + WSL2 **Ubuntu 26.04**, dedicated build user (passwordless sudo), systemd on.
 - Build tree on WSL ext4 at `~/eos/redox` (NOT `/mnt/c`, for speed).
 - Rootless **podman 5.7.0** (overlay/crun); `unqualified-search-registries=["docker.io"]`.
 - **QEMU 10.2.1** with KVM (`/dev/kvm`; user must be in the `kvm` group).

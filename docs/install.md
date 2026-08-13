@@ -42,7 +42,7 @@ make CONFIG_NAME=eos ARCH=x86_64  build/x86_64/eos/redox-live.iso   # or ARCH=aa
 Both arches are **verified** to boot the live ISO to `eos login:` (QEMU/UEFI: "Switching
 to live disk" → E-OS 0.1.0 "Genesis" → login, 0 exceptions on aarch64 **and** x86_64):
 
-![E-OS graphical greeter booted from the aarch64 live ISO](../assets/screenshots/eos-aarch64-live-iso-greeter.png)
+![E-OS graphical greeter booted from the aarch64 live ISO](img/eos-aarch64-live-iso-greeter.png)
 
 ## 2. Graphical install (recommended)
 

@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-080 · 2026-07-13 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-117 · 2026-08-14 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -122,9 +122,24 @@ and hardening goals.
   read-fallback, degraded boot, **resync/rebuild** of a re-added member, and
   split-brain safety.
 - 🌐 **USB networking & storage** — a Rust **USB RNDIS** network driver
-  (`usbnetd`) and USB mass-storage support.
+  (`usbnetd`; TX verified — inbound RX is still being debugged, `R-901`) and USB
+  mass-storage support.
 - 🔑 **Post-quantum-ready signing** — a prototype tool that signs the package
   repo with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature.
+
+**Since then — the `U-081`–`U-114` wave** (all verified on-device under QEMU)
+
+- 🎛️ **eos-control** — a native Crimson **control center**: system overview,
+  processes + capabilities, security, storage, **Power**, **Sound** and a live
+  **Network** pane (read the running `netcfg:` stack, apply a static IPv4 config
+  through a privileged `eos-netcfg` shim — never running the GUI as root).
+- 📝 **eos-notes** — a Slint + SQLite (WAL) notes app, and **eos-ui**, the shared
+  Slint-on-Orbital backend crate every E-OS GUI app builds on.
+- 🛡️ **eos-guard** (filesystem-integrity monitor) and 📈 **eos-sysmon** (system
+  monitor), both native Crimson apps.
+- 🌍 **NetSurf built from source as a PIE** — real web browsing on E-OS.
+- 🧭 **Graphical OOBE** — first-boot password enrolment in the crimson greeter,
+  plus a system tray, toast notifications, a screenshot tool and launcher search.
 
 ---
 
@@ -173,7 +188,7 @@ is a **scheme**, accessed through a URL-like path (`file:`, `disk.*:`,
 | Drivers | user-space: `nvmed`, `virtio-blkd`, `e1000d`, `xhcid`, `usbnetd`, `ihdad`, `ahcid`, … |
 | Build | **Podman** containers · cookbook · `pkgar` packages |
 | Emulation | **QEMU 10+**, OVMF/EDK2 (UEFI), KVM/HVF |
-| CI / Quality | ⚠️ GitHub Actions **disabled account-wide** (ROADMAP R-004) · local gitleaks/cargo-audit scans (R-005) · Dependabot |
+| CI / Quality | **GitLab CI, two-tier** ([docs/ci.md](docs/ci.md)): light gates on shared runners (`secret-scan` · `integrity` · `pin-check` · `docs-currency` · `rust-checks`/cargo-deny · `pages`) + the heavy **OS image build & boot-smoke** on the self-hosted `eos-heavy` runner · local gitleaks/cargo-audit via `scripts/local-scan.sh` |
 
 ```mermaid
 %%{init: {'theme':'base','themeVariables':{'pie1':'#E50914','pie2':'#b00610','pie3':'#7a0a14','pie4':'#3d3d3d','pie5':'#1a1a1a','pieStrokeColor':'#0b0b0b','pieOuterStrokeColor':'#0b0b0b','pieTitleTextColor':'#E50914','pieSectionTextColor':'#ffffff','fontFamily':'Fira Code'}}}%%
@@ -224,7 +239,7 @@ every path (text, serial and the graphical greeter), so the shipped defaults
 can't reach a shell (`R-602`).
 
 ➡️ Full guide: **[docs/getting-started.md](docs/getting-started.md)** ·
-Troubleshooting: **[docs/building.md](docs/building.md)** ·
+Troubleshooting: **[docs/build-troubleshooting.md](docs/build-troubleshooting.md)** ·
 Hardware roadmap: **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-roadmap.md)**
 
 ---
@@ -265,9 +280,12 @@ track in **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-ro
 | `redoxfs` | Filesystem + hardware AES-XTS | redox-os/redoxfs → **eos-redoxfs** |
 | `base` | Drivers & daemons, incl. **`raid1d`** and `usbnetd` | redox-os/base → **eos-base** |
 | `orbutils` | Launcher + **E-OS desktop** (icons, wallpaper) | redox-os/orbutils → **eos-orbutils** |
-| `bootloader` | UEFI/BIOS boot (crimson theme) | redox-os/bootloader |
-| `cookbook` | Package/recipe build system | redox-os/cookbook |
+| `bootloader` | UEFI/BIOS boot (crimson theme) | redox-os/bootloader → **eos-bootloader** |
+| `cookbook` | Package/recipe build system (vendored in `src/`) | redox-os/cookbook |
 | `cosmic-*` | Desktop environment | pop-os/cosmic-* |
+| `eos-control` | Native control center (network, sound, power, storage, security) | **E-OS** |
+| `eos-notes` / `eos-guard` / `eos-sysmon` | Notes · FS-integrity monitor · system monitor | **E-OS** |
+| `eos-ui` | Shared Slint-on-Orbital backend for all E-OS GUI apps | **E-OS** |
 | `tools/eos-repo-sign` | Hybrid PQ package-signing prototype | **E-OS** |
 
 ---
@@ -282,8 +300,12 @@ deliberate **anti-appropriation** choice.
   Crypto Extensions) with a constant-time software fallback.
 - 🧬 **Post-quantum-ready** — prototype **hybrid ed25519 + ML-DSA-65** signing for
   the package repo; migration plan in [docs/security.md](docs/security.md).
-- 🔑 **gitleaks** secret scanning — runs **locally** (launchd + git hooks, R-005); the GitHub Actions job is inert while Actions is disabled account-wide.
-- 🤖 **Dependabot** active; **cargo-audit** runs locally. CodeQL is Actions-gated (currently disabled, R-004).
+- 🔑 **Secret scanning in CI** — a gitleaks `secret-scan` job (full history,
+  `GIT_DEPTH: 0`) gates every push on GitLab, backed by local git hooks
+  (lefthook) and `scripts/local-scan.sh`.
+- 🤖 **Supply-chain checks in CI** — `cargo-deny` (RustSec advisories, licenses,
+  bans, sources) in `rust-checks`, plus `pin-check` (`eos-repos.sh pins
+  --strict`) so recipes can't silently drift from the pinned fork revisions.
 - 👮 **Branch protection** on the default branch + **CODEOWNERS** reviews.
 - ✍️ **Signed commits** encouraged (see [docs/security.md](docs/security.md)).
 

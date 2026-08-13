@@ -5,6 +5,7 @@
 
 # Using E-OS
 
+- [A visual tour (screenshots)](screenshots.md)
 - [Install](install.md)
 - [Packages](packages.md)
 - [Forks & vendored components](forks.md)
@@ -51,6 +52,11 @@
 - [Connectivity roadmap](roadmap-connectivity.md)
 - [Reality ledger — done vs claimed](reality-ledger.md)
 - [Upstream reuse analysis](upstream-reuse-analysis.md)
+
+# Audits
+
+- [Audit 2026-07-13 (23-agent grounded audit)](audit/AUDIT-2026-07-13.md)
+- [Audit 2026-08-14 (ecosystem, docs, secrets, supply chain)](audit/AUDIT-2026-08-14.md)
 
 # Upstream (Redox OS)
 
