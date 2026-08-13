@@ -93,6 +93,10 @@ rust-checks:
   variables:
     M: tools/eos-repo-sign/Cargo.toml
     DENY_VER: "0.20.2"
+    # U-118: cargo-deny is itself a security gate — a swapped binary could
+    # silently "pass" the audit, so its release asset is SHA256-pinned.
+    # Bump procedure: new version -> `curl -sfL <url> | sha256sum` -> update both.
+    DENY_SHA256: "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f"
   script:
     - rustup component add rustfmt clippy
     - cargo fmt --manifest-path "$M" -- --check
@@ -100,7 +104,10 @@ rust-checks:
     - cargo test --manifest-path "$M"
     # git is needed by cargo-deny to clone the RustSec advisory-db.
     - apt-get update -qq && apt-get install -y -qq curl git >/dev/null
-    - curl -fsSL "https://github.com/EmbarkStudios/cargo-deny/releases/download/${DENY_VER}/cargo-deny-${DENY_VER}-x86_64-unknown-linux-musl.tar.gz" | tar xz --strip-components=1
+    # Download-verify-extract (never pipe straight into tar — U-118).
+    - curl -fsSL -o cargo-deny.tar.gz "https://github.com/EmbarkStudios/cargo-deny/releases/download/${DENY_VER}/cargo-deny-${DENY_VER}-x86_64-unknown-linux-musl.tar.gz"
+    - echo "${DENY_SHA256}  cargo-deny.tar.gz" | sha256sum -c -
+    - tar xzf cargo-deny.tar.gz --strip-components=1
     - ./cargo-deny --manifest-path "$M" check
 
 # ──────────────────────────────  LIGHT: docs  ──────────────────────────────
@@ -119,10 +126,18 @@ pages:
   variables:
     MDBOOK_VER: "0.4.40"
     MERMAID_VER: "0.14.0"
+    # U-118: SHA256 pins for the release binaries (bump alongside *_VER).
+    MDBOOK_SHA256: "9ef07fd288ba58ff3b99d1c94e6d414d431c9a61fdb20348e5beb74b823d546b"
+    MERMAID_SHA256: "37364965fb190cf9929d93c930c6b6c69b2fed05f7658ea2d312882ed59c645e"
   script:
     - apt-get update -qq && apt-get install -y -qq curl >/dev/null
-    - curl -sSL "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VER}/mdbook-v${MDBOOK_VER}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
-    - curl -sSL "https://github.com/badboy/mdbook-mermaid/releases/download/v${MERMAID_VER}/mdbook-mermaid-v${MERMAID_VER}-x86_64-unknown-linux-gnu.tar.gz" | tar xz
+    # Download-verify-extract (never pipe straight into tar — U-118).
+    - curl -fsSL -o mdbook.tar.gz "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VER}/mdbook-v${MDBOOK_VER}-x86_64-unknown-linux-gnu.tar.gz"
+    - echo "${MDBOOK_SHA256}  mdbook.tar.gz" | sha256sum -c -
+    - tar xzf mdbook.tar.gz
+    - curl -fsSL -o mdbook-mermaid.tar.gz "https://github.com/badboy/mdbook-mermaid/releases/download/v${MERMAID_VER}/mdbook-mermaid-v${MERMAID_VER}-x86_64-unknown-linux-gnu.tar.gz"
+    - echo "${MERMAID_SHA256}  mdbook-mermaid.tar.gz" | sha256sum -c -
+    - tar xzf mdbook-mermaid.tar.gz
     - ./mdbook-mermaid install .
     - ./mdbook build -d public
   artifacts:

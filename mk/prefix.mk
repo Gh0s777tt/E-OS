@@ -112,6 +112,28 @@ ifeq ($(PODMAN_BUILD),1)
 else
 	mkdir -p "$(@D)"
 	wget -O $@.partial "https://static.redox-os.org/toolchain/$(HOST_TARGET)/$(TARGET)/$(@F)"
+	# U-118 supply-chain gate: these are the compilers that build the whole OS,
+	# fetched from an unversioned URL — verify against the pins in
+	# mk/fetch-sha256.txt. Pin present+mismatch = hard fail; pin absent = warn
+	# (fail with EOS_STRICT_FETCH=1), so unpinned HOST/TARGET combos still build.
+	@key="$(HOST_TARGET)/$(TARGET)/$(@F)"; \
+	pin=$$(awk -v k="$$key" '$$1 !~ /^#/ && $$2==k {print $$1}' mk/fetch-sha256.txt 2>/dev/null); \
+	got=$$(sha256sum "$@.partial" | awk '{print $$1}'); \
+	if [ -n "$$pin" ] && [ "$$got" != "$$pin" ]; then \
+		echo "prefix-fetch: SHA256 MISMATCH for $$key" >&2; \
+		echo "  pinned: $$pin" >&2; \
+		echo "  got:    $$got" >&2; \
+		echo "  Either upstream refreshed the toolchain (verify, then re-pin in mk/fetch-sha256.txt)" >&2; \
+		echo "  or the download was tampered with. Refusing to continue." >&2; \
+		rm -f "$@.partial"; exit 1; \
+	elif [ -z "$$pin" ] && [ "$${EOS_STRICT_FETCH:-0}" = "1" ]; then \
+		echo "prefix-fetch: UNPINNED $$key with EOS_STRICT_FETCH=1 — add it to mk/fetch-sha256.txt" >&2; \
+		rm -f "$@.partial"; exit 1; \
+	elif [ -z "$$pin" ]; then \
+		echo "prefix-fetch: WARNING: unpinned toolchain download $$key (sha256 $$got) — consider adding it to mk/fetch-sha256.txt" >&2; \
+	else \
+		echo "prefix-fetch: sha256 OK for $$key"; \
+	fi
 	mv $@.partial $@
 endif
 
@@ -329,12 +351,31 @@ $(PREFIX_RUST_VERSION_TAG):
 	mkdir -p "$(@D)"
 	touch $@
 
+# U-118: rust-dist tarballs are versioned and Rust publishes a `.sha256`
+# sidecar next to every artifact — verify each download against it. The sidecar
+# comes from the same host, so this defends against corruption and
+# swapped-at-rest artifacts, not a fully compromised CDN (the default
+# PREFIX_BINARY path uses the stronger in-repo pins in mk/fetch-sha256.txt).
+define verify_rust_dist
+	wget -qO $@.sha256 "$(1).sha256"; \
+	got=$$(sha256sum "$@.partial" | awk '{print $$1}'); \
+	want=$$(awk '{print $$1}' "$@.sha256"); \
+	rm -f "$@.sha256"; \
+	if [ "$$got" != "$$want" ]; then \
+		echo "prefix-fetch: SHA256 MISMATCH for $(1) (want $$want, got $$got)" >&2; \
+		rm -f "$@.partial"; exit 1; \
+	else \
+		echo "prefix-fetch: sha256 OK for $(1)"; \
+	fi
+endef
+
 $(PREFIX)/rustc-install.tar.xz $(PREFIX)/cargo-install.tar.xz: $(PREFIX)/%-install.tar.xz: | $(PREFIX_RUST_VERSION_TAG)
 ifeq ($(PODMAN_BUILD),1)
 	$(PODMAN_RUN) make $@
 else
 	mkdir -p "$(@D)"
 	wget -O $@.partial "https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/$*-nightly-$(HOST_TARGET).tar.xz"
+	@$(call verify_rust_dist,https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/$*-nightly-$(HOST_TARGET).tar.xz)
 	mv $@.partial $@
 endif
 
@@ -344,6 +385,7 @@ ifeq ($(PODMAN_BUILD),1)
 else
 	mkdir -p "$(@D)"
 	wget -O $@.partial "https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-std-nightly-$(HOST_TARGET).tar.xz"
+	@$(call verify_rust_dist,https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-std-nightly-$(HOST_TARGET).tar.xz)
 	mv $@.partial $@
 endif
 
@@ -354,6 +396,7 @@ else
 	mkdir -p "$(@D)"
 ifeq ($(TARGET),x86_64-unknown-redox)
 	wget -O $@.partial "https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-std-nightly-$(TARGET).tar.xz"
+	@$(call verify_rust_dist,https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-std-nightly-$(TARGET).tar.xz)
 	mv $@.partial $@
 else
 	touch $@
@@ -366,6 +409,7 @@ ifeq ($(PODMAN_BUILD),1)
 else
 	mkdir -p "$(@D)"
 	wget -O $@.partial "https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-src-nightly.tar.xz"
+	@$(call verify_rust_dist,https://static.rust-lang.org/dist/$(UPSTREAM_RUSTC_VERSION)/rust-src-nightly.tar.xz)
 	mv $@.partial $@
 endif
 

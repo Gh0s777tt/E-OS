@@ -1,0 +1,36 @@
+# SHA256 pins for the prebuilt Redox toolchain archives that mk/prefix.mk
+# downloads from static.redox-os.org (U-118). The compilers that build the whole
+# OS must not rest on TLS alone — a pinned digest turns a swapped artifact
+# (compromised host, MITM behind a TLS terminator) into a hard build failure.
+#
+# Format:  <sha256>  <HOST_TARGET>/<TARGET>/<filename>
+# Semantics (see the $(PREFIX)/%.tar.gz rule in mk/prefix.mk):
+#   * pin present + match     -> build continues
+#   * pin present + MISMATCH  -> hard fail (partial download deleted)
+#   * pin absent              -> loud warning; hard fail only with EOS_STRICT_FETCH=1
+#     (absent-pin combos stay soft so exotic HOST/TARGET combos don't brick)
+#
+# These URLs are UNVERSIONED "latest" artifacts: when upstream Redox refreshes
+# the toolchain, the pinned hash goes stale and the build fails LOUDLY. That is
+# working as intended — verify the refresh is legitimate (upstream announcement,
+# rebuilt from a second network), then re-pin:
+#   curl -sfL https://static.redox-os.org/toolchain/<host>/<target>/<file> | sha256sum
+# and record the bump in CHANGELOG.md.
+#
+# Pinned 2026-08-14 (U-118): TOFU snapshot of the then-current toolchain; the
+# x86_64/x86_64 gcc pin was re-confirmed by a second independent download during
+# the live gate test (same network). A re-check from a different network / the
+# build rig is a welcome follow-up; a mismatch it finds means either an upstream
+# refresh or something worth investigating.
+4bb5d1691d727546dc5064da794d798e9157cb85be8d463ebf7545bc01d9c362  x86_64-unknown-linux-gnu/x86_64-unknown-redox/gcc-install.tar.gz
+ecfe0e260cc7544b0e29ec4f217eacd0e6802248cf70e2fb689ce87808bfa2bb  x86_64-unknown-linux-gnu/x86_64-unknown-redox/rust-install.tar.gz
+b9babc5e9acb7ba0fb92175b65baac0fa491cb10257176b64bc6d1e83818c1f1  x86_64-unknown-linux-gnu/x86_64-unknown-redox/clang-install.tar.gz
+c6fdbc3c72e065acd6d5b9ae45228d236b8e2bfe7c7c866919e40bba7a11a1e7  x86_64-unknown-linux-gnu/aarch64-unknown-redox/gcc-install.tar.gz
+d4c708980e49ebe55bf0549d7982eb4cda67d17d4bf4e5cacd6bbcb6b7d86085  x86_64-unknown-linux-gnu/aarch64-unknown-redox/rust-install.tar.gz
+2aa7f9197fc7137de485610db212c5ad5f8549cd2b6a1d490f99361370459b2c  x86_64-unknown-linux-gnu/aarch64-unknown-redox/clang-install.tar.gz
+cd810571146d17e91776364034965efba16f2df62cdd3476d2a5d5c2d391f180  aarch64-unknown-linux-gnu/x86_64-unknown-redox/gcc-install.tar.gz
+f52966be44b95029a9beeeef419e4e30cbddc95bb97828574332ac2f161a63f2  aarch64-unknown-linux-gnu/x86_64-unknown-redox/rust-install.tar.gz
+71e012c51545f8f828bfbc7f2234db1231fadb53cc335138474c819222d21c87  aarch64-unknown-linux-gnu/x86_64-unknown-redox/clang-install.tar.gz
+b0ddf2438b25303ac2c73934ccb77e5bcab14d31e68011bb4d5f363141b7f46f  aarch64-unknown-linux-gnu/aarch64-unknown-redox/gcc-install.tar.gz
+498ec1413a14b25e15c1f8905c5ab767b1346085cc484f032d3329376ea05352  aarch64-unknown-linux-gnu/aarch64-unknown-redox/rust-install.tar.gz
+60434d14481b8fe5254267d776c61e46fd976758b2e66fdf96485496f54dd3e1  aarch64-unknown-linux-gnu/aarch64-unknown-redox/clang-install.tar.gz

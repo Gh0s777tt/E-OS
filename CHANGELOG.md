@@ -7,6 +7,30 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-118]` **supply-chain: every fetched build binary is now SHA256-pinned (audit §4 items 1–3)** —
+  the compilers and helper tools that build the whole OS no longer rest on TLS alone. (1) **Prebuilt
+  Redox toolchain** (`mk/prefix.mk`, default `PREFIX_BINARY=1`): a new manifest `mk/fetch-sha256.txt`
+  pins all **12** host×target×archive combos (~1.5 GB stream-hashed); the download rule hard-fails on a
+  pin mismatch (partial deleted, clear "refreshed upstream vs tampered" message), warns on unpinned
+  combos, and `EOS_STRICT_FETCH=1` upgrades the warning to a failure — so exotic combos can't brick and
+  an upstream toolchain refresh turns into a *loud, reviewable* re-pin instead of a silent swap. The
+  experimental `PREFIX_USE_UPSTREAM_RUST_COMPILER` path now verifies all four rust-dist tarballs
+  against Rust's published `.sha256` sidecars (canned `verify_rust_dist` recipe). (2) **Container
+  bootstrap** (`podman/rustinstall.sh`): the classic `curl https://sh.rustup.rs | sh` is **gone** —
+  rustup installs from a *versioned* `rustup-init 1.29.0` (immutable archive path; found and fixed en
+  route: rustup-init is a multicall binary that dispatches on argv[0], so it must run under its real
+  name, not a mktemp one), and `sccache`/`just`/`cbindgen` are pinned for **both** container arches;
+  nothing untrusted is ever piped straight into `tar` or `sh` (download → verify → use). (3) **CI
+  helpers** (`.gitlab-ci.yml`): `cargo-deny` (itself a security gate!), `mdbook` and `mdbook-mermaid`
+  switch from `curl | tar xz` to download-verify-extract with pins beside the version vars.
+  **Verified, not assumed:** the prefix.mk gate ran **live** in a container — a real 94 MB download
+  passed (independently re-producing the pinned hash), a deliberately corrupted pin was **refused**
+  (`make: *** Error 1`, partial deleted); all four gate branches unit-tested; `rustinstall.sh` ran
+  **end-to-end** in a clean Debian container (4/4 pins OK → working `rustc 1.97.1`, `cbindgen 0.29.0`,
+  `just 1.50.0`, `sccache 0.15.0`); rustup-init pins cross-checked against Rust's published sidecar
+  hashes (exact match); `.gitlab-ci.yml` YAML-validated; the full Makefile parses (`make -n` dry-runs
+  print the exact expected shell). Residual risk stated in the manifest header: pins are a TOFU
+  snapshot from one network — re-confirming from a second network is the queued follow-up.
 - `[U-117]` **docs(coverage): close the "why is this here?" gaps the audit found in our own tree** —
   `patches/` gains a README stating the load-bearing fact nothing in the repo stated: the two patches
   are **reference copies** of branding diffs whose real life is commits in the forks — *nothing applies
