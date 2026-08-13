@@ -39,3 +39,6 @@ wget-log
 .eos-drivers-src
 .eos-base-src
 .DS_Store
+# macOS AppleDouble sidecars (._foo) — appear when the tree is copied through
+# macOS Finder onto exFAT/SMB; pure metadata noise on every other OS.
+._*

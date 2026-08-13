@@ -7,6 +7,23 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-114]` **ci(pins): un-redden the daily pipeline — record the two R-902 pin holds as deliberate** —
+  every scheduled pipeline on `main` had been failing since late July: `pin-check` (hard-fail, `verify`
+  stage) flagged `eos-control` (`5a0c6d3 → 40dc67f`, DHCP↔static toggle) and `eos-installer`
+  (`f9d82a1 → ed6eb7c`, installer network pane) as `DRIFT (recipe behind fork)`, and the failed `verify`
+  stage **skipped `rust-checks` and `pages`** — freezing the published docs site into staleness as a
+  side effect. Both drifted tips are **feature** commits (the R-902 network work), so per the
+  Definition-of-Done a pin bump needs the full gate run (image build + `ci-boot-smoke`) — currently
+  impossible because the `eosbuild` podman container on the `eos-heavy` (mac) runner **no longer
+  exists** (`build-image`/`docs-pdf` traces: *"no container with name or ID \"eosbuild\" found"*).
+  Fix, per `pin-allowlist.txt`'s own contract for unverified fork tips: both repos are allowlisted
+  with reasons + a removal condition (bump the pins and drop the lines once the build container is
+  restored). Also: `.gitignore` gains `._*` (macOS AppleDouble sidecars — the tree was carried through
+  Finder onto exFAT, which sprayed ~7 000 of them). **Verified:** `bash scripts/eos-repos.sh pins
+  --strict` logic re-checked against the allowlist parser (first-token match); remote audit of all
+  30 `repos.toml` repos confirms GitLab↔GitHub branches/tags in sync and the other 24 pins `OK(tip)`.
+  Restoring `eosbuild` on the mac (re-run `podman_bootstrap.sh` or recreate the container) is the
+  remaining infra to-do to turn `build-image`/`docs-pdf` green again.
 - `[U-113]` **eos-control: render-verify of the Sieć tab surfaced (and fixed) a real on-device gap (`R-902`)** —
   eos-control `9e95c32 → 5a0c6d3`. Driving the built aarch64 image in QEMU (ramfb + QMP mouse) through the
   **full desktop** — crimson greeter → first-boot OOBE (set/confirm password) → desktop → launch
