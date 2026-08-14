@@ -7,6 +7,12 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-122]` **docs(hardening): the supply-chain gates get their reference section** — the U-118/U-120
+  work existed only in the CHANGELOG and the audit page; `docs/hardening.md` (the doc a security
+  reader actually consults) now has a "Supply-chain gates" table: every binary the build fetches, the
+  file that verifies it, the failure behaviour, and the two deliberate residual gaps (u-boot blobs,
+  `--network=host`). **Verified:** docs-only; every row cross-checked against the shipped U-118–U-120
+  implementations.
 - `[U-121]` **mirror hygiene: the stray ImgBot work is merged, the divergent branch retired** — the
   GitHub-side `imgbot` branch carried a bot commit (`fede77a`, 2026-07-23) that existed **only on the
   mirror** — a mirror with a unique commit is no longer a mirror, and a forced mirror-push would have

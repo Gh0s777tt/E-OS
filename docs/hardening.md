@@ -144,6 +144,25 @@ work through the checklist below.
 | **Kernel-space W⊕X** memory | kernel paging | ✅ No *persistent* W+X pages (audited). The only x86 W+X mappings are two **transient early-boot windows** that are torn down: the SMP AP trampoline (mapped W+X, written, then **unmapped** once the APs are up — `acpi/madt/arch/x86.rs`) and the `alternative` self-modifying-code patcher (W+X to patch, then **remapped R-X** — `arch/x86_64/alternative.rs`). aarch64 has neither. |
 | Hardened `RUSTFLAGS` (RELRO/BIND_NOW) | build env | ▫ Low marginal value here — E-OS's userland is memory-safe Rust, mostly statically linked, and the loader loads code into anonymous memory (no classic PLT/GOT lazy-binding for `-z now` to protect); enabling it would force a full-world rebuild for negligible gain. The C **ports** (which would benefit) build with their own toolchain flags, not `.cargo/config.toml`. Left as a deliberate no-op rather than a pending gap. |
 
+## 📦 Supply-chain gates (what the build refuses to trust)
+
+Everything the build *fetches as a binary* is verified before use (`U-118`–`U-120`;
+full inventory + rationale in
+[audit/AUDIT-2026-08-14.md](audit/AUDIT-2026-08-14.md) §4):
+
+| Gate | Where | Behaviour |
+|---|---|---|
+| Prebuilt Redox toolchain (gcc/rust/clang archives) | `mk/prefix.mk` + pins in `mk/fetch-sha256.txt` | pin mismatch → **hard fail**; unpinned combo → warning (`EOS_STRICT_FETCH=1` makes it fatal). Re-pin procedure in the manifest header. |
+| Upstream rust-dist tarballs (`PREFIX_USE_UPSTREAM_RUST_COMPILER`) | `mk/prefix.mk` (`verify_rust_dist`) | verified against Rust's published `.sha256` sidecars |
+| Container bootstrap: rustup, sccache, just, cbindgen | `podman/rustinstall.sh` | versioned `rustup-init` + SHA256 pins for both container arches; no `curl \| sh`, nothing piped into `tar` unverified |
+| CI helper binaries: cargo-deny, mdbook, mdbook-mermaid | `.gitlab-ci.yml` | download-verify-extract against pins beside the version vars |
+| Recipe sources (forks) | `recipes/*/recipe.toml` + `repos.toml` | exact `rev` pins, `pin-check` CI gate (`eos-repos.sh pins --strict`) |
+| Publish/release without a signing key | `scripts/publish-repo*.sh`, `make-release.sh` | **hard fail** unless `EOS_ALLOW_UNSIGNED=1` is passed explicitly |
+
+Known residual gaps (deliberate, tracked in the audit page): u-boot firmware
+blobs for the RPi/uboot targets are not yet pinned, and the build container
+runs with `--network=host` (required for FUSE/recipe fetching today).
+
 ## ⚠️ Known limits (don't assume these)
 
 - No **UEFI Secure Boot** / TPM measured-boot chain yet.
