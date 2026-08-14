@@ -116,6 +116,24 @@ The shell executor runs as your login user, so it shares your `podman` machine a
 `eosbuild` container. The job prepends `/opt/homebrew/bin` to `PATH` so `podman`, `qemu`
 and `git` resolve under the service's minimal environment.
 
+**If `eosbuild` disappears** (heavy jobs fail with *"no container with name or ID
+\"eosbuild\" found"* — typically after the podman machine was recreated), rebuild it
+with one idempotent command on the runner host:
+
+```sh
+scripts/eos-container-setup.sh          # creates machine/image/container as needed
+```
+
+It builds the `redox-base` image from `podman/redox-base-containerfile`, creates the
+persistent container with the same flags `mk/podman.mk` uses (`SYS_ADMIN` + `/dev/fuse`
+for RedoxFS assembly, `--network=host`), installs the SHA256-pinned host toolchain via
+`podman/rustinstall.sh`, and seeds `/work/redox`. The tree deliberately lives **inside**
+the container (no bind mount — macOS virtiofs cannot serve cargo's mmap reads, see
+[build-troubleshooting.md](build-troubleshooting.md)). `--recreate` wipes and rebuilds
+(destroys the incremental `build/`+`prefix/` caches — first build afterwards is hours,
+not minutes). If macOS blocks the VM helpers on first start, approve
+`vfkit`/`krunkit`/`gvproxy` under **System Settings → Privacy & Security** and re-run.
+
 To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`,
 target `main`). No schedule variable is needed — `build-image` runs on any schedule whose
 `SCHEDULE_TASK` isn't `renovate`, so the heavy build and the Renovate schedule (below) never

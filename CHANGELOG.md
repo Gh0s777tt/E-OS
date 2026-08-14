@@ -7,6 +7,20 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-123]` **ops: the `eosbuild` container finally has a written way back** — the persistent build
+  container's creation was tribal knowledge: when the podman machine on the `eos-heavy` mac was
+  recreated and the container vanished (the outage behind U-114), there was **no documented
+  procedure** to rebuild it. New idempotent `scripts/eos-container-setup.sh`: podman machine
+  (init+start, with a pointer at the macOS Privacy & Security VM-helper approvals that can block it) →
+  `redox-base` image from `podman/redox-base-containerfile` → persistent container with the exact
+  `mk/podman.mk` flags (`SYS_ADMIN`+`/dev/fuse` for RedoxFS, `--network=host`, no bind mount — the
+  tree lives inside because macOS virtiofs can't serve cargo's mmap reads) → **pinned** toolchain via
+  `rustinstall.sh` (U-118) → seeded `/work/redox`; `--recreate` is the explicit cache-destroying
+  variant. Documented in docs/ci.md next to the runner-recovery context. **Verified:** `bash -n`
+  clean; every flag traced to `mk/podman.mk`/`docs/ci.md`/`build-troubleshooting.md`; the inner
+  toolchain step is the U-118 script already proven end-to-end in a clean container. The full script
+  can only truly run on the mac runner host — that run (and the first build after it) is the
+  documented next step, not claimed here.
 - `[U-122]` **docs(hardening): the supply-chain gates get their reference section** — the U-118/U-120
   work existed only in the CHANGELOG and the audit page; `docs/hardening.md` (the doc a security
   reader actually consults) now has a "Supply-chain gates" table: every binary the build fetches, the
