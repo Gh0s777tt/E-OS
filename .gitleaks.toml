@@ -1,6 +1,12 @@
 # gitleaks configuration for E-OS
 # Extends the default ruleset; adds allowlisting for known-safe paths.
 # Docs: https://github.com/gitleaks/gitleaks
+#
+# U-120 review note: the global [allowlist] applies to EVERY rule, so each path
+# here is a deliberate blind spot — keep the list short and justified. The
+# weekly guardian routine independently greps the whole tree (including these
+# paths) for credentials-in-URL and key material, which compensates for the
+# lockfile/build-dir exclusions below.
 
 title = "E-OS gitleaks config"
 
@@ -10,12 +16,16 @@ useDefault = true
 [allowlist]
 description = "Global allowlist"
 paths = [
-  # Vendored / generated / upstream artifacts that may contain test fixtures.
+  # Upstream license text (contains no secrets; excluded to keep diffs quiet).
   '''licenses/Redox-OS-MIT\.txt''',
+  # Build outputs — never committed (gitignored), but the CI scan walks the
+  # full history where pre-gitignore snapshots may exist.
   '''(^|/)build/''',
   '''(^|/)prefix/''',
   '''(^|/)target/''',
-  '''Cargo\.lock$''',
+  # Cargo lockfiles: registry checksum hex strings false-positive against the
+  # generic high-entropy rules. Risk accepted: a credential embedded in a
+  # git+https source URL inside a lockfile would be missed HERE — the guardian
+  # grep covers that pattern tree-wide.
+  '''(^|/)Cargo\.lock$''',
 ]
-# Example fixture tokens that are documented as non-secrets can be added here.
-regexTarget = "match"

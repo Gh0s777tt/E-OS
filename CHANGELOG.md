@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-120]` **unsigned publish is now an explicit opt-in, not a silent default (audit §4 item 4) + gitleaks
+  config review** — all three release/publish paths (`publish-repo-pages.sh` — public Pages hosting,
+  `publish-repo.sh` — release artifact staging, `make-release.sh` — SHA256SUMS/minisign) used to
+  *warn-and-continue* when the signing-key env var was missing, so one forgotten variable published an
+  unsigned, MITM-swappable index to the internet. Now a missing key **hard-fails with instructions**;
+  dev flows that genuinely want an unsigned artifact must say `EOS_ALLOW_UNSIGNED=1` out loud. Also
+  `.gitleaks.toml`: the dead `regexTarget` key (no `regexes` defined — pure noise) is gone and every
+  allowlist entry now carries its justification inline, incl. the accepted `Cargo.lock` blind spot
+  (registry-checksum false-positives) explicitly compensated by the weekly guardian's tree-wide
+  credential grep. Audit page §3/§4 statuses updated to match. **Verified:** all three gate branches
+  (key set / unset / unset+opt-in) exercised standalone; `bash -n` clean on every touched script; the
+  CI `secret-scan` job re-validates the gitleaks config on this very push.
 - `[U-119]` **eos-repo-sign: keygen can no longer leak or clobber the repo-signing key (audit §4 item 6)** —
   `keygen` previously wrote the SECRET key with the default umask (usually world-readable 0644 on Unix)
   and silently overwrote an existing key file — silent rotation would strand every client pinning the

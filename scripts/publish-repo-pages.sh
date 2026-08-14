@@ -56,8 +56,18 @@ sign_manifest() {
     [ -x "$bin" ] || bin="$(command -v eos-repo-sign 2>/dev/null || true)"
     local pub="${EOS_REPO_SIGN_PUB:-$ROOT/keys/eos-repo-sign.pub.toml}"
     if [ -z "${EOS_REPO_SIGN_KEY:-}" ]; then
-        echo "WARNING: EOS_REPO_SIGN_KEY unset — repo.toml published UNSIGNED (no PQ manifest signature). A MITM can swap an unsigned index; see docs/security.md and R-703." >&2
-        return 0
+        # U-120: publishing an unsigned index to the public internet is no longer
+        # the default-open path — a MITM/host can swap an unsigned index to
+        # freeze, roll back or substitute packages (R-703). Dev flows that
+        # genuinely want it must say so explicitly.
+        if [ "${EOS_ALLOW_UNSIGNED:-0}" = "1" ]; then
+            echo "WARNING: EOS_ALLOW_UNSIGNED=1 — repo.toml published UNSIGNED (no PQ manifest signature; see docs/security.md and R-703)." >&2
+            return 0
+        fi
+        echo "error: EOS_REPO_SIGN_KEY unset — refusing to publish an UNSIGNED repo.toml to public hosting." >&2
+        echo "  Sign:   EOS_REPO_SIGN_KEY=/path/off-repo/secret.toml $0 ..." >&2
+        echo "  Or opt in explicitly (dev only): EOS_ALLOW_UNSIGNED=1 $0 ..." >&2
+        exit 1
     fi
     [ -n "$bin" ] && [ -x "$bin" ] || { echo "error: eos-repo-sign not built — run: (cd tools/eos-repo-sign && cargo build --release)"; exit 1; }
     "$bin" sign "$EOS_REPO_SIGN_KEY" "$dir/repo.toml"

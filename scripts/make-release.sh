@@ -47,7 +47,13 @@ done
 if [ -n "${MINISIGN_SECRET_KEY:-}" ]; then
   minisign -Sm "$OUT/SHA256SUMS" -s "$MINISIGN_SECRET_KEY"
   echo "signed -> release/SHA256SUMS.minisig"
-else
+elif [ "${EOS_ALLOW_UNSIGNED:-0}" = "1" ]; then
+  # U-120: unsigned releases are opt-in, never the silent default.
   rm -f "$OUT/SHA256SUMS.minisig"
-  echo "WARNING: no MINISIGN_SECRET_KEY set — SHA256SUMS is UNSIGNED (removed any stale .minisig)."
+  echo "WARNING: EOS_ALLOW_UNSIGNED=1 — SHA256SUMS is UNSIGNED (removed any stale .minisig)."
+else
+  echo "error: no MINISIGN_SECRET_KEY set — refusing to assemble an UNSIGNED release." >&2
+  echo "  Sign:   MINISIGN_SECRET_KEY=/path/off-repo/eos-release.key $0 ..." >&2
+  echo "  Or opt in explicitly (dev only): EOS_ALLOW_UNSIGNED=1 $0 ..." >&2
+  exit 1
 fi
