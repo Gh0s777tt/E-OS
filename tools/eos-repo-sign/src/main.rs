@@ -88,7 +88,37 @@ fn die(msg: impl AsRef<str>) -> ! {
     exit(1)
 }
 
+/// Create `path` refusing to clobber an existing file (`create_new` — atomic,
+/// no TOCTOU window). `owner_only` restricts the file to `0600` on Unix *at
+/// creation* — a secret key must never transit through a world-readable state
+/// (the default umask usually yields 0644). On non-Unix hosts the mode bits
+/// don't exist; `create_new` still applies.
+fn write_new_key_file(path: &str, contents: &str, owner_only: bool) -> std::io::Result<()> {
+    use std::io::Write as _;
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create_new(true);
+    #[cfg(unix)]
+    if owner_only {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        opts.mode(0o600);
+    }
+    #[cfg(not(unix))]
+    let _ = owner_only;
+    let mut f = opts.open(path)?;
+    f.write_all(contents.as_bytes())
+}
+
 fn keygen(secret_path: &str, public_path: &str) {
+    // Refuse to overwrite before generating anything: silently rotating the
+    // repo-signing key would strand every client pinning the old public key.
+    for p in [secret_path, public_path] {
+        if std::path::Path::new(p).exists() {
+            die(format!(
+                "refusing to overwrite existing {p} — move it away first if you really mean to rotate keys"
+            ));
+        }
+    }
+
     // ed25519 (classical)
     let ed_sk = EdSigningKey::generate(&mut OsRng);
     let ed_vk = ed_sk.verifying_key();
@@ -116,9 +146,9 @@ fn keygen(secret_path: &str, public_path: &str) {
         hex_encode(pq_vk.encode().as_slice()),
     );
 
-    std::fs::write(secret_path, secret)
+    write_new_key_file(secret_path, &secret, true)
         .unwrap_or_else(|e| die(format!("write {secret_path}: {e}")));
-    std::fs::write(public_path, public)
+    write_new_key_file(public_path, &public, false)
         .unwrap_or_else(|e| die(format!("write {public_path}: {e}")));
     println!("eos-repo-sign: wrote secret keys -> {secret_path}");
     println!("eos-repo-sign: wrote public keys -> {public_path}");
@@ -299,6 +329,33 @@ mod tests {
         let m = parse_kv("a = \"1\"\n");
         assert!(get(&m, "a").is_ok());
         assert!(get(&m, "b").is_err());
+    }
+
+    #[test]
+    fn write_new_key_file_refuses_clobber_and_restricts_mode() {
+        let path = std::env::temp_dir().join(format!(
+            "eos-repo-sign-test-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let path_s = path.to_str().unwrap();
+        let _ = std::fs::remove_file(&path);
+
+        super::write_new_key_file(path_s, "secret\n", true).unwrap();
+        // Second write must fail atomically instead of rotating the key.
+        let err = super::write_new_key_file(path_s, "other\n", true).unwrap_err();
+        assert_eq!(err.kind(), std::io::ErrorKind::AlreadyExists);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "secret\n");
+
+        // On Unix the secret file must be owner-only from creation (0600).
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let mode = std::fs::metadata(&path).unwrap().permissions().mode();
+            assert_eq!(mode & 0o777, 0o600);
+        }
+
+        std::fs::remove_file(&path).unwrap();
     }
 }
 

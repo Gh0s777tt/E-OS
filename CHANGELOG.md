@@ -7,6 +7,18 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-119]` **eos-repo-sign: keygen can no longer leak or clobber the repo-signing key (audit §4 item 6)** —
+  `keygen` previously wrote the SECRET key with the default umask (usually world-readable 0644 on Unix)
+  and silently overwrote an existing key file — silent rotation would strand every client pinning the
+  old public key. Now: a new `write_new_key_file` helper creates the secret with **`0600` from the
+  first byte** (`OpenOptionsExt::mode` — the file never transits a world-readable state) and both
+  files use **`create_new`** (atomic no-clobber, no TOCTOU window); an existing path dies with an
+  explicit "move it away first if you really mean to rotate" message *before* any key material is
+  generated. `tools/eos-repo-sign/README.md` updated to describe the behaviour. **Verified:** new
+  regression test (`write_new_key_file_refuses_clobber_and_restricts_mode` — asserts AlreadyExists on
+  the second write, content intact, and mode==0600 on Unix) + the existing 8 tests: 9/9 green with
+  `cargo fmt --check` and `clippy -D warnings` clean, run in a **CI-identical `rust:slim` container**
+  (the light tier re-verifies on push).
 - `[U-118]` **supply-chain: every fetched build binary is now SHA256-pinned (audit §4 items 1–3)** —
   the compilers and helper tools that build the whole OS no longer rest on TLS alone. (1) **Prebuilt
   Redox toolchain** (`mk/prefix.mk`, default `PREFIX_BINARY=1`): a new manifest `mk/fetch-sha256.txt`

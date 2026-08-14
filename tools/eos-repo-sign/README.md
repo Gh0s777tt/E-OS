@@ -30,10 +30,10 @@ extra parsing dependencies.
 - Keep the **secret** key *outside* the repo tree (e.g.
   `~/keys/eos-release-secret.toml`); only the public half belongs in-repo
   (`keys/`). `*.key` is gitignored as a safety net, but don't rely on it.
-- Known sharp edge (audit 2026-08-14, open): `keygen` writes the secret file
-  with the default umask (often world-readable on Unix) and will silently
-  overwrite an existing file — `chmod 600` it immediately; a built-in `0600` +
-  no-clobber fix is queued.
+- `keygen` refuses to overwrite an existing key file (move it away first if you
+  really mean to rotate — silent rotation would strand every client pinning the
+  old public key) and creates the secret file `0600` (owner-only) on Unix from
+  the first byte (U-119; regression-tested).
 - The publish flow that consumes this tool is `scripts/publish-repo-pages.sh`
   (set `EOS_REPO_SIGN_KEY`); operational details live in
   [docs/MAINTENANCE.md](../../docs/MAINTENANCE.md).
