@@ -7,6 +7,16 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-121]` **mirror hygiene: the stray ImgBot work is merged, the divergent branch retired** — the
+  GitHub-side `imgbot` branch carried a bot commit (`fede77a`, 2026-07-23) that existed **only on the
+  mirror** — a mirror with a unique commit is no longer a mirror, and a forced mirror-push would have
+  erased the work. The commit (46 files: lossless image optimization, `-170` lines of SVG minification,
+  PNG recompression incl. `dosbox/icon.png` 118→68 KB) was **cherry-picked into `main` via GitLab**
+  (`18d0a3b`, ImgBot authorship preserved), its GitHub PR #16 closed with a pointer, and the stale
+  `imgbot` branches deleted on **both** hosts (the GitLab one was an older, different bot commit
+  `0bb3989` — superseded). **Verified:** all 41 PNGs re-opened and dimension-compared byte-for-byte
+  against pre-merge `main` (identical sizes/modes, files load), all 5 minified SVGs XML-parse; nothing
+  the docs/README embed changed dimensions.
 - `[U-120]` **unsigned publish is now an explicit opt-in, not a silent default (audit §4 item 4) + gitleaks
   config review** — all three release/publish paths (`publish-repo-pages.sh` — public Pages hosting,
   `publish-repo.sh` — release artifact staging, `make-release.sh` — SHA256SUMS/minisign) used to
