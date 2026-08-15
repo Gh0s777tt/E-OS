@@ -7,6 +7,20 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-125]` **`integrity` gate: stop scanning 15 GB of vendored upstream Rust and calling it "our own
+  sources"** — the R-F01 guard in `scripts/ci-integrity.sh` used `grep -rInE … --include='*.rs' .`,
+  which walks the **gitignored** `prefix/` (the vendored upstream Rust stdlib) and `build/` (host
+  build outputs) as well as the repo. Consequence: any working tree that had ever been built failed
+  the gate — on this host it reported two upstream `stdarch` doc-examples that mention "password"
+  and two `build/hostbuild-eos-control` usage strings — while CI stayed green, because a fresh clone
+  has neither directory. A gate that is permanently red locally and green in CI is a gate nobody
+  reads, which is precisely how a real hit would slip through. Replaced with `git grep … -- '*.rs'`
+  (tracked files only), which is what the guard's own comment already claimed to check — fork
+  sources land in the gitignored `recipes/*/source` and are gated by their own repos' CI, so no
+  enforced coverage is lost; local behaviour now equals CI behaviour. **Verified:** gate PASSes on
+  the clean tree in **0.42 s** (previously a full walk of a 24 GB tree); negative test — a planted
+  `println!("password is {}", 1)` in a tracked file is still caught and reported with `file:line`,
+  and the gate returns to PASS once removed.
 - `[U-124]` **the U-114 outage was never data loss — the build caches were in named volumes all
   along, and the recovery script would have orphaned them** — investigating the "container is
   gone" state on the `eos-heavy` mac turned up a container called **`ec-build`** (not `eosbuild`,

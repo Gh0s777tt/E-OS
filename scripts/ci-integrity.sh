@@ -8,7 +8,15 @@ ok(){ printf '  ok: %s\n' "$1"; }
 bad(){ printf 'FAIL: %s\n' "$1"; fail=1; }
 
 # 1) No debug / plaintext-secret prints in our own Rust sources (R-F01 guard).
-hits=$(grep -rInE 'println!\s*\(.*[Pp]assword|TODO:? *Remove this debug' --include='*.rs' . 2>/dev/null | grep -v '/target/' || true)
+# `git grep` (tracked files only) rather than `grep -r .`: the recursive form also
+# walked the gitignored prefix/ — 15 GB of vendored upstream Rust stdlib — and
+# build/, so any working tree that had ever been built failed this gate on
+# upstream doc-examples containing the word "password", while CI passed because a
+# fresh clone has neither directory. The gate's own comment says "our own"
+# sources, and tracked == ours (fork sources land in the gitignored
+# recipes/*/source and are gated by their own repos' CI). This makes a local run
+# mean exactly what the CI run means, and it is far faster over a 24 GB tree.
+hits=$(git grep -InE 'println!\s*\(.*[Pp]assword|TODO:? *Remove this debug' -- '*.rs' 2>/dev/null || true)
 if [ -n "$hits" ]; then bad "debug/plaintext-secret print:"; echo "$hits"; else ok "no debug/password prints"; fi
 
 # 2) Docs must not point users at a concrete phantom release image (R-003 guard).
