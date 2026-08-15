@@ -7,6 +7,58 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-126]` **docs honesty pass: the signing chain, the install guide, and a reality-ledger that
+  had been auditing the repo with invented evidence** — a six-dimension audit (each finding
+  re-checked by an adversarial reviewer) of the open docs↔code gaps produced three fixes.
+  **(1) The signing chain is described as one control; it is two, and only one exists.** The
+  publisher genuinely signs `repo.toml` (hybrid ed25519 + ML-DSA-65, hard-fails unsigned since
+  `U-120`) — but **no client checks it**: `keys/eos-repo-sign.pub.toml` has never been generated
+  or committed (`keys/` holds only the minisign release key) and `pkg-lib` has no
+  `verify_manifest()` (`git grep` hits design docs only). `SECURITY.md`, `keys/README.md` and both
+  publish scripts nonetheless stated client-side verification in the present tense, so a reader
+  had every reason to believe the package channel was authenticated end-to-end. All of them now
+  separate publisher-side (live) from client-side (`R-702` pin + `R-703` verify, neither started),
+  and `docs/security.md`'s rollout stage 1 is marked half-done. `docs/packages.md` gains the
+  matching caveat: the per-package pkgar ed25519 check is genuine, but the index is unverified and
+  the post-install remote pubkey is still TOFU. Two design docs were stale in the **opposite**
+  direction — `update-system-design.md` ("the publisher never runs it today") and
+  `driver-manager-design.md` ("wire eos-repo-sign into publish-repo-pages.sh") — both corrected,
+  and `ROADMAP` `R-703` now records that its publisher half is done.
+  **(2) `docs/install.md` §2/§3 promised an install wizard that does not exist** — "creating
+  users / passwords" and "the package set" (plus the TUI comment "prompts for disk, users,
+  encryption, packages"), while `R-603` states both front-ends clone `base.toml` defaults and
+  create no accounts. Replaced with what the binary does, plus an explicit warning that a fresh
+  install lands on the shipped `user` (passwordless) and `root`/`password` and that the first
+  login forces the change. `R-608` itself was defective and is corrected in the same pass: it
+  accused §2 of inventing an interactive encryption walk-through, but the `redoxfs password`
+  prompt is real (`docs/encryption.md:16`), and its `needs R-603` dependency pointlessly parked a
+  text-only `[P1·S·any]` fix behind the `R-601` hardware harness — dropped.
+  **(3) `docs/reality-ledger.md` — the page that exists to catch other docs lying — was itself
+  running on false premises.** Worst: its i18n finding ("CLAUDE.md makes i18n key-parity a hard
+  pre-commit gate and mandates Polish docs/UI, so the project violates its own gate") was not
+  stale but **invented** — `grep -niE "i18n|l10n|locale|polski|polish|parity" CLAUDE.md` returns
+  nothing, and `CLAUDE.md` entered the repo in `87257aca3` (2026-07-19), **six days after** the
+  ledger was written (`1a40a7844`, 2026-07-13). Same class: Polish-language quotations attributed
+  to that English file, here and in `ROADMAP` (`'bez luk'`, `'docs zgodne z kodem'`) — theses
+  sound, quotation marks fabricated; all now cite sections instead. Four further premises are
+  simply resolved (phantom `release/SHA256SUMS` — the directory is not even in the index; "the
+  publisher never emits `repo.toml.sig`"; "`make-release` doesn't regenerate the SBOM";
+  `roadmap-connectivity.md`'s "✅ verified" usbnetd, fixed in `U-115`), one never existed (a
+  self-contradictory `U-055` CHANGELOG entry — there is no `U-055` entry), one is aimed at the
+  wrong defect (hardware-matrix has no aarch64 `ahcid`/`ided` rows to be wrong; the real gap is a
+  missing `Arch` column), and the ledger's own driver evidence cited `src/base-drivers/*` — a path
+  `git log --all` shows was never versioned, which is precisely the error it charges
+  `hardware-matrix` with. A dated second update note records all of it; the withdrawn i18n finding
+  is struck in place and re-argued on its real merits (retrofit cost, not rule violation).
+  **Verified:** every claim re-checked against `main` before editing — `grep` on CLAUDE.md (rc=1),
+  `git log` dates for both files, `ls keys/`, `git grep verify_manifest`, `git ls-files release/`
+  (empty), `config/desktop.toml` + `config/desktop-minimal.toml` for the session, and exact line
+  numbers re-derived with `grep -n` (the audit's `install.md:52` was off by one — the accounts
+  bullet was `:53`). `integrity`, `pin-check` and a `docs-currency` simulation PASS; `bash -n`
+  clean on both touched publish scripts. **Not covered here:** the "COSMIC desktop" overclaim
+  (done separately in `U-127`) and the
+  usbnetd contradiction, which turns on `git merge-base --is-ancestor a3a98fd4 d6336419` in the
+  `eos-base` fork and cannot be settled from this host.
 - `[U-125]` **`integrity` gate: stop scanning 15 GB of vendored upstream Rust and calling it "our own
   sources"** — the R-F01 guard in `scripts/ci-integrity.sh` used `grep -rInE … --include='*.rs' .`,
   which walks the **gitignored** `prefix/` (the vendored upstream Rust stdlib) and `build/` (host

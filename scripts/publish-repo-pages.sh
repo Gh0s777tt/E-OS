@@ -48,8 +48,11 @@ fi
 # R-703: sign the repo.toml MANIFEST (which lists every package's blake3 hash)
 # with the hybrid ed25519+ML-DSA-65 key, so a host/MITM cannot swap the index
 # to freeze, roll back or substitute packages. The SECRET key is user-held and
-# passed via $EOS_REPO_SIGN_KEY — NEVER in the repo. Clients verify repo.toml.sig
-# against the in-image-pinned public key (keys/eos-repo-sign.pub.toml, R-702).
+# passed via $EOS_REPO_SIGN_KEY — NEVER in the repo. Clients *will* verify
+# repo.toml.sig against an in-image-pinned public key — but that half is NOT
+# BUILT: keys/eos-repo-sign.pub.toml has never been committed (R-702) and pkg-lib
+# has no verify_manifest() (R-703). Signing here is necessary but not yet
+# sufficient — the signature authenticates nothing on a device until both land.
 sign_manifest() {
     local dir="$1"
     local bin="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"

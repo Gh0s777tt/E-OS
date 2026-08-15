@@ -22,7 +22,12 @@ repo/x86_64-unknown-redox/
 - **`repo.toml`** is the index clients read to resolve and verify packages.
 - Each **`.pkgar`** is content-addressed (blake3) and **ed25519-signed**; the
   matching public key is `id_ed25519.pub.toml` (`pkey = …`). Clients verify the
-  signature before installing.
+  signature before installing — this per-package check is genuine and works today.
+  ⚠️ Two limits it does **not** cover: the *index* (`repo.toml`) is signed at
+  publish time but verified by no client (`R-703`), and on the **post-install
+  remote path** the pubkey itself is fetched TOFU from the same host that serves
+  the packages, so a hostile host can supply its own key with self-consistent
+  signatures (`R-702`; the installer path does pin a key).
 
 > Provenance flows through: the E-OS source forks (`userutils`, `orbdata`,
 > `bootloader`) are cooked locally and packaged here, so the repo carries the

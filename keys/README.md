@@ -34,9 +34,14 @@ The package repository's `repo.toml` lists every package's blake3 hash, so a
 signature over it authenticates the whole repo. E-OS signs it with a **hybrid**
 ed25519 + ML-DSA-65 (post-quantum, FIPS 204) signature via `tools/eos-repo-sign`.
 
-**Trust anchor (R-702):** the hybrid public key is pinned **in the image**; clients
-verify `repo.toml.sig` against the pinned key, not one fetched from the repo host.
-Commit that public key here as `eos-repo-sign.pub.toml` (public only).
+**Trust anchor (R-702) — NOT YET IN PLACE.** The *design* is that the hybrid public
+key is pinned **in the image**, so clients verify `repo.toml.sig` against the pinned
+key rather than one fetched from the repo host. Neither half exists today:
+`eos-repo-sign.pub.toml` has never been generated or committed (this directory holds
+only `eos-release.pub`, the minisign release key), and no client-side
+`verify_manifest()` is implemented (`R-703`). The publisher already signs, so the
+missing anchor is the *only* reason that signature is inert. The steps below create
+the key; pinning it into the image is `R-702`.
 
 One-time key setup (secret stays off-repo — e.g. a password manager or a masked
 GitLab CI *file* variable):

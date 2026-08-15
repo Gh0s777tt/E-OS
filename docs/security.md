@@ -93,6 +93,11 @@ auditable text.
 1. **Dual-publish (compatible).** The repo publisher writes `repo.toml.sig`
    alongside the existing pkgar ed25519 signatures. Old clients ignore it; new
    clients verify ed25519 from it and treat ML-DSA as advisory.
+   > **Status: half done.** Publisher-side is **live** — `publish-repo-pages.sh`
+   > and `publish-repo.sh` sign, and since `U-120` refuse to publish unsigned
+   > unless `EOS_ALLOW_UNSIGNED=1`. Client-side is **not started**: there is no
+   > pinned public key (`R-702`) and no `verify_manifest()` (`R-703`), so no
+   > client verifies anything. Stage 2 cannot begin until that changes.
 2. **Dual-require (new clients).** Updated clients require **both** ed25519 and
    ML-DSA-65 to pass. Images still boot because pkgar's per-package ed25519
    verification is unchanged; the hybrid guards the *manifest*.

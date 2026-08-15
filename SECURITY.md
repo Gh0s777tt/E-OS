@@ -76,8 +76,15 @@ CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* u
 - 👮 **Branch protection** on the default branch; **CODEOWNERS** review required.
 - ✍️ **Signed commits** encouraged. Releases publish **SHA256SUMS** + a CycloneDX
   **SBOM**; the checksums are **minisign-signed** by `scripts/make-release.sh` (the
-  key is user-held, off-repo). The package `repo.toml` manifest is signed with a
-  hybrid **ed25519 + ML-DSA-65** signature (`tools/eos-repo-sign`, `R-703`).
+  key is user-held, off-repo). The package `repo.toml` manifest is **signed at
+  publish time** with a hybrid **ed25519 + ML-DSA-65** signature
+  (`tools/eos-repo-sign`; since `U-120` an unsigned publish is a hard failure
+  unless `EOS_ALLOW_UNSIGNED=1` is given explicitly).
+  ⚠️ **The client half does not exist yet.** No E-OS public key is pinned in any
+  image — `keys/eos-repo-sign.pub.toml` has never been generated or committed —
+  and `pkg-lib` has no `verify_manifest()`, so **nothing on a running system
+  checks that signature**. Until `R-702` (pin the key) and `R-703` (verify it)
+  ship, treat the package channel as **unauthenticated on the client**.
 - ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
 
 See [docs/security.md](docs/security.md) for the contributor security guide.

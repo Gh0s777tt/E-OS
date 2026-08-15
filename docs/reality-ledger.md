@@ -25,8 +25,51 @@
 >   virtiofs can't serve cargo/rustc mmap reads; see `docs/build-troubleshooting.md`),
 >   so image builds are authoritative **only on Linux/CI**. The trust-chain
 >   ordering (`R-702`→`R-703`→`R-701`), live default-credentials (`R-602`),
->   install.md overstatement (`R-608`), usbnetd RX=0 (`R-901`), and the i18n /
+>   install.md overstatement (`R-608`), usbnetd RX=0 (`R-901`), and the
 >   trusted-time / recovery-path gaps below remain open.
+
+> **Second update note — 2026-08-15 (`U-126`): premises audited against the tree, several are false.**
+> This page is published on the docs site *and* is treated as the definition of several
+> roadmap items, so a stale premise here becomes a mis-scoped ticket. Six independent
+> audits (each re-checked by an adversarial reviewer) re-ran every claim below against
+> `main`. Corrections, in descending severity:
+>
+> - **The i18n premise was never true — not stale, invented.** The "CLAUDE.md makes i18n
+>   key-parity a hard gate and mandates Polish docs/UI" claim (below, and in *Coverage
+>   gaps*) has no basis: `grep -niE "i18n|l10n|locale|polski|polish|parity" CLAUDE.md`
+>   returns **nothing**, and the chronology rules out any earlier wording — `CLAUDE.md`
+>   entered the repo in `87257aca3` (2026-07-19), **six days after** this page was written
+>   (`1a40a7844`, 2026-07-13). No i18n gate exists in `lefthook.yml` or any CI job either.
+>   The i18n *gap* is real and worth scheduling; the "project violates its own gate"
+>   framing is not. Corrected in place below.
+> - **Quotes attributed to `CLAUDE.md` in Polish are fabricated.** `'docs muszą być zawsze
+>   zgodne z kodem'` (below), and in ROADMAP `'bez luk'` / `'docs zgodne z kodem'`, appear
+>   nowhere in that (English) file. The underlying *theses* are sound — §2 and §4 do
+>   require docs to track code — so the fix is to cite sections, not invent quotations.
+> - **`release/SHA256SUMS` phantom-artifact claim: resolved.** The `release/` directory
+>   exists neither in the tree nor in the index (`git ls-files release/` is empty); it was
+>   removed and `.gitignore`d, and `install.md` now uses the real `build/<arch>/eos/`
+>   path. *Residue:* `ROADMAP.md` and `docs/feature-proposals.md` still state it in the
+>   present tense.
+> - **"The publisher never emits `repo.toml.sig`": resolved.** Both publish scripts sign
+>   via `tools/eos-repo-sign`, and since `U-120` an unsigned publish hard-fails. The real
+>   gap moved to the client: no pinned key (`R-702`), no `verify_manifest()` (`R-703`).
+> - **"`make-release` doesn't regenerate the SBOM per build": resolved** — it does, and
+>   folds it into the same signed `SHA256SUMS`.
+> - **`roadmap-connectivity.md` "✅ done … verified" for usbnetd: fixed in `U-115`** — it
+>   now reads "🚧 partial … **RX is broken**".
+> - **The `CHANGELOG U-055` self-contradiction does not exist** — there is no `U-055` entry
+>   in `CHANGELOG.md` (history before `U-071` lives in the git log). Two sequential commits,
+>   not one contradictory entry.
+> - **hardware-matrix: the specific accusation is wrong, a real defect sits next to it.**
+>   The tables are explicitly x86_64, and there are no aarch64 `ahcid`/`ided` rows to be
+>   wrong. `ac97d`/`vboxd` *were* built for x86 — they are dead on **aarch64** only, along
+>   with `sb16d`, `ps2d` and `ided`, which this page omits. The rows need an `Arch` column,
+>   not a truth correction.
+> - **Evidence paths `src/base-drivers/*` do not exist and never did** (`git log --all --
+>   src/base-drivers` is empty). That code lives in the `eos-base` fork and is fetched into
+>   a gitignored directory — the same "cites a path that isn't there" error this page
+>   charges `hardware-matrix` with. Corrected below.
 
 ## Genuinely done and verified (the strong foundation)
 
@@ -37,16 +80,16 @@
 | relibc static-TLS ABI bug (every thread crashed on exit, BOTH arches) root-caused and fixed with a regression test; ld.so weak-PLT + d_val overflow fixes un-broke every COSMIC app | `CHANGELOG U-020 (R-402a), U-058 (R-402b); docs/known-issues.md L273-308; eos-relibc branch eos-tls @0d30e9ea` | high |
 | Fala-B memory-safety hardening owned by E-OS, boot-verified on both arches: overflow-checks across kernel+base+relibc, user-space mmap ASLR (empirically proven across two boots), simultaneous W⊕X at the syscall boundary, ld.so linked at vaddr0 so its base randomizes, guard bands | `CHANGELOG U-044/U-045/U-046/U-051/U-052; ROADMAP R-306; docs/hardening.md` | high |
 | Full-disk encryption (RedoxFS AES-XTS) boots end-to-end: bootloader prompts for password, unlocks AES-XTS root, reaches login on both arches; surfaced+fixed a real UEFI ENOKEY bootloader bug then rebased the fork onto mainline | `CHANGELOG U-049/U-050; ROADMAP R-305; docs/encryption.md; build/aarch64/eos-enc/harddrive.img + build/x86_64/eos-enc/harddrive.img present` | high |
-| raid1d — a real new userspace RAID-1 mirror driver crate in eos-base (write-both/read-fallback, degraded boot, resync/rebuild, split-brain safety), verified in a 5-boot QEMU sequence | `CHANGELOG U-061/U-065 (R-501/R-501b); src/base-drivers/storage/raid1d present; eos-base@1ab5035f` | high |
+| raid1d — a real new userspace RAID-1 mirror driver crate in eos-base (write-both/read-fallback, degraded boot, resync/rebuild, split-brain safety), verified in a 5-boot QEMU sequence | `CHANGELOG U-061/U-065 (R-501/R-501b); eos-base@1ab5035f: drivers/storage/raid1d` (fork, not this repo — see the 2026-08-15 note) | high |
 | Hybrid post-quantum signing tool (ed25519 + ML-DSA-65) — real host-side Rust tool, built, verified against the actual repo.toml incl. classical-only fallback and tamper detection | `CHANGELOG U-064 (R-503); tools/eos-repo-sign/ (built target present); repo/aarch64-unknown-redox/repo.toml` | high |
 | Vendoring: all 22 Redox-authored packages build from Gh0s777tt/eos-* forks; a local pkgar repo is produced (73 pkgs aarch64, 72 x86_64, with repo.toml) | `ROADMAP R-208; docs/forks.md; repo/{aarch64,x86_64}-unknown-redox/*.pkgar + repo.toml on disk` | high |
-| USB stack progress: usbscsid mass-storage re-enabled via a real daemon INIT_NOTIFY fix (reads block 0); usbnetd RNDIS driver enumerates, runs handshake, reads MAC, and TX is verified (DHCP DISCOVER transmitted) | `CHANGELOG U-054 (usbscsid), U-055 (usbnetd); src/base-drivers/net/usbnetd, storage/usbscsid` | high |
+| USB stack progress: usbscsid mass-storage re-enabled via a real daemon INIT_NOTIFY fix (reads block 0); usbnetd RNDIS driver enumerates, runs handshake, reads MAC, and TX is verified (DHCP DISCOVER transmitted) | `git log 0ab0c6300/1ed8267a8 (usbnetd), U-054-era commits (usbscsid); eos-base fork: drivers/net/usbnetd, drivers/storage/usbscsid` (fork, not this repo; there is no `U-055` CHANGELOG entry — see the 2026-08-15 note) | high |
 | LTS branch and Dependabot are live (independent of Actions): origin/lts/0.1 exists; Dependabot has opened cargo + github_actions update branches | `git branch -a: remotes/origin/lts/0.1, remotes/origin/dependabot/*; ROADMAP R-1002` | high |
 | SBOM (CycloneDX) files exist for 0.1.0 both arches; minisign public key present | `sbom/eos-0.1.0-{aarch64,x86_64}.cdx.json; keys/eos-release.pub (RWRK7Vdg...)` | medium |
 
 ## Claimed but broken / overstated — must be reconciled
 
-- ⚠️ docs/install.md (shipping, not the stale vendored fork) §2 states the Installer walks the user through creating users/passwords and choosing the package set; the built GUI does drive-select + password only. Direct CLAUDE.md 'docs muszą być zawsze zgodne z kodem' violation on live docs — R-608 addresses it but it is currently false.
+- ⚠️ docs/install.md (shipping, not the stale vendored fork) §2 states the Installer walks the user through creating users/passwords and choosing the package set; the built GUI does drive-select + password only. A direct violation of CLAUDE.md §2 (docs must track the change that touched them) on live, user-facing docs — R-608 addresses it but it is currently false. *(The Polish quotation previously attributed to CLAUDE.md here was fabricated; the thesis stands, the quote never existed.)*
 - ⚠️ README/CHANGELOG U-015 AND ROADMAP R-1002 ('pushed to both remotes') claim a synced GitLab mirror; the repo has a single origin=GitHub remote. The phantom mirror now appears in TWO synced docs, contradicting the actual remote config. R-006 addresses.
 - ⚠️ SECURITY.md/README advertise CodeQL + gitleaks + cargo-audit scanning and minisign release-signing as active security posture; all run only via GitHub Actions, which is disabled account-wide, so none execute and even manual downloads have no live signed checksums to verify. R-003/R-005 address; currently inconsistent.
 - ⚠️ release/SHA256SUMS (dated Jul-5) lists eos-0.1.0-<arch>.img that exist nowhere; the real output is build/<arch>/eos/harddrive.img (1400 MiB, rebuilt Jul-11/12), so install.md's sha256sum -c / dd steps reference a non-existent file and would fail even after a rename (checksums must be regenerated). R-002/R-003.
@@ -54,7 +97,7 @@
 - ⚠️ docs/hardware-matrix.md marks ac97d and vboxd (and initfs ahcid/ided on aarch64) as '▫ Present'; those binaries are absent from the build tree entirely, so a matching device would fail Command::new and stay unbound — the rows are factually wrong (binary absent), not merely 'unverified'. R-803 validates presence at bind time but no item corrects the matrix doc itself.
 - ⚠️ usbnetd status is stated three contradictory ways: source main.rs:17-19 claims a full bidirectional DHCP handshake 'flows both ways', roadmap-connectivity.md marks it '✅ done … verified', CHANGELOG U-055 admits RX=0 (and even U-055 internally first says RX is event-driven/prompt, then concedes RX=0). R-901 reconciles.
 - ⚠️ Working tree is ahead of published origin (README-sync commit ee0f15cd unpushed; main 1 commit ahead), so GitHub shows an older state than the audited docs describe. R-007.
-- ⚠️ CLAUDE.md lists i18n key-parity as a mandatory pre-commit gate and Polish as the UI/doc language, but the shipping shell is English/UTC and no roadmap item establishes i18n — the project is out of compliance with its own stated gate and the roadmap does not close it.
+- ⚠️ ~~CLAUDE.md lists i18n key-parity as a mandatory pre-commit gate and Polish as the UI/doc language, so the project is out of compliance with its own stated gate.~~ **WITHDRAWN 2026-08-15 (`U-126`) — the premise was invented:** CLAUDE.md contains no i18n, locale, parity or Polish-language rule (grep returns nothing), and it entered the repo six days *after* this page was written. What survives is a plain gap, not a violation: the shipping shell is English/UTC, four new GUIs are on the roadmap, and no roadmap item establishes i18n scaffolding. See *Coverage gaps* below.
 
 ## Overpromises to correct in docs
 
@@ -79,18 +122,18 @@
 
 ## Highest-leverage next actions (Mac-doable)
 
-- Ship the cheap trust-gating fixes sitting in reused code first: R-F01 (delete the two plaintext-password println! in eos-installer — a live CLAUDE.md security violation), R-F03 (fix pkgar-core read_at truncation panic + checked_add on offset+header_len, with a truncated-package unit test), and R-F04 (raid1d checked_add + generalized fallback) — then turn on clippy::arithmetic_side_effects to catch the whole unchecked-arithmetic class repo-wide.
+- Ship the cheap trust-gating fixes sitting in reused code first: R-F01 (delete the two plaintext-password println! in eos-installer — the case the `scripts/ci-integrity.sh` guard exists for; CLAUDE.md itself states no such rule, so the guard *is* the rule), R-F03 (fix pkgar-core read_at truncation panic + checked_add on offset+header_len, with a truncated-package unit test), and R-F04 (raid1d checked_add + generalized fallback) — then turn on clippy::arithmetic_side_effects to catch the whole unchecked-arithmetic class repo-wide.
 - R-005 + R-001 + R-002 + R-003 together: stand up launchd-timed gitleaks/cargo-audit/cargo-deny + a `println!.*password` grep gate (replacing dead Actions), write the reality-ledger verification matrix, add a local `make release` that regenerates SHA256SUMS over the ACTUAL harddrive.img and minisigns locally, then downgrade every false CI-build / live-Pages / scanning-active / GitLab-mirror claim in README/SECURITY.md and fix install.md's phantom-artifact verify/dd steps.
-- R-D01: begin the native orbital/orbclient E-OS Settings shell (no libcosmic/fontconfig/gperf, so it builds on the aarch64 host and dodges both the host-toolchain 404 and dead CI). It is the single hard dependency under Settings→Update (R-708) and Settings→Drivers (R-806); nothing flagship-visible can ship without it. Decide the i18n string-catalog format at the SAME time so the gate is met from line one.
+- R-D01: begin the native orbital/orbclient E-OS Settings shell (no libcosmic/fontconfig/gperf, so it builds on the aarch64 host and dodges both the host-toolchain 404 and dead CI). It is the single hard dependency under Settings→Update (R-708) and Settings→Drivers (R-806); nothing flagship-visible can ship without it. Decide the i18n string-catalog format at the SAME time — not because a gate demands it (none exists), but because it is the last moment it is cheap.
 - Fix the update TRUST CHAIN before wiring the source: implement R-702 (pin the E-OS pubkey into the image, enforce https:// in add_remote, verify the pubkey-cache provenance, kill TOFU) and R-703 (publisher emits repo.toml.sig via eos-repo-sign; pkg-lib verifies it before trusting any per-package toml) — and only then land R-701 (generate key, first non-Actions publish, wire+repoint /etc/pkg.d off the upstream 50_redox default). Ordering is the security control here.
 - R-601 → R-602: build the QEMU install-to-second-disk boot-verify harness (prove partition→install→reboot→greeter on aarch64) and the first-boot OOBE wizard that forces a password change — closing the daily-driver install claim AND retiring the live passwordless-user/root:password exposure that FDE cannot mask.
 - R-801 + R-803: build eos-devd (/scheme/devices read-side inventory, buildable on aarch64/QEMU now) and harden the pcid matcher against untrusted catalog input — replace the from_str_radix().unwrap(), reject unsigned/oversized/duplicate entries, and validate binary presence to kill the dead ac97d/vboxd/ahcid/ided catalog rows before any catalog becomes downloadable.
 - R-901: fix usbnetd RX=0 under QEMU usb-net and collapse the three contradictory status docs (source comment, roadmap-connectivity.md, CHANGELOG U-055) to one honest status — a self-contained, Mac-doable honesty fix on a subsystem currently documented as both working and broken.
-- Add the two missing scaffolding items now, before GUIs proliferate: an i18n string-catalog + key-parity check (CLAUDE.md gate) and a threat-model.md update covering the new privileged eos-updated/eos-devd daemons and their /scheme control APIs — both are pure-Mac work and cheap now, expensive to retrofit.
+- Add the two missing scaffolding items now, before GUIs proliferate: an i18n string-catalog + key-parity check (a gate worth *adding* — contrary to what this page used to claim, none exists today) and a threat-model.md update covering the new privileged eos-updated/eos-devd daemons and their /scheme control APIs — both are pure-Mac work and cheap now, expensive to retrofit.
 
 ## Coverage gaps the roadmap must not forget
 
-- i18n/l10n workstream is entirely absent. CLAUDE.md makes 'Parytet i18n (wszystkie języki mają te same klucze)' a hard quality gate and mandates Polish docs/UI, yet the roadmap adds four brand-new GUIs (R-D01 Settings shell, R-708 Update pane, R-806 Driver Manager, R-902 Network pane) with zero localization scaffolding — no string-catalog format, no key-parity check, and the shipping clock is UTC-only English. Every flagship GUI will hit the project's own i18n gate at the end with no infrastructure to pass it.
+- i18n/l10n workstream is entirely absent. *(Corrected 2026-08-15, `U-126`: this bullet used to justify itself with a fabricated CLAUDE.md quote — 'Parytet i18n (wszystkie języki mają te same klucze)' — and a claimed mandate for Polish docs/UI. No such rule exists in CLAUDE.md, in `lefthook.yml`, or in any CI job. The gap is real on its own merits; the "project's own gate" argument was not.)* The roadmap adds four brand-new GUIs (R-D01 Settings shell, R-708 Update pane, R-806 Driver Manager, R-902 Network pane) with zero localization scaffolding — no string-catalog format, no key-parity check, and the shipping clock is UTC-only English. Retrofitting localization across four shipped GUIs is markedly more expensive than choosing a catalog format before the first one lands; that, not a rule violation, is the argument for doing it now.
 - No trusted-time / NTP source. R-704 anti-rollback freshness leans on a 'monotonic index+timestamp', but there is no RTC-sync or NTP client anywhere (clock is UTC HH:MM, no date). Without trusted time, timestamp-based freshness is unenforceable and the index becomes the only real anti-rollback signal — this dependency is never surfaced.
 - No recovery/rescue path. R-707 gives apply-on-reboot with boot-fallback for kernel/base, but there is no offline rescue console / repair-from-install-media flow for a system that is broken but still boots (bad non-base update, corrupted config, forgotten FDE password). A daily-driver needs a documented recovery story; none exists.
 - No fuzzing / parser-hardening workstream for attacker-controlled input. pkgar headers, per-package *.toml manifests, and the future downloaded driver catalog (R-802) are all parsed from untrusted network data, and the tree already has a live parse panic (pkgar read_at, R-F03) and an unwrap-panic matcher (R-803). A cargo-fuzz/proptest gate over pkgar-core + the catalog loader is missing as a standing item.

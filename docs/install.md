@@ -50,22 +50,31 @@ E-OS includes **`redox_installer_gui`** — open **“Installer”** from the de
 launcher (the red **E** menu). It walks you through:
 
 - choosing the **target disk**,
-- creating **users / passwords**,
 - a **RedoxFS disk-encryption password (recommended)** → encrypted root
-  (see [encryption.md](encryption.md)),
-- the package set,
+  (see [encryption.md](encryption.md)); an empty password installs unencrypted,
 
 then writes E-OS to the disk. Reboot and remove the install medium.
+
+> ⚠️ **It does not create accounts, and it does not let you pick packages.** The
+> installer clones the defaults from the image config, so a fresh install lands
+> with the shipped accounts — a **passwordless `user`** and **`root` / `password`**
+> — and the package set baked into the image. You are not asked to change them
+> during install: the first login forces a password change instead (the OOBE, on
+> both the text console and the graphical greeter). Account/hostname/locale
+> collection at install time is `R-603`, still open.
 
 ## 3. Text install (headless)
 
 For servers / no-GUI installs, run the TUI installer:
 
 ```sh
-redox_installer_tui            # prompts for disk, users, encryption, packages
+redox_installer_tui            # prompts for disk + RedoxFS password
 ```
 
-Both GUIs drive the same engine (`redox_installer`); a config-file install is also
+The TUI has the same limits as the GUI above: no account creation, no package
+selection (`installer_tui` TODO#3 is unimplemented — `R-603`).
+
+Both front-ends drive the same engine (`redox_installer`); a config-file install is also
 supported (`redox_installer <config.toml> <disk>`), where
 `[general] encrypt_disk = "…"` enables FDE non-interactively.
 
