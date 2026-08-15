@@ -250,7 +250,7 @@ Hardware roadmap: **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabi
 ## 🗺️ Roadmap
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#E50914','primaryTextColor':'#fff','primaryBorderColor':'#E50914','lineColor':'#E50914','fontFamily':'Fira Code'},'gantt':{'barHeight':22}}%%
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#E50914','primaryTextColor':'#fff','primaryBorderColor':'#E50914','lineColor':'#E50914','fontFamily':'Fira Code'},'gantt':{'barHeight':22}}}%%
 gantt
     dateFormat  YYYY-MM-DD
     axisFormat  %b '%y

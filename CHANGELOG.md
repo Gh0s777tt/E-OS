@@ -7,6 +7,15 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-128]` **README roadmap Gantt: one missing brace made its theme directive invalid** — the
+  `%%{init: …}%%` directive above the roadmap Gantt chart (`README.md`) closed with `}}%%` where
+  it needed `}}}%%`: four `{` against three `}`, so the JSON never terminated. Consequence: the
+  crimson theming silently did not apply to that one chart (older mermaid versions error on the
+  directive outright), on the project's front page. Pre-existing — not introduced by `U-126`/
+  `U-127`; found while brace-balancing every mermaid directive during the `U-127` review.
+  **Verified:** a script counting `{` vs `}` in every `%%{init` line across `README.md`,
+  `docs/architecture.md` and `ROADMAP.md` now reports balanced (3/3) for all six directives; the
+  other five were already correct and are untouched.
 - `[U-127]` **the shipping session was never "the COSMIC desktop" — the false claims corrected, the
   correct ones deliberately left alone (`R-D12`)** — the last high-severity item from the `U-126`
   audit. "COSMIC desktop" reads as *the COSMIC compositor session*, and E-OS has never run one:
