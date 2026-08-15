@@ -10,8 +10,13 @@
 #
 # Both holds below are the R-902 network work (DHCP/static) pushed to the forks
 # on 2026-07-24/25 but never bumped in the recipes. They are FEATURE commits, so
-# a bump needs the full gate run (image build + boot-smoke) — impossible while
-# the `eosbuild` container on the eos-heavy runner is gone (see U-114). Bump both
-# pins and delete these lines as soon as the build container is restored.
-eos-control    R-902 DHCP<->static toggle (40dc67f) unverified — build container down, bump deferred (U-114)
-eos-installer  R-902 installer network pane (ed6eb7c) unverified — build container down, bump deferred (U-114)
+# a bump needs the full gate run (image build + boot-smoke).
+#
+# Status 2026-08-15 (U-124): the blocker changed. The `eosbuild` container is
+# RESTORED on the eos-heavy runner with its caches intact (they were never lost —
+# they live in the eos-work/eos-root podman volumes), and gate 1 `cargo check`
+# passes on both arches. So the gate run is now *possible*; it simply has not
+# been executed yet. Removal condition: run `make CI=1 … all` + boot-smoke, bump
+# both recipe revs, delete these two lines in the same change.
+eos-control    R-902 DHCP<->static toggle (40dc67f) unverified — full gate run pending, not yet executed (U-124)
+eos-installer  R-902 installer network pane (ed6eb7c) unverified — full gate run pending, not yet executed (U-124)

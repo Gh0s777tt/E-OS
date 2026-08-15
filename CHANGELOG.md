@@ -7,6 +7,37 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-124]` **the U-114 outage was never data loss — the build caches were in named volumes all
+  along, and the recovery script would have orphaned them** — investigating the "container is
+  gone" state on the `eos-heavy` mac turned up a container called **`ec-build`** (not `eosbuild`,
+  which is why every heavy job reported *no container with name or ID "eosbuild" found*), and
+  more importantly that the build state lives in two persistent podman **named volumes**:
+  `eos-work:/work` (28 GB — the tree, `build/`, `prefix/` for both arches) and `eos-root:/root`
+  (8.7 GB — the pinned toolchain + `~/.cargo` caches). `podman rm` never touches those, so the
+  ~37 GB survived the whole three-week freeze untouched. **The real defect was in the fix:**
+  `scripts/eos-container-setup.sh` (U-123) created its container **without** those volumes, so
+  running the documented recovery would have silently orphaned every cache and turned the next
+  build into a from-scratch multi-hour run — while its `--recreate` help text simultaneously
+  claimed to destroy caches it could not reach. `ec-build` was also missing `--device /dev/fuse`,
+  `PODMAN_BUILD=0` and the `/root/.cargo/bin` PATH, i.e. it could exec and compile but never
+  assemble a RedoxFS image. Now: the script mounts both volumes (creating them on demand, so a
+  first run and a post-outage recovery take the identical path), `--recreate` rebuilds the
+  container and **keeps** the caches, a new `--wipe-caches` is the explicit opt-in for the
+  expensive path, the `rustinstall.sh` step is skipped when `eos-root` already carries the
+  toolchain, and the run ends with a sanity check that `/dev/fuse` is present and `/work/redox`
+  is non-empty. Also `scripts/eos-check.sh` — verification gate 1 — was **unrunnable on the
+  primary dev host**: `${ARCH^^}` is a bash 4 expansion evaluated host-side, and macOS ships only
+  `/bin/bash` 3.2, so it died with `bad substitution` before reaching the container; replaced with
+  a `tr` uppercase. `docs/ci.md` gains the volume table, the orphaning trap, the two flags, and a
+  note that the runner host now keeps its podman machine in an APFS sparsebundle on an external
+  exFAT drive (which must be mounted before `podman machine start`). **Verified on the runner
+  host:** `eosbuild` rebuilt with the correct flags against the existing volumes; gate 1
+  (`cargo check -p virtio-core`) PASSes for **both** `aarch64-unknown-redox` (5.91 s cold cache
+  entry, 0.06 s warm) and `x86_64-unknown-redox` (3.14 s), proving the caches are live and the
+  bash fix works on the stock 3.2 shell; `--recreate` completed in 11 s with `podman volume ls`
+  showing `eos-work`/`eos-root` still present and `du -sh /work/redox` still 28 GB afterwards;
+  unknown-flag branch exits 2. The two `scripts/pin-allowlist.txt` holds stay in place — their
+  bump needs the full image build + boot-smoke, which is now *possible* but has not been run.
 - `[U-123]` **ops: the `eosbuild` container finally has a written way back** — the persistent build
   container's creation was tribal knowledge: when the podman machine on the `eos-heavy` mac was
   recreated and the container vanished (the outage behind U-114), there was **no documented

@@ -78,8 +78,10 @@ overwrites it — `git log --oneline -- .gitlab-ci.yml` in the fork shows the
 
 The full OS build needs Podman + the cookbook toolchain, so it runs on your own machine
 via a **shell executor**, and the build itself happens **inside** the persistent podman
-container `eosbuild` (whose `/work/redox` tree carries the Rust toolchain + relibc +
-prefix caches — so builds are incremental, minutes not hours). The job:
+container `eosbuild`, whose `/work/redox` tree carries the Rust toolchain + relibc +
+prefix caches — so builds are incremental, minutes not hours. That tree lives in a named
+volume, not in the container ([see below](#where-the-build-state-actually-lives--two-named-volumes)).
+The job:
 
 1. brings the podman machine (`eos-build`) + container (`eosbuild`) up (idempotent);
 2. syncs the pipeline's commit into `/work/redox` with `git archive HEAD | tar -x`
@@ -116,6 +118,25 @@ The shell executor runs as your login user, so it shares your `podman` machine a
 `eosbuild` container. The job prepends `/opt/homebrew/bin` to `PATH` so `podman`, `qemu`
 and `git` resolve under the service's minimal environment.
 
+#### Where the build state actually lives — two named volumes
+
+This is the single most important fact about the heavy runner, and getting it wrong is
+what turned the U-114 outage into a three-week freeze. The caches are **not** in the
+container's writable layer; they are in two persistent podman **named volumes**:
+
+| Volume | Mounted at | Holds | Size (2026-08-15) |
+|---|---|---|---|
+| `eos-work` | `/work` | the tree at `/work/redox` — sources, `build/`, `prefix/` for both arches | 28 GB |
+| `eos-root` | `/root` | the SHA256-pinned host toolchain and the `~/.cargo` registry caches | 8.7 GB |
+
+`podman rm` does **not** touch named volumes (only `podman rm -v` would). So a container
+that "disappears" costs you the container, never the ~37 GB of incremental state — a
+rebuilt container that re-mounts these volumes is warm immediately (`cargo check`
+in seconds). The failure mode to fear is the opposite one: creating a *replacement*
+container **without** `--volume eos-work:/work --volume eos-root:/root`. It looks
+identical, execs fine, and silently orphans every cache, turning the next build into a
+from-scratch multi-hour run for no visible reason.
+
 **If `eosbuild` disappears** (heavy jobs fail with *"no container with name or ID
 \"eosbuild\" found"* — typically after the podman machine was recreated), rebuild it
 with one idempotent command on the runner host:
@@ -126,13 +147,53 @@ scripts/eos-container-setup.sh          # creates machine/image/container as nee
 
 It builds the `redox-base` image from `podman/redox-base-containerfile`, creates the
 persistent container with the same flags `mk/podman.mk` uses (`SYS_ADMIN` + `/dev/fuse`
-for RedoxFS assembly, `--network=host`), installs the SHA256-pinned host toolchain via
-`podman/rustinstall.sh`, and seeds `/work/redox`. The tree deliberately lives **inside**
-the container (no bind mount — macOS virtiofs cannot serve cargo's mmap reads, see
-[build-troubleshooting.md](build-troubleshooting.md)). `--recreate` wipes and rebuilds
-(destroys the incremental `build/`+`prefix/` caches — first build afterwards is hours,
-not minutes). If macOS blocks the VM helpers on first start, approve
-`vfkit`/`krunkit`/`gvproxy` under **System Settings → Privacy & Security** and re-run.
+for RedoxFS assembly, `--network=host`), re-mounts the two volumes above, installs the
+SHA256-pinned host toolchain via `podman/rustinstall.sh` **only if `eos-root` doesn't
+already carry it**, and seeds `/work/redox`. The tree deliberately never comes from a
+host bind mount — macOS virtiofs cannot serve cargo's mmap reads, see
+[build-troubleshooting.md](build-troubleshooting.md).
+
+Two flags, and the difference between them matters:
+
+- `--recreate` rebuilds the **container only** and keeps both volumes. Cheap and safe
+  (~11 s measured), and the correct response to any "container is broken/missing/has the
+  wrong flags" situation.
+- `--wipe-caches` additionally deletes `eos-work` and `eos-root`. **The next build takes
+  hours.** Reach for it only when you actually want a from-scratch rebuild.
+
+Before trusting a recovered container, run gate 1 — it distinguishes "warm" from
+"silently orphaned" in one second:
+
+```sh
+scripts/eos-check.sh /work/redox/recipes/core/base/source -p virtio-core
+```
+
+A warm tree finishes in well under a second; a cold one starts compiling the world.
+The script also verifies `/dev/fuse` is present in the container — a container missing
+it execs and compiles fine but **cannot assemble the RedoxFS image**, which surfaces
+much later as a confusing `make … all` failure.
+
+If macOS blocks the VM helpers on first start, approve `vfkit`/`krunkit`/`gvproxy`
+under **System Settings → Privacy & Security** and re-run.
+
+#### Runner-host storage: the podman machine lives on an external volume
+
+On the current `eos-heavy` mac the podman machine image is **not** on the internal disk.
+`~/.local/share/containers` is a symlink to `/Volumes/EOS-Podman/containers`, which is an
+**APFS sparsebundle** stored on the external drive (`/Volumes/Project itp/Podman/`).
+
+*Why:* the machine image is 80 GiB nominal / ~39 GiB real and the internal disk had 42 GiB
+free — the heavy runner would have wedged the host within one or two full builds. The
+external drive is **exFAT**, which has neither sparse files nor POSIX permissions, so a raw
+VM image cannot sit on it directly (an 80 GiB sparse file would materialise in full). An
+APFS sparsebundle solves both: exFAT only ever sees ordinary 64 MB band files, while the
+mounted volume is real APFS.
+
+*The consequence you must remember:* **the sparsebundle has to be mounted before
+`podman machine start`**, or podman finds a dangling symlink and every heavy job fails.
+A LaunchAgent (`com.ghostt77.container-volumes`, script `~/bin/mount-container-volumes.sh`)
+mounts it at login; after re-attaching the drive by hand, run that script. Never unplug the
+drive without ejecting while a build is running.
 
 To build nightly: **Settings → CI/CD → Pipeline schedules → New schedule** (e.g. `0 3 * * *`,
 target `main`). No schedule variable is needed — `build-image` runs on any schedule whose

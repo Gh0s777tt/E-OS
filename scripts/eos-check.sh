@@ -29,6 +29,12 @@ done
 [ -n "$CRATE" ] || { echo "usage: eos-check.sh <crate-dir-in-container> [-p pkg] [--arch aarch64|x86_64]" >&2; exit 2; }
 
 TARGET="${ARCH}-unknown-redox"
+# `${ARCH^^}` is the obvious way to build CARGO_TARGET_<ARCH>_… but it is a bash 4
+# expansion, and macOS still ships /bin/bash 3.2 — the very host this gate exists
+# for. It failed there with "bad substitution" before the command ever reached the
+# container (the expansion happens host-side, inside the double-quoted `podman
+# exec` string). `tr` keeps the script runnable on the stock shell.
+ARCH_UPPER="$(printf '%s' "$ARCH" | tr '[:lower:]' '[:upper:]')"
 echo "eos-check: cargo check ${PKG_ARGS:-（whole crate）} in $CRATE for $TARGET"
 
 # The prefix carries the target Rust toolchain (rustc/cargo) + the cross gcc used
@@ -36,7 +42,7 @@ echo "eos-check: cargo check ${PKG_ARGS:-（whole crate）} in $CRATE for $TARGE
 podman exec "$CONTAINER" bash -lc "
   set -e
   export PATH=/work/redox/prefix/${TARGET}/rust-install/bin:/work/redox/prefix/${TARGET}/gcc-install/bin:/root/.cargo/bin:\$PATH
-  export CARGO_TARGET_${ARCH^^}_UNKNOWN_REDOX_LINKER=${TARGET}-gcc
+  export CARGO_TARGET_${ARCH_UPPER}_UNKNOWN_REDOX_LINKER=${TARGET}-gcc
   export CFLAGS_${ARCH}_unknown_redox=\"\${CFLAGS_${ARCH}_unknown_redox:-} -DSQLITE_DISABLE_LFS\"
   cd '${CRATE}'
   cargo check --target ${TARGET} --release ${PKG_ARGS}
