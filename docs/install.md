@@ -92,7 +92,7 @@ prompt for encryption; use the installer (2/3) if you want an encrypted root.
 
 ## Architectures
 
-- **x86_64** — boots end-to-end to the COSMIC desktop (UEFI, NVMe). Both the
+- **x86_64** — boots end-to-end to the Crimson desktop (UEFI, NVMe). Both the
   pre-installed image and the live ISO boot to `eos login:` with 0 exceptions.
 - **aarch64** — **boots to the graphical E-OS greeter/login** under QEMU `virt` (UEFI),
   and the live ISO boots the same way (verified). The early-boot blockers that once

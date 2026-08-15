@@ -19,7 +19,7 @@ flowchart LR
     C --> D["Load microkernel"]
     D --> E["init → switchroot"]
     E --> F["Spawn drivers<br/>nvmed · ahcid · xhcid · e1000d · ihdad"]
-    F --> G["orbital / COSMIC"]
+    F --> G["orbital + E-OS DE"]
     G --> H["login:"]
     classDef red fill:#E50914,stroke:#E50914,color:#fff;
     class D red;
@@ -62,7 +62,7 @@ flowchart TD
         FS["redoxfs"]
         NET["netstack"]
         DRV["drivers"]
-        DISP["orbital / cosmic-comp"]
+        DISP["orbital (display server + WM + software compositor)"]
     end
     subgraph user["User programs"]
         LIBC["relibc + libstd"]
@@ -81,7 +81,7 @@ flowchart TD
 | **relibc** | C standard library, written in Rust (Redox + Linux targets). |
 | **RedoxFS** | Copy-on-write, optionally-encrypted filesystem. |
 | **drivers** | `nvmed`, `ahcid`, `xhcid`, `e1000d`, `ihdad`, … — user space. |
-| **orbital / COSMIC** | Display server and desktop environment. |
+| **orbital** | The display server, window manager and software compositor — one process. The desktop *chrome* (greeter, launcher, wallpaper, desktop icons) is `eos-orbutils` on top of it; COSMIC apps run as clients. `cosmic-comp` is **not** used. |
 | **cookbook** | Recipe/package build system producing `pkgar` packages. |
 
 ## How E-OS differs from upstream Redox

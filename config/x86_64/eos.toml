@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════════════════════╗
 # ║  E-OS — desktop build configuration                                    ║
-# ║  Full COSMIC desktop, rebranded as E-OS (a downstream of Redox OS).    ║
+# ║  Crimson desktop (orbital + COSMIC apps) — a Redox OS downstream.      ║
 # ║  Build:  make CI=1 CONFIG_NAME=eos all   then   make CONFIG_NAME=eos qemu ║
 # ╚══════════════════════════════════════════════════════════════════════╝
 

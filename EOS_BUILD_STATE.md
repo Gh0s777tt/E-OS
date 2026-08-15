@@ -12,7 +12,7 @@ modern upstream Redox OS. It is the clean starting point for E-OS development
 | Base commit | `84d78137a1ba1c0e10994d59a577a2739d465baa` (`0.9.0-6174-g84d78137`, master, 2026-06-06) |
 | Rust toolchain | `nightly-2026-05-24` (pinned by `rust-toolchain.toml`) |
 | Target arch | `x86_64-unknown-redox` |
-| Config | `CONFIG_NAME=desktop` → `config/desktop.toml` (full COSMIC desktop) |
+| Config | `CONFIG_NAME=desktop` → `config/desktop.toml` (orbital session + COSMIC apps) |
 | Package source | `REPO_BINARY=1` (prebuilt `.pkgar` from `static.redox-os.org`) |
 | Container build | `PODMAN_BUILD=1` (rootless podman 5.7, crun) |
 
@@ -45,7 +45,10 @@ giving plain-text output that builds correctly. Always build with `CI=1` when de
   drivers (`nvmed`, `ahcid`, `xhcid`, `ihdad`, `e1000d`) → **`redox login:`**.
 - Logins: `user` (no password), `root` / `password`.
 - Headless serial shows `orbital: failed to open display` — expected with `gpu=no`
-  (no GPU); the COSMIC GUI needs a real display (`make qemu` default, or WSLg).
+  (no GPU); the graphical session needs a real display (`make qemu` default, or WSLg).
+  *(Note: `config/desktop.toml` runs the **orbital** session with COSMIC apps as
+  clients — `cosmic-comp` is not part of it. The `orbital: failed to open display`
+  line above is that session, not a COSMIC compositor.)*
 
 ## Reproduce
 
@@ -53,7 +56,7 @@ giving plain-text output that builds correctly. Always build with `CI=1` when de
 git clone https://gitlab.redox-os.org/redox-os/redox.git
 cd redox && git checkout 84d78137a1ba1c0e10994d59a577a2739d465baa
 # ensure .config has PODMAN_BUILD?=1 and REPO_BINARY?=1
-make CI=1 all && make qemu      # qemu (with display) boots the COSMIC desktop
+make CI=1 all && make qemu      # qemu (with display) boots the orbital desktop session
 ```
 
 ## Relationship to the 2019 mirror

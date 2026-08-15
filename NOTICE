@@ -38,7 +38,8 @@ project. See TRADEMARK.md for the upstream trademark policy.
  Third-party components
 --------------------------------------------------------------------------------
 
-E-OS incorporates the COSMIC desktop and apps (System76), numerous Rust crates,
+E-OS incorporates COSMIC applications and icon/theme assets (System76; the
+COSMIC compositor is not used), numerous Rust crates,
 and other open-source software, each under its own license. Package and recipe
 licenses are tracked under the cookbook recipes and their respective sources.
 

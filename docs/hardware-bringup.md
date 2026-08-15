@@ -58,8 +58,8 @@ says nothing about board-specific peripherals.
   standard GICv2/v3 + generic-timer case; exotic layouts may need work.
 
 ### Display / desktop
-- QEMU uses **ramfb** (a simple linear framebuffer); the COSMIC desktop renders
-  to it via `vesad`.
+- QEMU uses **ramfb** (a simple linear framebuffer); the Crimson desktop
+  (orbital) renders to it via `vesad`.
 - ☐ Real boards need a real display driver (RPi VideoCore, or a UEFI GOP
   framebuffer on servers). Without a framebuffer the system still boots to a
   serial login, but there's no graphical desktop.

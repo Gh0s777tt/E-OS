@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=900&color=E50914&center=true&vCenter=true&width=720&lines=Forged+in+Rust.+Memory-safe+by+design.;A+microkernel+operating+system+for+2026.;Capability-secure.+COSMIC+desktop.;Built+on+Redox+OS.+Licensed+AGPL-3.0." alt="typing tagline" />
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=900&color=E50914&center=true&vCenter=true&width=720&lines=Forged+in+Rust.+Memory-safe+by+design.;A+microkernel+operating+system+for+2026.;Capability-secure.+Crimson+desktop.;Built+on+Redox+OS.+Licensed+AGPL-3.0." alt="typing tagline" />
 </p>
 
 <p align="center">
@@ -19,7 +19,7 @@
   <img src="https://img.shields.io/badge/Rust-nightly--2026--05--24-E50914?style=for-the-badge&logo=rust&logoColor=white&labelColor=0B0B0B" alt="Rust">
   <img src="https://img.shields.io/badge/kernel-microkernel-E50914?style=for-the-badge&labelColor=0B0B0B" alt="Microkernel">
   <img src="https://img.shields.io/badge/arch-x86__64%20%C2%B7%20aarch64-E50914?style=for-the-badge&labelColor=0B0B0B" alt="x86_64 and aarch64">
-  <img src="https://img.shields.io/badge/desktop-COSMIC%20%2B%20E--OS%20DE-E50914?style=for-the-badge&labelColor=0B0B0B" alt="COSMIC + E-OS DE">
+  <img src="https://img.shields.io/badge/desktop-Crimson%20DE%20%2B%20COSMIC%20apps-E50914?style=for-the-badge&labelColor=0B0B0B" alt="Crimson DE + COSMIC apps">
 </p>
 
 <p align="center">
@@ -54,9 +54,9 @@
 ## 🖥️ Preview
 
 <p align="center">
-  <img src="assets/screenshots/eos-cosmic-desktop.png" alt="E-OS running the COSMIC desktop" width="82%" />
+  <img src="assets/screenshots/eos-cosmic-desktop.png" alt="The E-OS Crimson desktop: crimson-on-black wallpaper with the E-OS hexagon logo, and a taskbar with the red E launcher" width="82%" />
   <br/>
-  <sub><b>E-OS 0.1.0 “Genesis”</b> — the COSMIC desktop, booted under QEMU/KVM.</sub>
+  <sub><b>E-OS 0.1.0 “Genesis”</b> — the Crimson desktop (orbital + <code>eos-orbutils</code>), booted under QEMU/KVM.</sub>
 </p>
 
 <p align="center">
@@ -94,7 +94,7 @@ and hardening goals.
 | 🦀 **Rust everywhere** | Kernel, drivers, libc (relibc) and userland in a language that eliminates whole classes of memory-safety bugs. |
 | 🧩 **True microkernel** | Drivers, filesystems, the RAID layer and the network stack run in **user space** as isolated processes. A driver crash isn't a kernel panic. |
 | 🔐 **Capability-secure + encrypted** | Everything is a **scheme** (URL-like resource). Least-privilege by construction; optional full-disk encryption with **hardware-accelerated AES**. |
-| 🎨 **Crimson desktop** | COSMIC (Rust) plus a custom **E-OS desktop environment** — animated crimson wallpaper, labelled desktop icons, and a crimson COSMIC theme. |
+| 🎨 **Crimson desktop** | A custom **E-OS desktop environment** on the Rust **orbital** display server (`eos-orbutils`) — animated crimson wallpaper, labelled desktop icons, floating launcher — running **COSMIC apps** as clients under a crimson `cosmic-theme`. |
 | 📦 **Reproducible builds** | Containerized (Podman) build system, pinned toolchain; patched recipes pinned to **E-OS source forks**, so a fresh clone reproduces every change. |
 
 ---
@@ -107,7 +107,10 @@ and hardening goals.
 - **`relibc`** — a clean-room C library in Rust (Linux + Redox targets).
 - **RedoxFS** — a modern, copy-on-write, optionally-encrypted filesystem.
 - **Everything-is-a-scheme** — uniform, capability-style resource model.
-- **COSMIC** — a fast, modern Rust desktop, extended with the E-OS DE.
+- **Crimson desktop** — the E-OS DE on **orbital** (Rust display server + window
+  manager + software compositor), running **COSMIC apps** as clients.
+  *(`cosmic-comp`, the COSMIC compositor, does **not** run on either arch — see
+  [known-issues](docs/known-issues.md).)*
 - **Dual-arch** — builds for **x86_64 and aarch64**, both booting to the desktop
   under QEMU. ([build state](EOS_BUILD_STATE.md))
 
@@ -149,7 +152,7 @@ and hardening goals.
 %%{init: {'theme':'base','themeVariables':{'primaryColor':'#E50914','primaryTextColor':'#ffffff','primaryBorderColor':'#E50914','lineColor':'#E50914','secondaryColor':'#1f1f1f','tertiaryColor':'#0b0b0b','fontFamily':'Fira Code'}}}%%
 flowchart TD
     subgraph US["User space"]
-        APPS["Applications · COSMIC + E-OS desktop · CLI"]
+        APPS["Applications · COSMIC apps · E-OS DE · CLI"]
         LIBS["relibc · libstd · ion shell"]
         SRV["User-space servers<br/>drivers · redoxfs · raid1d · netstack · usbnetd · orbital"]
     end
@@ -184,7 +187,7 @@ is a **scheme**, accessed through a URL-like path (`file:`, `disk.*:`,
 | libc | **relibc** (Rust) |
 | Filesystem | **RedoxFS** (CoW, AES-XTS encryptable, hardware AES on aarch64) |
 | Storage | **RAID-1** mirror daemon (`raid1d`) over any disk schemes |
-| Desktop | **COSMIC** (System76) + the **E-OS DE** (wallpaper, desktop icons, crimson theme) |
+| Desktop | **orbital** display server + the **E-OS DE** (`eos-orbutils`: greeter, launcher, wallpaper, desktop icons) with **COSMIC apps** (System76) as clients, crimson-themed |
 | Drivers | user-space: `nvmed`, `virtio-blkd`, `e1000d`, `xhcid`, `usbnetd`, `ihdad`, `ahcid`, … |
 | Build | **Podman** containers · cookbook · `pkgar` packages |
 | Emulation | **QEMU 10+**, OVMF/EDK2 (UEFI), KVM/HVF |
@@ -223,7 +226,7 @@ make CI=1 all
 make CI=1 ARCH=aarch64 CONFIG_NAME=eos all
 
 # 4) Boot it
-make qemu                 # x86_64 COSMIC desktop (GUI)
+make qemu                 # x86_64 Crimson desktop (GUI)
 make qemu gpu=no          # headless serial console
 ```
 
@@ -282,7 +285,8 @@ track in **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-ro
 | `orbutils` | Launcher + **E-OS desktop** (icons, wallpaper) | redox-os/orbutils → **eos-orbutils** |
 | `bootloader` | UEFI/BIOS boot (crimson theme) | redox-os/bootloader → **eos-bootloader** |
 | `cookbook` | Package/recipe build system (vendored in `src/`) | redox-os/cookbook |
-| `cosmic-*` | Desktop environment | pop-os/cosmic-* |
+| `orbital` | Display server + window manager + software compositor | redox-os/orbital → **eos-orbital** |
+| `cosmic-*` | Desktop **applications** (edit / files / term) + icon & theme assets — clients of orbital, not a compositor | pop-os/cosmic-* |
 | `eos-control` | Native control center (network, sound, power, storage, security) | **E-OS** |
 | `eos-notes` / `eos-guard` / `eos-sysmon` | Notes · FS-integrity monitor · system monitor | **E-OS** |
 | `eos-ui` | Shared Slint-on-Orbital backend for all E-OS GUI apps | **E-OS** |

@@ -1,4 +1,15 @@
 # Wayland configuration
+#
+# ⚠️ UNUSED — EXPERIMENTAL. Nothing builds this config. The default is
+# `CONFIG_NAME?=desktop` (mk/config.mk:20) and CI pins `CONFIG_NAME: eos`
+# (.gitlab-ci.yml:222); no Makefile, script or job references `wayland.toml`.
+# It is the only *config* in the tree that names `cosmic-comp`; the only other
+# declaration is its recipe, which still opens with
+# "#TODO: performance issues, no keyboard input"
+# (recipes/wip/wayland/cosmic-comp/recipe.toml) and lives under recipes/**wip**/.
+# The shipping session is orbital + eos-orbutils with COSMIC apps as clients —
+# see docs/known-issues.md. Kept as a starting point for a future Wayland
+# session; do NOT cite it as evidence that E-OS runs a COSMIC compositor.
 
 include = ["desktop.toml"]
 

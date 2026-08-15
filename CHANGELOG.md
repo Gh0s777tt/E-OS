@@ -7,6 +7,53 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-127]` **the shipping session was never "the COSMIC desktop" — the false claims corrected, the
+  correct ones deliberately left alone (`R-D12`)** — the last high-severity item from the `U-126`
+  audit. "COSMIC desktop" reads as *the COSMIC compositor session*, and E-OS has never run one:
+  `config/desktop-minimal.toml` starts `orbital orblogin launcher` (orbital is display server,
+  window manager and software compositor in one process), the E-OS DE on top is `eos-orbutils`
+  (greeter, launcher, wallpaper, desktop icons), and `config/desktop.toml` adds COSMIC
+  **applications** as clients — `cosmic-edit`, `cosmic-files`, `cosmic-term`, plus `cosmic-icons`
+  as a theme. `cosmic-comp` is *declared* in exactly two places: `recipes/wip/`, behind
+  `#TODO: performance issues, no keyboard input` and with `libinput` commented out (Redox has no
+  evdev/udev), and `config/wayland.toml`, which **no** Makefile target, script or CI job
+  references (default `CONFIG_NAME?=desktop`; CI pins `CONFIG_NAME: eos`). Corrected in README
+  (typing tagline, shields badge, screenshot alt, screenshot caption, feature table, highlights,
+  mermaid layer, spec table, quick-start comment, and the Core-Components table — which still
+  billed `cosmic-*` as the "Desktop environment" and had no `orbital` row at all),
+  `EOS_BUILD_STATE.md` (3), `docs/architecture.md` (2 diagram nodes + the component table),
+  `docs/{install,getting-started,building,hardware-bringup,known-issues}.md`,
+  `docs/reality-ledger.md` (the finding struck as RESOLVED), `config/x86_64/eos.toml` (comment
+  only; its box-drawing header re-padded to 76 chars to match its neighbour — note the frame as a
+  whole was already crooked at 74/76/76/79/74 before this change and still is),
+  `ROADMAP.md` (2), and three files an early grep missed because it was scoped to `*.md`/`*.toml`:
+  `NOTICE` ("incorporates the COSMIC desktop and apps" — an attribution document),
+  `assets/eos-banner.svg` (the graphic twin of the README tagline) and
+  `.github/ISSUE_TEMPLATE/bug_report.yml` (`desktop/COSMIC` → `desktop/orbital` + `apps/COSMIC`).
+  New: a `docs/known-issues.md` entry recording *why* `cosmic-comp`
+  is absent and what that means for `R-D01`; an UNUSED/EXPERIMENTAL header in
+  `config/wayland.toml` so it stops being cited as evidence; and `R-D12` closing the gap the
+  reality-ledger flagged as scheduled by no roadmap item. **Wording** was taken from the repo's
+  own honest pages (`docs/screenshots.md`, `docs/design-desktop-environment.md`) — "Crimson
+  desktop (orbital + `eos-orbutils`) with COSMIC apps as clients" — rather than invented.
+  **Deliberately NOT changed**, because they are accurate: every reference to the COSMIC *apps*
+  and `cosmic-theme` (`config/*/eos.toml`, `docs/design-desktop-environment.md`, `ROADMAP` R-D07),
+  the three docs naming the upstream **COSMIC project** as third-party software
+  (`docs/forks.md`, `docs/hardening.md`, `docs/faq.md`), the vendored upstream
+  `docs/REDOX-README.md`, and the dated `docs/audit/` snapshot. **Verified:** the screenshot was
+  opened before its caption was rewritten (it shows the crimson E-OS wallpaper, hexagon logo and
+  the `eos-orbutils` taskbar — no COSMIC shell); `cosmic-comp`'s absence re-derived from
+  `config/desktop*.toml`, the wip recipe and a tree-wide grep for `wayland.toml` users (zero);
+  box-drawing header width re-measured (76 chars, matches its neighbour); TOML files confirmed to
+  have **comment-only** diffs, so parsing cannot have regressed. The change was then put through
+  an adversarial three-lens review, which caught real defects that are folded in above: the missed
+  `README` component-table row, the three non-`.md`/`.toml` files, a self-contradicting "the only
+  place in the tree that names `cosmic-comp`" comment this change had itself introduced into
+  `config/wayland.toml` (corrected to "the only *config*"), and a new `known-issues` paragraph that
+  reproduced the very app-vs-compositor conflation the entry exists to prevent — it implied
+  `cosmic-settings` waits on `cosmic-comp`, when it is an orbital client deferred by a
+  `fontconfig`→`host:gperf` 404 on aarch64 build hosts; an explicit callout now says so.
+  `integrity`, `pin-check` and a `docs-currency` simulation PASS.
 - `[U-126]` **docs honesty pass: the signing chain, the install guide, and a reality-ledger that
   had been auditing the repo with invented evidence** — a six-dimension audit (each finding
   re-checked by an adversarial reviewer) of the open docs↔code gaps produced three fixes.

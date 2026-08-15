@@ -50,7 +50,7 @@ make CI=1 all
 ## 5. Run
 
 ```bash
-make qemu              # full COSMIC desktop (GUI; needs a display / WSLg)
+make qemu              # full Crimson desktop (GUI; needs a display / WSLg)
 make qemu gpu=no       # text/serial console (no GPU)
 ```
 

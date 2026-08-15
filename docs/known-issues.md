@@ -5,6 +5,41 @@ Resolved items are kept below for the record.
 
 ---
 
+## 🟡 `cosmic-comp` does not run on either arch — the session is orbital (OPEN, recorded 2026-08-15, U-127, R-D12)
+
+Does **not** block anything: E-OS never used it. Recorded here because the docs
+repeatedly said "COSMIC desktop", which reads as *the COSMIC compositor session*
+and is what `U-127` corrected across the tree.
+
+**What actually runs.** `config/desktop-minimal.toml` starts
+`orbital orblogin launcher` — orbital is display server, window manager and
+software compositor in one process, with the E-OS DE (`eos-orbutils`: greeter,
+launcher, wallpaper, desktop icons) on top. `config/desktop.toml` adds
+**COSMIC applications** as clients (`cosmic-edit`, `cosmic-files`, `cosmic-term`,
+plus `cosmic-icons` as a theme) — apps, not a compositor.
+
+**Why `cosmic-comp` isn't there.** Its recipe lives under `recipes/wip/` and opens
+with `#TODO: performance issues, no keyboard input`; `libinput` is commented out
+in its dependencies because Redox has no evdev/udev implementation. The only
+config that names it, `config/wayland.toml`, is referenced by no Makefile target,
+script or CI job — the default is `CONFIG_NAME?=desktop` and CI pins
+`CONFIG_NAME: eos`.
+
+**Consequence for the roadmap.** A COSMIC *session* is not a near-term option, so
+anything needing a settings/control surface must target the native E-OS shell
+(`R-D01`).
+
+> **Do not read this as "`cosmic-settings` is blocked on `cosmic-comp`" — it is not.**
+> `cosmic-settings` is an application; like `cosmic-files`/`cosmic-term` it renders
+> in software on orbital (`docs/design-desktop-environment.md`). It is deferred for
+> an unrelated build-host reason: it pulls `fontconfig` → `host:gperf`, whose redoxer
+> host toolchain is published only for `x86_64-linux`, so the aarch64 (Apple Silicon)
+> build host gets a 404 (`config/x86_64/eos.toml`, `ROADMAP.md` R-D preamble). It
+> builds fine on an x86_64-linux host. Conflating the two is exactly the app-vs-
+> compositor error this entry exists to prevent.
+
+---
+
 ## 🟡 No audio on the aarch64/QEMU loop — `ihdad` times out on the HDA RIRB (OPEN, 2026-07-23, U-110)
 
 Does **not** block boot — audio is a peripheral — but it means the E-OS Control
@@ -203,7 +238,7 @@ answer is periodic fork rebases onto upstream, not more pins.
 ## ✅ `R-401b / R-401c / R-401d` — aarch64 boot-to-login (RESOLVED 2026-06-08)
 
 E-OS **aarch64** now boots under QEMU `virt` all the way to the graphical E-OS
-COSMIC desktop (login greeter, wallpaper, taskbar, working USB keyboard).
+Crimson desktop (login greeter, wallpaper, taskbar, working USB keyboard).
 
 ![E-OS aarch64 desktop](img/eos-aarch64-desktop.png)
 

@@ -8,7 +8,7 @@ E-OS uses the Redox build system: a top-level `Makefile` that drives the
 | Variable | Default | Meaning |
 |----------|---------|---------|
 | `ARCH` | `x86_64` | Target architecture |
-| `CONFIG_NAME` | `desktop` | Filesystem config (`config/desktop.toml`, COSMIC) |
+| `CONFIG_NAME` | `desktop` | Filesystem config (`config/desktop.toml` — orbital session + COSMIC apps) |
 | `PODMAN_BUILD` | `1` | Build inside a container |
 | `REPO_BINARY` | `1` | Use prebuilt `pkgar` packages (fast); `0` builds from source |
 | `CI` | *(unset)* | **Set to `1` to disable the TUI** (required when headless) |
