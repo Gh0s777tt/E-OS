@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-117 · 2026-08-14 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-129 · 2026-08-17 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -127,8 +127,10 @@ and hardening goals.
 - 🌐 **USB networking & storage** — a Rust **USB RNDIS** network driver
   (`usbnetd`; TX verified — inbound RX is still being debugged, `R-901`) and USB
   mass-storage support.
-- 🔑 **Post-quantum-ready signing** — a prototype tool that signs the package
-  repo with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature.
+- 🔑 **Post-quantum-ready signing** — a tool that signs the package repo manifest
+  with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature at publish time.
+  *Publisher-side only:* nothing on a running system verifies it yet — no key is
+  pinned in the image (`R-702`) and there is no client-side check (`R-703`).
 
 **Since then — the `U-081`–`U-114` wave** (all verified on-device under QEMU)
 
@@ -302,14 +304,21 @@ deliberate **anti-appropriation** choice.
 
 - 🔒 **Full-disk encryption** — RedoxFS **AES-XTS**, hardware-accelerated (ARMv8
   Crypto Extensions) with a constant-time software fallback.
-- 🧬 **Post-quantum-ready** — prototype **hybrid ed25519 + ML-DSA-65** signing for
-  the package repo; migration plan in [docs/security.md](docs/security.md).
+- 🧬 **Post-quantum-ready** — **hybrid ed25519 + ML-DSA-65** signing of the package
+  manifest, enforced at publish time (an unsigned publish hard-fails unless
+  `EOS_ALLOW_UNSIGNED=1`). ⚠️ **Publisher-side only — the client half does not
+  exist**: no pinned key (`R-702`), no `verify_manifest()` (`R-703`), so treat the
+  package channel as unauthenticated on the device. Migration plan and the exact
+  trust boundary: [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md).
 - 🔑 **Secret scanning in CI** — a gitleaks `secret-scan` job (full history,
   `GIT_DEPTH: 0`) gates every push on GitLab, backed by local git hooks
   (lefthook) and `scripts/local-scan.sh`.
 - 🤖 **Supply-chain checks in CI** — `cargo-deny` (RustSec advisories, licenses,
   bans, sources) in `rust-checks`, plus `pin-check` (`eos-repos.sh pins
   --strict`) so recipes can't silently drift from the pinned fork revisions.
+  Every binary the build fetches is **SHA256-pinned** (`U-118`); the residual
+  gaps are listed under *Supply-chain gates* in
+  [docs/hardening.md](docs/hardening.md).
 - 👮 **Branch protection** on the default branch + **CODEOWNERS** reviews.
 - ✍️ **Signed commits** encouraged (see [docs/security.md](docs/security.md)).
 

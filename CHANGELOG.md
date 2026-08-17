@@ -7,6 +7,24 @@ History before `U-071` predates this file and lives in the git log (`git log`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-129]` **README re-verified against `U-118`…`U-128` and its `SYNC` marker finally moved** — the
+  marker had been parked at `U-117`/2026-08-14 for eleven entries. It was deliberately *not* bumped
+  in `U-126`–`U-128`, because bumping it asserts "README has been checked against everything up to
+  here" and that check had not been done — a false marker is exactly the defect those entries were
+  fixing. This entry does the check, and it found one real contradiction: `U-126` made
+  `SECURITY.md`, `keys/README.md`, `docs/security.md` and both publish scripts explicit that the
+  hybrid PQ signature is **publisher-side only** — no pinned key (`R-702`), no `verify_manifest()`
+  (`R-703`) — while README still advertised "post-quantum-ready signing" twice with no trust
+  boundary at all, i.e. the front page contradicted the security policy it links to. Both bullets
+  now carry the boundary in the same words the other pages use. Also folded in: the security
+  section never mentioned `U-118`'s SHA256 pinning of every fetched build binary, so that gate was
+  invisible to exactly the reader who would look for it. Marker moved to `U-129`/2026-08-17.
+  **Verified:** every `U-118`…`U-128` entry walked against README — `U-118`/`U-120` produced the
+  two changes above; `U-119`, `U-121`, `U-123`–`U-125` are internal (tooling, CI, mirror hygiene)
+  with no user-facing README claim; `U-122` is a docs cross-reference; `U-126`–`U-128` are already
+  reflected. The one link this entry adds was checked against its target heading and the anchor
+  **dropped** — `## 📦 Supply-chain gates (…)` does not slug to `#supply-chain-gates`, so the
+  fragment would have been dead on both GitHub and the mdBook site.
 - `[U-128]` **README roadmap Gantt: one missing brace made its theme directive invalid** — the
   `%%{init: …}%%` directive above the roadmap Gantt chart (`README.md`) closed with `}}%%` where
   it needed `}}}%%`: four `{` against three `}`, so the JSON never terminated. Consequence: the
