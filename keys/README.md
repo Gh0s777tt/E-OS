@@ -43,7 +43,7 @@ exist is `eos-repo-sign.pub.toml` — this directory holds only `eos-release.pub
 minisign *release* key, which is a different key for a different job. Without it the
 client warns and proceeds; with it, an unsigned or tampered index is a hard failure.
 Generating and committing it is therefore the highest-leverage single action in the
-whole trust chain. The steps below create it; baking it into the image is `R-702`.
+whole trust chain. The steps below create it **and install it**.
 
 One-time key setup (secret stays off-repo — e.g. a password manager or a masked
 GitLab CI *file* variable):
@@ -53,7 +53,18 @@ cargo build --release --manifest-path tools/eos-repo-sign/Cargo.toml
 tools/eos-repo-sign/target/release/eos-repo-sign keygen \
     /path/off-repo/eos-repo-sign.secret.toml  keys/eos-repo-sign.pub.toml
 git add keys/eos-repo-sign.pub.toml            # PUBLIC key only
+scripts/eos-pin-repo-key.sh                    # install it into the image configs
 ```
+
+The second command is not book-keeping. `pkg-lib` reads the pinned key from
+`/etc/pkg/eos-repo-sign.pub.toml` **inside the image** (`REPO_SIGN_PUBKEY_PATH` in
+`pkg-lib/src/lib.rs`), and nothing else puts it there — a key sitting in `keys/` alone
+changes nothing at runtime. The script embeds the public half into
+`config/{aarch64,x86_64}/eos.toml` (the installer's `[[files]]` has no `from`/`source`
+field, so content must be inline), is idempotent, and **refuses a secret key file**:
+`keygen` marks the secret half with `[secret_keys]`/`ml_dsa_65_seed`, and a config is
+world-readable in every shipped image. Rebuild afterwards, or the key still is not in
+the image.
 
 Publishing a repo then signs the manifest automatically:
 
