@@ -30,7 +30,7 @@ already handles hubs, so hub topology (many devices) works.
 | **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
 | **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (`usb-braille`/none-native; test via CUPS-less raw) |
 | **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
-| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | 🚧 **partial** — RNDIS driver: enumerate + handshake + MAC + `network.*` scheme + **TX verified** (`U-055`), but **RX is broken** (0 frames in — no DHCP OFFER/ARP ever arrives; see `R-901` in [ROADMAP.md](../ROADMAP.md)) | 🟡 (`usb-net`; TX-only) |
+| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | **`usbnetd`** | ✅ **full duplex** — RNDIS driver: enumerate + handshake + MAC + `network.*` scheme + **TX and RX both verified**. RX=0 was the 2026-07-12 01:48 snapshot; the endpoint-numbering root cause (`U-056`) and the xhcid `O_NONBLOCK` deadlock (`U-057`) were both closed that same day, pcap-proven `DISCOVER → OFFER → REQUEST → ACK`. Records were lost to a branch migration and restored in `U-130` | 🟡 (`usb-net`; TX-only) |
 | **UVC** — webcams | 14 | *(none)* | 🔬 later | 🟡 |
 
 ### USB work plan (priority order)

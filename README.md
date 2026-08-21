@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-129 · 2026-08-17 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-130 · 2026-08-17 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -125,7 +125,7 @@ and hardening goals.
   read-fallback, degraded boot, **resync/rebuild** of a re-added member, and
   split-brain safety.
 - 🌐 **USB networking & storage** — a Rust **USB RNDIS** network driver
-  (`usbnetd`; TX verified — inbound RX is still being debugged, `R-901`) and USB
+  (`usbnetd`; **full duplex** — a complete DHCP handshake, pcap-verified) and USB
   mass-storage support.
 - 🔑 **Post-quantum-ready signing** — a tool that signs the package repo manifest
   with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature at publish time.
