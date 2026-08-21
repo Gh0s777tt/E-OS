@@ -90,6 +90,31 @@ sudo dd if=build/x86_64/eos/harddrive.img of=/dev/sdX bs=4M conv=fsync status=pr
 (Replace `/dev/sdX` with the real device — this **erases** it.) This path does not
 prompt for encryption; use the installer (2/3) if you want an encrypted root.
 
+### Live USB — the on-ramp to real hardware
+
+For trying E-OS on a machine without touching its disks, build the **live image**
+instead. It carries the whole filesystem and is loaded into RAM at boot, so nothing
+is written to the host:
+
+```sh
+make CI=1 ARCH=x86_64 CONFIG_NAME=eos live      # -> build/x86_64/eos/redox-live.iso
+sudo dd if=build/x86_64/eos/redox-live.iso of=/dev/sdX bs=4M conv=fsync status=progress
+```
+
+Despite the `.iso` name it is a **raw GPT image with a protective MBR**, so `dd` is
+the right tool (not an ISO burner). Boot the target in **UEFI** mode. The bootloader
+offers `l` to disable live mode; left alone it copies the ~1.4 GB filesystem into RAM
+and lands on `eos login:`.
+
+> **What to expect on real hardware.** E-OS has not been validated on metal — every
+> boot claim in this repo is QEMU. The upstream results in [HARDWARE.md](../HARDWARE.md)
+> are the best available forecast, and the recurring pattern there is *boots to the
+> desktop, but touchpad/USB input and networking do not work*. That matches the known
+> gaps: no I2C bus driver (`R-916`) blocks I2C-HID touchpads, and wired NIC coverage is
+> thin (`R-910`). A boot that reaches the greeter without a working trackpad is the
+> expected first result, not a regression — and reporting it is genuinely useful, since
+> the hardware matrix currently has no E-OS rows at all.
+
 ## Architectures
 
 - **x86_64** — boots end-to-end to the Crimson desktop (UEFI, NVMe). Both the

@@ -11,7 +11,7 @@ To fit the free-tier budget (~400 shared-runner minutes/month), CI is split:
 | Tier | Where | When | Jobs |
 |------|-------|------|------|
 | **Light** | GitLab shared runners | every MR + `main` | `secret-scan` (gitleaks, full history), `integrity`, `pin-check`, `docs-currency` (MR), `rust-checks` (fmt + clippy + test + cargo-deny), `pages` |
-| **Heavy** | your **self-hosted** runner (tag `eos-heavy`) | tags + schedules | `build-image` — `make CI=1 all` for **aarch64** in the podman container + headless **boot-smoke**; `build-image-x86_64` is **manual** |
+| **Heavy** | your **self-hosted** runner (tag `eos-heavy`) | tags + schedules | `build-image` — `make CI=1 all` for **aarch64** in the podman container + headless **boot-smoke**; `build-image-x86_64` is **manual**, and boot-smokes too since `U-133` |
 
 The heavy image build **never** runs on shared runners (it would blow the minute
 budget and time out). It only picks up on a runner you register.
@@ -92,9 +92,14 @@ The job:
    (QEMU `virt`/`cortex-a72`, same invocation as `out/rf08_boot.sh`; asserts the boot
    reaches the login prompt).
 
-`build-image-x86_64` cross-compiles in the same container but is **manual + non-blocking**
-(a full x86_64 boot on Apple Silicon runs under slow TCG); trigger it from the pipeline UI,
-or register a second `eos-heavy` runner on a native x86_64 host for its boot-smoke.
+`build-image-x86_64` cross-compiles in the same container and is **manual + non-blocking**;
+trigger it from the pipeline UI. It **now boot-smokes too** (`U-133`): the long-standing
+assumption that an x86_64 boot under TCG on Apple Silicon is too slow to gate on was
+measured and is wrong — it reaches `eos login:` in ~16 s, the same order as the aarch64
+job. `scripts/ci-boot-smoke.sh` takes `--arch aarch64|x86_64` (default `aarch64`, so the
+aarch64 call site is unchanged) and works on both `harddrive.img` and the `redox-live.iso`
+from `make live` — both are raw GPT images. A native x86_64 runner is still worth having
+for speed and for real-hardware coverage, but it is no longer a prerequisite for gating.
 
 **Register the runner** (this project, id `82957024`; done once — the current runner is
 already online). On macOS with Homebrew:

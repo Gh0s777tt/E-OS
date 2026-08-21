@@ -268,6 +268,12 @@ build-image-x86_64:
     - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=x86_64 CONFIG_NAME=eos all"
     - podman cp "$EOS_CONTAINER:/work/redox/build/x86_64/eos/harddrive.img" "harddrive-x86_64.img"
+    # Boot-smoke was skipped here on the assumption that an x86_64 boot under TCG on
+    # an Apple Silicon runner would time out. Measured 2026-08-21 (U-133): it reaches
+    # `eos login:` in ~16 s, i.e. the same order as the aarch64 job. Gating on it is
+    # cheap, and an image that builds but does not boot is exactly what this job
+    # otherwise ships as a green artifact.
+    - bash scripts/ci-boot-smoke.sh "harddrive-x86_64.img" 600 --arch x86_64
   artifacts:
     when: on_success
     expire_in: 1 week

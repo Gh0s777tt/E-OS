@@ -1,20 +1,46 @@
 #!/usr/bin/env bash
-# Boot-smoke an E-OS aarch64 image headlessly and assert it reaches userspace.
-# Used by the `build-image` CI job on the self-hosted `eos-heavy` runner (macOS +
-# QEMU). Mirrors the proven local harness out/rf08_boot.sh (same machine/cpu/
-# firmware/device model). Exits 0 if the boot reaches the login prompt, 1 else.
+# Boot-smoke an E-OS image headlessly and assert it reaches userspace.
+# Used by the `build-image` jobs on the self-hosted `eos-heavy` runner (macOS +
+# QEMU). The aarch64 path mirrors the proven local harness out/rf08_boot.sh (same
+# machine/cpu/firmware/device model). Exits 0 if the boot reaches the login
+# prompt, 1 else.
 #
-#   scripts/ci-boot-smoke.sh <harddrive.img> [timeout_seconds]
+#   scripts/ci-boot-smoke.sh <image> [timeout_seconds] [--arch aarch64|x86_64]
+#
+# x86_64 runs under TCG on an Apple Silicon runner and was long assumed too slow
+# to gate on. Measured 2026-08-21: a live image reaches `eos login:` in about a
+# minute, so it is worth running — see docs/ci.md. Works for both harddrive.img
+# and the redox-live.iso produced by `make live` (both are raw GPT images).
 set -uo pipefail
 
-IMG="${1:?usage: ci-boot-smoke.sh <image> [timeout]}"
+IMG="${1:?usage: ci-boot-smoke.sh <image> [timeout] [--arch aarch64|x86_64]}"
 TIMEOUT="${2:-360}"
 [ -f "$IMG" ] || { echo "boot-smoke: image not found: $IMG"; exit 1; }
 
-QEMU="$(command -v qemu-system-aarch64 || echo /opt/homebrew/bin/qemu-system-aarch64)"
-FW_CODE="/opt/homebrew/share/qemu/edk2-aarch64-code.fd"
-FW_VARS_SRC="/opt/homebrew/share/qemu/edk2-arm-vars.fd"
-[ -x "$QEMU" ] || { echo "boot-smoke: qemu-system-aarch64 not found"; exit 1; }
+# `--arch` may appear anywhere after the positionals; default stays aarch64 so
+# existing call sites keep working unchanged.
+ARCH="aarch64"
+prev_arg=""   # must be initialised: the script runs under `set -u`
+for a in "$@"; do case "$prev_arg" in --arch) ARCH="$a";; esac; prev_arg="$a"; done
+case "$ARCH" in
+  aarch64)
+    QEMU="$(command -v qemu-system-aarch64 || echo /opt/homebrew/bin/qemu-system-aarch64)"
+    FW_CODE="/opt/homebrew/share/qemu/edk2-aarch64-code.fd"
+    FW_VARS_SRC="/opt/homebrew/share/qemu/edk2-arm-vars.fd"
+    # ramfb is the virt-board framebuffer; q35 has none and rejects it.
+    MACHINE_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)
+    ;;
+  x86_64)
+    QEMU="$(command -v qemu-system-x86_64 || echo /opt/homebrew/bin/qemu-system-x86_64)"
+    FW_CODE="/opt/homebrew/share/qemu/edk2-x86_64-code.fd"
+    # OVMF ships its writable vars as the i386 file even for the x86_64 build.
+    FW_VARS_SRC="/opt/homebrew/share/qemu/edk2-i386-vars.fd"
+    MACHINE_ARGS=(-machine q35 -cpu max)
+    ;;
+  *) echo "boot-smoke: unsupported --arch '$ARCH' (aarch64|x86_64)"; exit 2 ;;
+esac
+[ -x "$QEMU" ] || { echo "boot-smoke: qemu for $ARCH not found"; exit 1; }
+[ -f "$FW_CODE" ] || { echo "boot-smoke: firmware not found: $FW_CODE"; exit 1; }
 
 WORK="$(mktemp -d)"
 QPID=""
@@ -37,14 +63,14 @@ s.close()
 PY
 }
 
-"$QEMU" -machine virt -cpu cortex-a72 -smp 4 -m 2048 \
+"$QEMU" "${MACHINE_ARGS[@]}" -smp 4 -m 2048 \
   -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
   -drive "if=pflash,unit=1,format=raw,file=$WORK/vars.fd" \
-  -device ramfb -device qemu-xhci -device usb-kbd -device usb-tablet -device virtio-rng-pci \
+  -device qemu-xhci -device usb-kbd -device usb-tablet -device virtio-rng-pci \
   -display none -serial "file:$SERIAL" -monitor "unix:$MON,server,nowait" \
   -drive "file=$IMG,if=none,id=disk0,format=raw" -device "nvme,drive=disk0,serial=eos" &
 QPID=$!
-echo "boot-smoke: qemu pid $QPID, up to ${TIMEOUT}s to reach login (init ~100s)…"
+echo "boot-smoke: $ARCH, qemu pid $QPID, up to ${TIMEOUT}s to reach login (init ~100s)…"
 
 strip='s/\x1b\[[0-9;?]*[a-zA-Z]//g'
 sent_ret=0; deadline=$(( $(date +%s) + TIMEOUT ))

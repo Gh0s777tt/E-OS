@@ -40,7 +40,7 @@ else ifeq ($(ARCH),x86_64)
 			PFLASH0=$(firstword \
 				$(wildcard /usr/share/qemu/edk2-x86_64-code.fd) \
 				$(wildcard /run/libvirt/nix-ovmf/edk2-x86_64-code.fd) \
-				$(wildcard /opt/homebrew/opt/qemu/share/qemu/edk2s-x86_64-code.fd) \
+				$(wildcard /opt/homebrew/opt/qemu/share/qemu/edk2-x86_64-code.fd) \
 			)
 		endif
 	endif
