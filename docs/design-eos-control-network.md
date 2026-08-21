@@ -93,11 +93,15 @@ gateway / DNS before ever spawning the shim (a clear message, no half-write), an
 - **A second copy of the sudo handshake** — rejected: the elevation is factored
   into `src/elevate.rs` and shared by both shims (CLAUDE.md §6, shared code over
   copies), so there is one audited copy of the security-critical code.
-- **A live DHCP↔static toggle in the pane** — deferred, honestly: "DHCP" means a
-  `dhcpd` lifecycle (it's a one-shot today, `R-906`) plus writing the persistent
-  `/etc/net/*`; a trustworthy toggle belongs with the installer/OOBE
-  (`R-603`/`R-902` follow-up), not a mid-session GUI switch. The pane does the
-  honest, well-defined thing — apply a static config live — and says so.
+- **A live DHCP↔static toggle in the pane** — *was* deferred, and this section used to
+  explain why: "DHCP" means a `dhcpd` lifecycle (a one-shot today, `R-906`) plus
+  writing the persistent `/etc/net/*`, so a trustworthy toggle looked like
+  installer/OOBE work. **Shipped anyway in `U-132`** (eos-control `40dc67f`): the
+  toggle persists the mode through a marker file and `eos-netcfg` grew subcommands
+  for it, with the parser, the read path and the `valid_iface` guard asserted by
+  `--selftest`. The reasoning above is kept because it is still the right shape of
+  question to ask — but the answer changed, and a design doc that argues for a
+  deferral the code no longer honours is worse than no doc.
 
 ## Security properties
 
@@ -133,5 +137,11 @@ local access.
 
 ## Follow-up (`R-902` remaining)
 
-Persistent DHCP/static selection (managing `dhcpd`); IPv6 (blocked on `R-903`);
-and the same pane in the installer front-ends (`R-603`). Tracked on the roadmap.
+~~Persistent DHCP/static selection (managing `dhcpd`)~~ and ~~the same pane in the
+installer front-ends~~ both **landed in `U-132`** — the recipe pins were bumped to
+eos-control `40dc67f` and eos-installer `ed6eb7c` after a full gate run (`cargo check`
+both arches, `make … all` EXIT=0, boot-smoke PASS, `EOS-CONTROL-SELFTEST-OK`), which
+closed `R-902`. Still open: IPv6 (blocked on `R-903`), full `dhcpd` lifecycle
+management beyond the persisted mode (`R-906`), and one honest debt — the toggle's
+**on-screen render has never been screendumped** (CLAUDE.md §4 counts a GUI render as
+proven only by screendump; the pane and its apply flow were, in `U-113`).

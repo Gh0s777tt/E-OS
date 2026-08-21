@@ -120,9 +120,9 @@ data = """
      #####  #####  #####
 
   E-OS 0.1.0 "Genesis"  -  a Rust microkernel OS
-  built on Redox * AGPL-3.0 * github.com/Gh0s777tt/E-OS
+  built on Redox * AGPL-3.0 * https://gitlab.com/e-os/e-os
 
-  Login:  user  (no password)   *   root / password
+  Accounts:  user  *  root   -   the first login makes you set a password
 
 """
 
@@ -146,9 +146,9 @@ Quick start: open a terminal and run  eos-welcome
 
   - Install to disk:  launch "Installer" from the desktop (optional full-disk
     encryption is offered during install — recommended).
-  - Accounts:  user (no password)  *  root / password  — change them after install!
-  - Handbook:  https://gh0s777tt.github.io/E-OS/
-  - Source:    https://github.com/Gh0s777tt/E-OS  (AGPL-3.0)
+  - Accounts:  user  *  root  — the first login makes you set a password (OOBE).
+  - Handbook:  https://e-os.gitlab.io/e-os/
+  - Source:    https://gitlab.com/e-os/e-os  (AGPL-3.0; GitHub is a read-only mirror)
 """
 
 # ───────────────────────────  E-OS R-402: e1000e NIC  ───────────────────────────
