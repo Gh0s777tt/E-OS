@@ -53,7 +53,9 @@
 >   present tense.
 > - **"The publisher never emits `repo.toml.sig`": resolved.** Both publish scripts sign
 >   via `tools/eos-repo-sign`, and since `U-120` an unsigned publish hard-fails. The real
->   gap moved to the client: no pinned key (`R-702`), no `verify_manifest()` (`R-703`).
+>   gap moved to the trust anchor: `pkg-lib` verifies, but no key is pinned (`R-702`).
+>   *(Sharpened 2026-08-21, `U-134`: the `U-126` wording claimed `verify_manifest()` did not
+>   exist. It does — in the `eos-pkgutils` fork, which the meta-repo grep could not see.)*
 > - **"`make-release` doesn't regenerate the SBOM per build": resolved** — it does, and
 >   folds it into the same signed `SHA256SUMS`.
 > - **`roadmap-connectivity.md` "✅ done … verified" for usbnetd: fixed in `U-115`** — it

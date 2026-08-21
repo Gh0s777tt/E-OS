@@ -188,7 +188,7 @@ Every layer already exists and is **enforced, not advisory**: `pkgar` `Header::n
 The Driver Manager must **not** ship until these are closed, because a driver runs with hardware access:
 
 1. **Pin the E-OS signing pubkey in the image** — today remote keys are **TOFU** (`add_remote` sets `pubkey:None`, fetches `id_ed25519.pub.toml` from the *same host* that serves packages). Bake the key into a config file so a MITM/hostile mirror cannot supply its own key + self-consistent signed driver. Note the current asymmetry: the **installer path pins** a key (`installer_key`), only the **post-install remote path** is unpinned — exactly the path a Driver Manager uses.
-2. **Sign and verify the manifest/catalog** — `repo.toml`/per-package tomls remain unauthenticated **client-side**. The publisher half is already wired: `publish-repo-pages.sh` emits `repo.toml.sig` via `tools/eos-repo-sign` (hard-fails unsigned since `U-120`). Still missing: `catalog.toml.sig` for the driver catalog, and fetch+verify in `pkg-lib` — without which the signature that already exists protects nothing on the device.
+2. **Sign and verify the manifest/catalog** — `repo.toml`/per-package tomls remain unauthenticated **client-side**. Both ends of the *manifest* path are wired — `publish-repo-pages.sh` emits `repo.toml.sig` (hard-fails unsigned since `U-120`) and `pkg-lib` verifies it — but no key is pinned yet (`R-702`), so the client warns rather than enforces. Still missing outright: `catalog.toml.sig` for the driver catalog, and its fetch+verify path.
 3. **Enforce `https://`** in `add_remote` (any scheme accepted today).
 4. **Anti-rollback** — a validly-signed *older* `drv-*` still verifies today; reject a catalog/driver older than installed via the monotonic `catalog_version`.
 

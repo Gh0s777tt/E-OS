@@ -80,11 +80,16 @@ CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* u
   publish time** with a hybrid **ed25519 + ML-DSA-65** signature
   (`tools/eos-repo-sign`; since `U-120` an unsigned publish is a hard failure
   unless `EOS_ALLOW_UNSIGNED=1` is given explicitly).
-  ⚠️ **The client half does not exist yet.** No E-OS public key is pinned in any
-  image — `keys/eos-repo-sign.pub.toml` has never been generated or committed —
-  and `pkg-lib` has no `verify_manifest()`, so **nothing on a running system
-  checks that signature**. Until `R-702` (pin the key) and `R-703` (verify it)
-  ship, treat the package channel as **unauthenticated on the client**.
+  ⚠️ **The client half is built but has no trust anchor.** `pkg-lib` *does*
+  verify the manifest — `manifest_sig::verify_manifest_ed25519`, called from
+  `verify_repo_manifest`, with tamper / wrong-key / malformed-signature tests
+  (`eos-pkgutils@5978425e`, the pinned rev). It is inert for exactly one reason:
+  **no public key is pinned in any image**, because `keys/eos-repo-sign.pub.toml`
+  has never been generated. With no key the client prints a loud warning and
+  proceeds (per-package pkgar ed25519 stays enforced); **the moment a key is
+  pinned, a missing or invalid `repo.toml.sig` becomes a hard error.** So until
+  `R-702` bakes the key in, treat the *index* as unauthenticated on the client —
+  but the missing piece is one file, not a subsystem.
 - ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
 
 See [docs/security.md](docs/security.md) for the contributor security guide.

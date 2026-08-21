@@ -34,14 +34,16 @@ The package repository's `repo.toml` lists every package's blake3 hash, so a
 signature over it authenticates the whole repo. E-OS signs it with a **hybrid**
 ed25519 + ML-DSA-65 (post-quantum, FIPS 204) signature via `tools/eos-repo-sign`.
 
-**Trust anchor (R-702) — NOT YET IN PLACE.** The *design* is that the hybrid public
-key is pinned **in the image**, so clients verify `repo.toml.sig` against the pinned
-key rather than one fetched from the repo host. Neither half exists today:
-`eos-repo-sign.pub.toml` has never been generated or committed (this directory holds
-only `eos-release.pub`, the minisign release key), and no client-side
-`verify_manifest()` is implemented (`R-703`). The publisher already signs, so the
-missing anchor is the *only* reason that signature is inert. The steps below create
-the key; pinning it into the image is `R-702`.
+**Trust anchor (R-702) — THE ONE MISSING PIECE.** The hybrid public key is meant to
+be pinned **in the image**, so clients verify `repo.toml.sig` against it rather than
+one fetched from the repo host. Everything around it already exists: the publisher
+signs, and `pkg-lib` verifies (`manifest_sig::verify_manifest_ed25519`, reached via
+`verify_repo_manifest`, at the pinned `eos-pkgutils@5978425e`). What does **not**
+exist is `eos-repo-sign.pub.toml` — this directory holds only `eos-release.pub`, the
+minisign *release* key, which is a different key for a different job. Without it the
+client warns and proceeds; with it, an unsigned or tampered index is a hard failure.
+Generating and committing it is therefore the highest-leverage single action in the
+whole trust chain. The steps below create it; baking it into the image is `R-702`.
 
 One-time key setup (secret stays off-repo — e.g. a password manager or a masked
 GitLab CI *file* variable):

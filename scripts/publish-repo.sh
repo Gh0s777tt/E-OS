@@ -27,10 +27,9 @@ cp "$REPO"/*.pkgar "$stage"/
 [ -f "$PUB" ] && cp "$PUB" "$stage"/ || echo "warning: $PUB missing (packages unverifiable)"
 
 # R-703: sign the repo.toml manifest (hybrid ed25519+ML-DSA-65). Secret key is
-# user-held via $EOS_REPO_SIGN_KEY (never in the repo). Clients are MEANT to verify
-# against an in-image-pinned public key, but no such key is committed (R-702) and
-# pkg-lib has no verify_manifest() (R-703) — so this signature is produced today and
-# checked by nobody. U-120: unsigned packaging is opt-in
+# user-held via $EOS_REPO_SIGN_KEY (never in the repo). pkg-lib verifies this
+# signature against an in-image-pinned public key; no such key is committed yet
+# (R-702), so the client currently warns and proceeds. U-120: unsigned packaging is opt-in
 # (EOS_ALLOW_UNSIGNED=1), not the default — see publish-repo-pages.sh.
 if [ -n "${EOS_REPO_SIGN_KEY:-}" ]; then
     SIGN_BIN="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"

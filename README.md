@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-133 · 2026-08-21 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-134 · 2026-08-21 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -129,8 +129,9 @@ and hardening goals.
   mass-storage support.
 - 🔑 **Post-quantum-ready signing** — a tool that signs the package repo manifest
   with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature at publish time.
-  *Publisher-side only:* nothing on a running system verifies it yet — no key is
-  pinned in the image (`R-702`) and there is no client-side check (`R-703`).
+  *Verification is implemented on both ends but has no key between them:* `pkg-lib`
+  checks the signature, and once a key is pinned in the image a bad index is fatal —
+  but `keys/eos-repo-sign.pub.toml` does not exist yet (`R-702`).
 
 **Since then — the `U-081`–`U-114` wave** (all verified on-device under QEMU)
 
@@ -306,9 +307,11 @@ deliberate **anti-appropriation** choice.
   Crypto Extensions) with a constant-time software fallback.
 - 🧬 **Post-quantum-ready** — **hybrid ed25519 + ML-DSA-65** signing of the package
   manifest, enforced at publish time (an unsigned publish hard-fails unless
-  `EOS_ALLOW_UNSIGNED=1`). ⚠️ **Publisher-side only — the client half does not
-  exist**: no pinned key (`R-702`), no `verify_manifest()` (`R-703`), so treat the
-  package channel as unauthenticated on the device. Migration plan and the exact
+  `EOS_ALLOW_UNSIGNED=1`). ⚠️ **One missing key, not a missing subsystem**: `pkg-lib`
+  verifies the manifest (`verify_repo_manifest` → `verify_manifest_ed25519`, with
+  tamper tests), but no public key is pinned in any image (`R-702`), so it warns and
+  proceeds. Until that key exists, treat the package *index* as unauthenticated on
+  the device; per-package pkgar ed25519 is enforced regardless. Migration plan and the exact
   trust boundary: [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md).
 - 🔑 **Secret scanning in CI** — a gitleaks `secret-scan` job (full history,
   `GIT_DEPTH: 0`) gates every push on GitLab, backed by local git hooks
