@@ -8,7 +8,25 @@ pre-commit:
       glob: "tools/**/*.rs"
       run: cargo fmt --manifest-path tools/eos-repo-sign/Cargo.toml -- --check
     gitleaks:
-      run: 'command -v gitleaks >/dev/null && gitleaks protect --staged --no-banner --redact || true'
+      # This used to end in `|| true`, which made it decorative: gitleaks exits 1 on a
+      # hit, `|| true` turned that into 0, and the commit sailed through. CI catches it
+      # afterwards — but by then the secret is pushed and mirrored, and the only real
+      # fix is a history rewrite. The pre-commit hook is the one that protects anything,
+      # so it now fails closed. A missing gitleaks is also a failure: silently skipping
+      # a secret scan has the same outcome as not having one. Override deliberately and
+      # say why in the commit body: EOS_SKIP_SECRET_SCAN=1 git commit ...
+      run: |
+        if [ "${EOS_SKIP_SECRET_SCAN:-0}" = "1" ]; then
+          echo 'gitleaks: SKIPPED via EOS_SKIP_SECRET_SCAN=1 — justify it in the commit body'
+          exit 0
+        fi
+        command -v gitleaks >/dev/null || {
+          echo 'gitleaks not installed (brew install gitleaks).'
+          echo 'Refusing to pass a commit through an unrun secret scan.'
+          echo 'Deliberate override: EOS_SKIP_SECRET_SCAN=1 git commit ...'
+          exit 1
+        }
+        gitleaks protect --staged --no-banner --redact
 
 pre-push:
   parallel: true

@@ -26,5 +26,21 @@ if [ -n "$hits" ]; then bad "docs reference a concrete eos-<ver>-<arch>.img (use
 # 3) README carries the SYNC marker kept in step with CHANGELOG/ROADMAP.
 grep -q 'SYNC:' README.md && ok "README SYNC marker present" || bad "README SYNC marker missing"
 
+# 4) Every `unsafe` in E-OS-owned Rust carries a `SAFETY:` note (R-F01 sibling).
+# Scope excludes src/: that is the VENDORED redox_cookbook (package name
+# `redox_cookbook`, upstream author), and all nine of its unsafe blocks live in
+# src/cook/pty.rs. Annotating upstream code would create divergence to re-apply on
+# every sync, for no safety gain — the same reasoning that keeps third-party ports
+# on upstream flags (CLAUDE.md 3). E-OS-owned Rust here has ZERO unsafe today, so
+# this gate is introduced while the count is nil and can never accrue a backlog.
+# The forks (kernel/base/relibc) carry the real unsafe and are gated by their own CI.
+hits=$(git grep -nI 'unsafe' -- '*.rs' ':!src/' 2>/dev/null | while IFS=: read -r f l _; do
+  # A SAFETY: note must sit on one of the three lines above the unsafe.
+  awk -v n="$l" 'NR>=n-3 && NR<n' "$f" 2>/dev/null | grep -q 'SAFETY' || echo "$f:$l"
+done)
+if [ -n "$hits" ]; then
+  bad "unsafe without a SAFETY: note (state the invariant that makes it sound):"; echo "$hits"
+else ok "every unsafe in E-OS-owned Rust is justified"; fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

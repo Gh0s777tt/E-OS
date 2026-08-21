@@ -226,6 +226,89 @@ record.
   lives: no boot claim has ever been made on real hardware. `make … live` + `dd` to a
   USB stick is the on-ramp (`docs/install.md`).
 
+## 10. Signatures, dangerous code, secrets
+
+Three guarantees a security-focused OS cannot hand-wave. Each has a rule, a gate, and —
+where the gate does not exist yet — an honest statement of that.
+
+### 10.1 Signatures — verify, and sign by default
+
+**Rule.** Commits are signed; release tags are signed **without exception** (`git tag -s`).
+A tag is what a user checks before flashing an image, so an unsigned tag is a broken
+promise, not a style lapse.
+
+**Current state, measured 2026-08-22 — the rule is not yet met:**
+
+```
+git config commit.gpgsign / tag.gpgsign / user.signingkey  →  all unset
+gpg --list-secret-keys                                     →  0 keys
+git log -20 --format=%G?                                   →  0/20 signed
+```
+
+`CONTRIBUTING.md` has said "commit signing encouraged" throughout, with nothing to sign
+with. **Generating the key is a human action and is deliberately not automated** — a
+signing key must never pass through tooling that logs. Do it once:
+
+```sh
+ssh-keygen -t ed25519 -C "e-os signing"            # or gpg --full-generate-key
+git config --global gpg.format ssh                  # skip for gpg
+git config --global user.signingkey ~/.ssh/id_ed25519.pub
+git config --global commit.gpgsign true             # sign by default, no remembering
+git config --global tag.gpgsign true
+```
+
+Then add the public half to GitLab (Settings → SSH/GPG keys) so the platform shows
+*Verified*, and **re-tag**: `v0.1.0` is currently unsigned (§8).
+
+**Verify, don't assume** — `git log --show-signature -1`, `git tag -v <tag>`, and
+`git log --format='%h %G?' -20` (`G` good, `N` none, `B` bad). Once a key exists, make an
+unsigned tag a release blocker; until then, saying "signing encouraged" and shipping
+unsigned is the drift this file exists to prevent.
+
+### 10.2 Dangerous code must argue for itself
+
+**Rule.** Every `unsafe` block carries a `// SAFETY:` note directly above it stating the
+**invariant that makes it sound** — not what the code does, but why it cannot be
+unsound. "Calls libc" is not a SAFETY note; "fd is owned and open for the lifetime of
+this call, and openpty writes both out-params before returning 0" is.
+
+**Gated** in `scripts/ci-integrity.sh` (check 4), which fails the build on an `unsafe`
+without a SAFETY note within the three preceding lines. Introduced while E-OS-owned Rust
+had **zero** `unsafe`, precisely so it can never accumulate a backlog.
+
+**Scope, and why:** the check excludes `src/`, which is the **vendored** `redox_cookbook`
+— all nine of its `unsafe` blocks sit in `src/cook/pty.rs`, and annotating upstream code
+would create divergence to re-apply on every sync for no safety gain. That is the same
+reasoning that leaves third-party ports on upstream flags (§3). **The real `unsafe` lives
+in the forks** (`eos-kernel`, `eos-base`, `eos-relibc`) and is gated by their own CI — the
+same rule applies there, and that is where it matters most.
+
+The neighbouring rules from §3 are part of this: no `.unwrap()` on a recoverable error in
+a daemon (the virtio-core lesson, `U-085`), intentional wrapping spelled `wrapping_*`, and
+`overflow-checks` on for E-OS-owned crates. Unchecked arithmetic on attacker-influenced
+input is the same class of defect as an undocumented `unsafe` — `U-137` fixed exactly that
+shape in the pcid matcher.
+
+### 10.3 Secrets never reach a remote
+
+**Rule.** No credential, token, PAT or private key is committed — and the check that
+matters runs **before** the commit, not after. Once a secret is pushed it is mirrored
+within a minute and the only real remedy is a history rewrite plus rotation.
+
+**Three layers, and what each is actually for:**
+
+| Layer | Runs | Purpose |
+|---|---|---|
+| `lefthook` `pre-commit` → `gitleaks protect --staged` | every commit | The one that prevents the leak. **Fails closed**, including when gitleaks is not installed — a silently skipped scan is the same outcome as no scan. Deliberate override: `EOS_SKIP_SECRET_SCAN=1`, and justify it in the commit body. |
+| CI `secret-scan` → `gitleaks detect` | every push, **full history** (`GIT_DEPTH: 0`) | Catches what slipped past, and re-validates `.gitleaks.toml` itself. |
+| `scripts/local-scan.sh` | on demand | Same detection plus `ci-integrity.sh`, for a sweep before a release. |
+
+Until 2026-08-22 the pre-commit hook ended in `|| true`, which turned gitleaks' exit 1
+into 0 — a planted private key committed cleanly. Verified fixed: secret staged → blocked,
+explicit override → skipped loudly, clean tree → passes. **Never use pasted tokens or
+passwords, even on request** (§5) — that rule and this gate protect the same thing from
+opposite directions.
+
 ---
 
 *Keep this file honest. If a rule here stops matching how we actually work, fix the
