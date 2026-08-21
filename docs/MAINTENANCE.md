@@ -9,10 +9,18 @@ overhaul changed, what now happens **automatically**, and what needs **your deci
 
 - Push to **`gitlab.com/e-os`**. A native GitLab **push mirror** replays it to GitHub.
 - **Never** dual-push (a manual GitHub push races the mirror and fails it).
+- ⚠️ **The mirror replays pushes, not deletions.** Deleting a branch on GitLab leaves it
+  standing on GitHub — measured 2026-08-22 (`U-139`): all nine branches were still there
+  45 s after the GitLab delete and had to be removed with an explicit
+  `git push github --delete`. This is the one case where touching GitHub by hand is
+  correct, because there is no push for the mirror to race.
 - All CI runs on GitLab (GitHub Actions is disabled account-wide).
-- The 25 repos live in the GitLab group **`e-os`** (all public) and mirror to
+- The **30** repos live in the GitLab group **`e-os`** (all public) and mirror to
   `github.com/Gh0s777tt`. [`repos.toml`](https://github.com/Gh0s777tt/E-OS/blob/main/repos.toml) is the single source of truth
   for the list; drive everything with [`scripts/eos-repos.sh`](https://github.com/Gh0s777tt/E-OS/blob/main/scripts/eos-repos.sh).
+- **Sync state, re-measured 2026-08-22 (`U-139`):** all **30/30** repositories report the
+  same SHA on both hosts for their pinned branch — zero drift. Checked with
+  `git ls-remote` against both URLs rather than trusting the mirror's status page.
 
 ## What was done
 
