@@ -2,6 +2,7 @@
 #TODO lack of utmpx.h, expect no way to track login in sshd
 [source]
 tar = "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz"
+blake3 = "3916a6fe028dce304e9e7c17e92f31085b183d235033cef3877d9018521aeea8"
 patches = [
     "redox.patch",
 ]

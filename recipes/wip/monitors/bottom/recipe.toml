@@ -1,6 +1,7 @@
 #TODO missing data
 [source]
 git = "https://github.com/jackpot51/bottom"
+rev = "2130810b74678a6bf80a4589b1178d2047c36ec7"
 
 [build]
 template = "cargo"

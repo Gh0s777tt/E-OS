@@ -1,5 +1,6 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/sdl1.2.git"
+rev = "7ac3aeb7c60f6e70ad3219e7b2c68892f1ebd271"
 
 [build]
 template = "configure"

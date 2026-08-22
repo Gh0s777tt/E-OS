@@ -1,5 +1,6 @@
 [source]
 tar = "https://www.nano-editor.org/dist/v7/nano-7.2.tar.xz"
+blake3 = "0cc6256ee0497bc9fd9a07483232b42f29008ccefceae509d04effdcab7df126"
 [build]
 template = "custom"
 dependencies = [

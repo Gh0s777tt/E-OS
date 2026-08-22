@@ -1,5 +1,6 @@
 [source]
 git = "https://github.com/pop-os/cosmic-files.git"
+rev = "28546795b0f4ff65d0c96d98a503b1dfec0d8e8e"
 
 [build]
 template = "custom"

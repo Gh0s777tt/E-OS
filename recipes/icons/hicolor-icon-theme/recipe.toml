@@ -1,5 +1,6 @@
 [source]
 git = "https://gitlab.freedesktop.org/xdg/default-icon-theme.git"
+rev = "8d22bbf304775a3cc109a2220e633cafda50eaac"
 
 [build]
 template = "custom"

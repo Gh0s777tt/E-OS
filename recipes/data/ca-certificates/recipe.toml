@@ -1,5 +1,6 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/ca-certificates.git"
+rev = "4955c9001ad38451fe2b7b2bf5bf85b1b5aef390"
 
 [build]
 template = "custom"

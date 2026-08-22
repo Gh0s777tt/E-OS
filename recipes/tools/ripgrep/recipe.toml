@@ -1,5 +1,6 @@
 [source]
 git = "https://github.com/jackpot51/ripgrep.git"
+rev = "174c570dfb3b7b2bdc0c19acfbbb455479c5fee4"
 
 [build]
 template = "cargo"

@@ -1,5 +1,6 @@
 [source]
 git = "https://gitlab.redox-os.org/redox-os/findutils.git"
+rev = "116c044399318bf1c77a0d97371b61999ee170b4"
 
 [build]
 template = "cargo"
