@@ -17,8 +17,11 @@ A change (fix, feature, script, refactor, tech choice) is **not done** until:
 1. **Compiles** — `cargo check` for the target in the build container.
 2. **Integrates** — `make CI=1 … all` succeeds and, if it touches the image,
    `scripts/ci-boot-smoke.sh` PASSes (boot reaches `eos login:`).
-3. **Runtime-proven** — real evidence, never assumption: serial log, `--selftest`
-   marker, pcap, or a screendump. State the proof.
+3. **Runtime-proven, and negative-controlled** — real evidence, never assumption:
+   serial log, `--selftest` marker, pcap, or a screendump. State the proof — and state
+   that you saw the check **fail without the fix** and pass with it. A green check you
+   have never seen go red is not evidence (§4.1); an identical before/after is not a fix,
+   so revert it and say why (§4.4).
 4. **Documented** — see §2. Every new function, script, API, and technology is
    documented **what + why**. No exceptions: undocumented = unfinished.
 5. **Recorded** — a `CHANGELOG.md` entry (`[U-NNN]`, what + why + how verified),
@@ -61,6 +64,26 @@ source of truth + generation over hand-maintained copies (see §6 ideas).
 top of every doc; explain trade-offs and rejected options (future-you needs the
 *why*, not just the *what*); link related docs; keep examples runnable.
 
+**Write the record so someone else can check it.** A sentence a reader cannot verify is
+a claim, not documentation. Four rules, each of which this project has learned the hard
+way — see §4 for the testing side of the same coin:
+
+1. **Cite the evidence inline.** The command, the number, the `file:line`, the rev.
+   "Interrupt storm on the shared line" is an opinion; "`virq 37` at 11 054 068 against
+   8 851 on the timer, from `/scheme/sys/irq`" is a record (`U-157`).
+2. **Scope the claim to what was measured — no wider.** State the arch, the host, the
+   configuration. `U-146` claimed "two INTx lines cannot both work" from an
+   initfs-phase measurement and was wrong the moment anyone looked at a later boot
+   phase; `U-147` had to narrow it, and `U-148` had to narrow it again.
+3. **Say what you did *not* verify**, in the same breath as what you did. An entry that
+   only lists successes reads as a completeness claim it cannot support. "x86_64 is
+   *expected* to be unaffected — unverified, no x86_64 image has been built on this
+   host" is worth more than silence.
+4. **Correct in place, and leave the correction visible.** When a document turns out to
+   be wrong, fix it *and* record that it was wrong and why — do not quietly rewrite it.
+   A reader who once relied on the old sentence needs to know it changed. §10.1 and §8
+   both carry their own corrections for exactly this reason.
+
 ## 3. Code standards — the comments are documentation too
 
 - **Doc-comments on every public item.** `//!` at the top of each module (what it
@@ -79,7 +102,7 @@ top of every doc; explain trade-offs and rejected options (future-you needs the
   wrapping uses `wrapping_*`/`Wrapping`. Daemons **exit gracefully / log**, never
   `.unwrap()` a recoverable error into an abort (the virtio-core lesson, `U-085`).
 
-## 4. Verification discipline — the three gates
+## 4. Verification discipline — test it, prove the test, audit the claim
 
 Every fix passes three gates before "done", in order — this is the E-OS mantra:
 
@@ -90,6 +113,83 @@ Every fix passes three gates before "done", in order — this is the E-OS mantra
 Headless GUI apps ship an `eos-<app> --selftest` that proves the non-visual core
 (prints `…-SELFTEST-OK`, asserted from the boot serial via a throwaway init.d
 probe — **never commit the probe**). GUI render is proven by screendump.
+
+### 4.1 A test you have not seen fail is not a test
+
+Passing proves nothing on its own — the test may be passing on the old code, on the
+wrong tree, or on nothing at all. **Show it failing on the defect, then show it passing
+on the fix.** Both halves, every time, and say so in the entry.
+
+This is not theory here. Every one of these shipped green and protected nothing:
+
+- The `gitleaks` pre-commit hook ended in `|| true`, so a planted private key committed
+  cleanly (`U-140`).
+- The bash-4 gate matched **its own regex literal** and failed on a clean tree (`U-159`).
+- The negative control for that same gate was itself invalid: `git grep` only sees
+  **tracked** files, so an untracked probe proved nothing until it was `git add -N`'d
+  (`U-159`).
+- A `cd` without `|| exit` in `ci-integrity.sh` — the gate itself — would have linted
+  whatever directory it landed in and reported PASS on the wrong tree (`U-159`).
+
+### 4.2 Prove the instrument before you trust a negative result
+
+"No output" means one of two things: the code did not run, or **you are not measuring
+what you think you are measuring**. Rule them apart before concluding anything.
+
+`U-151` concluded that `redoxfs` "cannot be instrumented" after two channels produced
+nothing. That was wrong: the `base` recipe copies `redoxfs` into `initfs/bin/`, so
+rebuilding `r.redoxfs` alone left the initfs running the **old binary** (§9). The test
+that settled it: an unconditional `panic!` at the top of `main()` — the boot still
+reached a login prompt, which is impossible if that binary is the one running (`U-153`).
+Three attempts were spent measuring a binary that never ran.
+
+**Control your variables, too.** One `R-F18` experiment "passed" because moving a
+`-device` to the end of the QEMU command line changed its PCI slot, so it stopped sharing
+the interrupt line under test (`U-157`).
+
+### 4.3 Measure; do not infer
+
+Inference is where this project's wrong conclusions have come from, and they were
+published three times before being corrected:
+
+- The block point was read off **where the serial log stopped**, rather than from where
+  the code signals readiness. `pcid-spawner` was blamed twice and was never involved
+  (`U-146`, `U-147`, corrected in `U-148`).
+- What settled it was making `init` narrate its own units (`U-150`), then polling the log
+  by **wall clock** to find an 84-second gap the in-log timestamps could not show
+  (`U-154`), then reading the kernel's own per-IRQ counters through `/scheme/sys/irq` —
+  11 054 068 interrupts on one line, against 8 851 on the timer (`U-157`).
+
+When a number can be counted, count it. Cite it in the entry.
+
+### 4.4 A change that measures nothing does not ship
+
+If the before/after is identical, the change is not a fix — whatever its reasoning.
+Revert it and record why. `U-157` did exactly that with a kernel interrupt-model change
+that was arguably more correct and measured **111s before, 111s after**: it bought nothing
+and would have wedged a shared line permanently if a driver died. Sounding right is not
+evidence.
+
+### 4.5 Audit: a claim without current evidence is a defect
+
+Documentation rots silently, so **re-verify claims in the area you are already touching**
+rather than waiting for an audit event:
+
+- Does the doc still match the tree? **The tree wins**, and the doc is corrected in the
+  same change — never left for later.
+- Does the claim still have its evidence? `§10.1` sat stale saying signing was unconfigured
+  while every commit was in fact signed and GitLab reported *verified* (`U-152`).
+- Does the gate still fail on the bug it was written for? Re-run its negative control.
+- Is the pin on **both** hosts (§1.6), and is the version identity in step (§8)?
+
+Correcting your own published conclusion is ordinary work, not an embarrassment: name what
+was wrong, why it was wrong, and what the evidence actually shows. `U-147`, `U-148`,
+`U-153`, `U-155` and `U-157` are all corrections of earlier entries in this file's own
+history, and the record is worth more for having them.
+
+**Record the dead ends too.** A negative result that took hours saves the next attempt
+those hours only if it is written down — with the reason it failed and the method that
+would work instead (`U-151`, `U-157`).
 
 ## 5. Operational invariants (do not violate)
 
