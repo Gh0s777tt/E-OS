@@ -725,3 +725,63 @@ data = """
 # understand and accept both.
 #https://static.redox-os.org/pkg
 """
+
+# ──────────────  R-904a: no raw IP sockets in the user namespace  ──────────────
+# base.toml grants the user namespace `ip` — smoltcp's RawSocket. That lets any
+# unprivileged program send arbitrary IP packets: spoofed sources, crafted headers,
+# and a complete bypass of any packet filter that works above the raw layer. Building
+# the firewall (R-904) while this is granted would produce protection anyone can step
+# around, so the removal has to come first (docs/plan.md §4, step 5).
+#
+# `icmp` deliberately STAYS. `ping` ships in netutils and opens `icmp:echo/<host>/ttl`;
+# dropping it would take ping away from ordinary users to close a hole far narrower
+# than `ip`. ICMP tunnelling is still possible and belongs in the R-904 filter design,
+# not in this list.
+#
+# Config alone is not enough: userutils' apply_login_schemes() falls back to a
+# hard-coded DEFAULT_SCHEMES when this file is missing or unparseable, and that list
+# also carried `ip` — a parse error silently restored raw sockets. Fixed in the same
+# change (eos-userutils@a43ba3e); both halves are needed or neither holds.
+[[files]]
+path = "/etc/login_schemes.toml"
+data = """
+[user_schemes.root]
+schemes = ["*"]
+[user_schemes.user]
+schemes = [
+  # Kernel schemes
+  "debug",
+  "event",
+  "memory",
+  "pipe",
+  "serio",
+  "irq",
+  "time",
+  "sys",
+  # Base schemes
+  "rand",
+  "null",
+  "zero",
+  "log",
+  # Network schemes ("ip" removed — see R-904a above)
+  "icmp",
+  "tcp",
+  "udp",
+  # IPC schemes
+  "shm",
+  "chan",
+  "uds_stream",
+  "uds_dgram",
+  # File schemes
+  "file",
+  # Display schemes
+  "display.vesa",
+  "display*",
+  # Other schemes
+  "proc",
+  "pty",
+  "sudo",
+  "audio",
+  "orbital",
+]
+"""
