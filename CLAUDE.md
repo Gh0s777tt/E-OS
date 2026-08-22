@@ -174,7 +174,7 @@ saved a wasted hour:**
 | **ROADMAP** | If the change moves an item, move its marker — and if only part of the item shipped, keep it 🚧 with the remainder spelled out. Never ✅ an item whose gates you did not run. |
 | **README** | Only if a user-facing claim changed. The `SYNC:` marker means *"README has been checked against every entry up to here"* — so bump it **only after actually doing that walk**, never as bookkeeping. |
 | **Commit** | Conventional Commits, small, self-contained, one concern. Body explains *why* and lists the evidence. |
-| **Push** | Meta repo: **GitLab only** — the push-mirror replicates to GitHub, and a manual GitHub push races it. Forks: **both hosts manually** (no mirror configured). Verify the mirror caught up before treating a pin as publishable. |
+| **Push** | Meta repo: **GitLab only** — the push-mirror replicates to GitHub, and a manual GitHub push races it. **Branches land on the mirror within seconds; a TAG lands on the mirror's next run — measured ~5 minutes (`U-152`).** Two minutes of silence is not a failed mirror; check `update_status`/`last_error` via `glab api projects/:id/remote_mirrors` before concluding anything. Forks: **both hosts manually** (no mirror configured). Verify the mirror caught up before treating a pin as publishable. |
 | **Gates** | `scripts/ci-integrity.sh`, `scripts/eos-repos.sh pins --strict`, and gitleaks locally before pushing; then watch the pipeline actually go green rather than assuming. |
 
 **Continuous verification, not a quarterly event.** Re-run the audit questions whenever
