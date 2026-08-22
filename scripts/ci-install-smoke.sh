@@ -28,12 +28,13 @@
 #
 # R-F16 — WHY THE TARGET DISK SITS AT PCI SLOT 0x8: building this harness found a
 # boot-stopping defect. aarch64 has no MSI/MSI-X, so every PCI driver takes a legacy
-# INTx line (the R-401c note in nvmed says as much). In the initfs phase a second
-# storage driver on a DIFFERENT INTx line never receives an interrupt, never
-# signals readiness, and since `pcid-spawner` blocks per-device in `Daemon::spawn`
-# and runs as a `oneshot` unit, `40_drivers.target` never completes, so
-# `50_rootfs.service` never runs and init never reaches switchroot. The boot stops
-# silently, before the root filesystem is mounted. On `-machine virt` the line is
+# INTx line (the R-401c note in nvmed says as much). When a second storage device
+# lands on a line different from the first, the boot stops silently in initfs before
+# the root filesystem is mounted. MECHANISM corrected in U-148 (published wrong
+# twice): the second driver is NOT stuck -- it initialises, its interrupts work, and
+# daemon.ready() runs in DiskScheme::new before it starts listening, so pcid-spawner
+# is not blocked. The stall is downstream in 50_rootfs.service (redoxfs), which never
+# completes and logs nothing. Why is still unknown. On `-machine virt` the line is
 # (slot + pin) % 4 and the source disk is at slot 0x4 (line 0), so 0x8 and 0xC also
 # land on line 0 and work, while 0x5/0x6/0x7/0x9 hang. `scripts/repro-intx-lines.sh`
 # runs the whole matrix. The slot default here is a WORKAROUND, not a fix.
@@ -42,6 +43,13 @@
 # two switch_root calls, and after the second one pcid-spawner brings up virtio-netd
 # (line 1) and xhcid (line 2) while the boot disk holds line 0, and the boot reaches
 # a login prompt. The measured defect is specific to the initfs phase.
+#
+# R-F17, and why a PASS here is not a clean boot: on the shared line this harness uses,
+# nvmed can abort after switchroot with
+# "assertion failed: amount == core::mem::size_of::<usize>()"
+# (drivers/executor/src/lib.rs:191) -- the kernel deliberately returns Ok(0) from the
+# irq kwrite for a stale ack, which a shared INTx line makes routine, and the driver
+# asserts instead of handling it. The login prompt can still appear; the crash does not.
 set -uo pipefail
 
 IMG="${1:?usage: ci-install-smoke.sh <source-image> [timeout] [--arch aarch64|x86_64]}"

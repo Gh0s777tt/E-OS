@@ -56,19 +56,26 @@ says nothing about board-specific peripherals.
 - ☐ Confirm GIC version (v2 vs v3) and that the MADT (ACPI) or FDT exposes the
   redistributor/distributor layout the kernel expects. The kernel handles the
   standard GICv2/v3 + generic-timer case; exotic layouts may need work.
-- ⛔ **`R-F16` — only ONE legacy INTx line works at a time, and the second one stops
-  the boot.** This is the single most important thing to know before taking E-OS to
-  an aarch64 board with more than one PCI device.
+- ⛔ **`R-F16` — a second storage device on a different legacy INTx line stops the
+  boot, silently.** This is the single most important thing to know before taking E-OS
+  to an aarch64 board with more than one storage controller.
 
   aarch64 has no MSI/MSI-X, so every PCI driver falls back to a legacy INTx line
-  (the `R-401c` note in `nvmed` spells this out). A driver whose INTx line **differs
-  from the line already in service never receives an interrupt**, so it never signals
-  readiness. `pcid-spawner` blocks per device in `Daemon::spawn` — a bare `read_exact` on the
-  child's `INIT_NOTIFY` pipe with **no timeout**, so a child that neither signals
-  readiness nor exits blocks the parent forever — and it is wired as a `oneshot` unit, so `40_drivers.target` never completes → `50_rootfs.service` never
-  runs → `init` never reaches `switchroot`. The boot **stops silently in initfs**,
-  before the root filesystem is mounted: no panic, no error, just a serial log that
-  ends after the second driver prints its device.
+  (the `R-401c` note in `nvmed` spells this out). When a second storage device lands on
+  a line different from the first, the boot **stops silently in initfs**, before the
+  root filesystem is mounted: no panic, no error, just a serial log that ends.
+
+  **Mechanism — corrected in `U-148` after being published wrong twice.** The second
+  driver is *not* stuck. With driver logs raised to `Debug` it reaches `Initialized!`
+  and `Starting to listen for scheme events`; its `identify` completions succeed, which
+  requires interrupts, so its interrupt path works. `daemon.ready()` runs
+  unconditionally in `DiskScheme::new` (`driver-block/src/lib.rs:288`) *before* that log
+  line, so readiness is signalled and `pcid-spawner` is not blocked. The stall is
+  downstream: `50_rootfs.service` (`redoxfs`, a `oneshot`) never completes, so
+  `90_initfs.target` never completes and `init` never reaches `switch_root("/usr")`.
+  `redoxfs` logs nothing, which is why the failure is silent. **Why `redoxfs` never
+  completes, while both drivers' own interrupts demonstrably work, is still unknown** —
+  recorded as open rather than guessed at a fourth time.
 
   Measured on QEMU `virt`, where the INTx line is `(slot + pin) % 4` and the source
   disk sits at slot `0x4` (line 0):
@@ -110,6 +117,16 @@ says nothing about board-specific peripherals.
   untested — they reach readiness, which does not by itself prove their interrupt path
   works. Settling that needs driver `debug!` output, which today is compiled at a fixed
   `Info` level (`drivers/common/src/logger.rs` hardcodes it), so it needs a rebuild.
+
+  **`R-F17`, the sibling defect this hunt exposed.** In the *passing* half of the
+  matrix — both disks on GIC SPI 3 — the boot reaches `switchroot` and then `nvmed`
+  dies: `assertion failed: amount == core::mem::size_of::<usize>()`
+  (`drivers/executor/src/lib.rs:191`). The kernel's irq scheme **deliberately** returns
+  `Ok(0)` from `kwrite` for a stale acknowledgement (`ack != current`), and the driver
+  asserts the write consumed `size_of::<usize>()` bytes. On a shared line a stale ack is
+  routine — `irq_trigger` fans one line out to *every* registered handle, which `R-401d`
+  deliberately permits — so any two devices sharing an INTx line can abort a storage
+  driver. Treat `Ok(0)` as *stale ack, nothing to do* instead of asserting.
 
 ### Display / desktop
 - QEMU uses **ramfb** (a simple linear framebuffer); the Crimson desktop

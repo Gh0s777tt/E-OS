@@ -11,18 +11,31 @@
 #
 # THE MECHANISM (each step verified, see CHANGELOG U-146):
 #   aarch64 has no MSI/MSI-X, so every PCI driver takes a legacy INTx line (the
-#   R-401c note in nvmed says as much). In the initfs phase, a driver whose INTx line
-#   differs from the one already in service never signals readiness.
+#   R-401c note in nvmed says as much). When a second storage device lands on a line
+#   different from the first, the boot stops silently in initfs -- no panic, no error,
+#   the serial log simply ends -- and the root filesystem is never mounted.
 #
-#   SCOPE, corrected in U-147: this is NOT "only one INTx line ever works". init does
-#   two switch_root calls, and after the second one pcid-spawner brings up virtio-netd
+#   MECHANISM, corrected in U-148 after being published wrong TWICE. The second driver
+#   is NOT stuck: with driver logs at Debug it reaches "Initialized!" and "Starting to
+#   listen for scheme events", its identify completions succeed (so its interrupts
+#   work), and daemon.ready() runs unconditionally in DiskScheme::new
+#   (driver-block/src/lib.rs:288) before that line -- so readiness IS signalled and
+#   pcid-spawner is NOT blocked. The stall is downstream: 50_rootfs.service (redoxfs,
+#   a oneshot) never completes, so 90_initfs.target never completes and init never
+#   reaches switch_root("/usr"). redoxfs logs nothing, hence the silence. WHY redoxfs
+#   never completes while both drivers' interrupts demonstrably work is still unknown.
+#
+#   SCOPE, from U-147: this is NOT "only one INTx line ever works". init does two
+#   switch_root calls, and after the second one pcid-spawner brings up virtio-netd
 #   (line 1) and xhcid (line 2) while the boot disk holds line 0, and the boot reaches
-#   a login prompt. The measured defect is specific to the initfs phase. Whether those
-#   later drivers truly receive interrupts, or just reach readiness without needing
-#   any, is untested — driver log level is hardcoded to Info, so it needs a rebuild.
-#   `pcid-spawner` blocks per-device in `Daemon::spawn`, and it is wired as a
-#   `oneshot` unit, so 40_drivers.target never completes -> 50_rootfs.service never
-#   runs -> init never reaches switchroot. Boot stops silently in initfs.
+#   a login prompt. The measured defect is specific to the initfs phase.
+#
+#   SIBLING DEFECT (R-F17), seen in the PASSING rows: with both disks on one line the
+#   boot reaches switchroot and then nvmed aborts on
+#   "assertion failed: amount == core::mem::size_of::<usize>()"
+#   (drivers/executor/src/lib.rs:191) -- the kernel deliberately returns Ok(0) from the
+#   irq kwrite for a stale ack, which a shared line makes routine, and the driver
+#   asserts instead of handling it. So a "boot" row here is not a clean boot.
 #
 # THE PREDICTIVE MODEL: on `-machine virt` the INTx line is (slot + pin) % 4. The
 # source disk sits at slot 0x4 -> line 0. So a second disk at 0x8 or 0xC also lands
