@@ -85,6 +85,14 @@ says nothing about board-specific peripherals.
   expect USB-attached storage to be unaffected. **Why `redoxfs` never completes, while
   both drivers' own interrupts demonstrably work, is still unknown.**
 
+  **How to instrument this, and how not to (`U-151`).** `redoxfs` is silent by
+  construction in the initfs phase: its own diagnostics are `log::debug!` and nothing
+  installs a logger there, so its silence says nothing about how far it got. Neither
+  writing to `/scheme/debug` nor plain `eprintln!` reaches the console from it — a probe
+  on the first line of its `main()` produced no output even in a boot that **succeeded**.
+  A `panic!` *does* reach the serial console (`nvmed`'s assertion did), so bisecting the
+  mount path with deliberate panic markers is the method that will yield data.
+
   Measured on QEMU `virt`, where the INTx line is `(slot + pin) % 4` and the source
   disk sits at slot `0x4` (line 0):
 
