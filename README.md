@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-134 · 2026-08-21 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-141 · 2026-08-22 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -313,17 +313,24 @@ deliberate **anti-appropriation** choice.
   proceeds. Until that key exists, treat the package *index* as unauthenticated on
   the device; per-package pkgar ed25519 is enforced regardless. Migration plan and the exact
   trust boundary: [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md).
-- 🔑 **Secret scanning in CI** — a gitleaks `secret-scan` job (full history,
-  `GIT_DEPTH: 0`) gates every push on GitLab, backed by local git hooks
-  (lefthook) and `scripts/local-scan.sh`.
+- 🔑 **Secret scanning, end to end** — gitleaks runs at three points: a `pre-commit`
+  hook that **fails closed** (`U-140` — it previously ended in `|| true` and blocked
+  nothing), a `secret-scan` CI job over the **full history** (`GIT_DEPTH: 0`), and
+  `scripts/local-scan.sh` on demand; GitHub push protection is on as a backstop.
 - 🤖 **Supply-chain checks in CI** — `cargo-deny` (RustSec advisories, licenses,
   bans, sources) in `rust-checks`, plus `pin-check` (`eos-repos.sh pins
   --strict`) so recipes can't silently drift from the pinned fork revisions.
   Every binary the build fetches is **SHA256-pinned** (`U-118`); the residual
   gaps are listed under *Supply-chain gates* in
   [docs/hardening.md](docs/hardening.md).
-- 👮 **Branch protection** on the default branch + **CODEOWNERS** reviews.
-- ✍️ **Signed commits** encouraged (see [docs/security.md](docs/security.md)).
+- 👮 **Branch protection** — force-push and deletion blocked on GitHub; GitLab `main`
+  restricted to Maintainers. ⚠️ **Review is not enforced**: `CODEOWNERS` exists but is
+  advisory, `only_allow_merge_if_pipeline_succeeds` is off, and the project has had
+  **0 merge requests** — so CI gates report *after* a push rather than blocking it
+  (`R-F12`).
+- ✍️ **Signed commits** — encouraged by `CONTRIBUTING.md`, but ⚠️ **nothing is signed
+  today**: no signing key is configured and `v0.1.0` is an unsigned tag. Setup in
+  [CLAUDE.md §10.1](CLAUDE.md); status in [docs/security.md](docs/security.md).
 
 Found a vulnerability? **Do not** open a public issue — read
 **[SECURITY.md](SECURITY.md)** for private disclosure.

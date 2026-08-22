@@ -37,14 +37,30 @@ Signed commits get the **Verified** badge and are encouraged for all merges.
 
 ## Repository protections (maintainers)
 
+Re-measured 2026-08-22 (`U-141`) against the live settings and the tree, because the
+previous version of this table named two workflow files that **do not exist** and claimed
+a required review that has never been enforced. Status here means *verified today*, not
+*intended*.
+
 | Control | Where | Status |
 |---------|-------|--------|
-| Secret scanning + push protection | GitHub repo settings | on |
-| gitleaks CI | `.github/workflows/gitleaks.yml` | on |
-| CodeQL code scanning | `.github/workflows/codeql.yml` | on |
-| Dependabot | `.github/dependabot.yml` | on |
-| Branch protection (no force-push, required review) | default branch | on |
-| CODEOWNERS review | `.github/CODEOWNERS` | on |
+| Secret scanning + push protection | GitHub repo settings | ✅ **on** — `secret_scanning` and `secret_scanning_push_protection` both `enabled` |
+| gitleaks — pre-commit | `lefthook.yml` | ✅ **on, fails closed** since `U-140` (it previously ended in `\|\| true` and blocked nothing) |
+| gitleaks — CI | `.gitlab-ci.yml` → `secret-scan` | ✅ **on**, full history (`GIT_DEPTH: 0`) |
+| Dependabot | `.github/dependabot.yml` | ✅ **on** — cargo only; the `github-actions` ecosystem was dropped deliberately |
+| Dependabot security updates | GitHub repo settings | ✅ **on** |
+| `cargo-deny` (advisories/licenses/sources) | `.gitlab-ci.yml` → `rust-checks` | ⚠️ **on, but one crate** — `tools/eos-repo-sign` only; the vendored `redox_cookbook` engine is not covered |
+| Force-push / branch deletion blocked | GitHub `main` | ✅ **on** |
+| Protected branch | GitLab `main` | ✅ **on** — push and merge restricted to Maintainers |
+| CodeQL code scanning | — | ❌ **off**. `.github/workflows/` no longer exists (Actions are disabled account-wide). The results GitHub still shows are from the last run before that and are **stale** — do not read them as current. |
+| Required review before merge | — | ❌ **not enforced** on either host |
+| CODEOWNERS review | `.github/CODEOWNERS` | ⚠️ **file present, unenforced** — with no required review it is advisory |
+| Pipeline must pass before merge | GitLab project setting | ❌ **off** — `only_allow_merge_if_pipeline_succeeds = false`, and there have been **0 merge requests** in project history, so every gate is a notification *after* the push, not a gate. `docs-currency` (MR-only) has never executed. |
+| Signed commits / tags | — | ❌ **none** — `commit.gpgsign`/`tag.gpgsign`/`user.signingkey` unset, 0 keys, 0/20 recent commits signed, and `v0.1.0` is unsigned. See CLAUDE.md §10.1 for the one-time setup. |
+
+**What this table says in one line:** secrets are genuinely well covered end to end;
+*review and merge gating are not covered at all*, and code scanning is off despite
+GitHub still displaying old results.
 
 ## Threat model (summary)
 
