@@ -73,9 +73,17 @@ says nothing about board-specific peripherals.
   line, so readiness is signalled and `pcid-spawner` is not blocked. The stall is
   downstream: `50_rootfs.service` (`redoxfs`, a `oneshot`) never completes, so
   `90_initfs.target` never completes and `init` never reaches `switch_root("/usr")`.
-  `redoxfs` logs nothing, which is why the failure is silent. **Why `redoxfs` never
-  completes, while both drivers' own interrupts demonstrably work, is still unknown** —
-  recorded as open rather than guessed at a fourth time.
+  `redoxfs` logs nothing, which is why the failure is silent. **Confirmed directly in
+  `U-150`** with `init`'s own `log_debug` forced on: `Reached target Initfs drivers` →
+  `Starting Rootfs (redoxfs)` → nothing, ever.
+
+  **It takes a PCI device, not just a second disk.** The same blank disk attached as
+  **USB storage** boots all the way to a login prompt. A USB disk is not a PCI function
+  and takes no INTx line, so neither `R-F16` nor `R-F17` can trigger — which is why
+  `scripts/ci-install-smoke.sh` now attaches its target disk over USB by default. On real
+  aarch64 hardware, expect the stall on a machine with two PCI storage controllers, and
+  expect USB-attached storage to be unaffected. **Why `redoxfs` never completes, while
+  both drivers' own interrupts demonstrably work, is still unknown.**
 
   Measured on QEMU `virt`, where the INTx line is `(slot + pin) % 4` and the source
   disk sits at slot `0x4` (line 0):

@@ -15,15 +15,20 @@
 #   different from the first, the boot stops silently in initfs -- no panic, no error,
 #   the serial log simply ends -- and the root filesystem is never mounted.
 #
-#   MECHANISM, corrected in U-148 after being published wrong TWICE. The second driver
-#   is NOT stuck: with driver logs at Debug it reaches "Initialized!" and "Starting to
-#   listen for scheme events", its identify completions succeed (so its interrupts
-#   work), and daemon.ready() runs unconditionally in DiskScheme::new
-#   (driver-block/src/lib.rs:288) before that line -- so readiness IS signalled and
-#   pcid-spawner is NOT blocked. The stall is downstream: 50_rootfs.service (redoxfs,
-#   a oneshot) never completes, so 90_initfs.target never completes and init never
-#   reaches switch_root("/usr"). redoxfs logs nothing, hence the silence. WHY redoxfs
-#   never completes while both drivers' interrupts demonstrably work is still unknown.
+#   MECHANISM, corrected in U-148 and then CONFIRMED DIRECTLY in U-150. The second
+#   driver is NOT stuck: with driver logs at Debug it reaches "Initialized!" and
+#   "Starting to listen for scheme events", its identify completions succeed (so its
+#   interrupts work), and daemon.ready() runs unconditionally in DiskScheme::new
+#   (driver-block/src/lib.rs:288) before that line. Making init itself verbose then
+#   settled it without inference -- the trace reads:
+#
+#       Reached target Initfs drivers        <- pcid-spawner finished
+#       Starting Rootfs (redoxfs)            <- 50_rootfs.service started
+#       (nothing, ever)
+#
+#   So 40_drivers.target completes and the stall is INSIDE redoxfs, which logs nothing.
+#   WHY redoxfs never completes, while both disk drivers' own interrupts demonstrably
+#   work, is still unknown.
 #
 #   SCOPE, from U-147: this is NOT "only one INTx line ever works". init does two
 #   switch_root calls, and after the second one pcid-spawner brings up virtio-netd
@@ -123,6 +128,12 @@ done
 check "+ blank second disk, virtio-blk at 0x5"    "1"   hang \
   "${SRC[@]}" -device "nvme,drive=d0,serial=eos" \
   -drive "file=$BLANK,if=none,id=d1,format=raw" -device "virtio-blk-pci,drive=d1,addr=0x5"
+
+# The control that pins the defect to PCI/INTx rather than to "a second block device":
+# a USB disk is not a PCI function, takes no INTx line, and boots (U-150).
+check "+ blank second disk over USB (no PCI)"     "-"   boot \
+  "${SRC[@]}" -device "nvme,drive=d0,serial=eos" \
+  -drive "file=$BLANK,if=none,id=d1,format=raw" -device "usb-storage,drive=d1"
 
 echo
 if [ "$fail" -eq 0 ]; then

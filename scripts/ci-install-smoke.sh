@@ -54,8 +54,16 @@ set -uo pipefail
 
 IMG="${1:?usage: ci-install-smoke.sh <source-image> [timeout] [--arch aarch64|x86_64]}"
 TIMEOUT="${2:-300}"
-TARGET_SLOT="${EOS_TARGET_SLOT:-0x8}"   # see R-F16 above
-TARGET_IF="${EOS_TARGET_IF:-nvme}"      # nvme | virtio-blk (the stall reproduces with both)
+# usb | nvme | virtio-blk. USB is the default because it is the only attachment that
+# avoids BOTH known defects: a USB disk is not a PCI device, so it takes no INTx line
+# (R-F16 never triggers) and it cannot share one (R-F17 never triggers). Verified to
+# boot: "Reached target Initfs drivers" -> "Starting Rootfs" -> switchroot -> login.
+# It is also closer to how a real install actually happens.
+TARGET_IF="${EOS_TARGET_IF:-usb}"
+# Only meaningful for the PCI interfaces. On -machine virt the INTx line is
+# (slot + pin) % 4 and the source disk sits at slot 0x4 (line 0), so 0x8 shares its
+# line and boots, while 0x5/0x6/0x7/0x9 land on other lines and stall (R-F16).
+TARGET_SLOT="${EOS_TARGET_SLOT:-0x8}"
 ARCH="aarch64"; prev=""
 for a in "$@"; do case "$prev" in --arch) ARCH="$a";; esac; prev="$a"; done
 [ -f "$IMG" ] || { echo "install-smoke: image not found: $IMG"; exit 1; }
@@ -93,11 +101,14 @@ DRIVES=(-drive "file=$IMG,if=none,id=disk0,format=raw" -device "nvme,drive=disk0
 if [ -z "${EOS_NO_TARGET_DISK:-}" ]; then
   DRIVES+=(-drive "file=$TARGET,if=none,id=disk1,format=raw")
   case "$TARGET_IF" in
-    nvme)       DRIVES+=(-device "nvme,drive=disk1,serial=target,addr=$TARGET_SLOT") ;;
-    virtio-blk) DRIVES+=(-device "virtio-blk-pci,drive=disk1,addr=$TARGET_SLOT") ;;
+    usb)        DRIVES+=(-device "usb-storage,drive=disk1")
+                echo "install-smoke: target disk = USB (no PCI slot, so neither R-F16 nor R-F17 applies)" ;;
+    nvme)       DRIVES+=(-device "nvme,drive=disk1,serial=target,addr=$TARGET_SLOT")
+                echo "install-smoke: target disk = nvme at PCI slot $TARGET_SLOT (R-F16 workaround)" ;;
+    virtio-blk) DRIVES+=(-device "virtio-blk-pci,drive=disk1,addr=$TARGET_SLOT")
+                echo "install-smoke: target disk = virtio-blk at PCI slot $TARGET_SLOT (R-F16 workaround)" ;;
     *) echo "install-smoke: unsupported EOS_TARGET_IF '$TARGET_IF'"; exit 2 ;;
   esac
-  echo "install-smoke: target disk = $TARGET_IF at PCI slot $TARGET_SLOT (R-F16 workaround)"
 else
   echo "install-smoke: EOS_NO_TARGET_DISK — control run, source image only"
 fi
