@@ -35,7 +35,7 @@ gitlab = "https://gitlab.com/e-os/eos-bootloader.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/bootloader"
 pinned_branch = "eos-rebased"
-pinned_rev    = "05dadec4c4fd587a14397c1e86022a8d88ed0558"
+pinned_rev    = "b249982f29f1cf0a918a9dca6881d0c4a23417de"
 
 [[repo]]
 name   = "eos-kernel"
@@ -55,7 +55,7 @@ gitlab = "https://gitlab.com/e-os/eos-redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
-pinned_rev    = "b0f6dff623fa709ed088372c5f4f889ddcbc6b37"
+pinned_rev    = "555359ef616cedbf00387b9d5a14173270cd2101"
 
 [[repo]]
 name   = "eos-relibc"

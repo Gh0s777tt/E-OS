@@ -3,7 +3,7 @@
 # (must live under /mnt/redox so it's visible inside the build container).
 git = "https://github.com/Gh0s777tt/eos-bootloader.git"
 branch = "eos-rebased"
-rev = "05dadec4c4fd587a14397c1e86022a8d88ed0558"
+rev = "b249982f29f1cf0a918a9dca6881d0c4a23417de"
 
 [build]
 template = "custom"
