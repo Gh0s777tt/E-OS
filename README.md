@@ -2,7 +2,7 @@
 <!-- ║                              E-OS  README                              ║ -->
 <!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
 <!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.1.0 "Genesis" · Unreleased U-145 · 2026-08-22 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.2.0 · Unreleased U-152 · 2026-08-22 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
 
 <a name="top"></a>
 
@@ -24,7 +24,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-alpha-E50914?style=flat-square&labelColor=0B0B0B" alt="status">
-  <img src="https://img.shields.io/badge/version-0.1.0%20%E2%80%9CGenesis%E2%80%9D-E50914?style=flat-square&labelColor=0B0B0B" alt="version">
+  <img src="https://img.shields.io/badge/version-0.2.0%20dev-E50914?style=flat-square&labelColor=0B0B0B" alt="version">
   <img src="https://img.shields.io/badge/desktop-boot%20verified%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="desktop boot verified">
   <img src="https://img.shields.io/badge/FDE-hardware%20AES%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="hardware AES FDE">
   <img src="https://img.shields.io/badge/RAID--1-mirror%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="RAID-1 mirror">
@@ -328,9 +328,12 @@ deliberate **anti-appropriation** choice.
   advisory, `only_allow_merge_if_pipeline_succeeds` is off, and the project has had
   **0 merge requests** — so CI gates report *after* a push rather than blocking it
   (`R-F12`).
-- ✍️ **Signed commits** — encouraged by `CONTRIBUTING.md`, but ⚠️ **nothing is signed
-  today**: no signing key is configured and `v0.1.0` is an unsigned tag. Setup in
-  [CLAUDE.md §10.1](CLAUDE.md); status in [docs/security.md](docs/security.md).
+- ✍️ **Signed commits and tags** — ✅ **live**. Commits are SSH-signed and GitLab
+  reports them *verified*; `v0.2.0` is the first **annotated, signed** tag. The two older
+  tags are *lightweight*, so they could never have carried a signature (`U-152`).
+  ⚠️ Not yet confirmed on the GitHub mirror — if the signing key is not registered there,
+  mirrored commits read *Unverified*. Detail in [CLAUDE.md §10.1](CLAUDE.md); status in
+  [docs/security.md](docs/security.md).
 
 Found a vulnerability? **Do not** open a public issue — read
 **[SECURITY.md](SECURITY.md)** for private disclosure.
@@ -350,9 +353,16 @@ By contributing you agree your work is licensed under **AGPL-3.0-or-later**.
 
 ## 📦 Releases & Changelog
 
-Current: **v0.1.0 "Genesis"** — the verified-bootable base, now carrying a rich
-`[Unreleased]` line (crimson DE, RAID-1, hardware FDE, USB networking/storage,
-PQ signing). Every change is recorded, numbered (`U-NNN`) and described in
+Current: **v0.2.0** — a **development milestone, not a published release**: the tag
+marks a tree, and **no images are published**. It supersedes `v0.1.0 "Genesis"`, which
+stays as a historical marker 232 commits back. Since Genesis: crimson DE, RAID-1,
+hardware FDE, USB networking/storage, PQ signing, plus the supply-chain and boot work of
+`U-137`…`U-152`.
+
+> ⚠️ **Known limitation on aarch64 (`R-F16`, open):** a **second PCI storage controller**
+> stalls the boot before the root filesystem is mounted — silently, with no panic. A
+> single disk boots normally, and a second disk attached over **USB** is unaffected. Do
+> not expect a two-NVMe aarch64 machine to boot this tag. Every change is recorded, numbered (`U-NNN`) and described in
 **[CHANGELOG.md](CHANGELOG.md)** ([Keep a Changelog](https://keepachangelog.com) ·
 [SemVer](https://semver.org)).
 

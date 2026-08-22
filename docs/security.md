@@ -56,7 +56,7 @@ a required review that has never been enforced. Status here means *verified toda
 | Required review before merge | — | ❌ **not enforced** on either host |
 | CODEOWNERS review | `.github/CODEOWNERS` | ⚠️ **file present, unenforced** — with no required review it is advisory |
 | Pipeline must pass before merge | GitLab project setting | ❌ **off** — `only_allow_merge_if_pipeline_succeeds = false`, and there have been **0 merge requests** in project history, so every gate is a notification *after* the push, not a gate. `docs-currency` (MR-only) has never executed. |
-| Signed commits / tags | — | ❌ **none** — `commit.gpgsign`/`tag.gpgsign`/`user.signingkey` unset, 0 keys, 0/20 recent commits signed, and `v0.1.0` is unsigned. See CLAUDE.md §10.1 for the one-time setup. |
+| Signed commits / tags | git + GitLab | ✅ **on (re-measured `U-152`)** — SSH signing, `commit.gpgsign`/`tag.gpgsign` both true, `allowed_signers` set; every commit since `1d3c62ea6` verifies `G`, and GitLab's signature API reports `verified`. `v0.2.0` is the first **annotated, signed** tag — the older two are *lightweight* and could never have held a signature. ⚠️ **GitHub mirror unconfirmed**: the `gh` token lacks `admin:ssh_signing_key`, so whether the key is registered there as a *signing* key is unknown; if not, mirrored commits read *Unverified*. |
 
 **What this table says in one line:** secrets are genuinely well covered end to end;
 *review and merge gating are not covered at all*, and code scanning is off despite

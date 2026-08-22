@@ -101,9 +101,15 @@ probe — **never commit the probe**). GUI render is proven by screendump.
   LLM-generated contributions** (CONTRIBUTING.md). Anything meant to be
   upstreamed to `gitlab.redox-os.org` must be human-authored; keep AI-assisted
   changes in the E-OS forks.
-- **Contribution legalities** (CONTRIBUTING.md/MAINTENANCE.md): DCO sign-off,
-  AGPL-3.0-or-later for new work (inherited Redox files stay MIT — NOTICE),
-  commit signing encouraged. `semantic-release` and Renovate in CI are
+- **Contribution legalities** (CONTRIBUTING.md/MAINTENANCE.md): AGPL-3.0-or-later for
+  new work (inherited Redox files stay MIT — NOTICE), and commits are **signed**
+  (`git commit -S`; live since `1d3c62ea6`, see §10.1). On the DCO, corrected in
+  `U-152`: CONTRIBUTING.md states it as *terms you accept by contributing* — "you wrote
+  the change or have the right to submit it" — and asks for a cryptographic **signature**,
+  **not** a `Signed-off-by:` trailer. This line previously read "DCO sign-off", which
+  implied a trailer the project has never required and no commit carries. If E-OS ever
+  takes outside contributions, adding the trailer is a deliberate decision (a
+  `prepare-commit-msg` hook can append it), not a gap to quietly close. `semantic-release` and Renovate in CI are
   **dormant** until `GITLAB_TOKEN`/`RENOVATE_TOKEN` are set (docs/ci.md).
 - **CI is two-tier** (see `docs/ci.md`): a light tier on shared runners
   (minutes-limited) and the heavy `build-image` on the self-hosted `eos-heavy`
@@ -190,10 +196,16 @@ Version identity lives in four places and they must agree: the git **tag**, the 
 - `scripts/make-release.sh` regenerates `SHA256SUMS` + the CycloneDX SBOM and minisigns
   them; since `U-120` an unsigned publish is a hard failure unless `EOS_ALLOW_UNSIGNED=1`.
   Never publish with that flag to anywhere public.
-- **Known drift, recorded rather than hidden (2026-08-21):** `v0.1.0` points at
-  `b4d2bfab8` (2026-06-07), is **unsigned**, and sits **218 commits** behind `main`,
-  while README calls `v0.1.0` the current version. Closing that gap is release work, not
-  a doc edit.
+- **That drift is closed (`U-152`, 2026-08-22).** It read: `v0.1.0` points at
+  `b4d2bfab8` (2026-06-07), is unsigned, sits far behind `main` (232 commits by the end),
+  while README calls it current. The cause of "unsigned" turned out to be structural —
+  `v0.1.0` is a **lightweight** tag and so cannot carry a signature at all (§10.1).
+  Resolved by **superseding, not rewriting**: `v0.1.0` stays as a historical marker
+  (rewriting a published tag is worse than replacing it), and **`v0.2.0`** — annotated,
+  signed, cut at `main` — is now the version README names. `v0.2.0` marks a **development
+  milestone, not a published release**: no images are published, and `R-F16` is open (a
+  second PCI storage controller stalls the boot on aarch64). Say that plainly wherever the
+  version appears.
 
 ## 9. Where this actually runs
 
@@ -237,33 +249,44 @@ where the gate does not exist yet — an honest statement of that.
 A tag is what a user checks before flashing an image, so an unsigned tag is a broken
 promise, not a style lapse.
 
-**Current state, measured 2026-08-22 — the rule is not yet met:**
+**Current state, re-measured 2026-08-22 (`U-152`) — commit signing is LIVE.** An earlier
+version of this section said the opposite (all config unset, 0 keys, 0/20 signed). That
+was true when written and is no longer; it sat here stale, which is exactly the drift
+this file exists to prevent. Measured:
 
 ```
-git config commit.gpgsign / tag.gpgsign / user.signingkey  →  all unset
-gpg --list-secret-keys                                     →  0 keys
-git log -20 --format=%G?                                   →  0/20 signed
+gpg.format = ssh                        user.signingkey = ~/.ssh/magazyn-wms-signing.pub
+commit.gpgsign = true                   tag.gpgsign     = true
+gpg.ssh.allowedSignersFile              = ~/.ssh/allowed_signers
+git log --format='%h %G?'               → every commit since 1d3c62ea6 is G (good)
+GitLab commit signature API             → verification_status: verified
 ```
 
-`CONTRIBUTING.md` has said "commit signing encouraged" throughout, with nothing to sign
-with. **Generating the key is a human action and is deliberately not automated** — a
-signing key must never pass through tooling that logs. Do it once:
+The key is registered on GitLab as *"Ghost Empire / E-Bot — podpisy commitów"*, so the
+platform shows **Verified**. Two things about it are worth knowing rather than guessing:
 
-```sh
-ssh-keygen -t ed25519 -C "e-os signing"            # or gpg --full-generate-key
-git config --global gpg.format ssh                  # skip for gpg
-git config --global user.signingkey ~/.ssh/id_ed25519.pub
-git config --global commit.gpgsign true             # sign by default, no remembering
-git config --global tag.gpgsign true
-```
+- **The file is named `magazyn-wms-signing`** — another project's key, reused here. It
+  verifies correctly and its GitLab title is sensible, so this is a naming wart, not a
+  defect. Revisit if E-OS ever has more than one committer.
+- **GitHub is unconfirmed.** The `gh` token lacks the `admin:ssh_signing_key` scope, so
+  the mirror's key list cannot be read from here. If the key is not registered there as a
+  *signing* key (distinct from an *authentication* key), mirrored commits show
+  *Unverified* on GitHub. Grant the scope with
+  `gh auth refresh -h github.com -s admin:ssh_signing_key` and check.
 
-Then add the public half to GitLab (Settings → SSH/GPG keys) so the platform shows
-*Verified*, and **re-tag**: `v0.1.0` is currently unsigned (§8).
+**Generating a key remains a human action and is deliberately not automated** — a signing
+key must never pass through tooling that logs.
 
-**Verify, don't assume** — `git log --show-signature -1`, `git tag -v <tag>`, and
-`git log --format='%h %G?' -20` (`G` good, `N` none, `B` bad). Once a key exists, make an
-unsigned tag a release blocker; until then, saying "signing encouraged" and shipping
-unsigned is the drift this file exists to prevent.
+**Tags are the part that was actually broken, and the reason was structural.** Both
+pre-existing tags (`v0.1.0`, `eos-base-2026-06-06`) are **lightweight** — `git cat-file -t`
+reports `commit`, not `tag` — so they carry no annotation and **cannot hold a signature at
+all**; no amount of `-s` would have helped. `v0.2.0` (`U-152`) is the first annotated,
+signed tag. Cut every future one with `git tag -s -m …`, never `git tag <name>`.
+
+**Verify, don't assume** — `git log --show-signature -1`, `git tag -v <tag>`,
+`git cat-file -t <tag>` (must print `tag`, not `commit`), and
+`git log --format='%h %G?' -20` (`G` good, `N` none, `B` bad). An unsigned or lightweight
+release tag is a release blocker.
 
 ### 10.2 Dangerous code must argue for itself
 
