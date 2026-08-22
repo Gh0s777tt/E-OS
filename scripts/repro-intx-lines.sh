@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# repro-intx-lines.sh — minimal reproducer for R-F16: on aarch64, two PCI devices on
-# DIFFERENT legacy INTx lines cannot both work, and the second one stalls the boot
-# before switchroot.
+# repro-intx-lines.sh — minimal reproducer for R-F16: on aarch64, a SECOND storage
+# driver brought up in the initfs phase on a legacy INTx line different from the
+# first one never signals readiness, and the boot stalls before switchroot.
 #
 # WHY THIS EXISTS: found while building scripts/ci-install-smoke.sh. Attaching a
 # second disk — the ordinary thing an installer needs — stops the boot dead, with no
@@ -11,8 +11,15 @@
 #
 # THE MECHANISM (each step verified, see CHANGELOG U-146):
 #   aarch64 has no MSI/MSI-X, so every PCI driver takes a legacy INTx line (the
-#   R-401c note in nvmed says as much). A driver whose INTx line differs from the one
-#   already in service never receives an interrupt, so it never signals readiness.
+#   R-401c note in nvmed says as much). In the initfs phase, a driver whose INTx line
+#   differs from the one already in service never signals readiness.
+#
+#   SCOPE, corrected in U-147: this is NOT "only one INTx line ever works". init does
+#   two switch_root calls, and after the second one pcid-spawner brings up virtio-netd
+#   (line 1) and xhcid (line 2) while the boot disk holds line 0, and the boot reaches
+#   a login prompt. The measured defect is specific to the initfs phase. Whether those
+#   later drivers truly receive interrupts, or just reach readiness without needing
+#   any, is untested — driver log level is hardcoded to Info, so it needs a rebuild.
 #   `pcid-spawner` blocks per-device in `Daemon::spawn`, and it is wired as a
 #   `oneshot` unit, so 40_drivers.target never completes -> 50_rootfs.service never
 #   runs -> init never reaches switchroot. Boot stops silently in initfs.

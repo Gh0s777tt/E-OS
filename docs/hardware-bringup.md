@@ -97,6 +97,20 @@ says nothing about board-specific peripherals.
   - Reproduce with `scripts/repro-intx-lines.sh <image>`; it runs the matrix above
     and prints predicted-vs-actual, so a fix shows up as every row turning to *boot*.
 
+  **Scope of the measurement — narrower than it first looks (`U-147`).** Everything
+  above was measured in the **initfs phase**, where `pcid-spawner --initfs` brings up
+  the storage drivers and `init` has not yet switched to the real root. `init`
+  performs *two* `switch_root` calls, and after the second one (`/usr`) `pcid-spawner`
+  runs again and brings up `virtio-netd` (device 1 → line 1) and `xhcid` (device 2 →
+  line 2) **successfully, while the boot disk on line 0 is already in service** — the
+  boot then reaches a login prompt. So "only one INTx line ever works" is *not* an
+  established fact; what is established is that **a second storage driver in the
+  initfs phase, on a line different from the first, never signals readiness and stalls
+  the boot**. Whether interrupts are actually delivered to those later drivers is
+  untested — they reach readiness, which does not by itself prove their interrupt path
+  works. Settling that needs driver `debug!` output, which today is compiled at a fixed
+  `Info` level (`drivers/common/src/logger.rs` hardcodes it), so it needs a rebuild.
+
 ### Display / desktop
 - QEMU uses **ramfb** (a simple linear framebuffer); the Crimson desktop
   (orbital) renders to it via `vesad`.

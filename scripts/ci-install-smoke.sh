@@ -28,8 +28,8 @@
 #
 # R-F16 — WHY THE TARGET DISK SITS AT PCI SLOT 0x8: building this harness found a
 # boot-stopping defect. aarch64 has no MSI/MSI-X, so every PCI driver takes a legacy
-# INTx line (the R-401c note in nvmed says as much). Two PCI devices on DIFFERENT
-# INTx lines cannot both work: the second driver never receives an interrupt, never
+# INTx line (the R-401c note in nvmed says as much). In the initfs phase a second
+# storage driver on a DIFFERENT INTx line never receives an interrupt, never
 # signals readiness, and since `pcid-spawner` blocks per-device in `Daemon::spawn`
 # and runs as a `oneshot` unit, `40_drivers.target` never completes, so
 # `50_rootfs.service` never runs and init never reaches switchroot. The boot stops
@@ -37,6 +37,11 @@
 # (slot + pin) % 4 and the source disk is at slot 0x4 (line 0), so 0x8 and 0xC also
 # land on line 0 and work, while 0x5/0x6/0x7/0x9 hang. `scripts/repro-intx-lines.sh`
 # runs the whole matrix. The slot default here is a WORKAROUND, not a fix.
+#
+# SCOPE, corrected in U-147: this is not a claim about every boot phase. init does
+# two switch_root calls, and after the second one pcid-spawner brings up virtio-netd
+# (line 1) and xhcid (line 2) while the boot disk holds line 0, and the boot reaches
+# a login prompt. The measured defect is specific to the initfs phase.
 set -uo pipefail
 
 IMG="${1:?usage: ci-install-smoke.sh <source-image> [timeout] [--arch aarch64|x86_64]}"
