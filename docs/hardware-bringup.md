@@ -56,6 +56,46 @@ says nothing about board-specific peripherals.
 - ☐ Confirm GIC version (v2 vs v3) and that the MADT (ACPI) or FDT exposes the
   redistributor/distributor layout the kernel expects. The kernel handles the
   standard GICv2/v3 + generic-timer case; exotic layouts may need work.
+- ⛔ **`R-F16` — only ONE legacy INTx line works at a time, and the second one stops
+  the boot.** This is the single most important thing to know before taking E-OS to
+  an aarch64 board with more than one PCI device.
+
+  aarch64 has no MSI/MSI-X, so every PCI driver falls back to a legacy INTx line
+  (the `R-401c` note in `nvmed` spells this out). A driver whose INTx line **differs
+  from the line already in service never receives an interrupt**, so it never signals
+  readiness. `pcid-spawner` blocks per device in `Daemon::spawn` — a bare `read_exact` on the
+  child's `INIT_NOTIFY` pipe with **no timeout**, so a child that neither signals
+  readiness nor exits blocks the parent forever — and it is wired as a `oneshot` unit, so `40_drivers.target` never completes → `50_rootfs.service` never
+  runs → `init` never reaches `switchroot`. The boot **stops silently in initfs**,
+  before the root filesystem is mounted: no panic, no error, just a serial log that
+  ends after the second driver prints its device.
+
+  Measured on QEMU `virt`, where the INTx line is `(slot + pin) % 4` and the source
+  disk sits at slot `0x4` (line 0):
+
+  | Configuration | INTx line | Result |
+  |---|---|---|
+  | source disk alone (`0x4`) | 0 | boots |
+  | source disk alone, moved to `0x5` | 1 | **boots** — so line 1 is not broken *per se* |
+  | + second disk at `0x5` / `0x9` | 1 | stalls |
+  | + second disk at `0x6` | 2 | stalls |
+  | + second disk at `0x7` | 3 | stalls |
+  | + second disk at `0x8` / `0xC` | 0 (shared with the source disk) | **boots** |
+  | + second disk, `virtio-blk` at `0x5` | 1 | stalls |
+
+  The two control rows are what make this a diagnosis rather than a guess: a lone
+  disk on line 1 boots, so no individual line is dead — it is *two lines at once*
+  that fails; and a `virtio-blk` device stalls identically, so it is not an `nvmed`
+  bug but the shared INTx path underneath both drivers.
+
+  - ☐ On a board with a single storage controller and nothing else needing INTx, you
+    will not hit this. On anything with two (NVMe + USB controller, NVMe + SATA,
+    two NVMe) **expect a silent hang before the root mount** until this is fixed.
+  - ☐ If a board supports MSI/MSI-X, using it side-steps the whole path — that is
+    why x86_64 is *expected* to be unaffected (unverified: no x86_64 image has been
+    built on the current host).
+  - Reproduce with `scripts/repro-intx-lines.sh <image>`; it runs the matrix above
+    and prints predicted-vs-actual, so a fix shows up as every row turning to *boot*.
 
 ### Display / desktop
 - QEMU uses **ramfb** (a simple linear framebuffer); the Crimson desktop
