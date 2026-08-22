@@ -721,3 +721,30 @@ requires_weak = ["00_base.target"]
 cmd = "raid1d"
 type = "oneshot_async"
 """
+
+# ──────────────────  R-701a: do not trust the upstream package host  ──────────────────
+# `config/base.toml` ships /etc/pkg.d/50_redox pointing at https://static.redox-os.org/pkg.
+# Inherited from upstream, and on an E-OS image it is a hole in our own hardening: a fresh
+# install would `pkg install` binaries built WITHOUT the E-OS flags (overflow-checks, W^X,
+# ASLR), over a channel whose signing key pkg-lib still fetches TOFU from the very host that
+# serves the packages. Overriding the same path is the established pattern here (this file
+# already overrides /etc/hostname from base.toml, and desktop-contain.toml overrides
+# 20_orbital the same way).
+#
+# The URL is COMMENTED OUT rather than the file removed, deliberately. pkg-lib's
+# update_remotes() skips lines beginning with '#' (repo_manager.rs), so a comment-only file
+# parses cleanly and yields zero remotes — whereas deleting the file can leave /etc/pkg.d
+# absent, and its `fs::read_dir` is fallible, and an empty line would reach add_remote("")
+# which fails with RepoPathInvalid. Keeping a parseable file is the graceful degrade.
+#
+# The E-OS source (/etc/pkg.d/50_eos) lands with R-008 once the repo is signed and published,
+# and only then does R-702 pin the key. Order matters: see docs/plan.md §4.
+[[files]]
+path = "/etc/pkg.d/50_redox"
+data = """
+# Upstream Redox packages are NOT enabled on E-OS images (R-701a).
+# These binaries are built without E-OS hardening flags and the channel is
+# unauthenticated on the client until R-702/R-703 land. Uncomment only if you
+# understand and accept both.
+#https://static.redox-os.org/pkg
+"""
