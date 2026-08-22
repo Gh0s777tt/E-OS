@@ -126,7 +126,10 @@ says nothing about board-specific peripherals.
   asserts the write consumed `size_of::<usize>()` bytes. On a shared line a stale ack is
   routine — `irq_trigger` fans one line out to *every* registered handle, which `R-401d`
   deliberately permits — so any two devices sharing an INTx line can abort a storage
-  driver. Treat `Ok(0)` as *stale ack, nothing to do* instead of asserting.
+  driver. **Fixed in `eos-base@7d5ca7e28e` (`U-149`)**: `Ok(0)` is now treated as *stale ack — a newer
+  interrupt is already pending and will unmask* — safe because `COUNTS` is bumped only by `irq_trigger`, so
+  that newer interrupt has already re-triggered this handle. Verified with a before/after negative control
+  on two NVMe disks sharing GIC SPI 3. `R-F16` is untouched by it and still reproduces.
 
 ### Display / desktop
 - QEMU uses **ramfb** (a simple linear framebuffer); the Crimson desktop
