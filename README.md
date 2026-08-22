@@ -359,10 +359,16 @@ stays as a historical marker 232 commits back. Since Genesis: crimson DE, RAID-1
 hardware FDE, USB networking/storage, PQ signing, plus the supply-chain and boot work of
 `U-137`…`U-152`.
 
-> ⚠️ **Known limitation on aarch64 (`R-F16`, open):** a **second PCI storage controller**
-> stalls the boot before the root filesystem is mounted — silently, with no panic. A
-> single disk boots normally, and a second disk attached over **USB** is unaffected. Do
-> not expect a two-NVMe aarch64 machine to boot this tag. Every change is recorded, numbered (`U-NNN`) and described in
+> ⚠️ **About the `v0.2.0` tag specifically:** it carries `R-F16` — a second PCI storage
+> controller stalls the boot before the root filesystem is mounted, silently. **That defect
+> is fixed on `main` after the tag** (`U-153`: a read-modify-write on the write-one-to-clear
+> `GICD_ICENABLER`, which disabled every enabled interrupt in a 32-IRQ block instead of one).
+> A two-NVMe aarch64 machine boots from `main`, not from `v0.2.0`.
+>
+> ⚠️ **Still open (`R-F18`):** a storage device sharing the **xHCI** controller's INTx line
+> boots in ~110–124s instead of ~16s. It completes, but slowly.
+
+Every change is recorded, numbered (`U-NNN`) and described in
 **[CHANGELOG.md](CHANGELOG.md)** ([Keep a Changelog](https://keepachangelog.com) ·
 [SemVer](https://semver.org)).
 

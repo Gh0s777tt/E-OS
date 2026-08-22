@@ -56,83 +56,44 @@ says nothing about board-specific peripherals.
 - ☐ Confirm GIC version (v2 vs v3) and that the MADT (ACPI) or FDT exposes the
   redistributor/distributor layout the kernel expects. The kernel handles the
   standard GICv2/v3 + generic-timer case; exotic layouts may need work.
-- ⛔ **`R-F16` — a second storage device on a different legacy INTx line stops the
-  boot, silently.** This is the single most important thing to know before taking E-OS
-  to an aarch64 board with more than one storage controller.
+- ✅ **`R-F16` — a second PCI storage controller used to stop the boot. Fixed
+  (`U-153`), and worth reading anyway** — the bug was in the kernel's GIC distributor,
+  and the same mistake is easy to make on any interrupt controller.
 
-  aarch64 has no MSI/MSI-X, so every PCI driver falls back to a legacy INTx line
-  (the `R-401c` note in `nvmed` spells this out). When a second storage device lands on
-  a line different from the first, the boot **stops silently in initfs**, before the
-  root filesystem is mounted: no panic, no error, just a serial log that ends.
+  `GICD_ISENABLER` and `GICD_ICENABLER` are **write-one-to-set** and
+  **write-one-to-clear**: a written 1 acts on that IRQ, a written 0 does nothing, and a
+  read returns the current *enable mask* for the 32 IRQs in that block. `irq_disable()`
+  did a read-modify-write — read the mask, OR in the target bit, write it back — which
+  writes a 1 to **every enabled bit in the block**, disabling all of them.
 
-  **Mechanism — corrected in `U-148` after being published wrong twice.** The second
-  driver is *not* stuck. With driver logs raised to `Debug` it reaches `Initialized!`
-  and `Starting to listen for scheme events`; its `identify` completions succeed, which
-  requires interrupts, so its interrupt path works. `daemon.ready()` runs
-  unconditionally in `DiskScheme::new` (`driver-block/src/lib.rs:288`) *before* that log
-  line, so readiness is signalled and `pcid-spawner` is not blocked. The stall is
-  downstream: `50_rootfs.service` (`redoxfs`, a `oneshot`) never completes, so
-  `90_initfs.target` never completes and `init` never reaches `switch_root("/usr")`.
-  `redoxfs` logs nothing, which is why the failure is silent. **Confirmed directly in
-  `U-150`** with `init`'s own `log_debug` forced on: `Reached target Initfs drivers` →
-  `Starting Rootfs (redoxfs)` → nothing, ever.
+  Two PCI devices on different INTx lines land on adjacent SPIs (SPI 3 and SPI 4, both in
+  block 1), so masking the second device's line while servicing its interrupt also masked
+  the **boot disk's** line. Nothing re-enabled it, because that driver was not in an
+  interrupt cycle. The root read never completed, `redoxfs` blocked, and the boot died in
+  initfs with no panic and no error. The identical shape in `irq_enable()` is harmless —
+  re-setting already-set bits is a no-op — which is why this only ever appeared as an
+  unexplained hang. Fixed by writing the single bit, with no read and no merge; that
+  covers GICv2 and GICv3 alike, since `gicv3.rs` delegates to the same `GicDistIf`.
 
-  **It takes a PCI device, not just a second disk.** The same blank disk attached as
-  **USB storage** boots all the way to a login prompt. A USB disk is not a PCI function
-  and takes no INTx line, so neither `R-F16` nor `R-F17` can trigger — which is why
-  `scripts/ci-install-smoke.sh` now attaches its target disk over USB by default. On real
-  aarch64 hardware, expect the stall on a machine with two PCI storage controllers, and
-  expect USB-attached storage to be unaffected. **Why `redoxfs` never completes, while
-  both drivers' own interrupts demonstrably work, is still unknown.**
+  **Verified** against the image built from the bumped pin: `scripts/repro-intx-lines.sh`
+  reports 10/10 boot, `ci-boot-smoke.sh` PASS.
 
-  **How to instrument this, and how not to (`U-151`).** `redoxfs` is silent by
-  construction in the initfs phase: its own diagnostics are `log::debug!` and nothing
-  installs a logger there, so its silence says nothing about how far it got. Neither
-  writing to `/scheme/debug` nor plain `eprintln!` reaches the console from it — a probe
-  on the first line of its `main()` produced no output even in a boot that **succeeded**.
-  A `panic!` *does* reach the serial console (`nvmed`'s assertion did), so bisecting the
-  mount path with deliberate panic markers is the method that will yield data.
+  **The debugging lesson, which cost three failed attempts.** The `base` recipe lists
+  `redoxfs` as a dependency and copies it into `initfs/bin/`. Rebuilding `r.redoxfs`
+  alone therefore leaves the initfs carrying the **old** binary — so instrumentation
+  appears to do nothing and you conclude the channel is dead. It is not. Rebuild
+  `r.<recipe>` **and** `r.base`, and confirm with `strings` on
+  `recipes/core/base/target/<arch>/build/initfs/bin/<binary>` before trusting a negative
+  result. The proof that settled it: an unconditional `panic!` on the first line of
+  `redoxfs`'s `main()`, after which the boot still reached a login prompt.
 
-  Measured on QEMU `virt`, where the INTx line is `(slot + pin) % 4` and the source
-  disk sits at slot `0x4` (line 0):
-
-  | Configuration | INTx line | Result |
-  |---|---|---|
-  | source disk alone (`0x4`) | 0 | boots |
-  | source disk alone, moved to `0x5` | 1 | **boots** — so line 1 is not broken *per se* |
-  | + second disk at `0x5` / `0x9` | 1 | stalls |
-  | + second disk at `0x6` | 2 | stalls |
-  | + second disk at `0x7` | 3 | stalls |
-  | + second disk at `0x8` / `0xC` | 0 (shared with the source disk) | **boots** |
-  | + second disk, `virtio-blk` at `0x5` | 1 | stalls |
-
-  The two control rows are what make this a diagnosis rather than a guess: a lone
-  disk on line 1 boots, so no individual line is dead — it is *two lines at once*
-  that fails; and a `virtio-blk` device stalls identically, so it is not an `nvmed`
-  bug but the shared INTx path underneath both drivers.
-
-  - ☐ On a board with a single storage controller and nothing else needing INTx, you
-    will not hit this. On anything with two (NVMe + USB controller, NVMe + SATA,
-    two NVMe) **expect a silent hang before the root mount** until this is fixed.
-  - ☐ If a board supports MSI/MSI-X, using it side-steps the whole path — that is
-    why x86_64 is *expected* to be unaffected (unverified: no x86_64 image has been
-    built on the current host).
-  - Reproduce with `scripts/repro-intx-lines.sh <image>`; it runs the matrix above
-    and prints predicted-vs-actual, so a fix shows up as every row turning to *boot*.
-
-  **Scope of the measurement — narrower than it first looks (`U-147`).** Everything
-  above was measured in the **initfs phase**, where `pcid-spawner --initfs` brings up
-  the storage drivers and `init` has not yet switched to the real root. `init`
-  performs *two* `switch_root` calls, and after the second one (`/usr`) `pcid-spawner`
-  runs again and brings up `virtio-netd` (device 1 → line 1) and `xhcid` (device 2 →
-  line 2) **successfully, while the boot disk on line 0 is already in service** — the
-  boot then reaches a login prompt. So "only one INTx line ever works" is *not* an
-  established fact; what is established is that **a second storage driver in the
-  initfs phase, on a line different from the first, never signals readiness and stalls
-  the boot**. Whether interrupts are actually delivered to those later drivers is
-  untested — they reach readiness, which does not by itself prove their interrupt path
-  works. Settling that needs driver `debug!` output, which today is compiled at a fixed
-  `Info` level (`drivers/common/src/logger.rs` hardcodes it), so it needs a rebuild.
+  **`R-F18`, still open — sharing the xHCI line is slow.** Adding a *time-to-login*
+  column to the regression guard turned up a separate defect. On the fixed image a second
+  NVMe sharing a line with `virtio-net` or `virtio-rng` boots in **16s**, with the boot
+  disk **30s**, but with the **xHCI controller** it takes **110–124s** — reproducible to
+  within seconds, which looks like a fixed timeout being waited out rather than
+  contention. The boot completes, so it is a degradation, not a stall. Expect it on real
+  hardware wherever storage and USB share an INTx line.
 
   **`R-F17`, the sibling defect this hunt exposed.** In the *passing* half of the
   matrix — both disks on GIC SPI 3 — the boot reaches `switchroot` and then `nvmed`

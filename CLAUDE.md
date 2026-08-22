@@ -225,6 +225,17 @@ record.
   (toolchain, `~/.cargo`) are podman **named volumes** — `podman rm` does not touch them.
   With them warm the full gate is ~15 minutes end to end, not hours. `--wipe-caches` is
   the only command that destroys them; `--recreate` is cheap and safe.
+- **Rebuilding one recipe is not enough when its binary ships in the initfs.** The `base`
+  recipe lists `redoxfs` (and others) as dependencies and copies them into
+  `initfs/bin/`, so `make r.redoxfs` leaves the initfs carrying the **old** binary. Any
+  instrumentation you add then appears to do nothing, and the natural conclusion —
+  *"this component cannot be logged"* — is wrong. It cost three failed attempts in
+  `U-151`/`U-153`. Rebuild `r.<recipe>` **and** `r.base`, and verify before trusting a
+  negative result:
+  `strings recipes/core/base/target/<arch>/build/initfs/bin/<binary> | grep <marker>`.
+  The check that settles it outright is an unconditional `panic!` at the top of the
+  binary's `main()`: if the boot still succeeds, you are not running what you built.
+
 - **Local `make … all` from the macOS checkout does not work** — podman-macOS virtiofs
   cannot serve cargo/rustc's mmap reads. Build **inside** the container, against the
   volumes. This is the supported path, not a workaround.

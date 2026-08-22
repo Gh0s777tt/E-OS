@@ -55,7 +55,11 @@
 set -uo pipefail
 
 IMG="${1:?usage: repro-intx-lines.sh <source-image> [seconds-per-boot]}"
-WAIT="${2:-75}"
+# 180s by default: most configurations reach a login prompt in under 30s, but a second
+# storage device sharing the xHCI INTx line takes ~124s (R-F18) -- a real, reproducible
+# degradation, not host noise. A tighter budget reports that as a failure and hides the
+# actual defect behind a timeout. Rows are polled, so a fast row costs only its real time.
+WAIT="${2:-180}"
 [ -f "$IMG" ] || { echo "repro-intx: image not found: $IMG"; exit 1; }
 
 QEMU="$(command -v qemu-system-aarch64 || echo /opt/homebrew/bin/qemu-system-aarch64)"
@@ -90,19 +94,45 @@ try:
 except Exception:
     pass
 PY
-  python3 -c "import time;time.sleep($WAIT)"
+  # Poll rather than sleep the whole budget: a fast row finishes in its own time, and the
+  # elapsed seconds become data. R-F18 was found because this column exists.
+  secs="$(python3 -c '
+import sys, time
+log, budget = sys.argv[1], int(sys.argv[2])
+t0 = time.time()
+while time.time() - t0 < budget:
+    try:
+        if "login:" in open(log, encoding="utf-8", errors="replace").read():
+            print(int(time.time() - t0) + 12); break
+    except OSError:
+        pass
+    time.sleep(1)
+else:
+    print("-")
+' "$log" "$WAIT")"
   kill "$qpid" 2>/dev/null
   python3 -c "import time;time.sleep(1)"
-  if grep -q "login:" "$log" 2>/dev/null; then echo "boot"; else echo "hang"; fi
+  if [ "$secs" != "-" ]; then
+    echo "boot:$secs"
+  else
+    # Keep the serial log of a failing row. Deleting it -- which this script used to do --
+    # means a FAIL tells you that something broke, but never what.
+    keep="${KEEP_DIR:-$(dirname "$IMG")}/repro-intx-fail-$(echo "$label" | tr -c "A-Za-z0-9" "-").log"
+    cp "$log" "$keep" 2>/dev/null && echo "hang(log:$keep)" || echo "hang"
+  fi
 }
 
-printf '%-46s %-6s %-9s %-9s %s\n' "CONFIGURATION" "LINE" "PREDICTED" "ACTUAL" "VERDICT"
+printf '%-46s %-6s %-9s %-9s %-7s %s\n' "CONFIGURATION" "LINE" "PREDICTED" "ACTUAL" "TIME" "VERDICT"
 fail=0
 check() { # $1 label  $2 line  $3 predicted  $4.. device args
   lbl="$1"; line="$2"; pred="$3"; shift 3
-  act="$(boot_once "$lbl" "$@")"
+  raw="$(boot_once "$lbl" "$@")"
+  case "$raw" in
+    boot:*) act=boot; secs="${raw#boot:}s" ;;
+    *)      act=hang; secs="-" ;;
+  esac
   if [ "$act" = "$pred" ]; then v="ok"; else v="MISMATCH"; fail=1; fi
-  printf '%-46s %-6s %-9s %-9s %s\n' "$lbl" "$line" "$pred" "$act" "$v"
+  printf '%-46s %-6s %-9s %-9s %-7s %s\n' "$lbl" "$line" "$pred" "$act" "$secs" "$v"
 }
 
 SRC=(-drive "file=$IMG,if=none,id=d0,format=raw")
@@ -112,11 +142,11 @@ check "source disk alone, moved to slot 0x5"      "1"   boot "${SRC[@]}" -device
 for slot in 0x5 0x6 0x7 0x8 0x9 0xc; do
   # (slot + pin) % 4, pin 0 for INTA — 0x8 and 0xc collapse back onto line 0.
   case "$slot" in
-    0x5) line=1; pred=hang ;;
-    0x6) line=2; pred=hang ;;
-    0x7) line=3; pred=hang ;;
+    0x5) line=1; pred=boot ;;
+    0x6) line=2; pred=boot ;;
+    0x7) line=3; pred=boot ;;
     0x8) line=0; pred=boot ;;
-    0x9) line=1; pred=hang ;;
+    0x9) line=1; pred=boot ;;
     0xc) line=0; pred=boot ;;
   esac
   check "+ blank second disk at slot $slot" "$line" "$pred" \
@@ -125,7 +155,7 @@ for slot in 0x5 0x6 0x7 0x8 0x9 0xc; do
 done
 
 # Not an nvmed bug: a different driver on a different line stalls identically.
-check "+ blank second disk, virtio-blk at 0x5"    "1"   hang \
+check "+ blank second disk, virtio-blk at 0x5"    "1"   boot \
   "${SRC[@]}" -device "nvme,drive=d0,serial=eos" \
   -drive "file=$BLANK,if=none,id=d1,format=raw" -device "virtio-blk-pci,drive=d1,addr=0x5"
 
@@ -137,9 +167,10 @@ check "+ blank second disk over USB (no PCI)"     "-"   boot \
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "repro-intx: R-F16 REPRODUCED — every row matched the model (different INTx line => boot stalls)."
-  echo "repro-intx: a FIX should turn every 'hang' row into 'boot'; this script will then report MISMATCH."
+  echo "repro-intx: PASS — every configuration boots, including a second PCI storage"
+  echo "repro-intx:        controller on its own INTx line. R-F16 stays fixed."
 else
-  echo "repro-intx: MISMATCH — behaviour changed. Either R-F16 was fixed (all rows boot) or the model is wrong."
+  echo "repro-intx: FAIL — a configuration that must boot did not. R-F16 has regressed,"
+  echo "repro-intx:        or a new interrupt-routing defect has appeared. Read the logs."
 fi
 exit 0

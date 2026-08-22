@@ -45,7 +45,7 @@ gitlab = "https://gitlab.com/e-os/eos-kernel.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/kernel"
 pinned_branch = "eos-july"
-pinned_rev    = "9687852732dda24dd7ed2e14840f3ac3de4ced02"
+pinned_rev    = "18dce5577d0201561d4170e3f1048797dacc0f00"
 
 [[repo]]
 name   = "eos-redoxfs"
