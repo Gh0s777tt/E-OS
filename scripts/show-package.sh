@@ -19,7 +19,8 @@ then
     exit 1
 fi
 
-for recipe in $*
+# "$@" not $* -- see recipe-path.sh.
+for recipe in "$@"
 do
     recipe_dir="$("$find_recipe" "$recipe")"
     ls -1 "$recipe_dir/target"/*/{stage,sysroot}

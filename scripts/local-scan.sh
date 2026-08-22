@@ -3,7 +3,7 @@
 # cargo-audit (if cargo is available). Best-effort; used by the launchd timer and
 # runnable by hand. GitLab CI runs the always-on cloud version.
 set -uo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"; rc=0
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT" || exit 1; rc=0
 bash scripts/ci-integrity.sh || rc=1
 if command -v gitleaks >/dev/null 2>&1; then
   gitleaks detect --source . --no-banner --redact -v || rc=1

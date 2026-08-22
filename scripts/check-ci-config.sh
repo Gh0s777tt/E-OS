@@ -11,26 +11,23 @@ fi
 
 make build/fstools
 
-declare -A packages
-for recipe_dir in $(build/fstools/bin/list_recipes | grep -v '^recipes/wip/')
-do
-    recipe_name="$(basename "${recipe_dir}")"
-    packages["${recipe_name}"]="${recipe_dir}"
-done
-
 config="config/${ARCH}/ci.toml"
-for package in $(build/fstools/bin/redox_installer --list-packages -c "${config}")
-do
-    packages["${package}"]=""
-done
+
+# This used to build a `declare -A` map of recipe -> dir, blank the entries named by the
+# config, and print what was left. `declare -A` is bash 4; the E-OS dev host ships
+# /bin/bash 3.2 (CLAUDE.md 9), so the script simply did not run there. The job is a set
+# difference -- recipes that no config package names -- which says so more directly.
+in_config="$(mktemp)"
+trap 'rm -f "${in_config}"' EXIT
+build/fstools/bin/redox_installer --list-packages -c "${config}" | sort -u > "${in_config}"
 
 echo "Checking for missing packages in ${config}"
 printf '%-32s%s\n' "PACKAGE" "RECIPE"
-for package in "${!packages[@]}"
+build/fstools/bin/list_recipes | grep -v '^recipes/wip/' | while IFS= read -r recipe_dir
 do
-    recipe_dir="${packages["${package}"]}"
-    if [ -n "${recipe_dir}" ]
+    recipe_name="$(basename "${recipe_dir}")"
+    if ! grep -qxF "${recipe_name}" "${in_config}"
     then
-        printf '%-32s%s\n' "${package}" "${recipe_dir}"
+        printf '%-32s%s\n' "${recipe_name}" "${recipe_dir}"
     fi
 done | sort

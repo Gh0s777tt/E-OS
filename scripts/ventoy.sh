@@ -32,4 +32,6 @@ done
 
 sync
 
-echo "Finished copying configs (${CONFIGS[@]}) for archs (${ARCHS[@]})"
+# [*] inside a string, not [@]: [@] inside double quotes expands to separate words and
+# echo silently prints only the first of each array (SC2145).
+echo "Finished copying configs (${CONFIGS[*]}) for archs (${ARCHS[*]})"

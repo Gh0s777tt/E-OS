@@ -6,5 +6,5 @@ recipe_name="$1"
 recipe_path=$(find recipes -name "$recipe_name" -maxdepth 4)
 
 make f."$recipe_name"
-cd "$recipe_path"/source
+cd "$recipe_path"/source || exit 1
 cargo update

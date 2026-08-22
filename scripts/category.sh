@@ -11,4 +11,5 @@ then
     exit 1
 fi
 
-make "${1#-}"."--category-$2"
+# One quoted word: the A"B"C form left the dot outside the quotes and reads as a mistake.
+make "${1#-}.--category-$2"

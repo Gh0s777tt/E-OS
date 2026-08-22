@@ -109,6 +109,44 @@ rust-checks:
     - echo "${DENY_SHA256}  cargo-deny.tar.gz" | sha256sum -c -
     - tar xzf cargo-deny.tar.gz --strip-components=1
     - ./cargo-deny --manifest-path "$M" check
+    # R-F15: the vendored redox_cookbook at the repo root is the engine that builds every
+    # image, and until U-159 nothing here touched it -- its 9 unit tests had never run in
+    # CI, and its dependency tree had never been audited. `check advisories` only: licences
+    # and sources are upstream's choices, and gating those would be re-litigating a vendored
+    # tree rather than protecting this one. fmt/clippy are likewise left off for vendored
+    # code, the same reasoning that keeps ci-integrity.sh check 4 out of src/.
+    - cargo test --manifest-path Cargo.toml
+    - ./cargo-deny --manifest-path Cargo.toml check advisories
+
+# R-F14: 46 tracked shell scripts had zero linting, in a project whose scripts sign
+# releases, publish repositories and can delete 37 GB of build cache. Scope is scripts/ --
+# E-OS-owned code. build.sh and the *_bootstrap.sh at the repo root are inherited from
+# upstream Redox and recipes/wip/ is scratch; gating those would mean carrying upstream
+# divergence for no safety gain, the same call CLAUDE.md 3 makes for third-party ports.
+#
+# Errors BLOCK. The first run over these scripts (U-159) found 3, all real and all of the
+# same shape: unquoted $@ / $* and an array interpolated into a string. That shape is not
+# theoretical here -- the tree lives under a path containing a space
+# (/Volumes/Project itp/...), so an unquoted expansion splits a real argument.
+#
+# Warnings are printed but advisory: the same run found 18, and driving that to zero is
+# worth doing deliberately rather than in the change that introduces the gate. It is NOT
+# `|| true` on the blocking check -- this project has already learned what a decorative
+# gate is worth (the gitleaks hook, U-140).
+shell-lint:
+  stage: test
+  image:
+    name: koalaman/shellcheck-alpine:v0.10.0
+    entrypoint: [""]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - shellcheck --version
+    - echo "--- advisory (warnings and above) ---"
+    - shellcheck -f gcc -S warning scripts/*.sh || true
+    - echo "--- blocking (errors only) ---"
+    - shellcheck -f gcc -S error scripts/*.sh
 
 # ──────────────────────────────  LIGHT: docs  ──────────────────────────────
 pages:

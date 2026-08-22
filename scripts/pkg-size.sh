@@ -9,7 +9,8 @@ then
     exit 0
 fi
 
-for recipe in $@
+# "$@" not $@ -- see backtrace.sh: unquoted, an argument containing a space is split.
+for recipe in "$@"
 do
     if [ "$recipe" = "-h" ] || [ "$recipe" = "--help" ]
     then
