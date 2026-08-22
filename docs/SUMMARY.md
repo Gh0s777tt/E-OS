@@ -48,6 +48,8 @@
 
 # Roadmap & status
 
+- [The plan — editions, compartmentalisation, order](plan.md)
+
 - [Hardware capabilities roadmap](hardware-capabilities-roadmap.md)
 - [Connectivity roadmap](roadmap-connectivity.md)
 - [Reality ledger — done vs claimed](reality-ledger.md)

@@ -196,6 +196,11 @@ Recommended order, realistic per-item scope and QEMU verification plans live in
 
 ## 🧭 Execution roadmap — from QEMU to an installable daily-driver
 
+> **Who this is for and in what order:** see **[docs/plan.md](docs/plan.md)** (`U-142`) — the
+> three editions (desktop / gaming / server), which Qubes and Tails patterns map onto the
+> scheme model and which cannot without an IOMMU, and the ten-step ordering where the order
+> *is* the security control. This file stays the item list; that file is the argument.
+
 > Added 2026-07-13 from a 23-agent grounded audit (recon → adversarial verify → flagship design → completeness critic). **Living document** — every shipped item moves to [CHANGELOG.md](CHANGELOG.md) with its `[U-NNN]`. Status `✅ done · 🚧 partial · ⏳ planned · 💡 idea`; priority `P0–P3`; effort `S–XL`; **where** it can be done (`Mac/QEMU` on the Apple-Silicon dev host · `x86-rig` needs the Windows/WSL box · `metal` needs real hardware · `any` · `CI`).
 
 ### Two critical paths
