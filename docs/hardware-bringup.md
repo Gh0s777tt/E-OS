@@ -87,13 +87,32 @@ says nothing about board-specific peripherals.
   result. The proof that settled it: an unconditional `panic!` on the first line of
   `redoxfs`'s `main()`, after which the boot still reached a login prompt.
 
-  **`R-F18`, still open — sharing the xHCI line is slow.** Adding a *time-to-login*
-  column to the regression guard turned up a separate defect. On the fixed image a second
-  NVMe sharing a line with `virtio-net` or `virtio-rng` boots in **16s**, with the boot
-  disk **30s**, but with the **xHCI controller** it takes **110–124s** — reproducible to
-  within seconds, which looks like a fixed timeout being waited out rather than
-  contention. The boot completes, so it is a degradation, not a stall. Expect it on real
-  hardware wherever storage and USB share an INTx line.
+  **`R-F18`, still open — a shared-INTx interrupt storm.** Adding a *time-to-login*
+  column to the regression guard turned up a separate defect, and `U-155` measured it to
+  the root. A second NVMe sharing a line with `virtio-net` or `virtio-rng` boots in
+  **16s**; sharing the **xHCI controller's** line takes **122s**. The gap is one init
+  script step: `rm -rf /tmp` takes **80s** instead of **1s** — ordinary filesystem I/O on
+  the **boot disk**, which sits on its own line.
+
+  Counting settled the cause. QEMU `-d int` over an identical 45s window records **780 909**
+  exceptions with no second disk, **820 745** sharing virtio-net's line, and **3 654 574**
+  sharing xHCI's — a **4.5× interrupt storm** that starves unrelated work.
+
+  The mechanism follows from that: a legacy INTx line is level-triggered and shared, and
+  `irq_trigger` notifies **every** handle on it. An xHCI interrupt therefore also wakes the
+  storage driver, which finds nothing to do, acks, and **unmasks a line the xHCI device is
+  still asserting** — so it re-fires immediately, over and over, until the driver that owns
+  the condition services it. **A driver with nothing to do must not unmask a level line
+  another device is still driving.** A correct fix keeps the line masked until every handle
+  has acked, or lets a driver answer *not mine*; that is a kernel interrupt-model change,
+  not a one-liner, and is deliberately not attempted yet.
+
+  Expect this on real hardware wherever storage and USB land on the same INTx line — which
+  on a board with few interrupt lines is likely rather than exotic.
+
+  An earlier reading of this (`U-154`) blamed USB HID readiness and was **wrong**: the
+  `usbhidd` warning that precedes the silence fires in *every* boot, because it decodes the
+  synthetic keypress the harness sends to dismiss the bootloader menu.
 
   **`R-F17`, the sibling defect this hunt exposed.** In the *passing* half of the
   matrix — both disks on GIC SPI 3 — the boot reaches `switchroot` and then `nvmed`

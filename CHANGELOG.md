@@ -13,6 +13,15 @@ resolves only there — it is a real record, not a fabricated one (`U-131`).
 ## [Unreleased]
 
 ### Added & Changed
+- `[U-155]` **`R-F18` measured to the root: a shared-INTx interrupt storm, and my `U-154` hypothesis was wrong** — `U-154` guessed that `usbhidd` was slow to signal readiness and that the blocking chain `usbhidd` → `xhcid` → `pcid-spawner` → `init` stalled the boot. **It is nothing to do with USB readiness.** Rebuilding with `init`'s own `log_debug` on shows the 79–80s gap sits between two lines of an `init` script step:
+
+  ```
+  init: running: Command { cmd: "rm",    args: ["-rf", "/tmp"] }
+  … 80 s …
+  init: running: Command { cmd: "mkdir", args: ["-m", "a=rwxt", "/tmp"] }
+  ```
+
+  A single filesystem operation on the **boot disk** — which sits on its *own* INTx line — is what slows down. `usbhidd`'s warning was only the last line printed before the silence, and it fires in every boot because it decodes the `sendkey ret` the harness sends to dismiss the bootloader menu. **Measured across three configurations with the same image:** no second disk → `rm -rf /tmp` takes **1s**, login at 15s; second disk on `0x5` (virtio-net's line) → **1s**, login at 17s; second disk on `0x6` (**the xHCI controller's line**) → **80s**, login at 122s. **Cause confirmed by counting, not by reasoning:** QEMU `-d int` over an identical 45s window records **780 909** exceptions with no second disk, **820 745** on `0x5`, and **3 654 574** on `0x6` — **4.5×**. That is an interrupt storm, and it starves unrelated work, including boot-disk I/O. **The mechanism it points at** (stated as the reading of that data, not as a separate measurement): a legacy INTx line is level-triggered and shared. `irq_trigger` notifies **every** handle registered on it, so an xHCI interrupt also wakes the storage driver, which finds nothing to do, acks, and **unmasks a line the xHCI device is still asserting** — so it re-fires immediately, over and over, until the driver that actually owns the condition services it. A driver with nothing to do should not unmask a level line another device is still driving; a correct fix keeps the line masked until every handle has acked, or lets a driver answer *not mine*. Not attempted here — it is a kernel interrupt-model change, not a one-liner. **Unchanged:** `R-F16` stays fixed (10/10), and `R-F18` remains a degradation rather than a stall — the boot completes. All diagnostic patches lived only in the container build tree and are reverted; `base` and `kernel` are clean at their pinned revisions.
 - `[U-154]` **`R-F18` located to the second: an 84-second stall inside USB HID bring-up** — no rebuild needed for this one. The in-log timestamps only cover driver lines, and the biggest gap there was 5.8s, so the missing ~100s was elsewhere; polling the serial log by **wall clock** during the boot found it exactly. On the slow configuration (second NVMe at slot `0x6`, sharing GIC SPI 5 with the xHCI controller at `00:02.0`) the boot advances normally to **23s**, then stops dead for **84 seconds** between two lines:
 
   ```
