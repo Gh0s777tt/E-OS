@@ -24,7 +24,11 @@ APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
 
 command -v glab >/dev/null || { echo "glab not found"; exit 1; }
 [ -f "$MANIFEST" ] || { echo "manifest not found: $MANIFEST"; exit 1; }
-if [ -z "${GITHUB_MIRROR_PAT:-}" ]; then
+# The PAT is only needed to CREATE a mirror. Requiring it up front made the dry run --
+# the only way to audit which repos are unmirrored -- impossible without a credential,
+# which is backwards: reading state should never need a secret. Checked in the apply
+# branch instead.
+if [ "$APPLY" = "1" ] && [ -z "${GITHUB_MIRROR_PAT:-}" ]; then
   echo "ERROR: set GITHUB_MIRROR_PAT to your GitHub PAT (scope: repo) first." >&2; exit 1
 fi
 
@@ -32,12 +36,17 @@ _parse() { python3 - "$MANIFEST" <<'PY'
 import sys, re
 for b in open(sys.argv[1]).read().split('[[repo]]')[1:]:
     g=lambda k:(re.search(rf'^\s*{k}\s*=\s*"?([^"\n]+?)"?\s*$',b,re.M) or [None,''])[1].strip() if re.search(rf'^\s*{k}\s*=',b,re.M) else ''
-    print('\t'.join([g('name'), g('github'), g('gitlab')]))
+    print('\t'.join([g('name'), g('github'), g('gitlab'), g('role')]))
 PY
 }
 
 created=0; skipped=0
-while IFS=$'\t' read -r name gh gl; do
+while IFS=$'\t' read -r name gh gl role; do
+  # Package repos are published artifact stores, not source forks: they are produced by
+  # publish-repo*.sh and are meant to be served, not mirrored back and forth. Skip them.
+  if [ "$role" = "pkg" ]; then
+    echo "= $name : role=pkg, not a source fork — skip"; skipped=$((skipped+1)); continue
+  fi
   path=$(echo "$gl" | sed -E 's#https://gitlab.com/(.*)\.git#\1#')
   enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=''))" "$path")
   # already mirrored to github?
@@ -46,9 +55,11 @@ try: d=json.load(sys.stdin)
 except: print('0'); sys.exit()
 print('1' if any('github' in m.get('url','') for m in d) else '0')")
   if [ "$has" = "1" ]; then echo "= $name : github mirror already present — skip"; skipped=$((skipped+1)); continue; fi
-  # target URL with embedded credentials (NEVER printed)
-  target="https://${GH_USER}:${GITHUB_MIRROR_PAT}@${gh#https://}"
   if [ "$APPLY" = "1" ]; then
+    # Target URL with embedded credentials (NEVER printed). Built only here: under
+    # `set -u` referencing the PAT on the dry-run path aborted the audit, and the
+    # credential has no business being assembled when nothing is going to be created.
+    target="https://${GH_USER}:${GITHUB_MIRROR_PAT}@${gh#https://}"
     glab api "projects/$enc/remote_mirrors" -X POST \
       -f "url=$target" -f "enabled=true" -f "only_protected_branches=false" -f "keep_divergent_refs=false" >/dev/null \
       && { echo "+ $name : push mirror -> github created"; created=$((created+1)); } \
@@ -58,5 +69,12 @@ print('1' if any('github' in m.get('url','') for m in d) else '0')")
   fi
 done < <(_parse)
 
-echo "---- ${APPLY:+applied }created=$created skipped=$skipped ----"
+# `${APPLY:+applied }` expands whenever APPLY is set at all -- including to 0 -- so a dry
+# run used to report "applied created=27", which is exactly the wrong word for a run that
+# created nothing.
+if [ "$APPLY" = "1" ]; then
+  echo "---- applied: created=$created skipped=$skipped ----"
+else
+  echo "---- dry run: would create=$created skipped=$skipped ----"
+fi
 [ "$APPLY" = "0" ] && echo "(dry run — re-run with --apply to create the mirrors)"
