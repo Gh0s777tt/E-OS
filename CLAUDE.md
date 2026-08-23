@@ -344,6 +344,14 @@ record.
   The check that settles it outright is an unconditional `panic!` at the top of the
   binary's `main()`: if the boot still succeeds, you are not running what you built.
 
+- **Two untracked files decide what actually goes into an image.** `.config` sets `REPO_BINARY?=1`, so
+  cookbook's default is to **download** `<recipe>.pkgar` from `static.redox-os.org` rather than compile;
+  `cookbook.lock` lists the per-recipe `fsrule = "source"` exceptions that opt recipes back into being
+  built. Both are gitignored, so a fresh clone silently builds a different image than this tree does, and
+  hand-maintained exceptions rot — 13 of 26 E-OS-forked recipes had been missed, which is how `R-703`'s
+  client half came to be absent from the artefact while every doc called it implemented (`U-164`). Run
+  `scripts/eos-source-rules.sh` on any fresh tree; it exits non-zero while a gap exists.
+
 - **Local `make … all` from the macOS checkout does not work** — podman-macOS virtiofs
   cannot serve cargo/rustc's mmap reads. Build **inside** the container, against the
   volumes. This is the supported path, not a workaround.
