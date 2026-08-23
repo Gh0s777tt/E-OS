@@ -109,6 +109,12 @@ auditable text.
 1. **Dual-publish (compatible).** The repo publisher writes `repo.toml.sig`
    alongside the existing pkgar ed25519 signatures. Old clients ignore it; new
    clients verify ed25519 from it and treat ML-DSA as advisory.
+   > ⚠️ **Correction (`U-164`): the client half is implemented in the fork but is NOT in the shipped
+   > image.** `pkg-lib` comes from `recipes/core/pkgutils`, which `REPO_BINARY=1` makes cookbook download
+   > as an upstream prebuilt package (`R-F20`), so none of the signature-verification code ships. Verified
+   > by searching the 1.4 GB image for four distinctive literals from that code: zero hits, with the
+   > search instrument controlled against strings that are present.
+   >
    > **Status: both ends built, no key between them.** Publisher-side is **live**
    > — `publish-repo-pages.sh` and `publish-repo.sh` sign, and since `U-120`
    > refuse to publish unsigned unless `EOS_ALLOW_UNSIGNED=1`. Client-side is
