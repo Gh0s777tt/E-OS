@@ -154,6 +154,12 @@ def run_install(con):
     if not con.expect(r"Opening disk", "the installer opening the target disk", window=90):
         return False
 
+    # Order matters and mine was wrong at first: the ESP -- and therefore BOOTAA64.EFI --
+    # is written BEFORE the RedoxFS partition, so expecting it afterwards produced a false
+    # FAIL on a run that had got further than any before it.
+    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=120)
+    con.expect(r"Installing to RedoxFS partition", "the RedoxFS install starting", window=120)
+
     # R-F19: the run dies here, so surface the reason rather than letting the caller see a
     # bare timeout on the next expectation.
     if con.expect(r"failed to install", "the installer FAILING", window=180):
@@ -161,8 +167,6 @@ def run_install(con):
             print("install-smoke:     " + line[:100])
         print("install-smoke: FAIL — the installer reported an error (R-F19)")
         return False
-    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written",
-               window=max(120, int(con.deadline - time.time()) // 2))
     ok = con.expect(r"root:.*#|:~#", "the shell prompt returning after the install",
                     window=max(60, int(con.deadline - time.time())))
     if not ok:
