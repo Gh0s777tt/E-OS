@@ -321,6 +321,14 @@ record.
   `~/.local/share/containers` is a symlink into the podman one. **Mount before use** —
   `~/bin/mount-container-volumes.sh`, also wired to a LaunchAgent at login. A podman
   machine that refuses to start is almost always this.
+- **When the sparsebundle detaches mid-session — and it will — the mount script alone is not enough.**
+  It happened three times in one session (`U-162`). The reliable recovery, in order: `hdiutil detach
+  -force` **every** attachment of the image (`hdiutil info` lists them), re-attach with
+  `hdiutil attach -nomount`, `diskutil mount /dev/diskNsM`, then `podman machine stop` **and** `start` —
+  the machine goes to a zombie state that reports *already running* while its SSH handshake fails. A
+  volume that "failed to mount" or an APFS *container superblock is invalid* is almost always a stale
+  attachment, not damage: the caches survived all three times. Never reach for `--wipe-caches`.
+
 - **The caches are the asset.** `eos-work` (tree, `build/`, `prefix/`) and `eos-root`
   (toolchain, `~/.cargo`) are podman **named volumes** — `podman rm` does not touch them.
   With them warm the full gate is ~15 minutes end to end, not hours. `--wipe-caches` is
