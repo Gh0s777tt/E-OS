@@ -504,6 +504,13 @@ które wymagają sieci i klonują upstreamy: `mirror-drift` (blokujące) i `reba
 **Zasada:** bramka na `|| true` jest **ozdobą**, nie bramką (`U-140`). Jeśli sprawdzenie
 nie może zapalić się na czerwono, nie istnieje.
 
+**Druga strona tej samej zasady (`U-177`): czerwone musi mówić, CO jest złamane — drzewo
+czy przyrząd.** Kontrola, która nie mogła się wykonać, i kontrola, która wykryła usterkę,
+wymagają przeciwnych reakcji, więc nie wolno im wypisywać tego samego komunikatu. Gorszy
+wariant tej samej wady to zielone: `git grep` bez gita wypisuje pusto, a pusto czyta się
+jak „czysto". Stąd w `ci-integrity.sh` osobne `FAIL (instrument):` i sonda narzędzi przed
+pierwszą kontrolą — §4.2 zastosowane do samej bramki.
+
 **Docelowo pipeline ma padać przy:**
 
 | Warunek | Stan dziś |
@@ -517,6 +524,7 @@ nie może zapalić się na czerwono, nie istnieje.
 | **typ repo niezgodny z tym, co fork faktycznie niesie** | ✅ **działa** (`U-169`) — `mirror-drift` porównuje `type` z `repos.toml` z pomiarem na forku i **pada**; offline'owy odpowiednik to kontrola 7 (`CLAUDE.md` §11 vs `repos.toml`) |
 | **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
 | **ciche znormalizowanie końców linii** | ✅ **działa** (`U-173`, kontrola 8) — `.gitattributes` powstrzymuje gita, kontrola 8 edytor: pada przed pushem, nazywając plik, któremu zniknął CRLF |
+| **bramka, która nie mogła się wykonać** | ✅ **działa** (`U-177`) — brak `git`/`grep`/`awk` albo katalog spoza drzewa roboczego przerywa `ci-integrity.sh` **przed** pierwszą kontrolą; brak `python3` lub pliku pomocniczego pada jako `FAIL (instrument):` w kontroli 6 i 7, nigdy jako złamany niezmiennik |
 | **konflikt rebase łatek** | ⚠️ **doradcze** (`U-169`) — `rebase-check` wykrywa konflikt przez `git merge-tree`, ale nie blokuje: ruch upstreamu to nie nasza usterka, chodzi o to, by dowiedzieć się **teraz**, a nie przy następnej synchronizacji |
 | **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
 

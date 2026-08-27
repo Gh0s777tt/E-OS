@@ -8,6 +8,41 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || dirname "$(dirname "$0")")" |
 fail=0
 ok(){ printf '  ok: %s\n' "$1"; }
 bad(){ printf 'FAIL: %s\n' "$1"; fail=1; }
+# `cannot` is for the OTHER kind of red: the check could not be RUN, so the invariant is
+# unjudged. Keeping it apart from `bad` is the whole point of U-177 — see the preflight
+# below and checks 6 and 7. A reader must never have to guess which of the two a red line
+# means, because the two demand opposite responses: fix the tree, or fix the runner.
+cannot(){ printf 'FAIL (instrument): %s\n' "$1"; fail=1; }
+
+# ── 0. Instruments before results — prove the gate can measure at all (CLAUDE.md §4.2) ──
+# Every check below shells out, and a missing tool has already made this file lie twice
+# over, in both directions:
+#   * MISLEADING RED — check 7 read ANY non-zero exit from `python3` as "the repo types
+#     disagree". In CI job 16155620600 (pipeline #200) the alpine:3 image simply had no
+#     python3; the gate reported a type mismatch that did not exist. Package fixed in
+#     U-175, diagnostic in U-177.
+#   * FALSE GREEN, which is worse — checks 1, 4 and 5 pipe `git grep ... || true` into an
+#     is-it-empty test. Without git, or outside a work tree, the output is empty for the
+#     wrong reason and the gate prints `ok:` for an invariant nobody measured. That is
+#     `U-140`'s `|| true` lesson wearing a different coat: a check that cannot go red
+#     does not exist.
+# Hence: the tools shared by several checks are probed ONCE, up front, and their absence
+# ABORTS instead of degrading. Per-check instruments (python3, the two helper scripts)
+# are probed inside their own check, so the remaining seven still get measured — that is
+# also what U-175 measured: python3 is required by exactly one check.
+missing=""
+for t in git grep awk; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
+if [ -n "$missing" ]; then
+  printf 'FAIL (instrument): integrity gate cannot run — not on PATH:%s\n' "$missing"
+  printf '      Nothing was measured. This is NOT an invariant violation.\n'
+  echo "integrity: FAIL"; exit 1
+fi
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  printf 'FAIL (instrument): not inside a git work tree: %s\n' "$PWD"
+  printf '      `git grep` finds nothing here, so checks 1, 4 and 5 would print ok: for\n'
+  printf '      invariants nobody measured. Nothing was measured. NOT an invariant violation.\n'
+  echo "integrity: FAIL"; exit 1
+fi
 
 # 1) No debug / plaintext-secret prints in our own Rust sources (R-F01 guard).
 # `git grep` (tracked files only) rather than `grep -r .`: the recursive form also
@@ -22,11 +57,25 @@ hits=$(git grep -InE 'println!\s*\(.*[Pp]assword|TODO:? *Remove this debug' -- '
 if [ -n "$hits" ]; then bad "debug/plaintext-secret print:"; echo "$hits"; else ok "no debug/password prints"; fi
 
 # 2) Docs must not point users at a concrete phantom release image (R-003 guard).
-hits=$(grep -rInE 'eos-[0-9]+\.[0-9]+\.[0-9]+-(x86_64|aarch64)\.img' docs/ README.md 2>/dev/null || true)
-if [ -n "$hits" ]; then bad "docs reference a concrete eos-<ver>-<arch>.img (use the build/ path or make-release):"; echo "$hits"; else ok "no phantom-artifact doc refs"; fi
+# Checks 2 and 3 read files instead of shelling out to git, so the preflight above does not
+# cover them: `grep -r` over a docs/ that is not there errors to /dev/null and leaves $hits
+# empty, which reads exactly like "no phantom refs". Same split as checks 6 and 7 (U-177) —
+# the thing being searched has to exist before "found nothing" means anything.
+if [ ! -d docs ] || [ ! -f README.md ]; then
+  cannot "check 2 could not run: docs/ or README.md is missing — nothing was searched"
+else
+  hits=$(grep -rInE 'eos-[0-9]+\.[0-9]+\.[0-9]+-(x86_64|aarch64)\.img' docs/ README.md 2>/dev/null || true)
+  if [ -n "$hits" ]; then bad "docs reference a concrete eos-<ver>-<arch>.img (use the build/ path or make-release):"; echo "$hits"; else ok "no phantom-artifact doc refs"; fi
+fi
 
 # 3) README carries the SYNC marker kept in step with CHANGELOG/ROADMAP.
-grep -q 'SYNC:' README.md && ok "README SYNC marker present" || bad "README SYNC marker missing"
+if [ ! -f README.md ]; then
+  cannot "check 3 could not run: README.md is missing — the marker is UNKNOWN, not proven absent"
+elif grep -q 'SYNC:' README.md; then
+  ok "README SYNC marker present"
+else
+  bad "README SYNC marker missing"
+fi
 
 # 4) Every `unsafe` in E-OS-owned Rust carries a `SAFETY:` note (R-F01 sibling).
 # Scope excludes src/: that is the VENDORED redox_cookbook (package name
@@ -69,12 +118,26 @@ else ok "no bash-4-only syntax in E-OS scripts"; fi
 # image while every document called it implemented (U-164). cookbook.lock is tracked as of
 # U-168 precisely so this is reviewable, and eos-source-rules.sh derives the expected set
 # from the tree rather than restating it.
+# The same instrument/invariant split as check 7 (U-177), and needed for the same reason:
+# eos-source-rules.sh exits 1 both when recipes really are unpinned AND when it never got
+# to look (no recipes/ here, no E-OS fork found at all, `repo change-rule` missing). The
+# exit code cannot tell those apart — but the script already prints a verdict LINE for
+# each of its two real answers, and only the comparison itself can print one.
 if [ -f cookbook.lock ]; then
-  if out=$(bash scripts/eos-source-rules.sh 2>&1); then
-    ok "every E-OS-forked recipe builds from its fork"
+  if [ ! -f scripts/eos-source-rules.sh ]; then
+    cannot "check 6 could not run: scripts/eos-source-rules.sh is missing"
   else
-    bad "recipes with an E-OS fork are not pinned to source (they would be downloaded):"
-    echo "$out"
+    out=$(bash scripts/eos-source-rules.sh 2>&1); rc=$?
+    case "$rc:$out" in
+      0:*"source-rules: OK"*)
+        ok "every E-OS-forked recipe builds from its fork" ;;
+      1:*"NOT pinned to source:"*)
+        bad "recipes with an E-OS fork are not pinned to source (they would be downloaded):"
+        echo "$out" ;;
+      *)
+        cannot "check 6 reached no verdict: scripts/eos-source-rules.sh exited $rc without an OK/NOT-pinned line — the fork pinning is UNKNOWN, not proven bad:"
+        echo "$out" ;;
+    esac
   fi
 else
   bad "cookbook.lock is missing — the build would silently download upstream binaries"
@@ -84,11 +147,33 @@ fi
 # The type decides the rules (mirror = read-only, fork = must stay rebaseable), so a
 # document disagreeing with the manifest silently applies the wrong ones. Offline half;
 # the network half is scripts/eos-mirror-drift.sh, which compares the type to the fork.
-if out=$(python3 scripts/eos-check-repo-types.py 2>&1); then
-  ok "CLAUDE.md repo types match repos.toml"
+# Instrument first, verdict second (U-177). This check used to read EVERY non-zero exit
+# from python3 as "the types disagree" — including 127, i.e. no python3 at all, which is
+# exactly what CI job 16155620600 hit and reported as a mismatch that did not exist.
+# Probing `command -v` alone would not be enough either: a python3 that exists but is not
+# python 3 dies on the checker's f-strings with SyntaxError and exit **1**, the same code
+# a real mismatch uses. So the checker states an explicit contract (see its docstring) and
+# prints a verdict LINE that only the comparison itself can produce:
+#   0 + `repo-types: OK`        compared, equal            -> green
+#   1 + `repo-types: MISMATCH`  compared, different        -> the invariant is broken
+#   anything else               never got to compare       -> the instrument is broken
+py=scripts/eos-check-repo-types.py
+if ! command -v python3 >/dev/null 2>&1; then
+  cannot "check 7 could not run: python3 is not on PATH (it runs $py) — the repo types are UNKNOWN, not proven wrong"
+elif [ ! -f "$py" ]; then
+  cannot "check 7 could not run: $py is missing — the repo types are UNKNOWN, not proven wrong"
 else
-  bad "CLAUDE.md §11 and repos.toml disagree on repository types:"
-  echo "$out"
+  out=$(python3 "$py" 2>&1); rc=$?
+  case "$rc:$out" in
+    0:*"repo-types: OK"*)
+      ok "CLAUDE.md repo types match repos.toml" ;;
+    1:*"repo-types: MISMATCH"*)
+      bad "CLAUDE.md §11 and repos.toml disagree on repository types:"
+      echo "$out" ;;
+    *)
+      cannot "check 7 reached no verdict: python3 $py exited $rc without an OK/MISMATCH line — the repo types are UNKNOWN, not proven wrong:"
+      echo "$out" ;;
+  esac
 fi
 
 
