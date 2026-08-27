@@ -17,6 +17,7 @@ been masking the UART's interrupt line. sendkey is still used for exactly one th
 dismissing the bootloader's video-mode menu, which reads the emulated keyboard rather
 than the serial line.
 """
+import os
 import re
 import socket
 import sys
@@ -29,6 +30,7 @@ PASSWORD = "eos"
 class Console:
     def __init__(self, serial_path, budget, logfile):
         self.buf = ""
+        self.dead = False
         self.marker = 0
         self.deadline = time.time() + budget
         self.log = open(logfile, "w", encoding="utf-8")
@@ -46,13 +48,26 @@ class Console:
         self.sock.settimeout(2)
 
     def pump(self, seconds=2):
+        """Drain the serial socket for up to `seconds`.
+
+        Returning early on a dead socket used to burn a core: expect() calls pump() in a
+        loop with no delay of its own, so once the VM was gone this spun at 100% CPU until
+        the deadline. With a 16200s budget that is four and a half hours of one core --
+        measured, after four orphaned drivers were found still spinning, the oldest for
+        1h50m, dragging every other run on the box down with them. `dead` lets the caller
+        stop instead of waiting out a window that can no longer produce anything.
+        """
         end = time.time() + seconds
         while time.time() < end:
             try:
                 data = self.sock.recv(65536)
-            except (socket.timeout, OSError):
+            except socket.timeout:
+                continue          # settimeout(2) already paced us; no data yet
+            except OSError:
+                self.dead = True
                 return
-            if not data:
+            if not data:          # EOF: qemu exited
+                self.dead = True
                 return
             text = ESC.sub("", data.decode("utf-8", "replace"))
             self.buf += text
@@ -76,6 +91,9 @@ class Console:
         limit = time.time() + window if window else self.deadline
         while time.time() < min(limit, self.deadline):
             self.pump(2)
+            if self.dead:
+                print("install-smoke: FAIL — the VM went away while waiting for %s" % what)
+                return False
             if rx.search(self.buf[self.marker:]):
                 print("install-smoke:   saw %s" % what)
                 self.mark()
@@ -95,6 +113,9 @@ class Console:
         limit = time.time() + window if window else self.deadline
         while time.time() < min(limit, self.deadline):
             self.pump(2)
+            if self.dead:
+                print("install-smoke: FAIL — the VM went away while waiting for %s" % what)
+                return None
             tail = self.buf[self.marker:]
             for key, r in rx.items():
                 if r.search(tail):
@@ -108,14 +129,32 @@ class Console:
         self.sock.sendall((line + "\n").encode())
         time.sleep(0.7)
 
-    def dismiss_boot_menu(self, monitor_path):
+    def dismiss_boot_menu(self, monitor_path, toggle_live=False):
         """The bootloader's video-mode menu reads the emulated KEYBOARD, not the serial
-        line, so the Enter that dismisses it has to go through the QEMU monitor."""
+        line, so the keys that dismiss it have to go through the QEMU monitor.
+
+        `toggle_live` presses `l` first. It TOGGLES; it does not enable. Measured from the
+        menu text itself, which states the action available rather than the current state:
+        booting redox-live.iso shows "Press l to disable live mode" (live is already ON),
+        while harddrive.img shows "Press l to enable live mode" (live is OFF). Pressing `l`
+        on the ISO therefore turns live mode OFF, and that run could not even log in --
+        which is exactly what happened the first time I assumed the key would enable it.
+
+        Live mode matters because it is what makes the bootloader load the filesystem into
+        RAM and export DISK_LIVE_ADDR / DISK_LIVE_SIZE, the only two things that let
+        redox_installer's try_fast_install() do a block copy instead of walking 13679 files.
+        Note though that a live-mode ISO run STILL took the slow path here, so those
+        variables are evidently not reaching the installer process -- unexplained, and not
+        to be assumed fixed by booting live.
+        """
         time.sleep(12)
         try:
             m = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             m.connect(monitor_path)
             time.sleep(0.3)
+            if toggle_live:
+                m.sendall(b"sendkey l\n")
+                time.sleep(1.0)
             m.sendall(b"sendkey ret\n")
             time.sleep(0.5)
             m.close()
@@ -215,7 +254,7 @@ def run_install(con):
 def main():
     mode, monitor_path, serial_path, budget, logfile = sys.argv[1:6]
     con = Console(serial_path, int(budget), logfile)
-    con.dismiss_boot_menu(monitor_path)
+    con.dismiss_boot_menu(monitor_path, toggle_live=os.environ.get("EOS_SMOKE_TOGGLE_LIVE") == "1")
 
     if mode == "verify":
         return 0 if con.expect(r"login:", "a login prompt on the installed disk") else 1

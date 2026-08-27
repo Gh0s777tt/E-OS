@@ -35,7 +35,7 @@ cp "$FW_VARS" "$WORK/vars.fd"
 cp "$IMG" "$WORK/src.img"          # kopia — oryginał nietykalny
 SER="$WORK/ser.sock"; MON="$WORK/mon.sock"
 
-"$QEMU" -machine virt -cpu cortex-a72 -smp 4 -m 2048 \
+"$QEMU" -machine virt -cpu cortex-a72 -smp 4 -m "${EOS_PROBE_MEM:-2048}" \
   -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
   -drive "if=pflash,unit=1,format=raw,file=$WORK/vars.fd" \
   -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci \

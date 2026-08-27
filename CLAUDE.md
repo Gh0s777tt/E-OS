@@ -625,6 +625,7 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 | `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
 | `R-601` | Instalacja **biegnie** (13 679 plików), ale nie obejrzana do końca. | 🚧 P0 — bloker to **czas**: kopiowanie pod TCG mierzy **0,101 MiB/s**, czyli ~3 h na 1,4 GiB |
 | `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
+| `R-F24` | `try_fast_install()` (kopiowanie blokowe z RAM) nie uruchamia się nawet przy rozruchu live — `DISK_LIVE_ADDR`/`SIZE` nie docierają do procesu instalatora. | 🚧 P1 — to bloker **wydajnościowy** `R-601`: wolna ścieżka to 0,101 MiB/s |
 | `R-F18` | Nośnik dzielący linię INTx z xHCI → burza przerwań (`virq 37` = 11 054 068), `rm -rf /tmp` trwa 80 s zamiast 1 s. Poprawka należy do `IrqReactor` w `xhcid`: wyczyścić `IMAN.IP` / `USBSTS.EINT` **przed** potwierdzeniem. | 🚧 P1, zmierzone |
 | `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
 

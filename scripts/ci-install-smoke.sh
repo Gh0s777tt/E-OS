@@ -63,7 +63,7 @@ fi
 
 boot() { # $1=vars $2=serial-sock $3=monitor-sock  $4.. = drives
   local vars="$1" ser="$2" mon="$3"; shift 3
-  "$QEMU" "${ACCEL_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m 2048 \
+  "$QEMU" "${ACCEL_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m "${EOS_SMOKE_MEM:-2048}" \
     -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
     -drive "if=pflash,unit=1,format=raw,file=$vars" \
     -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci \
