@@ -12,6 +12,7 @@ generated    = "2026-07-17"
 [[repo]]
 name   = "E-OS"
 role   = "meta"
+type   = "A"
 github = "https://github.com/Gh0s777tt/E-OS.git"
 gitlab = "https://gitlab.com/e-os/e-os.git"
 pinned_in_recipe = false
@@ -20,8 +21,10 @@ pinned_in_recipe = false
 [[repo]]
 name   = "eos-base"
 role   = "core-critical"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-base.git"
 gitlab = "https://gitlab.com/e-os/eos-base.git"
+upstream = "https://gitlab.redox-os.org/redox-os/base.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/base"
 pinned_branch = "eos-july"
@@ -30,8 +33,10 @@ pinned_rev    = "7d5ca7e28ef5acd48fe5b67c0f18b8216de71f0d"
 [[repo]]
 name   = "eos-bootloader"
 role   = "core-critical"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-bootloader.git"
 gitlab = "https://gitlab.com/e-os/eos-bootloader.git"
+upstream = "https://gitlab.redox-os.org/redox-os/bootloader.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/bootloader"
 pinned_branch = "eos-rebased"
@@ -40,8 +45,10 @@ pinned_rev    = "b249982f29f1cf0a918a9dca6881d0c4a23417de"
 [[repo]]
 name   = "eos-kernel"
 role   = "core-critical"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-kernel.git"
 gitlab = "https://gitlab.com/e-os/eos-kernel.git"
+upstream = "https://gitlab.redox-os.org/redox-os/kernel.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/kernel"
 pinned_branch = "eos-july"
@@ -50,8 +57,10 @@ pinned_rev    = "18dce5577d0201561d4170e3f1048797dacc0f00"
 [[repo]]
 name   = "eos-redoxfs"
 role   = "core-critical"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-redoxfs.git"
 gitlab = "https://gitlab.com/e-os/eos-redoxfs.git"
+upstream = "https://gitlab.redox-os.org/redox-os/redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
@@ -60,8 +69,10 @@ pinned_rev    = "555359ef616cedbf00387b9d5a14173270cd2101"
 [[repo]]
 name   = "eos-relibc"
 role   = "core-critical"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-relibc.git"
 gitlab = "https://gitlab.com/e-os/eos-relibc.git"
+upstream = "https://gitlab.redox-os.org/redox-os/relibc.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/relibc"
 pinned_branch = "eos-july"
@@ -71,8 +82,10 @@ pinned_rev    = "c9345130e21ea18ad22052bcfcd97ee2197b370c"
 [[repo]]
 name   = "eos-coreutils"
 role   = "core"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-coreutils.git"
 gitlab = "https://gitlab.com/e-os/eos-coreutils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/coreutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/coreutils"
 pinned_branch = "master"
@@ -81,8 +94,10 @@ pinned_rev    = "049a259565ea9830cee34b594660f16547a073b3"
 [[repo]]
 name   = "eos-extrautils"
 role   = "core"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-extrautils.git"
 gitlab = "https://gitlab.com/e-os/eos-extrautils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/extrautils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/extrautils"
 pinned_branch = "master"
@@ -91,8 +106,10 @@ pinned_rev    = "afbac08e38e87102e06e0f0b90668e29cf72bf6f"
 [[repo]]
 name   = "eos-installer"
 role   = "core"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-installer.git"
 gitlab = "https://gitlab.com/e-os/eos-installer.git"
+upstream = "https://gitlab.redox-os.org/redox-os/installer.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/installer"
 pinned_branch = "master"
@@ -101,8 +118,10 @@ pinned_rev    = "ed6eb7cebe06bbc48869f86b4dd47a56956ecce2"
 [[repo]]
 name   = "eos-ion"
 role   = "core"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-ion.git"
 gitlab = "https://gitlab.com/e-os/eos-ion.git"
+upstream = "https://gitlab.redox-os.org/redox-os/ion.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/ion"
 pinned_branch = "master"
@@ -111,8 +130,10 @@ pinned_rev    = "1da444c86705289a40a0bed4c33b9565d1d2f8a1"
 [[repo]]
 name   = "eos-netdb"
 role   = "core"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-netdb.git"
 gitlab = "https://gitlab.com/e-os/eos-netdb.git"
+upstream = "https://gitlab.redox-os.org/redox-os/netdb.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/netdb"
 pinned_branch = "master"
@@ -121,8 +142,10 @@ pinned_rev    = "8977054ec602f5dfc366272d82f81f21fcbe0ee9"
 [[repo]]
 name   = "eos-netutils"
 role   = "core"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-netutils.git"
 gitlab = "https://gitlab.com/e-os/eos-netutils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/netutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/netutils"
 pinned_branch = "master"
@@ -131,8 +154,10 @@ pinned_rev    = "d3f578488802717318fcdb6f01fe4243cf401cff"
 [[repo]]
 name   = "eos-pkgar"
 role   = "core"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-pkgar.git"
 gitlab = "https://gitlab.com/e-os/eos-pkgar.git"
+upstream = "https://gitlab.redox-os.org/redox-os/pkgar.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgar"
 pinned_branch = "master"
@@ -141,8 +166,10 @@ pinned_rev    = "78e644ad5fa8d5eddfc15fed71ea3e93fea71b5e"
 [[repo]]
 name   = "eos-pkgutils"
 role   = "core"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-pkgutils.git"
 gitlab = "https://gitlab.com/e-os/eos-pkgutils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/pkgutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgutils"
 pinned_branch = "eos"
@@ -151,8 +178,10 @@ pinned_rev    = "5978425ecdc01fa80c72ccfe722845f45e66b27b"
 [[repo]]
 name   = "eos-userutils"
 role   = "core"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-userutils.git"
 gitlab = "https://gitlab.com/e-os/eos-userutils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/userutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/userutils"
 pinned_branch = "eos-july"
@@ -162,8 +191,10 @@ pinned_rev    = "a43ba3e530371affbd7d39c3cb1ef81c814e63a0"
 [[repo]]
 name   = "eos-orbclient"
 role   = "gui"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-orbclient.git"
 gitlab = "https://gitlab.com/e-os/eos-orbclient.git"
+upstream = "https://gitlab.redox-os.org/redox-os/orbclient.git"
 pinned_in_recipe = true
 recipe        = "recipes/demos/orbclient"
 pinned_branch = "master"
@@ -172,8 +203,10 @@ pinned_rev    = "be1d51efce7efdce171e82d1f5fcaf7709cea6d3"
 [[repo]]
 name   = "eos-orbdata"
 role   = "gui"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-orbdata.git"
 gitlab = "https://gitlab.com/e-os/eos-orbdata.git"
+upstream = "https://gitlab.redox-os.org/redox-os/orbdata.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbdata"
 pinned_branch = "master"
@@ -182,8 +215,10 @@ pinned_rev    = "bda3e430941b07cc278927aa553bf54e67ca669a"
 [[repo]]
 name   = "eos-orbital"
 role   = "gui"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-orbital.git"
 gitlab = "https://gitlab.com/e-os/eos-orbital.git"
+upstream = "https://gitlab.redox-os.org/redox-os/orbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbital"
 pinned_branch = "master"
@@ -192,8 +227,10 @@ pinned_rev    = "38226c74b0b1e88c5ce487208474fc55b43a25a1"
 [[repo]]
 name   = "eos-orbterm"
 role   = "gui"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-orbterm.git"
 gitlab = "https://gitlab.com/e-os/eos-orbterm.git"
+upstream = "https://gitlab.redox-os.org/redox-os/orbterm.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbterm"
 pinned_branch = "master"
@@ -202,8 +239,10 @@ pinned_rev    = "c2a1026a0ffb24b85ab37543b9f8d228163e8353"
 [[repo]]
 name   = "eos-orbutils"
 role   = "gui"
+type   = "C"
 github = "https://github.com/Gh0s777tt/eos-orbutils.git"
 gitlab = "https://gitlab.com/e-os/eos-orbutils.git"
+upstream = "https://gitlab.redox-os.org/redox-os/orbutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
@@ -212,6 +251,7 @@ pinned_rev    = "8ad7cd8fa8cfa85641261a3a0c44eb992e984952"
 [[repo]]
 name   = "eos-guard"
 role   = "gui"
+type   = "A"
 github = "https://github.com/Gh0s777tt/eos-guard.git"
 gitlab = "https://gitlab.com/e-os/eos-guard.git"
 pinned_in_recipe = true
@@ -222,6 +262,7 @@ pinned_rev    = "06263607526b0d47eb77147f149aa17f00d8e0e3"
 [[repo]]
 name   = "eos-notes"
 role   = "gui"
+type   = "A"
 github = "https://github.com/Gh0s777tt/eos-notes.git"
 gitlab = "https://gitlab.com/e-os/eos-notes.git"
 pinned_in_recipe = true
@@ -232,6 +273,7 @@ pinned_rev    = "9f9eae6e7a03adba07fa6dc577b1074b2a6cc8ff"
 [[repo]]
 name   = "eos-ui"
 role   = "lib"
+type   = "A"
 github = "https://github.com/Gh0s777tt/eos-ui.git"
 gitlab = "https://gitlab.com/e-os/eos-ui.git"
 # Not pinned in a recipe: eos-ui is a git dependency of eos-notes (and future
@@ -241,6 +283,7 @@ pinned_in_recipe = false
 [[repo]]
 name   = "eos-sysmon"
 role   = "gui"
+type   = "A"
 github = "https://github.com/Gh0s777tt/eos-sysmon.git"
 gitlab = "https://gitlab.com/e-os/eos-sysmon.git"
 pinned_in_recipe = true
@@ -251,6 +294,7 @@ pinned_rev    = "b50f81a8b7fde5c85b2440e673d95b06b47950ac"
 [[repo]]
 name   = "eos-control"
 role   = "gui"
+type   = "A"
 github = "https://github.com/Gh0s777tt/eos-control.git"
 gitlab = "https://gitlab.com/e-os/eos-control.git"
 pinned_in_recipe = true
@@ -262,8 +306,10 @@ pinned_rev    = "40dc67fde3b48ddf945a84840e1d4d788f359119"
 [[repo]]
 name   = "eos-liborbital"
 role   = "lib"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-liborbital.git"
 gitlab = "https://gitlab.com/e-os/eos-liborbital.git"
+upstream = "https://gitlab.redox-os.org/redox-os/liborbital.git"
 pinned_in_recipe = true
 recipe        = "recipes/libs/liborbital"
 pinned_branch = "master"
@@ -272,8 +318,10 @@ pinned_rev    = "76ba2e79ac16fbd7a37ef622108e6c60f10cebe2"
 [[repo]]
 name   = "eos-redox-fatfs"
 role   = "lib"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-redox-fatfs.git"
 gitlab = "https://gitlab.com/e-os/eos-redox-fatfs.git"
+upstream = "https://gitlab.redox-os.org/redox-os/redox-fatfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/libs/redox-fatfs"
 pinned_branch = "master"
@@ -283,8 +331,10 @@ pinned_rev    = "26caa0908977976c424762f10ba4ed2176cba2a3"
 [[repo]]
 name   = "eos-redoxer"
 role   = "dev"
+type   = "B"
 github = "https://github.com/Gh0s777tt/eos-redoxer.git"
 gitlab = "https://gitlab.com/e-os/eos-redoxer.git"
+upstream = "https://gitlab.redox-os.org/redox-os/redoxer.git"
 pinned_in_recipe = true
 recipe        = "recipes/dev/redoxer"
 pinned_branch = "master"
@@ -294,6 +344,7 @@ pinned_rev    = "974c1482c2b2663873603a052e8df8161cd97da8"
 [[repo]]
 name   = "eos-pkg-aarch64"
 role   = "pkg"
+type   = "D"
 github = "https://github.com/Gh0s777tt/eos-pkg-aarch64.git"
 gitlab = "https://gitlab.com/e-os/eos-pkg-aarch64.git"
 pinned_in_recipe = false
@@ -301,6 +352,7 @@ pinned_in_recipe = false
 [[repo]]
 name   = "eos-pkg-x86_64"
 role   = "pkg"
+type   = "D"
 github = "https://github.com/Gh0s777tt/eos-pkg-x86_64.git"
 gitlab = "https://gitlab.com/e-os/eos-pkg-x86_64.git"
 pinned_in_recipe = false

@@ -44,6 +44,37 @@ pin-check:
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
     - bash scripts/eos-repos.sh pins --strict
 
+# ── SCHEDULED: gates that need the network and the upstream repos ──────────
+# These clone every fork AND its redox-os upstream, so they are far too heavy for
+# every push. Run them on a schedule (Settings → CI/CD → Schedules, daily is plenty).
+# They are the only thing standing between the repo-type model in CLAUDE.md §11 and
+# quiet rot: U-164 found real E-OS code hiding in a repo documented as a mirror.
+mirror-drift:
+  stage: verify
+  image: alpine:3
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      allow_failure: true
+  script:
+    - apk add --no-cache bash git python3 grep >/dev/null
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - bash scripts/eos-mirror-drift.sh
+
+# Advisory, not blocking: upstream moving is not our defect, but we want to learn
+# that a patch stopped rebasing NOW, not at the next sync when it blocks the work.
+rebase-check:
+  stage: verify
+  image: alpine:3
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+  script:
+    - apk add --no-cache bash git python3 grep >/dev/null
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    - bash scripts/eos-rebase-check.sh
+
 # Keep docs in step with code: on a merge request, if E-OS source/scripts changed
 # but no docs/README/CHANGELOG did, fail — unless the MR says "docs: n/a".
 docs-currency:

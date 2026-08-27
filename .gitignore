@@ -1,6 +1,9 @@
 /build/
 /prefix/
-.config
+# .config -- NIE ignorowany od U-169. Ustawia REPO_BINARY=1, czyli decyduje, czy
+# cookbook KOMPILUJE przepis, czy POBIERA gotowy pakiet ze static.redox-os.org.
+# Trzymany poza gitem sprawial, ze swiezy klon budowal inny obraz niz to drzewo --
+# druga polowa R-F20 (pierwsza byl cookbook.lock, U-168).
 **/my_*
 # Local settings folder for Jetbrains products (RustRover, IntelliJ, CLion)
 .idea/

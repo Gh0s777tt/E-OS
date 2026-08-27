@@ -371,26 +371,42 @@ Pełne standardy tego pliku. Rozwój i CI na **GitLabie**, GitHub jest **lustrem
 odczytu**. Tu wolno projektować, refaktorować i wprowadzać `#![deny(unsafe_code)]`.
 
 ### Typ B — vendorowane lustra redox-os  *(READ-ONLY)*
-`eos-redoxfs` · `eos-orbutils` · `eos-ion` · `eos-coreutils` · `eos-pkgutils` ·
-`eos-extrautils` · `eos-netdb` · `eos-netutils` · `eos-installer` · `eos-orbital` ·
-`eos-orbterm` · `eos-orbclient` · `eos-orbdata` · `eos-liborbital` · `eos-pkgar` ·
-`eos-redox-fatfs` · `eos-redoxer`
+`eos-coreutils` · `eos-extrautils` · `eos-ion` · `eos-netdb` · `eos-netutils` ·
+`eos-orbterm` · `eos-redox-fatfs` · `eos-redoxer` · `eos-orbclient` · `eos-liborbital`
 
-**Nigdy nie edytuj ręcznie.** Synchronizacja wyłącznie przez `scripts/sync-forks.sh`.
-Każda ręczna zmiana to dywergencja, którą trzeba będzie ponosić przy **każdej** kolejnej
-synchronizacji — a nikt jej nie zobaczy, dopóki nie zaboli.
+**Nigdy nie edytuj ręcznie.** Synchronizacja wyłącznie przez `scripts/sync-forks.sh`
+(patrz §0 — skryptu **nie ma w tym repo**, należy do repo orkiestrującego). Każda ręczna
+zmiana to dywergencja, którą trzeba ponosić przy **każdej** kolejnej synchronizacji — a nikt
+jej nie zobaczy, dopóki nie zaboli.
 
-> **Uwaga z pomiaru (`U-164`):** granica A/B bywa nieostra. `eos-pkgutils` niesie **realny
-> kod E-OS** (weryfikacja podpisu manifestu, `R-703`), a `eos-installer` — panel sieciowy
-> i poprawki. Czyste lustra to `eos-extrautils`, `eos-netdb`, `eos-netutils` (jeden commit
-> z README). **Zanim uznasz repo za czyste lustro, sprawdź autorstwo commitów.**
+Lustro wolno mieć własne: `README`, `LICENSE`, `.gitlab-ci.yml`, `.github/`, `.gitignore`.
+To obudowa forka, nie kod. **Cokolwiek poza tą listą czyni z repozytorium typ C** — nie
+dlatego, że tak brzmi definicja, tylko dlatego, że kodu nikt nie audytuje ani nie testuje
+w repo opisanym jako lustro.
 
 ### Typ C — forki z łatkami
-`eos-kernel` · `eos-base` · `eos-relibc` · `eos-bootloader` · `eos-orbdata` · `eos-userutils`
+`eos-kernel` · `eos-base` · `eos-relibc` · `eos-bootloader` · `eos-userutils` ·
+`eos-redoxfs` · `eos-orbutils` · `eos-orbdata` · `eos-pkgutils` · `eos-installer` ·
+`eos-orbital` · `eos-pkgar`
 
 Utrzymuj **rebaseowalność**: łatki małe, tematyczne, każda z uzasadnieniem w treści commita
 i ze statusem wobec upstreamu (*zgłoszone / przyjęte / lokalne na stałe*). Łatka bez
-uzasadnienia jest długiem, którego nikt nie umie spłacić.
+uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to
+`scripts/eos-rebase-check.sh` (doradczo, w zadaniu scheduled).
+
+> **Skąd te listy (`U-169`).** Nie z pamięci — z pomiaru. `scripts/eos-mirror-drift.sh`
+> liczy commity każdego forka ponad upstreamem i dzieli je **po dotkniętych plikach**.
+> Wynik obalił poprzednią wersję tej sekcji: **żaden** z 22 forków nie jest pusty (łącznie
+> 146 własnych commitów), a pięć repozytoriów opisanych tu jako lustra niosło realny kod —
+> `eos-redoxfs` (poprawka `no_std`), `eos-orbutils` (23 commity, demon powiadomień),
+> `eos-pkgutils` (weryfikacja podpisu manifestu, `R-703`), `eos-installer` (panel sieciowy),
+> `eos-orbital` (zrzut ekranu), `eos-pkgar` (`read_at` nie panikuje na skróconej paczce).
+> `eos-orbdata` figurował jednocześnie w **obu** listach. Dokładnie tak zginęła kliencka
+> weryfikacja podpisu w `U-164`: leżała w repo, którego nikt nie traktował jak kodu.
+>
+> Dlatego typ jest teraz **polem `type` w `repos.toml`**, a nie zdaniem w dokumencie —
+> bramka porównuje deklarację z pomiarem i **przewraca pipeline**, gdy się rozjadą.
+> Poprawiaj `repos.toml` albo usuń kod z forka; **samo poprawienie tego akapitu nic nie da.**
 
 ### Typ D — repozytoria pakietów  *(READ-ONLY)*
 `eos-pkg-x86_64` · `eos-pkg-aarch64`
@@ -440,12 +456,14 @@ opublikowaną zawartość** (`U-158`).
 
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
-**Stan faktyczny (12 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (5 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
+**Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
+`integrity` (7 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
-`build-image-x86_64`.
+`build-image-x86_64` · `coverage` · `sbom` · `rustdoc` · oraz dwa zadania **scheduled**,
+które wymagają sieci i klonują upstreamy: `mirror-drift` (blokujące) i `rebase-check`
+(doradcze). Zaplanuj je w *Settings → CI/CD → Schedules*; dziennie w zupełności wystarczy.
 
 **Zasada:** bramka na `|| true` jest **ozdobą**, nie bramką (`U-140`). Jeśli sprawdzenie
 nie może zapalić się na czerwono, nie istnieje.
@@ -460,9 +478,9 @@ nie może zapalić się na czerwono, nie istnieje.
 | niezgodność pinów | ✅ **działa** (`pins --strict`) |
 | składnia bash 4 na hoście z bash 3.2 | ✅ **działa** (kontrola 5) |
 | **spadek pokrycia testami** | ✅ **działa** (`U-168`) — `coverage` gatuje `tools/eos-repo-sign` progiem 38% (zmierzona baza 38,84%); vendorowany manifest raportowany, nie gatowany |
-| **niezgodność lustra z upstreamem** | ❌ **BRAK** — `sync-forks.sh` istnieje, bramki nie ma |
+| **typ repo niezgodny z tym, co fork faktycznie niesie** | ✅ **działa** (`U-169`) — `mirror-drift` porównuje `type` z `repos.toml` z pomiarem na forku i **pada**; offline'owy odpowiednik to kontrola 7 (`CLAUDE.md` §11 vs `repos.toml`) |
 | **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
-| **konflikt rebase łatek** | ❌ **BRAK** — nic nie sprawdza rebaseowalności typu C |
+| **konflikt rebase łatek** | ⚠️ **doradcze** (`U-169`) — `rebase-check` wykrywa konflikt przez `git merge-tree`, ale nie blokuje: ruch upstreamu to nie nasza usterka, chodzi o to, by dowiedzieć się **teraz**, a nie przy następnej synchronizacji |
 | **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
 
 Braki są wypisane w **TODO** na końcu tego dokumentu. Nie udawaj, że istnieją.
@@ -500,7 +518,8 @@ uzasadnienie **oraz plan usunięcia**.
 `docs/design-*.md`, `docs/adr`-podobne uzasadnienia rozsiane po CHANGELOG-u.
 `mdbook-mermaid` jest wpięty w `pages` i `docs-pdf`.
 
-**Docelowo (żadnego z tych katalogów jeszcze nie ma — patrz TODO):**
+**Cele i ich stan** (`U-168` domknęło część z nich — kolumna *Stan* jest
+aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
 
 | Cel | Stan |
 |---|---|
@@ -561,3 +580,41 @@ i podpisany (`v0.2.0`), pipeline `semantic-release`.
 8. **Łatka diagnostyczna żyje wyłącznie w drzewie build kontenera**, nigdy w forku, i jest
    cofana przed commitem — a obraz po cofnięciu przebudowany i sprawdzony `boot-smoke`.
 
+
+## 19. TODO — czego naprawdę brakuje
+
+Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika dopiero, gdy
+**da się wskazać dowód**, że rzecz działa — nie gdy została zaplanowana.
+
+### Otwarte usterki (blokują `R-601`)
+
+| ID | Rzecz | Stan |
+|---|---|---|
+| `R-F19` | `unmount_path` zwraca `EPERM` przy zwalnianiu `file.redox_installer_<pid>`; gołe `?` melduje to jako *failed to install* i **przesłania wynik callbacku**. Zignorowanie błędu daje zakleszczenie w `join_handle.join()` — sprawdzone eksperymentalnie. | 🚧 P0, zdiagnozowane w `U-166`, niepoprawione |
+| `R-F18` | Nośnik dzielący linię INTx z xHCI → burza przerwań (`virq 37` = 11 054 068), `rm -rf /tmp` trwa 80 s zamiast 1 s. Poprawka należy do `IrqReactor` w `xhcid`: wyczyścić `IMAN.IP` / `USBSTS.EINT` **przed** potwierdzeniem. | 🚧 P1, zmierzone |
+| `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
+
+### Narzędzia, których w repo nie ma
+
+| Narzędzie | Decyzja |
+|---|---|
+| `cosign` | ❌ Zadanie da się napisać, ale **klucz podpisujący generuje człowiek** (§5, §10.3) — narzędzie, które loguje, nie może go dotknąć. Do wykonania przez operatora, nie przez automat. |
+| `nextest` | ⏳ Do podmiany za `cargo test`; korzyść to równoległość i czytelniejszy raport, nie nowa zdolność. Niski priorytet. |
+| `miri` | ⛔ **Świadomie pominięty** — E-OS-owy kod Rust ma **zero** bloków `unsafe` (pilnuje tego kontrola 4), a `miri` bada właśnie UB w `unsafe`. Uruchamianie go na vendorowanym drzewie oznaczałoby utrzymywanie dywergencji (ADR-0003). |
+| `cargo-fuzz` | ⛔ **Świadomie pominięty tutaj** — parsery warte fuzzowania (`pkgar`, RedoxFS, `redox_installer`) mieszkają w **forkach**, nie w tym repo. Miejsce dla nich to CI forka. |
+| `cargo-audit` | ⛔ Nadmiarowy wobec `cargo-deny check advisories`; lokalnie w `local-scan.sh`. |
+
+### Wymaga człowieka, nie automatu
+
+- **`eos-setup-mirrors.sh --apply`** — potrzebuje PAT GitHuba. Nigdy nie podawaj tokenu
+  narzędziu; to zadanie operatora (§5).
+- **Klucz podpisujący** — generowanie jest **celowo** niezautomatyzowane.
+
+### Nadal niezweryfikowane
+
+- **Odtwarzalność builda** — ten sam commit → ten sam obraz bit w bit. `.config` i
+  `cookbook.lock` są już **śledzone** (`U-168`, `U-169`), więc główna przeszkoda zniknęła,
+  ale samego porównania **nikt jeszcze nie wykonał**. Dopóki nie wykona — to nie jest fakt.
+- **SBOM obrazu** — `sbom` pokrywa manifesty Rusta; SBOM-y obrazów w `sbom/` nadal
+  powstają ręcznie.
+- **Podpisane ISO** — obraz to `harddrive.img`; ISO nie jest publikowane.

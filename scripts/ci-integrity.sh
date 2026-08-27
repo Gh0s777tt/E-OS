@@ -80,5 +80,16 @@ else
   bad "cookbook.lock is missing — the build would silently download upstream binaries"
 fi
 
+# ── 7. Repo types in CLAUDE.md §11 match the `type` field in repos.toml ──────
+# The type decides the rules (mirror = read-only, fork = must stay rebaseable), so a
+# document disagreeing with the manifest silently applies the wrong ones. Offline half;
+# the network half is scripts/eos-mirror-drift.sh, which compares the type to the fork.
+if out=$(python3 scripts/eos-check-repo-types.py 2>&1); then
+  ok "CLAUDE.md repo types match repos.toml"
+else
+  bad "CLAUDE.md §11 and repos.toml disagree on repository types:"
+  echo "$out"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
