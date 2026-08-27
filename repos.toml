@@ -113,7 +113,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/installer.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/installer"
 pinned_branch = "master"
-pinned_rev    = "02be2b5857e846c7fc0a94dc091a4b6ba68109b9"
+pinned_rev    = "e409d3220b9bce6ced529a5676cd7768c2454dc9"
 
 [[repo]]
 name   = "eos-ion"
@@ -173,7 +173,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/pkgutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgutils"
 pinned_branch = "eos"
-pinned_rev    = "5978425ecdc01fa80c72ccfe722845f45e66b27b"
+pinned_rev    = "cf36a01b9bb4a7184001796632a28ec725b37adc"
 
 [[repo]]
 name   = "eos-userutils"

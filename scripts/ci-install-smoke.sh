@@ -48,9 +48,22 @@ cp "$IMG" "$WORK/src.img"
 dd if=/dev/zero of="$WORK/target.img" bs=1m count=0 seek=4096 2>/dev/null
 cp "$FW_VARS" "$WORK/vars.fd"
 
+# Hardware acceleration is OPT-IN, and deliberately not the default: E-OS is NOT stable
+# under hvf. Boot-smoke passes under it, but under sustained load
+# the guest dies with `synchronous_exception_at_el0` -- twice, in two different processes
+# (ptyd at file 77/13679, virtio-netd at 19/13679 with -smp 1), so it is not a multi-core
+# race. Recorded as R-F23. Set EOS_SMOKE_ACCEL=hvf to reproduce it; leave it unset for a
+# trustworthy run. MEASURED, not estimated: boot to login is 19s under TCG and 10s under
+# hvf -- about 1.9x, not the order of magnitude the raw speed of the copy suggested.
+if [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
+  ACCEL_ARGS=(-machine virt,accel=hvf -cpu host)
+else
+  ACCEL_ARGS=(-machine virt -cpu cortex-a72)
+fi
+
 boot() { # $1=vars $2=serial-sock $3=monitor-sock  $4.. = drives
   local vars="$1" ser="$2" mon="$3"; shift 3
-  "$QEMU" -machine virt -cpu cortex-a72 -smp 4 -m 2048 \
+  "$QEMU" "${ACCEL_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m 2048 \
     -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
     -drive "if=pflash,unit=1,format=raw,file=$vars" \
     -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci \

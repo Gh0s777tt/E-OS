@@ -28,7 +28,18 @@ case "$ARCH" in
     FW_CODE="/opt/homebrew/share/qemu/edk2-aarch64-code.fd"
     FW_VARS_SRC="/opt/homebrew/share/qemu/edk2-arm-vars.fd"
     # ramfb is the virt-board framebuffer; q35 has none and rejects it.
-    MACHINE_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)
+  # Hardware acceleration is OPT-IN, and deliberately not the default: E-OS is NOT stable
+  # under hvf. Boot-smoke passes under it, but under sustained load
+  # the guest dies with `synchronous_exception_at_el0` -- twice, in two different processes
+  # (ptyd at file 77/13679, virtio-netd at 19/13679 with -smp 1), so it is not a multi-core
+  # race. Recorded as R-F23. Set EOS_SMOKE_ACCEL=hvf to reproduce it; leave it unset for a
+  # trustworthy run. MEASURED, not estimated: boot to login is 19s under TCG and 10s under
+# hvf -- about 1.9x, not the order of magnitude the raw speed of the copy suggested.
+    if [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
+      MACHINE_ARGS=(-machine virt,accel=hvf -cpu host -device ramfb)
+    else
+      MACHINE_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)
+    fi
     ;;
   x86_64)
     QEMU="$(command -v qemu-system-x86_64 || echo /opt/homebrew/bin/qemu-system-x86_64)"
@@ -63,14 +74,14 @@ s.close()
 PY
 }
 
-"$QEMU" "${MACHINE_ARGS[@]}" -smp 4 -m 2048 \
+"$QEMU" "${MACHINE_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m 2048 \
   -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
   -drive "if=pflash,unit=1,format=raw,file=$WORK/vars.fd" \
   -device qemu-xhci -device usb-kbd -device usb-tablet -device virtio-rng-pci \
   -display none -serial "file:$SERIAL" -monitor "unix:$MON,server,nowait" \
   -drive "file=$IMG,if=none,id=disk0,format=raw" -device "nvme,drive=disk0,serial=eos" &
 QPID=$!
-echo "boot-smoke: $ARCH, qemu pid $QPID, up to ${TIMEOUT}s to reach login (init ~100s)…"
+echo "boot-smoke: $ARCH, qemu pid $QPID, up to ${TIMEOUT}s to reach login (TCG: 19s measured)…"
 
 strip='s/\x1b\[[0-9;?]*[a-zA-Z]//g'
 sent_ret=0; deadline=$(( $(date +%s) + TIMEOUT ))

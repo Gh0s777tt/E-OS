@@ -83,6 +83,27 @@ class Console:
         print("install-smoke: FAIL — timed out waiting for %s" % what)
         return False
 
+    def expect_either(self, choices, what, window=None):
+        """Wait for whichever of `choices` appears first; return its key, or None.
+
+        Racing the outcomes matters once the happy path is long. Expecting FAILURE and
+        only then success cost a full 180s window on every SUCCESSFUL run -- time taken
+        straight out of the budget that the success itself needs. It also reads the
+        wrong way round: the harness should ask "what happened", not "did it fail yet".
+        """
+        rx = {k: re.compile(v, re.I) for k, v in choices.items()}
+        limit = time.time() + window if window else self.deadline
+        while time.time() < min(limit, self.deadline):
+            self.pump(2)
+            tail = self.buf[self.marker:]
+            for key, r in rx.items():
+                if r.search(tail):
+                    print("install-smoke:   saw %s" % key)
+                    self.mark()
+                    return key
+        print("install-smoke: FAIL — timed out waiting for %s" % what)
+        return None
+
     def send(self, line):
         self.sock.sendall((line + "\n").encode())
         time.sleep(0.7)
@@ -167,15 +188,23 @@ def run_install(con):
     con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=120)
     con.expect(r"Installing to RedoxFS partition", "the RedoxFS install starting", window=120)
 
-    # R-F19: the run dies here, so surface the reason rather than letting the caller see a
-    # bare timeout on the next expectation.
-    if con.expect(r"failed to install", "the installer FAILING", window=180):
+    # Race the two outcomes instead of waiting out a failure window first. Once the copy
+    # phase genuinely runs it moves 13679 files, so the old "expect failure for 180s, then
+    # expect success" spent three minutes of the budget on every healthy run.
+    outcome = con.expect_either(
+        {
+            "the installer FAILING": r"failed to install",
+            "the shell prompt returning after the install": r"root:.*#|:~#",
+        },
+        "the install to finish one way or the other",
+        window=max(120, int(con.deadline - time.time())),
+    )
+    if outcome == "the installer FAILING":
         for line in [l for l in con.buf[-1500:].replace("\r", "\n").split("\n") if l.strip()][-6:]:
             print("install-smoke:     " + line[:100])
-        print("install-smoke: FAIL — the installer reported an error (R-F19)")
+        print("install-smoke: FAIL — the installer reported an error")
         return False
-    ok = con.expect(r"root:.*#|:~#", "the shell prompt returning after the install",
-                    window=max(60, int(con.deadline - time.time())))
+    ok = outcome is not None
     if not ok:
         print("install-smoke: last serial output:")
         for line in [l for l in con.buf[-1200:].replace("\r", "\n").split("\n") if l.strip()][-15:]:

@@ -621,7 +621,10 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 | ID | Rzecz | Stan |
 |---|---|---|
 | `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
-| `R-F21` | `installer_tui.package_files()` czyta bazę pakietów ze starej ścieżki `/pkg`, której obraz **nie ma**; metadane leżą w `/var/lib/packages` (65 plików, zmierzone). Odsłonięte dopiero, gdy `U-170` przestało przykrywać wynik callbacku. | 🚧 P0 — nowy bloker `R-601` |
+| `R-F21` | `package_files()` czytało bazę pakietów ze starej ścieżki `/pkg`. | ✅ **naprawione** (`U-171`) — czyta przez `PackageState::from_sysroot`; przepisane, bo klucz też się przeniósł do `packages.toml` |
+| `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
+| `R-601` | Instalacja **biegnie** (13 679 plików), ale nie obejrzana do końca. | 🚧 P0 — bloker to **czas**: kopiowanie pod TCG mierzy **0,101 MiB/s**, czyli ~3 h na 1,4 GiB |
+| `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
 | `R-F18` | Nośnik dzielący linię INTx z xHCI → burza przerwań (`virq 37` = 11 054 068), `rm -rf /tmp` trwa 80 s zamiast 1 s. Poprawka należy do `IrqReactor` w `xhcid`: wyczyścić `IMAN.IP` / `USBSTS.EINT` **przed** potwierdzeniem. | 🚧 P1, zmierzone |
 | `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
 
