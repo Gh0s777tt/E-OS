@@ -290,6 +290,36 @@ jest życzeniem — przenieś ją do `scripts/ci-*.sh` albo do `.gitlab-ci.yml` 
   artefakcie**, choć każdy dokument nazywał ją zaimplementowaną (`U-164`).
   **Na każdym świeżym drzewie uruchom `scripts/eos-source-rules.sh`** — kończy się kodem
   błędu, dopóki luka istnieje.
+- **Przypięcie forka nie znaczy, że artefakt niesie kod forka.** Cargo rozwiązuje
+  zależności z **crates.io**, dopóki ktoś tego nie przekieruje, a gdy fork i wersja
+  opublikowana mają **ten sam numer**, różnica jest niewidoczna dla każdej bramki
+  patrzącej na przepisy i przypięcia. Wystąpiło **cztery razy**: `R-F10` (bootloader →
+  `redoxfs`), `R-F20` (przepisy jako binarki upstreamu), `R-F19` (`redox_installer` →
+  `redoxfs 0.9.1`) oraz `installer` → `redox-pkg 0.3.1`, czyli crate niosący
+  `verify_repo_manifest` — sprawdzone na binarce: cztery literały podpisu manifestu E-OS
+  miały **0 wystąpień**, przy instrumencie skontrolowanym najpierw.
+  **Uruchom `scripts/eos-fork-linkage.py`** w drzewie budowania — wywodzi nazwy crate'ów
+  z `[package] name` członków workspace'u forka (nie z nazwy repo, bo `eos-base` nie
+  dostarcza crate'a „base") i kończy się kodem błędu, gdy konsument bierze forkowany crate
+  z rejestru. Naprawa: `[patch.crates-io]` na `git`+`rev` forka, a potem **minimalne**
+  odświeżenie blokady (`cargo update -p <crate>`), nigdy `generate-lockfile`. Nie da się
+  tego wpiąć w lekkie CI: `recipes/*/*/source/` nie jest śledzone w gicie.
+- **`/work/redox` w kontenerze to OSOBNY klon E-OS, nie to repozytorium.** Ma własny
+  `HEAD` (sprawdzone: `6e7f6432`, gdy repo było na `dbee1618`) i własne, brudne drzewo
+  robocze. Edycja `recipe.toml` tutaj **nie wpływa** na build tam i odwrotnie. Powód jest
+  prozaiczny: maszyna podmana montuje tylko katalog domowy, a repo leży na `/Volumes`,
+  więc `make` z hosta pada na `statfs`. Zanim uwierzysz, że zbudowałeś to, co zmieniłeś,
+  sprawdź `git -C /work/redox/recipes/<r>/source rev-parse HEAD` (`U-170`).
+- **Cookbook nie przełączy rewizji na brudnym drzewie źródeł.** `git checkout <rev>`
+  kończy się „Aborting", przepis pada — a `make all` **i tak zbuduje obraz**, ze starym
+  kodem i bez ostrzeżenia. Po ręcznym łataniu źródeł zrób `git -C <źródło> reset --hard`
+  i `clean -fd`, zanim podbijesz przypięcie (`U-170`).
+- **Kontener budujący potrzebuje FUSE.** `make` uruchamia podmana z
+  `--cap-add SYS_ADMIN --device /dev/fuse`. Ręczne `podman run` bez tych flag przewraca
+  budowanie obrazu na `installer: failed to install: No such file or directory` — wygląda
+  to jak regresja w projekcie i nią nie jest. Zanim zaczniesz bisektować własne zmiany,
+  powtórz błąd na **linii bazowej**: to, co wziąłem za regresję, było moim wywołaniem
+  (`U-170`).
 - **Przebudowa jednego przepisu nie wystarcza, gdy jego binarka jedzie w initfs.** Przepis
   `base` kopiuje `redoxfs` i inne do `initfs/bin/`, więc `make r.redoxfs` zostawia w initfs
   **starą** binarkę. Przebuduj `r.<przepis>` **i** `r.base`, a przed zaufaniem wynikowi
@@ -590,7 +620,8 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 
 | ID | Rzecz | Stan |
 |---|---|---|
-| `R-F19` | `unmount_path` zwraca `EPERM` przy zwalnianiu `file.redox_installer_<pid>`; gołe `?` melduje to jako *failed to install* i **przesłania wynik callbacku**. Zignorowanie błędu daje zakleszczenie w `join_handle.join()` — sprawdzone eksperymentalnie. | 🚧 P0, zdiagnozowane w `U-166`, niepoprawione |
+| `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
+| `R-F21` | `installer_tui.package_files()` czyta bazę pakietów ze starej ścieżki `/pkg`, której obraz **nie ma**; metadane leżą w `/var/lib/packages` (65 plików, zmierzone). Odsłonięte dopiero, gdy `U-170` przestało przykrywać wynik callbacku. | 🚧 P0 — nowy bloker `R-601` |
 | `R-F18` | Nośnik dzielący linię INTx z xHCI → burza przerwań (`virq 37` = 11 054 068), `rm -rf /tmp` trwa 80 s zamiast 1 s. Poprawka należy do `IrqReactor` w `xhcid`: wyczyścić `IMAN.IP` / `USBSTS.EINT` **przed** potwierdzeniem. | 🚧 P1, zmierzone |
 | `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
 

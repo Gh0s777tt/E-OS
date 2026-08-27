@@ -3,7 +3,7 @@
 git = "https://github.com/Gh0s777tt/eos-redoxfs.git"
 branch = "master"
 # U-081: vendored cpufeatures — from_utf8_unchecked -> validated from_utf8 (UB fix).
-rev = "555359ef616cedbf00387b9d5a14173270cd2101"
+rev = "58824d70a07b96e36456968723570bb8468e0dcf"
 
 [build]
 template = "custom"

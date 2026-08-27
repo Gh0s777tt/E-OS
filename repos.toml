@@ -64,7 +64,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
-pinned_rev    = "555359ef616cedbf00387b9d5a14173270cd2101"
+pinned_rev    = "58824d70a07b96e36456968723570bb8468e0dcf"
 
 [[repo]]
 name   = "eos-relibc"
@@ -113,7 +113,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/installer.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/installer"
 pinned_branch = "master"
-pinned_rev    = "ed6eb7cebe06bbc48869f86b4dd47a56956ecce2"
+pinned_rev    = "02be2b5857e846c7fc0a94dc091a4b6ba68109b9"
 
 [[repo]]
 name   = "eos-ion"

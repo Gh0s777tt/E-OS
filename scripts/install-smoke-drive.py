@@ -114,13 +114,20 @@ def login(con):
     if not con.expect(r"login:", "the login prompt"):
         return False
     con.send("root")
-    if con.expect(r"password", "the root password prompt", window=40):
+    # Every password pattern below REQUIRES the colon. A bare "password" also matches the
+    # login banner -- "Accounts: user * root - the first login makes you set a password" --
+    # which is printed after the login: prompt, so it lands after the mark and looks like a
+    # prompt to expect(). When that happened the driver typed "password" into the USERNAME
+    # field and the run died with "Login incorrect", 25 lines before anything interesting.
+    # Same class of defect as the whole-buffer expect() fixed in U-166: matching text that
+    # is not a prompt. Being specific is the fix; a longer timeout would not have helped.
+    if con.expect(r"password:", "the root password prompt", window=40):
         con.send("password")          # the shipped default the OOBE forces you off
     # R-602 forces a password change for any account still on the shipped default.
-    if con.expect(r"new password", "the first-boot password prompt", window=60):
+    if con.expect(r"new password:", "the first-boot password prompt", window=60):
         con.send(PASSWORD)
         time.sleep(1)
-        if con.expect(r"password", "the password confirmation", window=40):
+        if con.expect(r"password:", "the password confirmation", window=40):
             con.send(PASSWORD)
     return con.expect(r"root:.*#|:~#|\$", "a shell prompt", window=90)
 
