@@ -91,5 +91,52 @@ else
   echo "$out"
 fi
 
+
+# ── 8. Line endings stay as .gitattributes pins them (U-169 guard) ──────────
+# Twelve tracked files are stored with CRLF: CHANGELOG.md, and eleven vendored
+# cookbook files that no E-OS commit has ever touched. Nothing recorded that until
+# U-173, so an editor that rewrote CHANGELOG.md on save turned a one-line append
+# into a 2036-line whitespace diff (1018 insertions, 1018 deletions) and detached
+# `git blame` from every measurement those entries cite. That is what happened in
+# U-169, and it had to be spotted and reverted by hand.
+# .gitattributes stops GIT from converting these files; this check stops an EDITOR
+# from doing it, by failing the pre-push hook before the damage reaches a remote.
+# The list is read out of .gitattributes rather than restated here, so the two
+# cannot drift -- the same reasoning that makes check 6 derive its set from the
+# tree (eos-source-rules.sh) instead of hard-coding it.
+if [ ! -f .gitattributes ]; then
+  bad ".gitattributes is missing — line endings are unpinned (U-173)"
+else
+  cr=$(printf '\r')
+  pinned=$(awk '/^# --- eos:crlf-pinned ---$/{on=1;next} /^# --- end eos:crlf-pinned ---$/{on=0} on && $0 !~ /^#/ && NF {print $1}' .gitattributes)
+  eol_hits=""
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if [ ! -f "$f" ]; then
+      eol_hits="$eol_hits
+  $f — pinned in .gitattributes but not in the tree"
+    elif ! grep -q "$cr" "$f"; then
+      eol_hits="$eol_hits
+  $f — CRLF normalised away; do not commit that diff (see U-173)"
+    fi
+  done <<EOF
+$pinned
+EOF
+  # CHANGELOG.md is held to the stricter form: EVERY line ends CRLF. A partially
+  # normalised file — one LF-only line appended by a tool that got it wrong — still
+  # holds CRs elsewhere and would sail through the has-a-CR test above.
+  if [ -f CHANGELOG.md ]; then
+    lf_only=$(grep -cv "$cr\$" CHANGELOG.md 2>/dev/null || true)
+    if [ "${lf_only:-0}" -ne 0 ]; then
+      eol_hits="$eol_hits
+  CHANGELOG.md — $lf_only line(s) end LF, not CRLF"
+    fi
+  fi
+  if [ -n "$eol_hits" ]; then
+    bad "line endings no longer match .gitattributes:"; echo "$eol_hits"
+  else
+    ok "CRLF-pinned files keep their line endings"
+  fi
+fi
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

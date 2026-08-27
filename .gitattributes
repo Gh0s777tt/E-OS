@@ -1,0 +1,63 @@
+# Polityka końców linii — jedyne źródło prawdy dla konwersji EOL przez gita.
+# Odpowiednikiem po stronie edytora jest `.editorconfig` (`end_of_line = lf`); ten plik
+# świadomie go nadpisuje dla ścieżek wypisanych niżej, bo git i edytor pilnują dwóch
+# różnych rzeczy: edytor tego, co zapisujesz, git tego, co ląduje w obiekcie.
+#
+# Po co istnieje. `CHANGELOG.md` jest przechowywany z CRLF; 11 vendorowanych plików
+# przepisów też. Nic tego nie zapisywało, więc edytor normalizujący plik przy zapisie
+# zamieniał dopisanie jednej linii w różnicę **2036 linii** (1018 + / 1018 -, zmierzone)
+# i odrywał `git blame` od commitów, które cytowane w nich pomiary wykonały. Zdarzyło się
+# w `U-169` i trzeba było wyłapać to oraz cofnąć ręcznie. Wybór wariantu: wpis `U-173`.
+
+# ── Domyślnie: LF w repozytorium i w drzewie roboczym ───────────────────────
+# Poza dwunastoma plikami niżej cały śledzony tekst jest już LF, więc ta linia
+# zapisuje stan faktyczny, a nie go zmienia — `git status` po jej dodaniu jest czysty.
+* text=auto eol=lf
+
+# ── Łatki: bajt w bajt, wszędzie ────────────────────────────────────────────
+# Linie kontekstu unified diffa muszą pasować DOKŁADNIE. `recipes/games/eduke32/
+# redox.patch` niesie CRLF na 3 ze 158 linii (kontekst ` #ifdef _WIN32` w hunku
+# `compat.h`), a `recipes/wip/games/engines/love/redox.patch` na 8 z 47 — to jest
+# treść pobieranego źródła, nie formatowanie tego repo. Po `tr -d '\r'` hunk odrzucają
+# i `patch`, i `git apply` (zmierzone, `U-173`). Reguła obejmuje wszystkie 159 łatek:
+# `recipes/` (142), `patches/` (2) i `upstream/` (15) — te ostatnie trafiają na forki.
+*.patch -text
+
+# ── Vendorowany katalog przepisów: forma upstreamu ──────────────────────────
+# `recipes/` to drzewo cookbooka z upstreamu (§3: porty firm trzecich zostają na formie
+# upstreamu — każda kosmetyczna dywergencja wraca do przepisania przy każdej
+# synchronizacji). Żadnego z tych 11 plików z CRLF nie dotknął nigdy commit E-OS-a; to
+# bajty Redoksa. Reguła jest katalogowa, a nie listą, żeby następna synchronizacja
+# przynosząca plik z CRLF nie została znormalizowana po cichu — czyli dokładnie tak,
+# jak zaczęło się `U-169`.
+recipes/** -text
+
+# ── Zapis dowodowy projektu ─────────────────────────────────────────────────
+# `-text` znaczy „nie konwertuj w żadną stronę": git zapisuje i wypisuje dokładnie te
+# bajty, które są w pliku. To NIE jest `binary` — `git diff` pozostaje tekstowy.
+#
+# UWAGA: `CHANGELOG.md text eol=crlf` NIE dałoby tego samego. `text` normalizuje BLOB
+# do LF i odtwarza CRLF dopiero przy checkoucie, więc sam fakt dodania takiego wpisu
+# oznacza plik jako zmieniony (zmierzone: 3 wstawienia / 3 usunięcia na 3-liniowej
+# atrapie, czyli 2036 linii na prawdziwym pliku) i kasuje blame w tym samym ruchu,
+# przed którym ten plik ma chronić. Stąd `-text`, nie `eol=crlf`.
+#
+# Wszystko między znacznikami `eos:crlf-pinned` weryfikuje **kontrola 8** w
+# `scripts/ci-integrity.sh`: pada, jeśli któremuś z tych plików zniknie CRLF. Reguły
+# wyżej powstrzymują GITA przed konwersją; kontrola 8 powstrzymuje EDYTOR, bo bramka
+# zapala się przed pushem. Dopisując tu plik, dopisz go MIĘDZY znacznikami.
+#
+# --- eos:crlf-pinned ---
+CHANGELOG.md -text
+recipes/archives/zstd/01_redox.patch -text
+recipes/dev/rust/recipe.toml -text
+recipes/games/eduke32/redox.patch -text
+recipes/net/http/simple-http-server/recipe.toml -text
+recipes/wip/a11y/espeak-ng/recipe.toml -text
+recipes/wip/dev/lang/nodejs-24/01_redox.patch -text
+recipes/wip/games/engines/love/redox.patch -text
+recipes/wip/gnome/gnome-web/recipe.toml -text
+recipes/wip/net/http/miniserve/recipe.toml -text
+recipes/wip/shells/zsh/01_redox.patch -text
+recipes/wip/shells/zsh/recipe.toml -text
+# --- end eos:crlf-pinned ---

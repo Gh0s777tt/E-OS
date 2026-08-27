@@ -36,7 +36,7 @@ build  : build-image · build-image-x86_64
 
 ```sh
 make CI=1 ARCH=aarch64 CONFIG_NAME=eos all   # pełny obraz (w kontenerze)
-bash scripts/ci-integrity.sh                 # bramka niezmienników (5 kontroli)
+bash scripts/ci-integrity.sh                 # bramka niezmienników (8 kontroli)
 bash scripts/eos-repos.sh pins --strict      # zgodność pinów, 26 repo
 bash scripts/ci-boot-smoke.sh <obraz>        # dowód: boot dochodzi do `eos login:`
 bash scripts/repro-intx-lines.sh <obraz>     # strażnik regresji R-F16 (10 konfiguracji)
@@ -240,6 +240,12 @@ która zadziała zamiast niej (`U-151`, `U-157`, `U-166`).
   fakt wkładu* i prosi o **podpis kryptograficzny**, a **nie** o trailer `Signed-off-by:`.
 - **`repo/`, `build/`, `prefix/`, `recipes/*/source`, `recipes/*/target`** to artefakty —
   nie commituje się ich i nie traktuje jako źródła prawdy.
+- **Końce linii są przypięte w `.gitattributes`, nie zostawione nawykowi edytora.**
+  `CHANGELOG.md` i 11 vendorowanych plików przepisów są przechowywane z **CRLF**,
+  reszta drzewa z LF. Nie normalizuj ich: przepisanie `CHANGELOG.md` na LF to różnica
+  **2036 linii**, która odrywa `git blame` od zapisu dowodowego, a w łatkach CRLF jest
+  **treścią** — po jego usunięciu hunk odrzucają `patch` i `git apply`. Zdarzyło się
+  w `U-169`; przypięte i obramkowane w `U-173` (kontrola 8 w `ci-integrity.sh`).
 
 ## 6. Pomysły na podnoszenie poprzeczki
 
@@ -487,7 +493,7 @@ opublikowaną zawartość** (`U-158`).
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (7 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (8 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
@@ -510,6 +516,7 @@ nie może zapalić się na czerwono, nie istnieje.
 | **spadek pokrycia testami** | ✅ **działa** (`U-168`) — `coverage` gatuje `tools/eos-repo-sign` progiem 38% (zmierzona baza 38,84%); vendorowany manifest raportowany, nie gatowany |
 | **typ repo niezgodny z tym, co fork faktycznie niesie** | ✅ **działa** (`U-169`) — `mirror-drift` porównuje `type` z `repos.toml` z pomiarem na forku i **pada**; offline'owy odpowiednik to kontrola 7 (`CLAUDE.md` §11 vs `repos.toml`) |
 | **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
+| **ciche znormalizowanie końców linii** | ✅ **działa** (`U-173`, kontrola 8) — `.gitattributes` powstrzymuje gita, kontrola 8 edytor: pada przed pushem, nazywając plik, któremu zniknął CRLF |
 | **konflikt rebase łatek** | ⚠️ **doradcze** (`U-169`) — `rebase-check` wykrywa konflikt przez `git merge-tree`, ale nie blokuje: ruch upstreamu to nie nasza usterka, chodzi o to, by dowiedzieć się **teraz**, a nie przy następnej synchronizacji |
 | **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
 
