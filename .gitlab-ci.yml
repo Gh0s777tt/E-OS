@@ -148,6 +148,65 @@ shell-lint:
     - echo "--- blocking (errors only) ---"
     - shellcheck -f gcc -S error scripts/*.sh
 
+# Coverage, gated on E-OS-OWNED code only. Measured baseline (U-168):
+#   tools/eos-repo-sign  38.84% lines
+#   redox_cookbook (root) 2.92% lines
+# The root crate is the VENDORED upstream build engine (CLAUDE.md 11, type B). Holding it
+# to an E-OS coverage bar would mean writing tests for somebody else's code and carrying
+# the divergence forever, so it is reported and not gated. The floor below is set just
+# under the measured value: it exists to catch a REGRESSION, not to certify 38% as good.
+# Verified that it can actually fail -- at --fail-under-lines 60 this job exits non-zero.
+coverage:
+  stage: test
+  image: rust:slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - rustup component add llvm-tools-preview
+    - cargo install cargo-llvm-cov --locked
+    - echo "--- advisory: vendored redox_cookbook ---"
+    - cargo llvm-cov --manifest-path Cargo.toml --summary-only || true
+    - echo "--- blocking: E-OS-owned tools/eos-repo-sign ---"
+    - cargo llvm-cov --manifest-path tools/eos-repo-sign/Cargo.toml --summary-only --fail-under-lines 38
+
+# SBOM for the crates E-OS builds itself. sbom/ already carries image-level documents
+# (eos-<ver>-<arch>.cdx.json) but nothing regenerated them, so they aged silently. This
+# produces a CycloneDX document per manifest as a pipeline artefact; signing it is R-011
+# and needs a key, which is an operator action (CLAUDE.md 5).
+sbom:
+  stage: test
+  image: rust:slim
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - cargo install cargo-cyclonedx --locked
+    - cargo cyclonedx --manifest-path tools/eos-repo-sign/Cargo.toml --format json
+    - cargo cyclonedx --manifest-path Cargo.toml --format json
+    - mkdir -p sbom-out && find . -name '*.cdx.json' -not -path './sbom/*' -exec cp {} sbom-out/ \;
+    - ls -la sbom-out/
+  artifacts:
+    paths: [sbom-out/]
+    expire_in: 30 days
+
+# rustdoc for the E-OS-owned crate. Published as an artefact rather than merged into
+# `pages`, which mdBook already owns; wiring the two together is a docs task, not a
+# reason to leave the API undocumented in the meantime.
+rustdoc:
+  stage: docs
+  image: rust:slim
+  needs: []
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  script:
+    - cargo doc --no-deps --manifest-path tools/eos-repo-sign/Cargo.toml
+  artifacts:
+    paths: [tools/eos-repo-sign/target/doc/]
+    expire_in: 30 days
+
 # ──────────────────────────────  LIGHT: docs  ──────────────────────────────
 pages:
   stage: docs

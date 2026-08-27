@@ -459,8 +459,9 @@ nie może zapalić się na czerwono, nie istnieje.
 | błędy shellcheck w `scripts/` | ✅ **działa** (ostrzeżenia jeszcze doradcze) |
 | niezgodność pinów | ✅ **działa** (`pins --strict`) |
 | składnia bash 4 na hoście z bash 3.2 | ✅ **działa** (kontrola 5) |
-| **spadek pokrycia testami** | ❌ **BRAK** — nie ma żadnego narzędzia pokrycia (§16) |
+| **spadek pokrycia testami** | ✅ **działa** (`U-168`) — `coverage` gatuje `tools/eos-repo-sign` progiem 38% (zmierzona baza 38,84%); vendorowany manifest raportowany, nie gatowany |
 | **niezgodność lustra z upstreamem** | ❌ **BRAK** — `sync-forks.sh` istnieje, bramki nie ma |
+| **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
 | **konflikt rebase łatek** | ❌ **BRAK** — nic nie sprawdza rebaseowalności typu C |
 | **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
 
@@ -503,13 +504,13 @@ uzasadnienie **oraz plan usunięcia**.
 
 | Cel | Stan |
 |---|---|
-| `docs/architecture/` z diagramami **Mermaid** | ❌ jest płaski `docs/architecture.md` |
-| `docs/THREAT_MODEL.md` | ⚠️ jest `docs/threat-model.md` (inna wielkość liter) |
-| `docs/adr/` — decyzje architektoniczne (ADR) | ❌ brak katalogu; uzasadnienia żyją we wpisach `U-NNN` |
+| `docs/architecture/` z diagramami **Mermaid** | ✅ **jest** (`U-168`): topologia repozytoriów i ścieżka budowania, wpisane do `SUMMARY.md` |
+| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§2 reguła 4) |
+| `docs/adr/` — decyzje architektoniczne (ADR) | ✅ **jest** (`U-168`): szablon + ADR-0001…0004 wyciągnięte z realnych decyzji; CHANGELOG pozostaje dowodem |
 | `docs/hardware/` — macierz kompatybilności | ⚠️ jest `docs/hardware-matrix.md` + `HARDWARE.md` |
 | CHANGELOG generowany z Conventional Commits | ⚠️ `semantic-release` jest w CI, ale wpisy `U-NNN` pisane są ręcznie i **niosą dowody** — automat ich nie zastąpi |
 | Dokumentacja HTML ze zrzutami z QEMU | ⚠️ mdBook + `assets/screenshots/`; **MkDocs nie jest używany** |
-| `rustdoc` dla API | ❌ brak zadania CI publikującego rustdoc |
+| `rustdoc` dla API | ✅ **jest** (`U-168`): zadanie `rustdoc` publikuje dokumentację `tools/eos-repo-sign` jako artefakt |
 
 ## 16. Testowanie
 
@@ -526,7 +527,7 @@ w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU aarch64),
 - **`cargo-fuzz`** dla parserów wejścia niezaufanego (matcher katalogu sterowników,
   `repo.toml`, deskryptory HID) — ❌ brak.
 - **`miri`** dla kodu `unsafe` — ❌ brak.
-- **Pokrycie (`cargo-llvm-cov` lub `tarpaulin`)** wraz z bramką na spadek — ❌ brak.
+- **Pokrycie (`cargo-llvm-cov`)** — ✅ **jest** (`U-168`). Zmierzone: `tools/eos-repo-sign` **38,84%**, vendorowany cookbook **2,92%**. Bramka obejmuje wyłącznie kod własny; próg 38% ma łapać **regresję**, a nie certyfikować 38% jako dobry wynik. Sprawdzone, że potrafi paść (przy progu 60% kończy się błędem).
 
 ## 17. Wydania — odtwarzalność i łańcuch dostaw
 
@@ -539,8 +540,9 @@ i podpisany (`v0.2.0`), pipeline `semantic-release`.
 - **Build odtwarzalny** — ten sam wejściowy commit daje bit w bit ten sam obraz.
   ⚠️ Dziś **nie jest zweryfikowany**, a `.config`/`cookbook.lock` poza gitem wprost temu
   przeczą (§9, `R-F20`).
-- **SBOM (`cargo-cyclonedx`)** — ⚠️ katalog `sbom/` istnieje, ale generowanie nie jest
-  wpięte w CI.
+- **SBOM (`cargo-cyclonedx`)** — ✅ **wpięty** (`U-168`): zadanie `sbom` generuje CycloneDX
+  1.3 dla obu manifestów jako artefakt (zweryfikowane: 47 komponentów dla
+  `eos-repo-sign`). SBOM-y obrazów w `sbom/` nadal powstają ręcznie.
 - **Podpis artefaktów (`cosign`)** — ❌ brak; dziś minisign.
 - **Podpisany obraz ISO** — ❌ brak; obraz to `harddrive.img`, ISO nie jest publikowane.
 

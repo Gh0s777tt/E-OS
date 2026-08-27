@@ -10,6 +10,9 @@
 - [Packages](packages.md)
 - [Forks & vendored components](forks.md)
 - [Architecture](architecture.md)
+  - [Diagrams](architecture/README.md)
+    - [Repository topology](architecture/topologia-repozytoriow.md)
+    - [Build path](architecture/sciezka-budowania.md)
 - [Hardware support](hardware-matrix.md)
 - [Hardware bring-up (aarch64)](hardware-bringup.md)
 - [Known issues](known-issues.md)
@@ -31,6 +34,12 @@
 
 - [Security guide](security.md)
 - [Threat model](threat-model.md)
+- [Decision records (ADR)](adr/README.md)
+  - [Template](adr/0000-szablon.md)
+  - [ADR-0001 GitLab as source of truth](adr/0001-gitlab-jako-zrodlo-prawdy.md)
+  - [ADR-0002 Build forks from source](adr/0002-budowanie-z-forkow-nie-z-binarek-upstreamu.md)
+  - [ADR-0003 Vendored code stays upstream-shaped](adr/0003-vendorowany-kod-zostaje-na-formie-upstreamu.md)
+  - [ADR-0004 Hybrid manifest signature](adr/0004-hybrydowy-podpis-manifestu.md)
 - [Hardening guide](hardening.md)
 - [Disk encryption](encryption.md)
 

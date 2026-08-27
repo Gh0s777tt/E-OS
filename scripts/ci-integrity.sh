@@ -61,5 +61,24 @@ if [ -n "$hits" ]; then
   bad "bash-4-only syntax in scripts/ (the dev host has bash 3.2):"; echo "$hits"
 else ok "no bash-4-only syntax in E-OS scripts"; fi
 
+# 6) Every E-OS-forked recipe is pinned to build from its fork (R-F20).
+# .config sets REPO_BINARY=1, which makes cookbook DOWNLOAD <recipe>.pkgar from
+# static.redox-os.org unless cookbook.lock carries an fsrule = "source" exception. Those
+# exceptions were hand-maintained and rotted: 13 of 26 forked recipes had been missed, so
+# pkg-lib's manifest-signature verification -- R-703's client half -- was absent from the
+# image while every document called it implemented (U-164). cookbook.lock is tracked as of
+# U-168 precisely so this is reviewable, and eos-source-rules.sh derives the expected set
+# from the tree rather than restating it.
+if [ -f cookbook.lock ]; then
+  if out=$(bash scripts/eos-source-rules.sh 2>&1); then
+    ok "every E-OS-forked recipe builds from its fork"
+  else
+    bad "recipes with an E-OS fork are not pinned to source (they would be downloaded):"
+    echo "$out"
+  fi
+else
+  bad "cookbook.lock is missing — the build would silently download upstream binaries"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

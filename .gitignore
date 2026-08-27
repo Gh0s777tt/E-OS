@@ -14,7 +14,10 @@
 /repo
 /web
 /cookbook.toml
-/cookbook.lock
+# /cookbook.lock -- NIE ignorowany od U-168. Ten plik decyduje, które przepisy budują
+# sie ze zrodla, a ktore sa pobierane jako gotowe pakiety upstreamu. Trzymany poza
+# gitem sprawial, ze swiezy klon budowal INNY obraz niz to drzewo, a reczne wyjatki
+# gnily -- 13 z 26 przepisow z forkiem E-OS bylo pominietych (R-F20, U-164).
 source
 source.tmp
 source-new

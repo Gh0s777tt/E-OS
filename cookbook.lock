@@ -1,0 +1,86 @@
+# This file is generated automatically.
+# All configuration here overrides anything from recipes or config directory.
+
+[recipes.base]
+fsrule = "source"
+
+[recipes.bootloader]
+fsrule = "source"
+
+[recipes.coreutils]
+fsrule = "source"
+
+[recipes.eos-control]
+fsrule = "source"
+
+[recipes.eos-guard]
+fsrule = "source"
+
+[recipes.eos-notes]
+fsrule = "source"
+
+[recipes.eos-sysmon]
+fsrule = "source"
+
+[recipes.extrautils]
+fsrule = "source"
+
+[recipes.installer]
+fsrule = "source"
+
+[recipes.installer-gui]
+fsrule = "source"
+
+[recipes.ion]
+fsrule = "source"
+
+[recipes.kernel]
+fsrule = "source"
+
+[recipes.liborbital]
+fsrule = "source"
+
+[recipes.netdb]
+fsrule = "source"
+
+[recipes.netutils]
+fsrule = "source"
+
+[recipes.orbclient]
+fsrule = "source"
+
+[recipes.orbdata]
+fsrule = "source"
+
+[recipes.orbital]
+fsrule = "source"
+
+[recipes.orbterm]
+fsrule = "source"
+
+[recipes.orbutils]
+fsrule = "source"
+
+[recipes.pkgar]
+fsrule = "source"
+
+[recipes.pkgutils]
+fsrule = "source"
+
+[recipes.redox-fatfs]
+fsrule = "source"
+
+[recipes.redoxer]
+fsrule = "source"
+
+[recipes.redoxfs]
+fsrule = "source"
+
+[recipes.relibc]
+fsrule = "source"
+
+[recipes.userutils]
+fsrule = "source"
+
+[recipes.xz]
+fsrule = "source"
