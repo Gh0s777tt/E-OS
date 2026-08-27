@@ -113,7 +113,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/installer.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/installer"
 pinned_branch = "master"
-pinned_rev    = "e409d3220b9bce6ced529a5676cd7768c2454dc9"
+pinned_rev    = "c8d32ad39e5c778fb8aec51c953f2898d9e55495"
 
 [[repo]]
 name   = "eos-ion"

@@ -2,7 +2,7 @@
 # E-OS vendored mirror of redox-os/installer (edit freely; sync via scripts/sync-forks.sh).
 git = "https://github.com/Gh0s777tt/eos-installer.git"
 branch = "master"
-rev = "e409d3220b9bce6ced529a5676cd7768c2454dc9"
+rev = "c8d32ad39e5c778fb8aec51c953f2898d9e55495"
 
 [build]
 template = "cargo"

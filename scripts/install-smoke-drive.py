@@ -78,7 +78,7 @@ class Console:
         """Freeze a point in the stream; expect() only looks at output after it."""
         self.marker = len(self.buf)
 
-    def expect(self, pattern, what, window=None):
+    def expect(self, pattern, what, window=None, optional=False):
         """Wait for `pattern` in output produced AFTER the last mark().
 
         Searching the whole accumulated buffer is the bug that made the first version of
@@ -98,7 +98,11 @@ class Console:
                 print("install-smoke:   saw %s" % what)
                 self.mark()
                 return True
-        print("install-smoke: FAIL — timed out waiting for %s" % what)
+        # A check that cannot fail the run must not print FAIL. Two progress observations
+        # here -- the ESP write and the install starting -- have their results discarded by
+        # the caller, and printing FAIL for them taught the reader to skim past the word in
+        # a log that PASSED. That is how a real failure gets missed.
+        print("install-smoke: %s %s" % ("(not seen)" if optional else "FAIL — timed out waiting for", what))
         return False
 
     def expect_either(self, choices, what, window=None):
@@ -224,8 +228,13 @@ def run_install(con):
     # Order matters and mine was wrong at first: the ESP -- and therefore BOOTAA64.EFI --
     # is written BEFORE the RedoxFS partition, so expecting it afterwards produced a false
     # FAIL on a run that had got further than any before it.
-    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=120)
-    con.expect(r"Installing to RedoxFS partition", "the RedoxFS install starting", window=120)
+    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=120, optional=True)
+    # Two install paths print two different things, and expecting only the slow one made a
+    # PASSING run print a FAIL line. The fast path (try_fast_install, block copy out of the
+    # live disk in RAM) announces itself and then reports percentages; the slow path walks
+    # files. Accept either, and say which was taken -- that is the interesting bit.
+    con.expect(r"fast install: live disk at|Installing to RedoxFS partition",
+               "the install starting (fast or file-by-file)", window=120, optional=True)
 
     # Race the two outcomes instead of waiting out a failure window first. Once the copy
     # phase genuinely runs it moves 13679 files, so the old "expect failure for 180s, then
