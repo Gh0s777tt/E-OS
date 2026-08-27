@@ -196,9 +196,9 @@ coverage:
   script:
     - rustup component add llvm-tools-preview
     - cargo install cargo-llvm-cov --locked
-    - echo "--- advisory: vendored redox_cookbook ---"
+    - 'echo "--- advisory: vendored redox_cookbook ---"'
     - cargo llvm-cov --manifest-path Cargo.toml --summary-only || true
-    - echo "--- blocking: E-OS-owned tools/eos-repo-sign ---"
+    - 'echo "--- blocking: E-OS-owned tools/eos-repo-sign ---"'
     - cargo llvm-cov --manifest-path tools/eos-repo-sign/Cargo.toml --summary-only --fail-under-lines 38
 
 # SBOM for the crates E-OS builds itself. sbom/ already carries image-level documents
