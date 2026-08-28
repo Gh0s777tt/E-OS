@@ -25,6 +25,7 @@
 - [Creating an E-OS app](creating-an-eos-app.md)
 - [CI/CD & automation](ci.md)
 - [Tokeny — wszystko za jednym posiedzeniem](tokeny.md)
+- [Droga z QEMU na prawdziwy komputer](plan-do-sprzetu.md)
 - [Maintenance & operations](MAINTENANCE.md)
 
 # Stability

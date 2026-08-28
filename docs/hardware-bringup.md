@@ -87,7 +87,17 @@ says nothing about board-specific peripherals.
   result. The proof that settled it: an unconditional `panic!` on the first line of
   `redoxfs`'s `main()`, after which the boot still reached a login prompt.
 
-  **`R-F18`, still open — a shared-INTx interrupt storm.** Adding a *time-to-login*
+  **`R-F18` — a shared-INTx interrupt storm. FIXED (`U-180`), and this passage used to say
+  "still open" long after it was not.** The cause was in the driver, not the kernel and not
+  `xhcid`: `drivers/executor` acknowledged an interrupt *before* checking whether its own
+  device had reported anything, and since acking is what unmasks the line, a driver was
+  releasing a level-triggered line for an interrupt that was never its own. Measured on the
+  shared line: **16,829,830 → 8** interrupts, and the reproducer's worst row **160s → 16s**.
+  Note also that it was never an xHCI problem — two NVMes sharing a line storm just the same
+  (`U-179`). The historical description below is kept because the symptom is what you would
+  see on metal if it ever regressed.
+
+  **Original text, as measured at the time:** Adding a *time-to-login*
   column to the regression guard turned up a separate defect, and `U-155` measured it to
   the root. A second NVMe sharing a line with `virtio-net` or `virtio-rng` boots in
   **16s**; sharing the **xHCI controller's** line takes **122s**. The gap is one init
