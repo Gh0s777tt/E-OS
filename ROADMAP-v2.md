@@ -26,9 +26,51 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 
 ---
 
-## 1. Sterowniki — co mamy, czego brakuje, co zbudować
+## 1. Rdzeń systemu E-OS — gdzie jest sam system
 
-### 1.1 Co JEST w obrazie (zmierzone w `base.pkgar`, obie architektury)  ✅
+Zanim sterowniki i aplikacje: **stan samego systemu operacyjnego** — jądro, rozruch,
+instalacja, desktop, pakiety, aktualizacje. To on decyduje, czy reszta ma na czym stać.
+
+### 1.1 Kamienie milowe (wydania)
+
+| wersja | co wnosi | stan |
+|---|---|---|
+| **v0.1.0 „Genesis"** | baza Redox na nowym upstreamie, boot do logowania, licencja AGPL | ✅ osiągnięte |
+| **v0.2.0 „Identity"** | desktop **Crimson**, OOBE (hasło), branding, przebrandowane ciągi | 🟡 otagowane, dwie pozycje otwarte |
+| **v0.3.0 „Fortify"** | **podpisane obrazy, SBOM, reprodukowalny pipeline wydań** | 🔴 planowane |
+| **v0.4.0 „Reach"** | parytet **x86_64**, macierz sprzętowa, pełne pokrycie sterowników | 🔴 planowane |
+| **v1.0.0 „Prime"** | **stabilne ABI**, polityka LTS, repozytorium pakietów | 🔴 horyzont |
+
+### 1.2 Filary rdzenia — co jest zrobione w tej sesji, co czeka
+
+| filar | co to daje | gdzie | stan |
+|---|---|---|---|
+| **Jądro (mikrojądro Rust)** | naprawione GIC/INTx (`R-F16`/`R-F18`), stabilny rozruch aarch64 | 🖥️ Mac | ✅ |
+| **Rozruch → instalacja → login** | `R-601` **UDOWODNIONE** — partycja → instalacja → reboot → login, **3× z rzędu** pod QEMU | 🖥️ Mac | ✅ |
+| **x86_64** | buduje **i bootuje** pod TCG (`U-172`) — parytet architektur w zasięgu | 🖥️ Mac → ⚙️ metal | 🟡 |
+| **Desktop Crimson** | greeter, launcher, taskbar, tray, powiadomienia — **w obrazie**, zweryfikowane w binarce | 🖥️ Mac | ✅ |
+| **OOBE (pierwszy start)** | wymuszenie hasła **działa i jest zweryfikowane**; tożsamość per-maszyna (hostname/locale/klucze SSH) — do zrobienia (`R-602`/`R-606`) | 🖥️ Mac | 🟡 |
+| **Szyfrowanie dysku (FDE)** | RedoxFS AES-XTS z akceleracją ARMv8 Crypto (`R-502`) | 🖥️ Mac | ✅ |
+| **Podpisy post-kwantowe** | hybryda ed25519 + ML-DSA-65 (`R-503`), klucz **wygenerowany i przypięty** w obrazie (`U-196`/`U-197`) | 🖥️ Mac | ✅ |
+| **Repozytorium pakietów** | źródło `50_eos` **przygotowane, nieaktywne** (wskazywałoby w 404, `U-199`); pierwsza podpisana publikacja `R-008` — artefakt zbudowany, czeka na push | 🖥️ Mac + operator | 🟡 |
+| **Weryfikacja podpisu u klienta** | kod w obrazie, klucz przypięty; ścieżka zamykająca niesprawdzona na żywo do czasu `R-008`+`R-701` | 🖥️ Mac | 🟡 |
+| **Demon aktualizacji `eos-update`** | transakcyjne wgrywanie z wycofaniem (`R-705`), anti-rollback (`R-704`), apply-on-reboot (`R-707`) | 🖥️ Mac | 🔴 |
+| **Reprodukowalny pipeline wydań** | tag → obraz → wydanie (`R-303`); wymaga tokenu GitLab (działanie operatora) | 🐧 CI + operator | 🟡 |
+| **Gałąź LTS + polityka stabilności** | stabilne ABI dopiero przy 1.0 (`R-1002`) | 🖥️ Mac | 🔴 |
+| **Podpisany bootloader / Secure Boot** | instalacja bez wchodzenia do BIOS-u (`R-F27`) — dziś niepodpisany | 🐧/⚙️ | 🔴 |
+
+### 1.3 Znana niestabilność, powiedziana wprost
+- **`R-F23`** — E-OS wywraca się pod akceleracją sprzętową `hvf` na Apple Silicon pod obciążeniem,
+  dlatego cały pomiar idzie pod emulacją TCG (~2× wolniej).
+- **`R-601` udowodnione wyłącznie pod QEMU/TCG** — na fizycznym firmware (`R-607`) jeszcze nie.
+- **Klucz podpisujący wydania (minisign) jest utracony** (`R-F26`) — rotacja zalecana zanim
+  pojawią się realni użytkownicy.
+
+---
+
+## 2. Sterowniki — co mamy, czego brakuje, co zbudować
+
+### 2.1 Co JEST w obrazie (zmierzone w `base.pkgar`, obie architektury)  ✅
 
 | kategoria | sterowniki w obrazie | uwaga |
 |---|---|---|
@@ -49,14 +91,14 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 | **Dźwięk** | `ihdad` (Intel HDA), `ac97d`/`sb16d` (x86_64) | `ihdad` — codec RIRB timeout blokuje dźwięk w QEMU |
 | **RAID-1** | `raid1d` | **autorski komponent E-OS**, nie upstream; tryb zdegradowany, resync |
 
-### 1.2 Martwe wpisy do posprzątania (`R-803`)  🟡
+### 2.2 Martwe wpisy do posprzątania (`R-803`)  🟡
 
 Na **aarch64** obraz wiezie pliki `pcid.d/ac97d.toml`, `vboxd.toml` oraz initfs `ahcid`/`ided`,
 których **binaria nie istnieją** dla tej architektury (Makefile kopiuje wszystkie `config.toml`
 bez względu na architekturę). To nie awaria, ale bałagan, który każe zgadywać. **Zadanie:**
 warunkowe kopiowanie `pcid.d` po architekturze.
 
-### 1.3 Sterowniki dysków — co zbudować, co to daje
+### 2.3 Sterowniki dysków — co zbudować, co to daje
 
 | poz. | co zbudować | co to daje | gdzie | stan |
 |---|---|---|---|---|
@@ -67,7 +109,7 @@ warunkowe kopiowanie `pcid.d` po architekturze.
 | **V2-D05** | **USB4 / Thunderbolt storage** (`R-932`) | zewnętrzne obudowy NVMe, hot-plug PCIe | ⚙️ wymaga krzemu | 🔴 |
 | **V2-D06** | **UFS** (Universal Flash Storage) | pamięć w nowoczesnych urządzeniach mobilnych | ⚙️ wymaga krzemu | 🔴 brak w roadmapie w ogóle |
 
-### 1.4 Nowe technologie — magistrale, które blokują resztę
+### 2.4 Nowe technologie — magistrale, które blokują resztę
 
 | poz. | co | co odblokowuje | gdzie | stan |
 |---|---|---|---|---|
@@ -77,24 +119,24 @@ warunkowe kopiowanie `pcid.d` po architekturze.
 
 ---
 
-## 2. Co da się z Maca, co wymaga Linuksa, co wymaga sprzętu
+## 3. Co da się z Maca, co wymaga Linuksa, co wymaga sprzętu
 
 To rozstrzyga, **czego można dotknąć dziś**, a co czeka na inny host albo na fizyczny komputer.
 
-### 2.1 🖥️ Da się z tego Maca (podman + QEMU/TCG)
+### 3.1 🖥️ Da się z tego Maca (podman + QEMU/TCG)
 - Zbudować **i uruchomić** obraz **aarch64** — pełna, sprawdzona ścieżka.
 - Zbudować i uruchomić **x86_64** pod emulacją TCG (wolno, ale działa od `U-172`).
 - Zbudować bazowe aplikacje COSMIC (`cosmic-edit`/`files`/`term`).
 - Wypalić pendrive z `redox-live.iso` (`dd` — każdy host to potrafi).
 - Cały samosprawdzający się toolchain (bramki, podpisy, reproducery).
 
-### 2.2 🐧 Wymaga Linuksa (lub Windows + WSL2)
+### 3.2 🐧 Wymaga Linuksa (lub Windows + WSL2)
 - **Rozszerzone aplikacje COSMIC** (`cosmic-store`/`settings`/`reader`) — ich `fontconfig → host:gperf`
   toolchain jest publikowany **tylko** dla `x86_64-linux`; na tym aarch64-Macu daje 404.
 - **Szybka, akcelerowana emulacja (KVM)** — macOS ma tylko `hvf`, który wywraca się pod obciążeniem
   (`R-F23`) i daje ~1,9×; sensowna szybkość x86_64 CI wymaga runnera z KVM.
 
-### 2.3 ⚙️ Wymaga fizycznego sprzętu
+### 3.3 ⚙️ Wymaga fizycznego sprzętu
 - **Pierwszy rozruch na metalu** — nic tu nigdy nie działało na sprzęcie.
 - Dowód, że x86_64 działa na realnym pececie (zbudowane i boot-smoke pod emulacją, ale nie na metalu).
 - Walidacja `vesad`/GOP, NVMe/AHCI, `xhcid`, kart sieciowych — to ma sens dopiero na firmware.
@@ -102,14 +144,14 @@ To rozstrzyga, **czego można dotknąć dziś**, a co czeka na inny host albo na
 
 ---
 
-## 3. `eos-guard` → pakiet bezpieczeństwa
+## 4. `eos-guard` → pakiet bezpieczeństwa
 
-### 3.1 Co `eos-guard` robi DZIŚ (zmierzone w binarce)  ✅
+### 4.1 Co `eos-guard` robi DZIŚ (zmierzone w binarce)  ✅
 Kontroler integralności plików: hashuje `blake3` pliki w `/usr/bin` i `/etc`, trzyma wzorzec w
 SQLite, na żądanie skanuje i klasyfikuje Ok/New/Modified/Removed, ostrzega o setuid, wykrywa
 własną manipulację. GUI w Slint. **To wszystko** — jednozadaniowy, nie pakiet.
 
-### 3.2 Czego brakuje do pakietu, i co jest **realne**
+### 4.2 Czego brakuje do pakietu, i co jest **realne**
 Kluczowe ustalenie: **większość narzędzi „recon" i „blue team" to czysty user-space** — E-OS ma
 schematy `tcp:`, `udp:`, `icmp:`, `file:`, a `argon2` jest już w drzewie. Ale trzy klasy są
 **zablokowane brakiem prymitywu**, i trzeba to powiedzieć wprost, zamiast obiecywać.
@@ -151,7 +193,7 @@ schematy `tcp:`, `udp:`, `icmp:`, `file:`, a `argon2` jest już w drzewie. Ale t
 > przez klienty HTTPS, po prymitywy, które trzeba najpierw **dołożyć do systemu** (capture, hot-plug).
 > „Ransomware simulator (safe lab)" i „CSRF demo lab" są bezpieczne jako aplikacje edukacyjne.
 
-### 3.3 Kolejność (`V2-S`)
+### 4.3 Kolejność (`V2-S`)
 - **V2-S01** 🖥️ — biblioteka `tcp:`/`udp:`/`icmp:` + pierwsze CLI: port scan, DNS, ping, whois, banner.
 - **V2-S02** 🖥️ — plik+CPU: hash calculator, metadata extractor, YARA/Sigma matcher, log analyzer.
 - **V2-S03** 🖥️ — klient HTTP(S) → website/SQLi/XSS/cert checker, URL/IOC reputation.
@@ -160,14 +202,14 @@ schematy `tcp:`, `udp:`, `icmp:`, `file:`, a `argon2` jest już w drzewie. Ale t
 
 ---
 
-## 4. `eos-notes` → szyfrowany notatnik
+## 5. `eos-notes` → szyfrowany notatnik
 
-### 4.1 Co `eos-notes` robi DZIŚ (zmierzone)  ✅
+### 5.1 Co `eos-notes` robi DZIŚ (zmierzone)  ✅
 Notatki tekstowe (tytuł + treść) w SQLite WAL, autozapis, lista w panelu, filtr podłańcuchem,
 usuwanie. GUI Slint. **Brak** Markdown, **brak** szyfrowania, tabów, tagów, linków, załączników.
 Do wielkiej listy życzeń jest bardzo daleko — i uczciwie to trzeba powiedzieć.
 
-### 4.2 **Część funkcji system już ma** — nie pisać ich od nowa
+### 5.2 **Część funkcji system już ma** — nie pisać ich od nowa
 To jest najważniejsze dla planu: kilka „funkcji notatnika" to naprawdę **funkcje systemu**, które
 wystarczy podłączyć.
 
@@ -180,7 +222,7 @@ wystarczy podłączyć.
 | Memory zeroization | crate `zeroize`, `Rust memory safety` — praktyka całego drzewa |
 | Izolacja procesów, IPC-only | **architektura mikrojądra** — już tak działa |
 
-### 4.3 Realna kolejność (`V2-Nx`), od fundamentu
+### 5.3 Realna kolejność (`V2-Nx`), od fundamentu
 | poz. | co | dlaczego tu |
 |---|---|---|
 | **V2-NT01** 🖥️ | **Markdown**: edycja, Live Preview, Source Mode, bloki kodu, tabele, listy, checklisty | rdzeń — bez tego reszta wisi w próżni |
@@ -200,7 +242,7 @@ wystarczy podłączyć.
 
 ---
 
-## 5. Co system ma „sam z siebie" (i co z tego wynika)
+## 6. Co system ma „sam z siebie" (i co z tego wynika)
 
 Pytanie z prośby: *czy system sam posiada niektóre z tych funkcji?* Tak — i to zmienia plan,
 bo część pracy to **podłączenie**, nie **napisanie**:
@@ -213,7 +255,7 @@ bo część pracy to **podłączenie**, nie **napisanie**:
 
 ---
 
-## 6. Zależności — co przed czym
+## 7. Zależności — co przed czym
 
 ```
 Etap 0: pierwszy rozruch na metalu (plan-do-sprzetu.md)
@@ -226,7 +268,7 @@ eos-notes: V2-NT01 Markdown → V2-NT02 szyfrowanie → NT03 organizacja → NT0
 
 ---
 
-## 7. Czego ten plan świadomie NIE obiecuje
+## 8. Czego ten plan świadomie NIE obiecuje
 
 - **Nic tu nie działało na sprzęcie.** Wszystko powyżej to prognoza z kodu i danych upstreamu,
   dopóki Etap 0 tego nie zmieni w pomiar.
