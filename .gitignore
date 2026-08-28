@@ -48,3 +48,14 @@ wget-log
 # macOS AppleDouble sidecars (._foo) — appear when the tree is copied through
 # macOS Finder onto exFAT/SMB; pure metadata noise on every other OS.
 ._*
+
+# ── repo-signing SECRET keys — never tracked, never staged ──────────────────────────
+# There was no entry here at all, so `keys/eos-repo-sign.secret.toml` would have been
+# untracked but NOT ignored: a plain `git add -A` would have staged the release signing key.
+# Ignoring it does not make committing it impossible (`git add -f` still works, and check 10
+# in ci-integrity.sh catches the material itself), but it removes the accident.
+keys/*.secret.toml
+keys/*secret*
+keys/*.key
+!keys/*.pub
+!keys/*.pub.toml

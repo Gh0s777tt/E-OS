@@ -86,3 +86,32 @@ disabled account-wide (see `ROADMAP.md`, R-004). Signing runs locally via the
 scripts above until the release + signing jobs move to GitLab CI (with the secret
 supplied as a masked/protected CI *file* variable). Rotate to a password-protected
 key for production releases.
+
+## Jedno polecenie (`U-184`)
+
+```bash
+scripts/eos-key-bootstrap.sh
+```
+
+Generuje parę hybrydową (ed25519 + ML-DSA-65), sprawdza, że sekret ma tryb `0600` i jest
+ignorowany przez gita, przypina połowę **publiczną** do `config/{aarch64,x86_64}/eos.toml`
+pod `/etc/pkg/eos-repo-sign.pub.toml`, i uruchamia bramki. Nie drukuje materiału klucza.
+
+**Dlaczego uruchamiasz to Ty, a nie asystent.** Klucz podpisujący jest korzeniem zaufania dla
+każdego pakietu, jaki E-OS kiedykolwiek wyda, a cała jego wartość polega na tym, że posiada go
+**dokładnie jedna strona**. Wszystko, co robi asystent, przechodzi przez wywołania narzędzi
+zapisywane w transkrypcie sesji — klucz wytworzony w ten sposób nigdy nie dałby się już
+zaświadczyć jako nieskopiowany, a „prawdopodobnie nieskopiowany" nie jest własnością, na
+której buduje się łańcuch dostaw.
+
+**Dlaczego nie w kontenerze budującym.** Toolchain Rusta żyje w wolumenie `eos-root`
+(`/root/.cargo/bin`), więc technicznie dałoby się tam wygenerować klucz. Skrypt **odmawia**:
+klucz zapisany z współdzielonej maszyny wirtualnej przez virtiofs to klucz, którego trybu
+`0600` nikt nie gwarantuje, którego czasem życia nie kontrolujesz i którego pochodzenia nie
+poświadczysz. Dla tego jednego pliku warto nalegać na host — skrypt powie dokładnie, czego
+brakuje (zwykle `rustup default stable`).
+
+**Kopia zapasowa jest natychmiastowa i nie ma odzyskiwania.** `eos-repo-sign keygen` celowo
+odmawia nadpisania istniejącego pliku, więc klucza nie da się „wygenerować ponownie w
+miejscu"; jego utrata oznacza ponowne obrazowanie każdego klienta, który przypiął połowę
+publiczną.

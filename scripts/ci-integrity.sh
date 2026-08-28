@@ -264,5 +264,39 @@ else
   ok "no image ships an active unauthenticated package source"
 fi
 
+# ── 10. no repo-signing SECRET material in anything tracked ─────────────────────────
+# The release-signing key is the root of trust for every package E-OS ships, and the only
+# thing protecting it is that exactly one party holds it. .gitignore had NO entry for it
+# until U-184, so keys/eos-repo-sign.secret.toml would have been untracked but not ignored
+# -- a plain `git add -A` would have staged it.
+#
+# Ignoring it removes the accident, not the possibility (`git add -f` still works), so this
+# checks the MATERIAL, not the filename: filenames can be changed, the shape of the secret
+# cannot. Two conditions must hold together, and that pairing is the whole point:
+#
+#   a `[secret_keys]` table header at the START of a line, AND
+#   an assignment of a long hex literal
+#
+# Either alone is a false positive. tools/eos-repo-sign/src/main.rs contains the literal
+# text "[secret_keys]" and "ml_dsa_65_seed" -- it is the code that WRITES them -- and a first
+# version of this check failed on exactly that file. keys/eos-repo-sign.pub.toml assigns long
+# hex too, under [public_keys], and is meant to be committed. A gate that fires on the tool
+# that implements the thing, or on the public half it is designed to ship, would be ignored
+# within a week.
+sec_hits=""
+for f in $(git ls-files 2>/dev/null); do
+  [ -f "$f" ] || continue
+  grep -qE '^\[secret_keys\]' "$f" 2>/dev/null || continue
+  grep -qE '=[[:space:]]*"[0-9a-fA-F]{32,}"' "$f" 2>/dev/null || continue
+  sec_hits="$sec_hits
+    $f"
+done
+if [ -n "$sec_hits" ]; then
+  bad "repo-signing SECRET material in tracked files — treat the key as compromised and rotate:"
+  echo "$sec_hits"
+else
+  ok "no repo-signing secret material in tracked files"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
