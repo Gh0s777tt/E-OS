@@ -48,11 +48,12 @@ shellcheck -S error scripts/*.sh             # blokujące; ostrzeżenia doradcze
 gitleaks detect --source . --no-banner --redact
 ```
 
-**Układ na dysku (po przeniesieniu, 2026-08-23):** to repo leży w
-`E-OS Project/E-OS/`, a obok stoi **40 katalogów `eos-*-<gałąź>/`** — kopie forków oraz
-`E-OS Github/` i `e-os-main/`, które **nie są repozytoriami git**. Katalog nadrzędny
-`E-OS Project/` też nie jest repo. Kopie obok **nie są źródłem prawdy** i nie buduje się
-z nich — build pobiera przypięte rewizje z lustra (§1.6, §11).
+**Układ na dysku (po uporządkowaniu, `U-186`):** `E-OS Project/` zawiera teraz
+**wyłącznie dwie pozycje** — to repozytorium w `E-OS/` oraz `_archiwum-migawek/`. Katalog
+nadrzędny **nie jest** repozytorium. W archiwum leży 80 nieaktualnych, rozpakowanych kopii
+forków (plus `e-os-main/`, czyli kopia tego repo), które wcześniej stały bezpośrednio obok i
+były przez to czytane jak źródło prawdy. **Nie są nim** — patrz §20.2. Build ich nie używa:
+pobiera przypięte rewizje (§1.6, §11).
 
 
 ## 1. Definicja ukończenia — nic nie wychodzi, dopóki wszystko poniżej nie jest prawdą
@@ -625,6 +626,85 @@ i podpisany (`v0.2.0`), pipeline `semantic-release`.
 8. **Łatka diagnostyczna żyje wyłącznie w drzewie build kontenera**, nigdy w forku, i jest
    cofana przed commitem — a obraz po cofnięciu przebudowany i sprawdzony `boot-smoke`.
 
+
+## 20. Higiena drzew — rób to na bieżąco, nie „potem"
+
+Ten rozdział powstał z pomiarów, nie z przeczucia. Każda reguła ma pod sobą konkretną
+usterkę, która realnie kosztowała czas.
+
+### 20.1 To repozytorium **nie jest** tym, z czego buduje `make`
+
+`make` buduje z `/work/redox` w wolumenie `eos-work` — **osobnego klonu** lustra GitHub.
+Nic ich automatycznie nie synchronizuje. Objaw rozjazdu jest **cichy**: `U-185` pokazał
+przypięcie klucza, które poprawnie trafiło do `config/aarch64/eos.toml` *tutaj*, podczas gdy
+build użył kopii *tam* — i obraz wyszedł bez klucza, **bez jednego błędu po drodze**.
+
+> **Przed każdym budowaniem, którego wynik ma coś dowodzić:**
+> ```
+> scripts/eos-sync-buildtree.sh          # pokaż różnice
+> scripts/eos-sync-buildtree.sh --apply  # wyrównaj
+> ```
+> Bez tego zdanie „obraz zawiera X" jest twierdzeniem o **nieznanym** drzewie.
+
+### 20.2 Katalogi `<fork>-<gałąź>/` są nieaktualnymi migawkami, nie źródłem prawdy
+
+Obok tego repozytorium leżało ~80 katalogów w rodzaju `eos-base-eos-july/`,
+`eos-kernel-master/`, zduplikowanych dodatkowo w `E-OS Github/`. **To nie są repozytoria
+gita** — to rozpakowane archiwa. Nie da się z nich pchać, nie widać w nich historii i
+**starzeją się w ciszy**: w `U-186` żaden z nich nie zawierał poprawek `R-F18` ani `R-F24`,
+choć obie były wypchnięte, a `eos-base-eos-july` odpowiadał rewizji `816546df^` — **jeden
+commit przed** przypięciem.
+
+Zostały przeniesione do `../_archiwum-migawek/` (przeniesione, nie usunięte) razem z
+`PRZECZYTAJ-MNIE.md` wyjaśniającym, czym są. Katalog projektu zawiera teraz **wyłącznie
+`E-OS/` i to archiwum**. Jeśli kiedyś znów pojawią się takie katalogi obok repozytorium —
+przenieś je tam od razu, zamiast czytać.
+
+> **Czytając kod forka, czytaj fork** — świeży klon albo `recipes/*/source` w drzewie
+> budowania po `--apply`. Migawka nadaje się do szybkiego zerknięcia i **do niczego więcej**.
+> Diagnoza postawiona na migawce po wypchnięciu poprawki będzie fałszywa.
+
+### 20.3 `recipes/*/source` nie jest czystym klonem upstreamu
+
+Cookbook nakłada tam łatki receptury. `git checkout -- .` w takim drzewie **usuwa je** i
+build pada w miejscu bez związku z przyczyną — w `U-185` na `unresolved imports
+nix::unistd::Group, User` w `nushell`. Żeby odzyskać czysty stan, **usuń `source/` i
+`target/`** i pozwól cookbookowi pobrać oraz załatać od nowa.
+
+### 20.4 Łatka diagnostyczna żyje wyłącznie w drzewie budowania
+
+Nigdy w forku, nigdy w commicie. Cofnij ją, **zanim** przypniesz nową rewizję — inaczej
+`git checkout <rev>` w drzewie receptury odmówi nadpisania i build stanie (`U-185`).
+Po cofnięciu przebuduj i przepuść boot-smoke, żeby wiedzieć, co naprawdę mierzysz.
+
+### 20.5 Po wypchnięciu zmiany w forku — domknij pętlę od razu
+
+W jednym ciągu, nie „przy okazji":
+
+1. `git push` do **obydwu** zdalnych (`origin` **i** `gitlab` — forki nie mają lustra, §1.6),
+2. zaktualizuj `pinned_rev` w `repos.toml` **oraz** `rev` w `recipes/*/recipe.toml`,
+3. `scripts/eos-repos.sh pins` — musi dać `drift=0`,
+4. `scripts/eos-sync-buildtree.sh --apply`,
+5. przebuduj i uruchom bramkę, która tę zmianę pokrywa.
+
+Pominięcie kroku 4 to dokładnie usterka z §20.1: pomiar dotyczy wtedy starego kodu.
+
+### 20.6 Sprawdź przyrząd, zanim uwierzysz w wynik
+
+`U-186`: audyt szukający „pracy, której nigdzie nie wypchnięto" porównywał pliki przez
+`git hash-object`. Dla pliku **spoza** repozytorium git nie stosuje filtrów z
+`.gitattributes`, więc plik z CRLF dostaje inny skrót niż jego znormalizowany odpowiednik w
+historii — i **każdy plik z CRLF wychodził jako „nieobecny"**. Poprawny wywołanie to
+`git hash-object --path <ścieżka-względna> <plik>`. Po korekcie: **0 z 3657** zamiast 6.
+
+> Zanim zgłosisz brak czegoś, **udowodnij, że przyrząd znajduje to, co istnieje** (§4.2).
+> Wynik negatywny z niesprawdzonego narzędzia to nie wynik.
+
+### 20.7 `pgrep` bez `-f` nie widzi długich nazw procesów
+
+macOS obcina `comm` do 15 znaków, więc `pgrep qemu-system-aarch64` **nigdy** nie trafia.
+W `U-181` każdy odczyt „qemu: 0" był fałszywy, a ja na tej podstawie uznałem żywe przebiegi
+za martwe i uruchamiałem kolejne, spowalniając te działające. Używaj `pgrep -f` albo `ps`.
 
 ## 19. TODO — czego naprawdę brakuje
 
