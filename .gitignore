@@ -59,3 +59,8 @@ keys/*secret*
 keys/*.key
 !keys/*.pub
 !keys/*.pub.toml
+# ...but never the macOS AppleDouble shadows. The two negations above re-admit anything
+# matching keys/*.pub.toml, and `._eos-repo-sign.pub.toml` matches it -- so the `._*` rule
+# further up was overridden and one such file got committed (U-196). A negation has to be
+# narrowed again straight afterwards, or it lets junk back in through the door it opened.
+keys/._*

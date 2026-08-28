@@ -146,12 +146,14 @@ if git ls-files --error-unmatch "$SEC" >/dev/null 2>&1; then
 fi
 echo "    integrity gate passes; the secret is not tracked"
 
+echo
+echo "Done. What exists now:"
+echo
+printf "  %s\n" "$SEC"
+echo "      the SECRET half - mode 0600, off-repo, NEVER commit or paste it"
 cat <<'DONE'
-
-Done. What exists now:
-
-  keys/eos-repo-sign.secret.toml   mode 0600, gitignored, NEVER commit or paste it
-  keys/eos-repo-sign.pub.toml      public half, safe to commit
+  keys/eos-repo-sign.pub.toml
+      the public half - safe to commit
   config/{aarch64,x86_64}/eos.toml now embed the public key at
                                    /etc/pkg/eos-repo-sign.pub.toml inside the image
 
