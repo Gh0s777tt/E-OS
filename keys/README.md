@@ -38,7 +38,7 @@ ed25519 + ML-DSA-65 (post-quantum, FIPS 204) signature via `tools/eos-repo-sign`
 be pinned **in the image**, so clients verify `repo.toml.sig` against it rather than
 one fetched from the repo host. Everything around it already exists: the publisher
 signs, and `pkg-lib` verifies (`manifest_sig::verify_manifest_ed25519`, reached via
-`verify_repo_manifest`, at the pinned `eos-pkgutils@cf36a01b`). What does **not**
+`verify_repo_manifest`, at the pinned `eos-pkgutils@14505ecd`). What does **not**
 exist is `eos-repo-sign.pub.toml` — this directory holds only `eos-release.pub`, the
 minisign *release* key, which is a different key for a different job. Without it the
 client warns and proceeds; with it, an unsigned or tampered index is a hard failure.
