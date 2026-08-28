@@ -746,6 +746,31 @@ type = "oneshot_async"
 #
 # The E-OS source (/etc/pkg.d/50_eos) lands with R-008 once the repo is signed and published,
 # and only then does R-702 pin the key. Order matters: see docs/plan.md §4.
+# ────────────────────  R-701: the E-OS package source  ────────────────────
+# The E-OS repo, signed with the key pinned above at /etc/pkg/eos-repo-sign.pub.toml.
+# Same shape as 50_redox below: pkg-lib's update_remotes() reads one URL per line and skips
+# lines beginning with '#', so a comment-only file parses cleanly and yields zero remotes.
+#
+# SHIPPED INERT ON PURPOSE, which is the whole reason the file exists at all: the URL is NOT
+# live yet. R-008 -- the first signed publish -- has not happened, and github.io returns 404
+# for it today (measured, U-199). Pointing a client at a 404 would turn every `pkg` operation
+# into a network error, so the line stays commented until there is something behind it.
+#
+# TO ENABLE, once R-008 has published: uncomment the URL, rebuild, and confirm on a booted
+# image that `pkg` fetches repo.toml AND verifies repo.toml.sig against the pinned key. A
+# missing or invalid signature must be FATAL (RepoManifestUnsigned / RepoManifestSigInvalid),
+# not a warning -- that fail-closed path is the one thing R-702 could not demonstrate without
+# a live source, so enabling this is what finally proves it. Note that check 9 in
+# ci-integrity.sh rejects any active package URL in an image config; enabling this source
+# means teaching that gate to tell OUR signed repo from an unauthenticated upstream one.
+[[files]]
+path = "/etc/pkg.d/50_eos"
+data = """
+# E-OS package source (R-701). Signed with the key at /etc/pkg/eos-repo-sign.pub.toml.
+# NOT enabled: the repository below has not been published yet (R-008).
+#https://gh0s777tt.github.io/eos-pkg-x86_64/pkg
+"""
+
 [[files]]
 path = "/etc/pkg.d/50_redox"
 data = """
