@@ -80,8 +80,18 @@ rebase-check:
 docs-currency:
   stage: verify
   image: alpine:3
+  # R-F12: this job used to trigger ONLY on merge_request_event. There have been zero merge
+  # requests in this project's history -- every commit went straight to main -- so it had
+  # never executed once. A gate that has never run is not a gate, it is a file. Running it on
+  # the default branch too makes it actually execute; the script already falls back to HEAD~1
+  # when there is no MR diff base, so no change was needed there.
+  #
+  # This does NOT close R-F12. The remaining half is a process decision plus a project
+  # setting (only_allow_merge_if_pipeline_succeeds), and on main a gate still runs AFTER the
+  # code is published and mirrored. It moves the job from never-run to run-late.
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   script:
     - apk add --no-cache git bash grep >/dev/null
     - git config --global --add safe.directory "$CI_PROJECT_DIR"

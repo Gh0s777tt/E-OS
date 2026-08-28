@@ -187,8 +187,15 @@ type = "oneshot_async"
 
 # ======================================================================
 # E-OS x86_64 parity with aarch64: theme + desktop icons + RAID-1 service.
-# Arch-agnostic [[files]]/services. NOTE: built and boot-verified on the
-# x86_64-linux rig, not on this aarch64 build host.
+# Arch-agnostic [[files]]/services.
+#
+# The note here used to say this was "built and boot-verified on the x86_64-linux rig, not
+# on this aarch64 build host". That is no longer true and the correction matters, because it
+# was the stated reason x86_64 went unexercised locally: since U-172 this configuration is
+# built AND booted on the Apple Silicon host, under TCG emulation --
+# `make CI=1 ARCH=x86_64 CONFIG_NAME=eos all` produces the image and
+# `scripts/ci-boot-smoke.sh <img> --arch x86_64` reaches a userspace login.
+# It is slow (emulation, not virtualisation), not impossible.
 # ======================================================================
 
 # A starter file for the desktop-icons layer (DE Phase 3): the `desktop`
