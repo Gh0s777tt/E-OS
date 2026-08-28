@@ -75,6 +75,6 @@ then
     # (/Volumes/Project itp/...), so an unquoted expansion re-splits real arguments.
     addr2line --demangle=rust --inlines --pretty-print --functions --exe="$EXECUTABLE" "$@"
 else
-    sed '/^\s*$/d; s/^.*0x\([0-9a-f]*\).*$/\1/g' "$INFILE" | addr2line --demangle=rust --inlines --pretty-print --functions --exe="$EXECUTABLE"
+    sed '/^[[:space:]]*$/d; s/^.*0x\([0-9a-f]*\).*$/\1/g' "$INFILE" | addr2line --demangle=rust --inlines --pretty-print --functions --exe="$EXECUTABLE"
 fi
 

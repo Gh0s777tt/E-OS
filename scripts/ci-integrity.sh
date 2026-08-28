@@ -104,11 +104,11 @@ else ok "every unsafe in E-OS-owned Rust is justified"; fi
 # This file excludes itself: it necessarily contains the very patterns it looks for, so
 # in scope it matched its own regex literal and failed on a clean tree. Its own syntax is
 # covered by `bash -n` and by the shell-lint job.
-hits=$(git grep -nE 'declare -A|mapfile|readarray|\$\{[A-Za-z_][A-Za-z0-9_]*\^\^|\$\{[A-Za-z_][A-Za-z0-9_]*,,' -- 'scripts/*.sh' ':!scripts/ci-integrity.sh' 2>/dev/null \
+hits=$(git grep -nE 'declare -A|mapfile|readarray|\$\{[A-Za-z_][A-Za-z0-9_]*\^\^|\$\{[A-Za-z_][A-Za-z0-9_]*,,|(sed|grep)[^|]*[\\][sSdwW]' -- 'scripts/*.sh' ':!scripts/ci-integrity.sh' 2>/dev/null \
   | awk -F: '{ line=$0; sub(/^[^:]*:[0-9]*:/, "", line); if (line !~ /^[[:space:]]*#/) print }')
 if [ -n "$hits" ]; then
-  bad "bash-4-only syntax in scripts/ (the dev host has bash 3.2):"; echo "$hits"
-else ok "no bash-4-only syntax in E-OS scripts"; fi
+  bad "non-portable shell in scripts/ (dev host: bash 3.2 + BSD sed/grep):"; echo "$hits"
+else ok "no bash-4-only syntax or GNU-only regex in E-OS scripts"; fi
 
 # 6) Every E-OS-forked recipe is pinned to build from its fork (R-F20).
 # .config sets REPO_BINARY=1, which makes cookbook DOWNLOAD <recipe>.pkgar from
@@ -296,6 +296,33 @@ if [ -n "$sec_hits" ]; then
   echo "$sec_hits"
 else
   ok "no repo-signing secret material in tracked files"
+fi
+
+# ── 11. no fork source vendored back into this repo ─────────────────────────────────
+# R-F02: src/eos-installer used to be an exported copy of the installer, pinned to a dead
+# v0.1 branch (68616dc) while the recipe built something else entirely -- three different
+# hashes claiming to be the same thing, and the vendored copy was the one people read. It
+# has since been removed, and this keeps it removed.
+#
+# A fork's code belongs in the fork, fetched at a pinned revision (CLAUDE.md 11, 20.2). A
+# copy inside this repo cannot be pinned, drifts silently, and misrepresents what ships --
+# the same failure mode as the snapshot directories archived in U-186, just committed.
+vendored=""
+for name in $(sed -n 's/^[[:space:]]*name[[:space:]]*=[[:space:]]*"\(eos-[a-z0-9-]*\)".*/\1/p' repos.toml 2>/dev/null); do
+  case "$name" in
+    eos-control|eos-sysmon|eos-ui|eos-guard|eos-notes) continue ;;  # type A, may live here
+  esac
+  for d in "src/$name" "vendor/$name" "$name"; do
+    if [ -d "$d" ] && git ls-files --error-unmatch "$d" >/dev/null 2>&1; then
+      vendored="$vendored
+    $d — fork source committed into this repo"
+    fi
+  done
+done
+if [ -n "$vendored" ]; then
+  bad "fork source vendored into this repo (R-F02) — pin the fork instead:"; echo "$vendored"
+else
+  ok "no fork source vendored into this repo"
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"

@@ -51,7 +51,7 @@ space** — a compromised driver is a compromised *process*, not a kernel.
 |---|---|---|
 | **Remote network** | Sends packets to exposed services | Network stack runs **in userspace** (a crash/compromise is contained, not kernel-level); minimize exposed services (see hardening). |
 | **Local unprivileged process** | Runs as a normal user | **Capability schemes** — a process only reaches the schemes in its namespace; Rust memory-safety removes whole bug classes; user/root separation. |
-| **Malicious/compromised driver** | A buggy device driver | **Userspace driver isolation** — confined to its scheme; no ambient kernel authority. |
+| **Malicious/compromised driver** | A buggy device driver | **Partial.** At the *syscall* level: userspace, confined to its scheme, no ambient kernel authority. At the *bus* level: **none** — there is no IOMMU, so the driver can programme its device to DMA anywhere in physical memory. See §6. |
 | **Physical / lost device** | Has the powered-off disk | **RedoxFS AES-XTS-128 full-disk encryption** (opt-in at install, see encryption.md). |
 | **Supply chain** | Tampers with sources/deps | Recipes pinned to **E-OS source forks**; **reproducible** source builds; per-package **SBOM** (CycloneDX); **signed** release checksums (R-301/302). |
 
@@ -82,6 +82,27 @@ E-OS is **pre-1.0 alpha**. It does **not** yet provide:
   see hardening.md).
 - **Mitigation of upstream gaps** — e.g. the aarch64 root-mount bug (`R-401b`).
 - Protection against an attacker with **persistent privileged runtime access**.
+- **DMA isolation for drivers — there is none.** This is the one place where the document
+  used to promise more than the system delivers, so it is stated plainly rather than
+  softened. Running drivers in user space removes their *kernel* authority: a compromised
+  `nvmed` is a compromised process, and every syscall it makes is capability-checked against
+  its scheme namespace. It does **not** remove their *device* authority. A driver programmes
+  a real bus-mastering device, and with no IOMMU that device can read and write **any**
+  physical address — including kernel memory — without the kernel being involved at all.
+  Nothing in the scheme model can see that traffic, let alone stop it.
+
+  Verified rather than assumed (`U-187`), at the pinned revisions: in `eos-base`,
+  `drivers/acpid/src/acpi.rs:461` reads
+  `//TODO (hangs on real hardware): Dmar::init(&this);` — the DMAR table is parsed
+  (`drivers/acpid/src/acpi/dmar/mod.rs` exists) but **never initialised**, and the reason is
+  upstream's own: it hung on real hardware. In `eos-kernel`, a search of the entire `src/`
+  tree for `iommu`, `smmu` or `dmar` returns **zero files** — there is no IOMMU path in the
+  kernel at all, on any architecture. So on current hardware the honest statement is: user-space drivers
+  reduce the *blast radius of a bug* and give a crashed driver a restartable boundary; they
+  do not contain a *hostile* driver. Treat any driver you load as trusted code.
+
+  Real containment needs SMMUv3 on aarch64 (and VT-d/AMD-Vi on x86_64), tracked separately —
+  it is a large piece of work, not a documentation fix.
 
 Treat E-OS today as a **research / enthusiast** system. Report issues privately
 per the [Security Policy](../SECURITY.md).
