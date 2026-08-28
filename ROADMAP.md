@@ -249,7 +249,7 @@ kept with their final statuses as the record of that recovery.*
   targeted the deleted `.github/workflows/build.yml`) were closed 2026-08-14.
   The `cargo/*` bumps stay open pending a build-container-verified update round.
   `[P2·S·any]`
-- ⏳ `R-008` **First non-Actions signed pkgar repo publish** — Run scripts/publish-repo-pages.sh (orphan-commit git push to eos-pkg-<arch> Pages, already Actions-independent) for the first time to produce a live signed repo/Pages host that the update system and driver manager can pull from. `[P0·M·any]` · needs `R-002`, `R-701`
+- ✅ `R-008` **First non-Actions signed pkgar repo publish** — Run scripts/publish-repo-pages.sh (orphan-commit git push to eos-pkg-<arch> Pages, already Actions-independent) for the first time to produce a live signed repo/Pages host that the update system and driver manager can pull from. `[P0·M·any]` · needs `R-002`, `R-701` **ZROBIONE (`U-209`) — operator wykonał pierwszą podpisaną publikację.** `publish-repo-pages.sh aarch64-unknown-redox` podpisał `repo.toml` hybrydowo (ed25519 64 B + ML-DSA-65 3309 B) i opublikował **78 pakietów (893 MB)** na `https://gh0s777tt.github.io/eos-pkg-aarch64/`. Zweryfikowane na żywo: `repo.toml`, `repo.toml.sig` i `eos-repo-sign.pub.toml` zwracają HTTP 200. To odblokowuje `R-701` (można wpiąć `50_eos` wskazujące na to repozytorium) i pozwala **na żywo** sprawdzić ścieżkę zamykającą weryfikacji podpisu u klienta (`R-703`). x86_64 jeszcze nieopublikowane.
 
 
 ### `R-Fxx` — Immediate correctness / security fixes surfaced by audit

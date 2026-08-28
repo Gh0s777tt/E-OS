@@ -643,6 +643,7 @@ build użył kopii *tam* — i obraz wyszedł bez klucza, **bez jednego błędu 
 > ```
 > scripts/eos-sync-buildtree.sh          # pokaż różnice
 > scripts/eos-sync-buildtree.sh --apply  # wyrównaj
+> scripts/eos-build.sh [arch]           # albo: zsynchronizuj I zbuduj w wolumenie
 > ```
 > Bez tego zdanie „obraz zawiera X" jest twierdzeniem o **nieznanym** drzewie.
 
