@@ -18,6 +18,17 @@ set -uo pipefail
 VOL="${EOS_BUILD_VOLUME:-eos-work}"
 DEB="docker.io/library/debian:trixie"
 
+# The bootloader is signed only on a fresh `cook`. If its package is cached (built earlier
+# without a key), `make all` will NOT re-cook it and the bootloader stays UNSIGNED -- found the
+# hard way when a rebuilt installed image booted to Access Denied under Secure Boot (U-208).
+# So placing a key must also invalidate the bootloader package, forcing a re-cook next build.
+force_recook(){
+  podman run --rm -v "$VOL":/work localhost/redox-base:latest bash -lc '
+    cd /work/redox && (./target/release/repo clean bootloader 2>/dev/null || true)
+    rm -rf recipes/core/bootloader/target' 2>/dev/null || true
+  echo "bootloader package invalidated -- the next build re-cooks and signs it"
+}
+
 if [ "${1:-}" = "--clear" ]; then
   podman run --rm -v "$VOL":/work "$DEB" bash -lc 'rm -rf /work/redox/build/sb-signing && echo cleared'
   echo "Secure Boot key removed from the build tree; the next build leaves the bootloader unsigned."
@@ -49,4 +60,5 @@ podman run --rm -v "$VOL":/work -v "$(dirname "$EOS_SB_KEY")":/k:ro -v "$(dirnam
   cp "/c/'"$(basename "$EOS_SB_CERT")"'" /work/redox/build/sb-signing/mok.crt
   chmod 600 /work/redox/build/sb-signing/mok.key
   echo "operator key in place"'
+force_recook
 echo "Done. Now: make CI=1 ARCH=x86_64 CONFIG_NAME=eos all   (then scripts/eos-sb-setup-key.sh --clear)"

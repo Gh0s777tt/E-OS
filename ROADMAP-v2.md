@@ -115,7 +115,7 @@ warunkowe kopiowanie `pcid.d` po architekturze.
 |---|---|---|---|---|
 | **V2-N01** | **Magistrala I2C + I2C-HID** (`R-916`) | **touchpady laptopów**, czujniki, Type-C PD — dziś **nie istnieje żadna** | ⚙️ realny sprzęt | 🔴 blokada T3 |
 | **V2-N02** | **TPM 2.0 (TIS/CRB) + measured boot** (`R-913`) | measured boot, sealing kluczy; `swtpm` w QEMU pozwala **wstępnie** zbudować na Macu | 🖥️ Mac (swtpm) → ⚙️ PCR na sprzęcie | 🔴 |
-| **V2-N03** | **Podpisany bootloader / Secure Boot** (`R-F27`) — **integracja domknięta** (`U-206`/`U-207`) | podpis w recepturze; live ISO bootuje pod Secure Boot z zaufanym kluczem, odrzucane z obcym; bez Microsoftu (`docs/adr/0005`) | 🖥️ Mac · 🔑 klucz operatora | 🟡 gotowe, czeka na klucz |
+| **V2-N03** | **Podpisany bootloader / Secure Boot** (`R-F27`) — **integracja domknięta** (`U-206`/`U-207`) | podpis w recepturze; **live ISO ORAZ system zainstalowany** bootują pod Secure Boot z zaufanym kluczem, odrzucane z obcym; bez Microsoftu (`docs/adr/0005`) | 🖥️ Mac · 🔑 klucz operatora | 🟡 gotowe, czeka na klucz |
 
 ---
 
