@@ -143,7 +143,7 @@ rzecz i inne zasady. Warstwy są niezależne: żadna nie zastępuje pozostałych
 | 1 | Podpisy commitów i tagów | kto napisał kod | SSH | ✅ działa |
 | 2 | Podpisy per-pakiet | że `.pkgar` nie podmieniono | ed25519 (pkgar) | ✅ działa |
 | 3 | Podpis manifestu repo | że lista pakietów jest nasza | ed25519 + ML-DSA-65 | 🚧 kod gotowy, **brak klucza** |
-| 4 | Sumy kontrolne wydania | że pobrany obraz jest nasz | minisign | ⚠️ **klucz prywatny utracony** |
+| 4 | Sumy kontrolne wydania | że pobrany obraz jest nasz | minisign | ✅ **zrotowany (`U-205`)** |
 | 5 | Secure Boot / measured boot | że maszyna wystartowała z tego obrazu | — | ❌ nie istnieje (`R-913`) |
 
 **Warstwy 1 i 2 nie wymagają od Ciebie niczego.** Commity podpisuje Twój klucz SSH
@@ -165,7 +165,7 @@ Mylenie ich kończy się wygenerowaniem niewłaściwego albo nadpisaniem działa
 
 ### Warstwa 4 — sytuacja wymaga decyzji
 
-Klucz publiczny `keys/eos-release.pub` (minisign `DCEC85BA6057ED4A`) jest **zacommitowany w
+Klucz publiczny `keys/eos-release.pub` (minisign `8A627C8113176141` (zrotowany z `DCEC85BA6057ED4A`)) jest **zacommitowany w
 repozytorium**, a `docs/install.md` i `docs/hardening.md` **instruują użytkowników**, żeby nim
 weryfikowali pobrane pliki.
 

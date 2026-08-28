@@ -63,8 +63,8 @@ instalacja, desktop, pakiety, aktualizacje. To on decyduje, czy reszta ma na czy
 - **`R-F23`** — E-OS wywraca się pod akceleracją sprzętową `hvf` na Apple Silicon pod obciążeniem,
   dlatego cały pomiar idzie pod emulacją TCG (~2× wolniej).
 - **`R-601` udowodnione wyłącznie pod QEMU/TCG** — na fizycznym firmware (`R-607`) jeszcze nie.
-- **Klucz podpisujący wydania (minisign) jest utracony** (`R-F26`) — rotacja zalecana zanim
-  pojawią się realni użytkownicy.
+- **Klucz podpisujący wydania (minisign) ZROTOWANY** (`R-F26` ✅, `U-205`) — nowy `8A627C81…`
+  w repo, stary odsunięty do `keys/wycofane/`, prywatny poza repozytorium.
 
 ---
 
