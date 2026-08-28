@@ -37,15 +37,39 @@ step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 fail() { printf '\033[31mFAIL:\033[0m %s\n' "$1" >&2; exit 1; }
 
 step "1/5  sanity"
-[ -f "$SEC" ] && fail "$SEC already exists. Rotating a signing key strands every client
-       pinning the old public half, so this script will not do it by accident.
-       If you truly mean to rotate, move the old pair away first and read keys/README.md."
+# Three states, three different right answers. An earlier version failed on "the secret
+# exists" alone, which also blocked the legitimate RESUME case added below -- a run that had
+# already written both halves and stopped on a later check could never be restarted, because
+# this guard fired before step 2 ever looked (U-195).
+if [ -f "$SEC" ] && [ ! -f "$PUB" ]; then
+  fail "$SEC exists but $PUB does not.
+       That is a half-state this script will not guess its way out of: regenerating would
+       rotate a key whose public half may already be pinned somewhere, and stranding every
+       client that pinned it is not something to do by accident.
+       Move the secret aside and read keys/README.md."
+fi
+if [ ! -f "$SEC" ] && [ -f "$PUB" ]; then
+  fail "$PUB exists but its secret half is not at
+         $SEC
+       If the secret lives elsewhere, point EOS_REPO_SIGN_SECRET at it and re-run.
+       If it is genuinely lost, this key can no longer sign anything and must be rotated --
+       see keys/README.md and R-F26 for what that costs."
+fi
 
 # Resolve the signing tool the same way publish-repo.sh does, so both agree on what runs.
 SIGN_BIN="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"
 [ -x "$SIGN_BIN" ] || SIGN_BIN="$(command -v eos-repo-sign 2>/dev/null || true)"
 
-if [ -z "$SIGN_BIN" ] || [ ! -x "$SIGN_BIN" ]; then
+# Only GENERATING needs the tool. When both halves already exist this run only verifies and
+# pins them, and demanding a Rust toolchain for that was a pointless wall: an operator whose
+# keys were already written would have had to install a compiler to finish pinning them
+# (U-195).
+NEED_TOOL=1
+[ -f "$SEC" ] && [ -f "$PUB" ] && NEED_TOOL=0
+
+if [ "$NEED_TOOL" = "0" ]; then
+  echo "    both halves already exist — no signing tool needed for this run"
+elif [ -z "$SIGN_BIN" ] || [ ! -x "$SIGN_BIN" ]; then
   # Deliberately NOT falling back to the build container, even though the toolchain lives
   # there (eos-root volume, /root/.cargo/bin). A signing key generated inside a shared VM
   # and written back through virtiofs is a key whose 0600 mode is not guaranteed, whose
@@ -68,7 +92,7 @@ if [ -z "$SIGN_BIN" ] || [ ! -x "$SIGN_BIN" ]; then
        See keys/README.md for why this does not happen in the build container."
   fi
 fi
-echo "    no existing key; signing tool at ${SIGN_BIN#$ROOT/}"
+[ "$NEED_TOOL" = "1" ] && echo "    no existing key; signing tool at ${SIGN_BIN#$ROOT/}"
 
 step "2/5  generate the hybrid keypair (ed25519 + ML-DSA-65)"
 if [ -f "$SEC" ] && [ -f "$PUB" ]; then
