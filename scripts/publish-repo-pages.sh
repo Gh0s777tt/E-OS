@@ -39,6 +39,31 @@ trap 'rm -rf "$stage"' EXIT
 
 mkdir -p "$stage/pkg/$TARGET"
 cp "$REPO"/repo.toml "$REPO"/*.pkgar "$stage/pkg/$TARGET/"
+# A public artefact host whose root is a bare directory index tells a visitor nothing about
+# what they found or how to check it. Ship an explanation alongside the packages (U-200).
+{
+  echo "# E-OS binary packages -- $TARGET"
+  echo
+  echo "Signed .pkgar packages for [E-OS](https://gitlab.com/e-os/e-os), served over GitHub"
+  echo "Pages. **Published by a script; do not commit here by hand** -- every publish replaces"
+  echo "this branch with a single orphan commit."
+  echo
+  echo "## What is signed, and by what"
+  echo
+  echo "| artefact | signature | verified by |"
+  echo "|---|---|---|"
+  echo "| each .pkgar | ed25519 (pkgar) | pkg, on install |"
+  echo "| pkg/$TARGET/repo.toml | hybrid ed25519 + ML-DSA-65 | pkg, against the key pinned in the image |"
+  echo
+  echo "The index signature is repo.toml.sig. Clients hold the public key at"
+  echo "/etc/pkg/eos-repo-sign.pub.toml inside the image, so a compromised host or a"
+  echo "man-in-the-middle cannot swap the index to freeze, roll back or substitute packages:"
+  echo "a missing or invalid signature is a **fatal** error, not a warning."
+  echo
+  echo "This repository is an artefact host. Source, issues and history live in the"
+  echo "[E-OS repository](https://gitlab.com/e-os/e-os)."
+} > "$stage/README.md"
+
 if [ -f "$PUB" ]; then
     cp "$PUB" "$stage/pkg/"
 else
@@ -50,14 +75,20 @@ fi
 # to freeze, roll back or substitute packages. The SECRET key is user-held and
 # passed via $EOS_REPO_SIGN_KEY — NEVER in the repo. Clients DO verify
 # repo.toml.sig: pkg-lib's verify_repo_manifest() checks it against the in-image
-# pinned key. What is missing is the key itself — keys/eos-repo-sign.pub.toml has
-# never been generated (R-702) — so today the client warns and proceeds. Commit
-# that key and this signature starts being enforced, with no further code.
+# pinned key. The key EXISTS as of U-196: keys/eos-repo-sign.pub.toml is generated,
+# committed and pinned into both image configs, and a booted image carries it at
+# /etc/pkg/eos-repo-sign.pub.toml (verified byte-exact, U-197), so the signature is
+# enforced from the first publish onward, with no further code.
 sign_manifest() {
     local dir="$1"
     local bin="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"
     [ -x "$bin" ] || bin="$(command -v eos-repo-sign 2>/dev/null || true)"
     local pub="${EOS_REPO_SIGN_PUB:-$ROOT/keys/eos-repo-sign.pub.toml}"
+    # U-200: two names for one thing was a defect of mine. eos-key-bootstrap.sh writes and
+    # documents EOS_REPO_SIGN_SECRET; this script only ever read EOS_REPO_SIGN_KEY, so
+    # following the key-generation guide and then publishing would fail with "unset" while
+    # the operator stared at a variable they had just set. Accept both.
+    : "${EOS_REPO_SIGN_KEY:=${EOS_REPO_SIGN_SECRET:-}}"
     if [ -z "${EOS_REPO_SIGN_KEY:-}" ]; then
         # U-120: publishing an unsigned index to the public internet is no longer
         # the default-open path — a MITM/host can swap an unsigned index to
