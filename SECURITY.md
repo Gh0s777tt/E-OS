@@ -83,7 +83,7 @@ CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* u
   ⚠️ **The client half is built but has no trust anchor.** `pkg-lib` *does*
   verify the manifest — `manifest_sig::verify_manifest_ed25519`, called from
   `verify_repo_manifest`, with tamper / wrong-key / malformed-signature tests
-  (`eos-pkgutils@5978425e`, the pinned rev). It is inert for exactly one reason:
+  (`eos-pkgutils@cf36a01b`, the pinned rev). It is inert for exactly one reason:
   **no public key is pinned in any image**, because `keys/eos-repo-sign.pub.toml`
   has never been generated. With no key the client prints a loud warning and
   proceeds (per-package pkgar ed25519 stays enforced); **the moment a key is
