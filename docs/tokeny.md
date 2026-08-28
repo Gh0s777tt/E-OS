@@ -207,15 +207,35 @@ generujesz oba, a przebudowa jest **jedna**, na końcu.
 Wszystko poniżej wykonujesz **Ty**, na swojej maszynie. Asystent nie bierze udziału w powstaniu
 żadnego z tych kluczy i nie potrzebuje ich wartości, żeby sprawdzić skutek.
 
-### Krok 0 — narzędzia (na tej maszynie brakuje obu)
+### Krok 0 — narzędzia (na tej maszynie brakuje obu, a `PATH` wymaga poprawki)
+
+Sprawdzone na hoście: `minisign` nie jest zainstalowany, `rustup` **jest**, ale bez toolchaina
+(`no installed toolchains`), a `cargo` jest potrzebny do zbudowania `eos-repo-sign`.
+
+**Najpierw `PATH`, bo bez tego reszta kroku 0 nie zadziała.** Homebrew instaluje `rustup` jako
+**keg-only** — jego `cargo` leży w `/opt/homebrew/opt/rustup/bin` i **nie jest** podlinkowany do
+`PATH`. Bez poniższej linii `rustup default stable` wykona się, a `cargo` **nadal** będzie
+„command not found", i `eos-key-bootstrap.sh` odeśle Cię z powrotem do `rustup` — w kółko.
 
 ```bash
-brew install minisign
+echo 'export PATH="/opt/homebrew/opt/rustup/bin:$PATH"' >> ~/.zshrc
+```
+
+Potem **nowe okno terminala** (albo `source ~/.zshrc`) i dopiero:
+
+```bash
 rustup default stable
 ```
 
-`rustup` jest zainstalowany, ale **bez toolchaina** (`no installed toolchains`), a `cargo` jest
-potrzebny do zbudowania `eos-repo-sign`. Bez tych dwóch poleceń krok 1 i 2 zatrzymają się od razu.
+```bash
+brew install minisign
+```
+
+Kontrola, że krok 0 się udał — obie linie muszą coś wypisać:
+
+```bash
+cargo --version && minisign -v
+```
 
 ### Krok 1 — klucz podpisujący indeks pakietów (warstwa 3)
 
