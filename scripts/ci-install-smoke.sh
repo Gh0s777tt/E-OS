@@ -77,7 +77,7 @@ boot "$WORK/vars.fd" "$WORK/s1.sock" "$WORK/m1.sock" \
   -drive "file=$WORK/src.img,if=none,id=d0,format=raw" -device "nvme,drive=d0,serial=eos" \
   -drive "file=$WORK/target.img,if=none,id=d1,format=raw" -device "nvme,drive=d1,serial=tgt"
 
-python3 "$(dirname "$0")/install-smoke-drive.py" install \
+python3 -u "$(dirname "$0")/install-smoke-drive.py" install \
   "$WORK/m1.sock" "$WORK/s1.sock" "$BUDGET" "$WORK/stage1.log"
 rc=$?
 kill "$QPID" 2>/dev/null; QPID=""; sleep 1
@@ -89,7 +89,7 @@ cp "$FW_VARS" "$WORK/vars2.fd"
 boot "$WORK/vars2.fd" "$WORK/s2.sock" "$WORK/m2.sock" \
   -drive "file=$WORK/target.img,if=none,id=d0,format=raw" -device "nvme,drive=d0,serial=eos"
 
-python3 "$(dirname "$0")/install-smoke-drive.py" verify \
+python3 -u "$(dirname "$0")/install-smoke-drive.py" verify \
   "$WORK/m2.sock" "$WORK/s2.sock" "$BUDGET" "$WORK/stage2.log"
 rc=$?
 cp "$WORK/stage2.log" "$(dirname "$IMG")/install-smoke-stage2.log" 2>/dev/null

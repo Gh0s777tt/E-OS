@@ -37,10 +37,19 @@ def main():
     # polecen da sie nadpisac: EOS_PROBE_CMDS="cmd1\ncmd2". Bez tego uruchamia sie
     # oryginalny zestaw R-F19 opisany wyzej.
     import os
+    import tempfile
     override = os.environ.get("EOS_PROBE_CMDS")
     probes = ([(c, "") for c in override.splitlines() if c.strip()]
               if override else PROBES)
-    con = drive.Console(serial, budget, "/tmp/eosfix/probe-serial.log")
+    # The serial log path used to be hardcoded under /tmp/eosfix, which macOS clears on
+    # reboot: after one restart every probe died with FileNotFoundError before reaching the
+    # guest, and the failure looked like a boot problem rather than a missing directory.
+    # Default beside the run and let the caller redirect it.
+    log_path = os.environ.get("EOS_PROBE_LOG") or os.path.join(
+        tempfile.gettempdir(), "eos-probe-serial.log")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    print("probe: dziennik szeregowy -> %s" % log_path)
+    con = drive.Console(serial, budget, log_path)
     con.dismiss_boot_menu(serial.replace("ser.sock", "mon.sock"))
 
     if not drive.login(con):

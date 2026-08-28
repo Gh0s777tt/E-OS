@@ -641,7 +641,7 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 | `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`) — `PASS` trzy razy z rzędu, z `redox-live.iso` i `EOS_SMOKE_MEM=4096` |
 | `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
 | `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
-| `R-F18` | Nośnik dzielący linię INTx z xHCI → burza przerwań (`virq 37` = 11 054 068), `rm -rf /tmp` trwa 80 s zamiast 1 s. Poprawka należy do `IrqReactor` w `xhcid`: wyczyścić `IMAN.IP` / `USBSTS.EINT` **przed** potwierdzeniem. | 🚧 P1, zmierzone |
+| `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
 | `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
 
 ### Narzędzia, których w repo nie ma
