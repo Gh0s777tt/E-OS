@@ -53,3 +53,9 @@ bootuje wszystko (`U-206`).
   minisign) — patrz `docs/tokeny.md`.
 - Wpięcie **podpisanego** bootloadera do obrazu/ISO (`--write-bootloader`) to następny krok
   integracyjny; mechanizm jest udowodniony, brakuje tylko prawdziwego klucza i złożenia obrazu.
+
+## Integracja (`U-207`)
+
+Podpis należy do **receptury bootloadera**, nie do kroku po budowie. Instalator składa ESP live ISO z paczki `bootloader.pkgar` (`fetch_bootloaders` czyta `usr/lib/boot/bootloader-live.efi`), więc jedynym miejscem, które trafia do bootloadera ładowanego przez firmware, jest podpis **w stage podczas `cook`** — tam cały łańcuch (blake3 → repo.toml → repo.toml.sig → ESP) liczy się nad podpisanym plikiem. Podpisanie kopii z `--write-bootloader` niczego nie dawało (to „dodatkowy" zapis, nie źródło ESP). `recipes/core/bootloader/recipe.toml` podpisuje oba bootloadery, gdy operator poda klucz w `build/sb-signing/` (poza repo); bez klucza — niepodpisane (graceful degrade).
+
+**Dowiedzione end-to-end:** świeże live ISO pod QEMU z firmware Secure Boot startuje pełny system (E-OS Bootloader → RedoxFS) gdy firmware ufa naszemu kluczowi, i daje Access Denied z obcym. Bootloader **systemu zainstalowanego** (ta sama paczka) sygnowany jest tym samym mechanizmem — pozostaje jako naturalne rozszerzenie.

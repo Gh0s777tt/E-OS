@@ -33,5 +33,35 @@ if [ "${ARCH}" == "aarch64" -o "${ARCH}" == "x86_64" -o "${ARCH}" == "riscv64gc"
 then
     bootloader "${ARCH}-unknown-uefi" bootloader.efi bootloader.efi
     bootloader "${ARCH}-unknown-uefi" bootloader-live.efi bootloader-live.efi
+
+    # V2-N03 / R-F27: sign the UEFI bootloaders for Secure Boot, IN THE STAGE, so the pkgar
+    # and the whole downstream chain (blake3 -> repo.toml -> repo.toml.sig -> the ISO's ESP)
+    # all carry the signed binaries. The installer builds the live ISO's ESP from THIS package
+    # (fetch_bootloaders reads usr/lib/boot/bootloader-live.efi), so signing here is the only
+    # place that reaches the bootloader the firmware actually loads -- signing the
+    # --write-bootloader copy did nothing (U-207).
+    #
+    # Gated on an operator key placed off-repo at build/sb-signing/{mok.key,mok.crt} (the build
+    # volume, gitignored). No key -> bootloaders stay unsigned (graceful degrade), never a
+    # silent claim of signed. The key is the operator's action, like every signing key.
+    # Derive the redox root from COOKBOOK_STAGE so the path is right whether cook runs nested
+    # (PODMAN_BUILD=1, root at /mnt/redox) or directly (PODMAN_BUILD=0, root at /work/redox).
+    SBROOT="${COOKBOOK_STAGE%/recipes/*}"
+    SBKEY="${SBROOT}/build/sb-signing/mok.key"
+    SBCRT="${SBROOT}/build/sb-signing/mok.crt"
+    if [ -f "$SBKEY" ] && [ -f "$SBCRT" ]
+    then
+        command -v sbsign >/dev/null 2>&1 || { apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq sbsigntool >/dev/null 2>&1; }
+        for f in bootloader.efi bootloader-live.efi
+        do
+            b="${COOKBOOK_STAGE}/usr/lib/boot/${f}"
+            sbattach --remove "$b" >/dev/null 2>&1 || true
+            sbsign --key "$SBKEY" --cert "$SBCRT" --output "${b}.signed" "$b"
+            mv "${b}.signed" "$b"
+            sbverify --cert "$SBCRT" "$b" >/dev/null && echo "V2-N03: signed ${f} for Secure Boot"
+        done
+    else
+        echo "V2-N03: no Secure Boot key at build/sb-signing/ -- bootloaders left UNSIGNED"
+    fi
 fi
 """

@@ -64,3 +64,6 @@ keys/*.key
 # further up was overridden and one such file got committed (U-196). A negation has to be
 # narrowed again straight afterwards, or it lets junk back in through the door it opened.
 keys/._*
+
+# Secure Boot signing key placed for the bootloader recipe (V2-N03) — off-repo, never tracked
+build/sb-signing/
