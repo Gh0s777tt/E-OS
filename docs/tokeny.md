@@ -133,6 +133,64 @@ zrobioną (`CLAUDE.md` §4.4). Nie potrzebuje do tego wartości żadnego tokenu.
 
 ---
 
+## 6a. Mapa kluczy — pięć warstw, które łatwo pomylić
+
+Tokeny z tego dokumentu dają **dostęp**. Klucze poniżej dają **autentyczność** — to inna
+rzecz i inne zasady. Warstwy są niezależne: żadna nie zastępuje pozostałych.
+
+| # | Warstwa | Co dowodzi | Algorytm | Stan (`U-191`) |
+|---|---|---|---|---|
+| 1 | Podpisy commitów i tagów | kto napisał kod | SSH | ✅ działa |
+| 2 | Podpisy per-pakiet | że `.pkgar` nie podmieniono | ed25519 (pkgar) | ✅ działa |
+| 3 | Podpis manifestu repo | że lista pakietów jest nasza | ed25519 + ML-DSA-65 | 🚧 kod gotowy, **brak klucza** |
+| 4 | Sumy kontrolne wydania | że pobrany obraz jest nasz | minisign | ⚠️ **klucz prywatny utracony** |
+| 5 | Secure Boot / measured boot | że maszyna wystartowała z tego obrazu | — | ❌ nie istnieje (`R-913`) |
+
+**Warstwy 1 i 2 nie wymagają od Ciebie niczego.** Commity podpisuje Twój klucz SSH
+(`gpg.format = ssh`, `commit.gpgsign = true`), a każdy pakiet w obrazie — lokalny klucz
+ed25519, który cookbook trzyma zaszyfrowany, z trybem `600`, w `build/` (katalog ignorowany
+przez gita, więc klucz nigdy nie trafia do repozytorium).
+
+### Warstwy 3 i 4 to DWA RÓŻNE klucze
+
+Mylenie ich kończy się wygenerowaniem niewłaściwego albo nadpisaniem działającego:
+
+| | warstwa 3 | warstwa 4 |
+|---|---|---|
+| narzędzie | `eos-repo-sign` | `minisign` |
+| podpisuje | `repo.toml` (indeks pakietów) | `SHA256SUMS` (pliki wydania) |
+| klucz publiczny | `keys/eos-repo-sign.pub.toml` | `keys/eos-release.pub` |
+| jak założyć | `scripts/eos-key-bootstrap.sh` | `minisign -G` |
+| kto weryfikuje | `pkg` na maszynie użytkownika | człowiek przed instalacją |
+
+### Warstwa 4 — sytuacja wymaga decyzji
+
+Klucz publiczny `keys/eos-release.pub` (minisign `DCEC85BA6057ED4A`) jest **zacommitowany
+i wysyłany w obrazie** (dwa wystąpienia w `config/*/eos.toml`), a `docs/install.md` i
+`docs/hardening.md` **instruują użytkowników**, żeby nim weryfikowali pobrane pliki.
+
+Połowy prywatnej nikt nie posiada. Wynikają z tego dwie rzeczy, i obie są prawdziwe naraz:
+
+* **Nic się nie psuje po cichu.** `scripts/make-release.sh` **zawodzi bezpiecznie**: bez
+  `MINISIGN_SECRET_KEY` odmawia złożenia wydania, zamiast wypuścić niepodpisane. Niepodpisane
+  wymaga jawnego `EOS_ALLOW_UNSIGNED=1` (`U-120`).
+* **Ale dokumentacja obiecuje weryfikację, której nie da się spełnić.** Dla każdego nowego
+  wydania polecenie z `install.md` zawiedzie, bo nie będzie czego weryfikować.
+
+**Zalecenie: rotować teraz.** Koszt rośnie z każdym wydaniem i z każdym obrazem, który ten
+klucz roznosi:
+
+```bash
+minisign -G -p keys/eos-release.pub -s /ścieżka/poza-repo/eos-release.key
+```
+
+Nowy klucz publiczny zastępuje stary w `keys/`, klucz prywatny trafia **poza repozytorium**
+i do kopii zapasowej, a `keys/eos-release.pub` wraca do bycia obietnicą, którą da się
+dotrzymać. Rotacja unieważnia podpisy złożone starym kluczem — dla `0.1.0`/`0.2.0` to
+akceptowalne, dla wydania z prawdziwymi użytkownikami już nie.
+
+---
+
 ## 7. Czego tu celowo NIE ma
 
 **Klucza podpisującego wydania.** To nie jest token i nie należy do tej listy: patrz
