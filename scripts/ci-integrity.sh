@@ -223,5 +223,46 @@ EOF
     ok "CRLF-pinned files keep their line endings"
   fi
 fi
+# ── 9. no image ships an active unauthenticated package source ──────────────────────
+# R-701a: config/base.toml (inherited from upstream) ships /etc/pkg.d/50_redox pointing at
+# https://static.redox-os.org/pkg. On an E-OS image that is a hole in our own hardening: a
+# fresh install would pull binaries built WITHOUT the E-OS flags, over a channel whose
+# signing key pkg-lib still fetches TOFU from the very host serving the packages.
+#
+# The image configs neutralise it by OVERRIDING the same path with a comment-only file.
+# That is deliberate rather than deleting it: pkg-lib's update_remotes() skips '#' lines, so
+# a comment-only file parses cleanly and yields zero remotes, whereas removing the file can
+# leave /etc/pkg.d absent and its read_dir is fallible.
+#
+# The invariant this gate encodes is what actually ships, not a proxy for it: EVERY image
+# config must override the path, and its override must carry no active URL. A first version
+# of this check simply grepped every config for an active remote and failed on base.toml --
+# which is correctly overridden, and verified so in a running image (`grep -c "^[^#]"
+# /etc/pkg.d/50_redox` returns 0, and /etc/pkg.d holds nothing else). A gate that fires on
+# a correctly-handled case teaches people to ignore it.
+src_hits=""
+for f in config/*/eos*.toml; do
+  [ -f "$f" ] || continue
+  if ! grep -q 'path = "/etc/pkg.d/50_redox"' "$f"; then
+    src_hits="$src_hits
+    $f — does not override /etc/pkg.d/50_redox, so base.toml's upstream remote ships"
+    continue
+  fi
+  # Active = a non-comment line naming a package host. Leading whitespace is stripped first,
+  # so "  https://..." cannot slip past a test for a line-initial '#'.
+  hits=$(sed 's/^[[:space:]]*//' "$f" | grep -vE '^#' \
+         | grep -nE 'https?://[^[:space:]"]*(static\.redox-os\.org|/pkg)' || true)
+  if [ -n "$hits" ]; then
+    src_hits="$src_hits
+    $f — active package remote:
+$(printf '%s' "$hits" | sed 's/^/      /')"
+  fi
+done
+if [ -n "$src_hits" ]; then
+  bad "an image would ship an unauthenticated package source (R-701a):"; echo "$src_hits"
+else
+  ok "no image ships an active unauthenticated package source"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
