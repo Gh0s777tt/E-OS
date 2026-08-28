@@ -249,12 +249,21 @@ potwierdza, że sekret jest ignorowany przez gita, weryfikuje, że plik publiczn
 materiału tajnego, przypina połowę publiczną do `config/{aarch64,x86_64}/eos.toml` pod
 `/etc/pkg/eos-repo-sign.pub.toml` i uruchamia bramki. **Nie drukuje materiału klucza.**
 
-Powstają dwa pliki:
+Powstają dwa pliki, **w dwóch różnych miejscach**:
 
-| plik | co z nim |
-|---|---|
-| `keys/eos-repo-sign.secret.toml` | **NIGDY** nie commituj; kopia zapasowa offline |
-| `keys/eos-repo-sign.pub.toml` | commitujesz — to on jedzie w obrazie |
+| plik | gdzie | co z nim |
+|---|---|---|
+| `~/.eos-keys/eos-repo-sign.secret.toml` | **dysk wewnętrzny** | **NIGDY** nie commituj; kopia zapasowa offline |
+| `keys/eos-repo-sign.pub.toml` | w repozytorium | commitujesz — to on jedzie w obrazie |
+
+> **Dlaczego sekret ląduje poza katalogiem projektu (`U-194`).** Katalog projektu stoi na
+> wolumenie **exFAT** zamontowanym z opcją **`noowners`**. exFAT **nie przechowuje uprawnień
+> POSIX**: narzędzie prosi o `0600`, plik i tak raportuje `700`, a `chmod` jest tam
+> **bezczynny** — sprawdzone, ten sam plik dostaje `600` na dysku wewnętrznym, a `700` tutaj.
+> `noowners` dodatkowo ignoruje właściciela. Klucz prywatny na takim wolumenie **nie ma
+> żadnej ochrony systemu plików**: przeczyta go każde konto, które widzi dysk, a po
+> podłączeniu nośnika do innego komputera — ktokolwiek. Domyślną ścieżkę zmienia
+> `EOS_REPO_SIGN_SECRET`.
 
 ### Krok 2 — rotacja klucza wydań (warstwa 4)
 

@@ -19,8 +19,19 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-SEC="keys/eos-repo-sign.secret.toml"
+# The SECRET half defaults OFF-REPO. Two reasons, and the second was found the hard way:
+#
+#   1. A signing key has no business living in a working tree at all -- one `git add -f`, one
+#      stray archive of the project directory, and it is gone.
+#   2. This project directory sits on an exFAT volume mounted `noowners` (U-194). exFAT
+#      stores NO POSIX permissions: the tool asks for 0600, the file reports 700, and chmod
+#      is a no-op there. The 0600 the key deserves cannot be applied on that filesystem at
+#      all, so the key must live somewhere the OS can actually protect it.
+#
+# Override with EOS_REPO_SIGN_SECRET if you keep keys elsewhere.
+SEC="${EOS_REPO_SIGN_SECRET:-$HOME/.eos-keys/eos-repo-sign.secret.toml}"
 PUB="keys/eos-repo-sign.pub.toml"
+mkdir -p "$(dirname "$SEC")" 2>/dev/null || true
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 fail() { printf '\033[31mFAIL:\033[0m %s\n' "$1" >&2; exit 1; }
@@ -60,12 +71,43 @@ fi
 echo "    no existing key; signing tool at ${SIGN_BIN#$ROOT/}"
 
 step "2/5  generate the hybrid keypair (ed25519 + ML-DSA-65)"
-"$SIGN_BIN" keygen "$SEC" "$PUB"
+if [ -f "$SEC" ] && [ -f "$PUB" ]; then
+  # Resume rather than regenerate. A half-finished run -- keys written, a later check
+  # failing -- used to be a dead end: keygen refuses to overwrite (rightly, since silently
+  # rotating strands every client pinning the old public half), so re-running failed on the
+  # existing public file and the operator was stuck with a valid key and no way forward.
+  echo "    both halves already exist — skipping generation, continuing with them"
+  echo "      secret: $SEC"
+  echo "      public: $PUB"
+else
+  "$SIGN_BIN" keygen "$SEC" "$PUB"
+fi
 
 step "3/5  verify the secret really is protected"
 mode=$(stat -f '%Lp' "$SEC" 2>/dev/null || stat -c '%a' "$SEC")
-[ "$mode" = "600" ] || fail "$SEC has mode $mode, expected 600"
-git check-ignore -q "$SEC" || fail "$SEC is NOT gitignored — refusing to continue"
+if [ "$mode" != "600" ]; then
+  # Distinguish "someone loosened the permissions" from "this filesystem cannot express
+  # them". Both are unsafe, but they need different fixes, and a bare "expected 600" sent
+  # the operator looking for a chmod that would have silently done nothing (U-194).
+  probe="$(dirname "$SEC")/.eos-mode-probe.$$"
+  : > "$probe" 2>/dev/null && chmod 600 "$probe" 2>/dev/null
+  pmode=$(stat -f '%Lp' "$probe" 2>/dev/null || stat -c '%a' "$probe" 2>/dev/null)
+  rm -f "$probe"
+  if [ "$pmode" != "600" ]; then
+    fail "$SEC has mode $mode, and this filesystem cannot store 0600 at all
+       (a freshly chmod-ed probe file came back as $pmode). exFAT and FAT keep no POSIX
+       permissions, and a volume mounted \`noowners\` ignores ownership too, so the key has
+       NO filesystem protection here -- any account that can read the volume can read it.
+       Put the secret on the internal disk instead:
+           EOS_REPO_SIGN_SECRET=\"\$HOME/.eos-keys/eos-repo-sign.secret.toml\" $0"
+  fi
+  fail "$SEC has mode $mode, expected 600 -- run: chmod 600 \"$SEC\""
+fi
+case "$SEC" in
+  "$ROOT"/*|keys/*)
+    git check-ignore -q "$SEC" || fail "$SEC sits inside the repo and is NOT gitignored — refusing to continue" ;;
+  *) echo "    secret is off-repo ($SEC) — git cannot reach it, which is the point" ;;
+esac
 grep -q "secret_keys" "$SEC" || fail "$SEC does not look like a secret key file"
 grep -q "secret_keys" "$PUB" && fail "$PUB contains SECRET material — stop and delete both"
 echo "    mode 600, gitignored, public half carries no secret material"
