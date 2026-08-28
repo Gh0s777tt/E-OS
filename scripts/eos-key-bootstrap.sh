@@ -28,8 +28,12 @@ cd "$ROOT"
 #      is a no-op there. The 0600 the key deserves cannot be applied on that filesystem at
 #      all, so the key must live somewhere the OS can actually protect it.
 #
-# Override with EOS_REPO_SIGN_SECRET if you keep keys elsewhere.
-SEC="${EOS_REPO_SIGN_SECRET:-$HOME/.eos-keys/eos-repo-sign.secret.toml}"
+# EOS_REPO_SIGN_KEY is the name publish-repo.sh and publish-repo-pages.sh have used since
+# U-120, so it is the one that counts: setting it once lets the same value drive generation
+# AND publishing. This script briefly introduced a second name for the same thing
+# (EOS_REPO_SIGN_SECRET, U-195) -- kept as an alias so instructions already handed out do not
+# break, but a second name for one concept is a defect, not a feature.
+SEC="${EOS_REPO_SIGN_KEY:-${EOS_REPO_SIGN_SECRET:-$HOME/.eos-keys/eos-repo-sign.secret.toml}}"
 PUB="keys/eos-repo-sign.pub.toml"
 mkdir -p "$(dirname "$SEC")" 2>/dev/null || true
 

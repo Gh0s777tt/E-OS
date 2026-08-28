@@ -263,7 +263,8 @@ Powstają dwa pliki, **w dwóch różnych miejscach**:
 > `noowners` dodatkowo ignoruje właściciela. Klucz prywatny na takim wolumenie **nie ma
 > żadnej ochrony systemu plików**: przeczyta go każde konto, które widzi dysk, a po
 > podłączeniu nośnika do innego komputera — ktokolwiek. Domyślną ścieżkę zmienia
-> `EOS_REPO_SIGN_SECRET`.
+> `EOS_REPO_SIGN_KEY` — **ta sama zmienna**, której używają skrypty publikujące, więc
+> ustawiona raz obsługuje i generowanie, i podpisywanie publikacji.
 
 ### Krok 2 — rotacja klucza wydań (warstwa 4)
 
