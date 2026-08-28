@@ -36,7 +36,16 @@ FW_CODE=/opt/homebrew/share/qemu/edk2-aarch64-code.fd
 FW_VARS=/opt/homebrew/share/qemu/edk2-arm-vars.fd
 [ -x "$QEMU" ] || { echo "install-smoke: qemu-system-aarch64 not found"; exit 1; }
 
-WORK="$(mktemp -d)"; QPID=""
+WORK="$(mktemp -d)"; QPID=""; QLOG=""
+# Keep the evidence when a run fails. Deleting $WORK unconditionally -- which this used to
+# do -- means a failure tells you THAT something broke and never what: R-F25 was chased for
+# three runs with no serial log, no qemu log and no exit status, because all three were
+# removed the moment the script exited.
+keep_work() {
+  dest="${EOS_SMOKE_KEEP:-$(dirname "$IMG")}/install-smoke-failed"
+  rm -rf "$dest" 2>/dev/null
+  cp -R "$WORK" "$dest" 2>/dev/null && echo "install-smoke: evidence kept in $dest"
+}
 cleanup() { [ -n "$QPID" ] && kill "$QPID" 2>/dev/null; rm -rf "$WORK"; }
 trap cleanup EXIT
 
@@ -68,8 +77,9 @@ boot() { # $1=vars $2=serial-sock $3=monitor-sock  $4.. = drives
     -drive "if=pflash,unit=1,format=raw,file=$vars" \
     -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci \
     -display none -serial "unix:$ser,server,nowait" -monitor "unix:$mon,server,nowait" \
-    "$@" >/dev/null 2>&1 &
+    "$@" >"$WORK/qemu-$(basename "$ser" .sock).log" 2>&1 &
   QPID=$!
+  QLOG="$WORK/qemu-$(basename "$ser" .sock).log"
 }
 
 echo "install-smoke: stage 1 — install onto a blank second disk"
@@ -80,9 +90,18 @@ boot "$WORK/vars.fd" "$WORK/s1.sock" "$WORK/m1.sock" \
 python3 -u "$(dirname "$0")/install-smoke-drive.py" install \
   "$WORK/m1.sock" "$WORK/s1.sock" "$BUDGET" "$WORK/stage1.log"
 rc=$?
+# Report what happened to QEMU instead of inferring it from the process being gone. The
+# guest dying and the harness killing it look identical from outside; the exit status and
+# qemu's own output tell them apart (R-F25). Until now this ran with >/dev/null 2>&1, so
+# every message qemu produced was discarded -- the silence was ours, not qemu's.
+if [ -n "$QPID" ] && ! kill -0 "$QPID" 2>/dev/null; then
+  wait "$QPID" 2>/dev/null; qrc=$?
+  echo "install-smoke: qemu exited on its own, status $qrc"
+  [ -s "$QLOG" ] && { echo "install-smoke: --- qemu output ---"; tail -5 "$QLOG"; }
+fi
 kill "$QPID" 2>/dev/null; QPID=""; sleep 1
 cp "$WORK/stage1.log" "$(dirname "$IMG")/install-smoke-stage1.log" 2>/dev/null
-[ "$rc" -eq 0 ] || { echo "install-smoke: FAIL — install stage did not complete"; exit 1; }
+[ "$rc" -eq 0 ] || { keep_work; echo "install-smoke: FAIL — install stage did not complete"; exit 1; }
 
 echo "install-smoke: stage 2 — boot the INSTALLED disk on its own"
 cp "$FW_VARS" "$WORK/vars2.fd"

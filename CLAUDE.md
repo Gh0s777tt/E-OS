@@ -638,7 +638,7 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 | `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
 | `R-F21` | `package_files()` czytało bazę pakietów ze starej ścieżki `/pkg`. | ✅ **naprawione** (`U-171`) — czyta przez `PackageState::from_sysroot`; przepisane, bo klucz też się przeniósł do `packages.toml` |
 | `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
-| `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`) — `PASS` trzy razy z rzędu, z `redox-live.iso` i `EOS_SMOKE_MEM=4096` |
+| `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`), potwierdzone ponownie **z poprawką `R-F18`** (`U-181`) |
 | `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
 | `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
 | `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
