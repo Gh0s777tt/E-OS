@@ -165,9 +165,17 @@ Mylenie ich kończy się wygenerowaniem niewłaściwego albo nadpisaniem działa
 
 ### Warstwa 4 — sytuacja wymaga decyzji
 
-Klucz publiczny `keys/eos-release.pub` (minisign `DCEC85BA6057ED4A`) jest **zacommitowany
-i wysyłany w obrazie** (dwa wystąpienia w `config/*/eos.toml`), a `docs/install.md` i
-`docs/hardening.md` **instruują użytkowników**, żeby nim weryfikowali pobrane pliki.
+Klucz publiczny `keys/eos-release.pub` (minisign `DCEC85BA6057ED4A`) jest **zacommitowany w
+repozytorium**, a `docs/install.md` i `docs/hardening.md` **instruują użytkowników**, żeby nim
+weryfikowali pobrane pliki.
+
+> **Sprostowanie do pierwszej wersji tej sekcji (`U-192`).** Napisałem tu, że klucz „jedzie w
+> obrazie", opierając się na dwóch trafieniach `grep` na `eos-release` w `config/*/eos.toml`.
+> **Oba dotyczyły komentarza o innym pliku** — `/usr/share/eos/eos-release`, identyfikatorze
+> wydania. Sonda w **działającym obrazie** pokazuje, że `/usr/share/eos/` zawiera wyłącznie
+> ten plik; klucza minisign w obrazie **nie ma**. Wniosek z liczby trafień, bez sprawdzenia,
+> **co** trafiło, to ten sam błąd, który §20.6 każe wyłapywać u siebie. Konsekwencja jest
+> dobra: rotacja **nie wymaga przebudowy obrazu ani przeobrazowania klientów**.
 
 Połowy prywatnej nikt nie posiada. Wynikają z tego dwie rzeczy, i obie są prawdziwe naraz:
 
@@ -188,6 +196,116 @@ Nowy klucz publiczny zastępuje stary w `keys/`, klucz prywatny trafia **poza re
 i do kopii zapasowej, a `keys/eos-release.pub` wraca do bycia obietnicą, którą da się
 dotrzymać. Rotacja unieważnia podpisy złożone starym kluczem — dla `0.1.0`/`0.2.0` to
 akceptowalne, dla wydania z prawdziwymi użytkownikami już nie.
+
+---
+
+## 6b. Procedura — oba klucze, krok po kroku
+
+Kolejność jest celowa. Klucz z warstwy 3 **trafia do obrazu**, klucz z warstwy 4 **nie** — więc
+generujesz oba, a przebudowa jest **jedna**, na końcu.
+
+Wszystko poniżej wykonujesz **Ty**, na swojej maszynie. Asystent nie bierze udziału w powstaniu
+żadnego z tych kluczy i nie potrzebuje ich wartości, żeby sprawdzić skutek.
+
+### Krok 0 — narzędzia (na tej maszynie brakuje obu)
+
+```bash
+brew install minisign
+rustup default stable
+```
+
+`rustup` jest zainstalowany, ale **bez toolchaina** (`no installed toolchains`), a `cargo` jest
+potrzebny do zbudowania `eos-repo-sign`. Bez tych dwóch poleceń krok 1 i 2 zatrzymają się od razu.
+
+### Krok 1 — klucz podpisujący indeks pakietów (warstwa 3)
+
+```bash
+cd "E-OS"
+scripts/eos-key-bootstrap.sh
+```
+
+Jedno polecenie robi całość: generuje parę hybrydową (ed25519 + ML-DSA-65), sprawdza tryb `0600`,
+potwierdza, że sekret jest ignorowany przez gita, weryfikuje, że plik publiczny **nie zawiera**
+materiału tajnego, przypina połowę publiczną do `config/{aarch64,x86_64}/eos.toml` pod
+`/etc/pkg/eos-repo-sign.pub.toml` i uruchamia bramki. **Nie drukuje materiału klucza.**
+
+Powstają dwa pliki:
+
+| plik | co z nim |
+|---|---|
+| `keys/eos-repo-sign.secret.toml` | **NIGDY** nie commituj; kopia zapasowa offline |
+| `keys/eos-repo-sign.pub.toml` | commitujesz — to on jedzie w obrazie |
+
+### Krok 2 — rotacja klucza wydań (warstwa 4)
+
+Stary klucz publiczny odsuwasz, zamiast nadpisywać — żeby dało się jeszcze zweryfikować to, co
+podpisano nim wcześniej:
+
+```bash
+mkdir -p keys/wycofane
+git mv keys/eos-release.pub keys/wycofane/eos-release-DCEC85BA6057ED4A.pub
+minisign -G -p keys/eos-release.pub -s ~/klucze-eos/eos-release.key
+chmod 600 ~/klucze-eos/eos-release.key
+```
+
+Klucz **prywatny trafia poza repozytorium** — tu `~/klucze-eos/`, katalog, którego git nie widzi.
+Ścieżka jest Twoim wyborem, byle nie w drzewie projektu.
+
+Sprawdzenie, że rotacja się udała:
+
+```bash
+head -1 keys/eos-release.pub          # nowy odcisk, inny niż DCEC85BA6057ED4A
+ls -l ~/klucze-eos/eos-release.key    # ma być -rw------- (600)
+git status --short keys/              # klucz prywatny NIE MOŻE się tu pojawić
+```
+
+### Krok 3 — jedna przebudowa i weryfikacja w działającym systemie
+
+```bash
+scripts/eos-sync-buildtree.sh --apply     # bez tego build użyje starej konfiguracji
+make CI=1 all
+```
+
+> Ten pierwszy wiersz nie jest formalnością. `make` buduje z osobnego drzewa w wolumenie i
+> **nic go automatycznie nie synchronizuje** — pominięcie tego kroku sprawiło już raz, że
+> poprawnie przypięty klucz nie znalazł się w obrazie, **bez jednego błędu po drodze**
+> (`U-185`, `CLAUDE.md` §20.1).
+
+Dowód, że klucz naprawdę jest w systemie, a nie tylko w pliku konfiguracyjnym:
+
+```
+ls /etc/pkg/          ->  eos-repo-sign.pub.toml  packages.toml
+wc -c /etc/pkg/eos-repo-sign.pub.toml   ->  ten sam rozmiar co plik w keys/
+```
+
+Boot bez ostrzeżenia `no pinned repo-manifest key … NOT signature-verified` oznacza, że
+klient przeszedł z trybu ostrzegawczego na **weryfikację zamykającą**: od tej chwili brakujący
+albo nieprawidłowy podpis `repo.toml.sig` jest **błędem krytycznym**, nie uwagą.
+
+### Krok 4 — commit połówek publicznych
+
+```bash
+git add keys/eos-repo-sign.pub.toml keys/eos-release.pub keys/wycofane/ config/
+scripts/ci-integrity.sh          # kontrola 10 odrzuci commit, jeśli wciekł sekret
+git commit -m "feat(keys): repo-signing key + release key rotation"
+```
+
+### Krok 5 — kopia zapasowa (rób to teraz, nie „potem")
+
+Oba klucze prywatne, offline, w dwóch miejscach. **Nie ma odzyskiwania:**
+
+* `eos-repo-sign keygen` **odmawia nadpisania** istniejącego pliku, więc klucza nie da się
+  „wygenerować ponownie w miejsce" — jego utrata oznacza rotację i ponowne przypięcie u każdego
+  klienta;
+* utrata klucza minisign to dokładnie sytuacja, która wywołała `R-F26`.
+
+### Czego ta procedura NIE daje
+
+Po jej wykonaniu podpisane i weryfikowalne są: **kod** (warstwa 1), **pakiety** (2),
+**indeks pakietów** (3) i **pliki wydania** (4). Nadal **nie** jest dowiedzione, że maszyna
+wystartowała z niezmodyfikowanego obrazu — to warstwa 5 (Secure Boot / measured boot), która
+w E-OS **nie istnieje** i jest jawnym non-goalem (`R-913`). Mówiąc „w pełni bezpieczny", warto
+mieć tę granicę na uwadze.
 
 ---
 
