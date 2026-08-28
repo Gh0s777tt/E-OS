@@ -24,6 +24,7 @@
 - [Troubleshooting](build-troubleshooting.md)
 - [Creating an E-OS app](creating-an-eos-app.md)
 - [CI/CD & automation](ci.md)
+- [Tokeny — wszystko za jednym posiedzeniem](tokeny.md)
 - [Maintenance & operations](MAINTENANCE.md)
 
 # Stability
