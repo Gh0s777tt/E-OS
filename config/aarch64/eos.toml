@@ -737,8 +737,7 @@ type = "oneshot_async"
 path = "/etc/pkg.d/50_eos"
 data = """
 # E-OS package source (R-701). Signed with the key at /etc/pkg/eos-repo-sign.pub.toml.
-# NOT enabled: the repository below has not been published yet (R-008).
-#https://gh0s777tt.github.io/eos-pkg-aarch64/pkg
+https://gh0s777tt.github.io/eos-pkg-aarch64/pkg
 """
 
 [[files]]

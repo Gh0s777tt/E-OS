@@ -251,7 +251,14 @@ for f in config/*/eos*.toml; do
   # Active = a non-comment line naming a package host. Leading whitespace is stripped first,
   # so "  https://..." cannot slip past a test for a line-initial '#'.
   hits=$(sed 's/^[[:space:]]*//' "$f" | grep -vE '^#' \
-         | grep -nE 'https?://[^[:space:]"]*(static\.redox-os\.org|/pkg)' || true)
+         | grep -nE 'https?://[^[:space:]"]*(static\.redox-os\.org|/pkg)' \
+           | grep -vE 'gh0s777tt\.github\.io/eos-pkg-' || true)
+    # Allowed only if it is our own signed repo (eos-pkg-<arch>, repo.toml.sig verified
+    # against the pinned key). If that source is active the config must pin the key too,
+    # else it is unauthenticated (U-210).
+    if [ -z "$hits" ] && sed 's/^[[:space:]]*//' "$f" | grep -vE '^#' | grep -qE 'gh0s777tt\.github\.io/eos-pkg-'; then
+      grep -q 'etc/pkg/eos-repo-sign.pub.toml' "$f" || hits="active E-OS repo but no pinned key -- unauthenticated"
+    fi
   if [ -n "$hits" ]; then
     src_hits="$src_hits
     $f — active package remote:
