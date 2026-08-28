@@ -131,6 +131,9 @@ auditable text.
 3. **PQ-primary.** Once all supported clients enforce the hybrid, ML-DSA-65
    becomes mandatory and ed25519 is retained only for defense-in-depth.
 
+> **Zaktualizowane (`U-201`).** Klucz podpisujący repozytorium **istnieje od `U-196`**: połowa publiczna to `keys/eos-repo-sign.pub.toml`, przypięta w `config/{aarch64,x86_64}/eos.toml` i **zmierzona w działającym obrazie** pod `/etc/pkg/eos-repo-sign.pub.toml` (4075 B, bajt w bajt, `U-197`). Sekret jest poza repozytorium, na dysku wewnętrznym, z trybem `0600`. Zdanie powyżej opisuje stan sprzed tej zmiany.
+
+
 ### Key custody
 
 - The **secret** file (ed25519 seed + ML-DSA-65 seed, 32 B each) lives **off-repo**,

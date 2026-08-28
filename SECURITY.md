@@ -92,4 +92,7 @@ CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* u
   but the missing piece is one file, not a subsystem.
 - ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
 
+> **Zaktualizowane (`U-201`).** Klucz podpisujący repozytorium **istnieje od `U-196`**: połowa publiczna to `keys/eos-repo-sign.pub.toml`, przypięta w `config/{aarch64,x86_64}/eos.toml` i **zmierzona w działającym obrazie** pod `/etc/pkg/eos-repo-sign.pub.toml` (4075 B, bajt w bajt, `U-197`). Sekret jest poza repozytorium, na dysku wewnętrznym, z trybem `0600`. Zdanie powyżej opisuje stan sprzed tej zmiany.
+
+
 See [docs/security.md](docs/security.md) for the contributor security guide.

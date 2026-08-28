@@ -1,6 +1,6 @@
 # ADR-0004 — Hybrydowy podpis manifestu repozytorium (ed25519 + ML-DSA-65)
 
-- **Status:** Przyjęty (publisher gotowy, klient w obrazie od `U-165`, klucz nie istnieje)
+- **Status:** Przyjęty i **wdrożony** (`U-196`/`U-197`) — publisher gotowy, klient w obrazie od `U-165`, klucz wygenerowany i przypięty. Treść decyzji poniżej pozostaje bez zmian, bo ADR jest niezmienny (`docs/adr/README.md`); zmienia się wyłącznie pole Status.
 - **Data:** 2026-08-23
 - **Dowód:** `docs/security.md`, `tools/eos-repo-sign`, `R-503`, `R-702`, `R-703`, `U-164`
 

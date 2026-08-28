@@ -75,6 +75,9 @@
 >   a gitignored directory — the same "cites a path that isn't there" error this page
 >   charges `hardware-matrix` with. Corrected below.
 
+> **Zaktualizowane (`U-201`).** Klucz podpisujący repozytorium **istnieje od `U-196`**: połowa publiczna to `keys/eos-repo-sign.pub.toml`, przypięta w `config/{aarch64,x86_64}/eos.toml` i **zmierzona w działającym obrazie** pod `/etc/pkg/eos-repo-sign.pub.toml` (4075 B, bajt w bajt, `U-197`). Sekret jest poza repozytorium, na dysku wewnętrznym, z trybem `0600`. Zdanie powyżej opisuje stan sprzed tej zmiany.
+
+
 ## Genuinely done and verified (the strong foundation)
 
 | Item | Evidence | Confidence |
