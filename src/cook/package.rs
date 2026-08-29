@@ -41,14 +41,57 @@ pub fn package(
 
     let secret_path = "build/id_ed25519.toml";
     let public_path = "build/id_ed25519.pub.toml";
+    // E-OS V2-MS12. Upstream silently mints a fresh package-signing keypair whenever
+    // build/id_ed25519.toml is absent. That is convenient for a first build and dangerous
+    // afterwards: `build/` is deleted routinely (make clean, moving the volume, a dead disk),
+    // and the regenerated key is a DIFFERENT identity. Every package then goes out signed by
+    // a key no client has ever seen, pkgar has no keyring and no revocation list (R-711), and
+    // nothing in the build says a word about it. The key that signed the published packages
+    // lived in exactly one place, with no backup, until this landed.
+    //
+    // So: record the expected public key in the repository (keys/eos-pkg-signing.pub.toml --
+    // the PUBLIC half only) and make the two dangerous transitions loud.
+    let expected_path = Path::new("keys/eos-pkg-signing.pub.toml");
+    let recorded = if expected_path.is_file() {
+        Some(PublicKeyFile::open(expected_path)?.pkey)
+    } else {
+        None
+    };
+
     if !Path::new(secret_path).is_file() || !Path::new(public_path).is_file() {
+        if let Some(expected) = recorded {
+            // A key is expected but the private half is gone. Minting a new one here would
+            // publish packages under a new identity and break every client that already
+            // trusts the old one -- refuse instead, and say how to recover.
+            return Err(Error::from(format!(
+                "package-signing key is MISSING but keys/eos-pkg-signing.pub.toml expects {}.\n\
+                 Refusing to mint a replacement: that would re-key every package silently and \
+                 break clients that already trust the recorded key (pkgar has no revocation).\n\
+                 Restore build/id_ed25519.toml from the operator's off-repo copy, or -- if the \
+                 key is genuinely gone -- delete keys/eos-pkg-signing.pub.toml deliberately, \
+                 rebuild, and re-publish (see ROADMAP-v2 V2-MS12).",
+                hex_pkey(&expected)
+            )));
+        }
         if !Path::new("build").is_dir() {
             create_dir(Path::new("build"))?;
         }
         let (public_key, secret_key) = pkgar_keys::SecretKeyFile::new();
         public_key.save(public_path)?;
         secret_key.save(secret_path)?;
+        log_to_pty!(
+            logger,
+            "V2-MS12: minted a NEW package-signing key at {} -- back it up off-repo NOW and \
+             record its public half as keys/eos-pkg-signing.pub.toml, or the next `build/` wipe \
+             loses the identity every published package was signed with.",
+            secret_path
+        );
     }
+    // Note what the record says; the comparison happens AFTER signing, against the key that
+    // was actually used. Checking build/id_ed25519.pub.toml here instead would be theatre:
+    // packages are signed with the SECRET half, so swapping only the public file would sail
+    // straight through and every package would still go out under the wrong identity.
+    let expected_pkey = recorded;
 
     let packages = recipe.recipe.get_packages_list();
 
@@ -76,6 +119,31 @@ pub fn package(
                     },
                 ),
             )?;
+
+            // V2-MS12: check what the package was ACTUALLY signed with, by reading the key out
+            // of the header pkgar just wrote. This is the only honest place for the comparison
+            // -- signing uses the secret half, so inspecting build/id_ed25519.pub.toml instead
+            // would pass even when the two halves disagree.
+            if let Some(expected) = expected_pkey {
+                let mut header = [0u8; 96];
+                let mut f = std::fs::File::open(&package_file)
+                    .map_err(|e| Error::from_io_error(e, "Opening the package just written"))?;
+                std::io::Read::read_exact(&mut f, &mut header)
+                    .map_err(|e| Error::from_io_error(e, "Reading the pkgar header"))?;
+                // pkgar header layout: signature[64] || public_key[32] || ...
+                if header[64..96] != expected[..] {
+                    return Err(Error::from(format!(
+                        "package {} was signed with {} but keys/eos-pkg-signing.pub.toml \
+                         records {}.\n\
+                         Every client fetching this repository would get packages under an \
+                         identity the project does not claim. Restore the recorded key, or \
+                         change the record deliberately and re-publish.",
+                        package_file.display(),
+                        hex_pkey(&header[64..96]),
+                        hex_pkey(&expected)
+                    )));
+                }
+            }
         }
 
         let deps = if package.is_some() {
@@ -281,4 +349,10 @@ pub fn package_handle_push(
     }
 
     Ok(cached)
+}
+
+/// Render an Ed25519 public key as hex, so a key-mismatch message names both keys instead of
+/// leaving the operator to work out which one is in play.
+fn hex_pkey(key: &[u8]) -> String {
+    key.iter().map(|b| format!("{b:02x}")).collect()
 }

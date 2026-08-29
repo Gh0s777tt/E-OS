@@ -183,8 +183,15 @@ fn sign(secret_path: &str, file_path: &str) {
     let ed_sig: EdSignature = ed_sk.sign(&msg);
     let pq_sig: PqSignature<MlDsa65> = pq_sk.sign(&msg);
 
+    // Publish the file NAME, not the path: this header ships to GitHub Pages, and the full
+    // path leaked the operator's private temp directory (and the fact that publishing ran from
+    // macOS rather than the build container) into a world-readable artefact.
+    let sig_subject = std::path::Path::new(&file_path)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| file_path.to_string());
     let out = format!(
-        "# E-OS hybrid signature for {file_path}\n\
+        "# E-OS hybrid signature for {sig_subject}\n\
          [hybrid_signature]\n\
          version = {SIG_VERSION}\n\
          algorithms = [\"ed25519\", \"ml-dsa-65\"]\n\

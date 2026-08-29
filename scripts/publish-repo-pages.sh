@@ -56,9 +56,15 @@ cp "$REPO"/repo.toml "$REPO"/*.pkgar "$stage/pkg/$TARGET/"
   echo "| pkg/$TARGET/repo.toml | hybrid ed25519 + ML-DSA-65 | pkg, against the key pinned in the image |"
   echo
   echo "The index signature is repo.toml.sig. Clients hold the public key at"
-  echo "/etc/pkg/eos-repo-sign.pub.toml inside the image, so a compromised host or a"
-  echo "man-in-the-middle cannot swap the index to freeze, roll back or substitute packages:"
-  echo "a missing or invalid signature is a **fatal** error, not a warning."
+  echo "/etc/pkg/eos-repo-sign.pub.toml inside the image, so a missing or invalid index"
+  echo "signature is a **fatal** error on the paths that check it, not a warning."
+  echo
+  echo "Read the limits honestly, because they are real (ROADMAP-v2 V2-MS13/14/15):"
+  echo "* The index hashes are **not yet enforced against the bytes that get installed**, so a"
+  echo "  host able to serve its own id_ed25519.pub.toml can still substitute package content."
+  echo "* \`pkg install <name>\` does not check the index at all today -- only \`update\` and \`-a\` do."
+  echo "* There is **no freeze or rollback protection**: the index carries no timestamp, counter"
+  echo "  or expiry, so a host may serve an old, correctly signed index indefinitely."
   echo
   echo "This repository is an artefact host. Source, issues and history live in the"
   echo "[E-OS repository](https://gitlab.com/e-os/e-os)."
