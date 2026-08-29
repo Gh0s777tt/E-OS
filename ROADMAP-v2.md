@@ -59,7 +59,7 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 | **Szyfrowanie dysku (FDE)** | RedoxFS AES-XTS z akceleracją ARMv8 Crypto (`R-502`) | 🖥️ Mac | ✅ |
 | **Podpisy post-kwantowe** | hybryda ed25519 + ML-DSA-65 (`R-503`), klucz wygenerowany i przypięty (`U-196`/`U-197`) | 🖥️ Mac | ✅ |
 | **Repozytorium pakietów** | **pierwsza publikacja ZROBIONA** (`R-008`/`U-209`): 78 pakietów, 893 MB, HTTP 200; `50_eos` **aktywne na aarch64**, x86_64 czeka na publikację | 🖥️ Mac + 🔑 | 🟡 |
-| **Weryfikacja podpisu u klienta** | ⚠️ **słabsza, niż wyglądała** — manifest jest weryfikowany przypiętym kluczem, ale jego hasze **nie są egzekwowane na instalowanych bajtach**, a klucz pakietów klient pobiera z hosta (`V2-MS13`/`V2-MS14`) | 🖥️ Mac | 🔴 |
+| **Weryfikacja podpisu u klienta** | ✅ **egzekwowana na bajtach** — hasze blake3 z podpisanego manifestu sprawdzane przed rozpakowaniem, na każdej ścieżce włącznie z `install`, plus licznik i termin ważności indeksu (`V2-MS13`/`V2-MS14`/`V2-MS15`, `U-223`) | 🖥️ Mac | ✅ |
 | **Demon aktualizacji `eos-update`** | `R-705` demon, `R-706` transakcja+rollback, `R-704` anti-rollback, `R-707` apply-on-reboot | 🖥️ Mac | 🔴 |
 | **Reprodukowalny pipeline wydań** | tag → obraz → wydanie (`R-303`); **bajtowa** reprodukowalność niezweryfikowana | 🐧 CI + 🔑 | 🟡 |
 | **Podpisany bootloader / Secure Boot** | ✅ udowodnione kluczem operatora (§2.1), a od `U-212` bootloader **weryfikuje też jądro i initfs** — nietknięty obraz bootuje, jeden zmieniony bajt jest odrzucony | 🖥️ Mac · 🔑 | ✅ |
@@ -186,10 +186,10 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 | **V2-MS09** 🖥️ | **Odpowiednik lockdown** dla mikrojądra: opisać i wymusić, czego user-space nie może po włączonym SB | jedyne pytanie shim-review z podpowiedzią „bo inaczej nie podpiszemy" | 🖥️ Mac | 🔴 |
 | **V2-MS10** 🔑 | **Decyzja biznesowa**: osoba prawna + certyfikat EV + drugi kontakt bezpieczeństwa | dopiero to odblokowuje zgłoszenie; nie jest to praca programistyczna | 🔑 operator | 🔴 |
 | **V2-MS11** 🖥️ | **Chainload przez shim** + protokół weryfikacji (dopiero po V2-MS10) | ostatni krok toru B; bez V2-MS10 bezcelowy | 🖥️ Mac | 💡 |
-| **V2-MS13** 🖥️ | **Egzekwować blake3 z podpisanego manifestu przy instalacji** — dziś `PkgarBackend::install()` sprawdza pakiet **wyłącznie** kluczem pobranym z tego samego hosta; w całym `pkg-lib` są **dwa** porównania blake3 i **żadne nie jest kontrolą integralności** (`library.rs:144`, `package_state.rs:278` — oba decydują „czy aktualizować") | **To jest prawdziwa dziura, nie V2-MS12.** Kto przejmie host pakietów, zostawia oryginalne `repo.toml`+`.sig` (zweryfikują się), podmienia `id_ed25519.pub.toml` na swój i przepodpisuje pakiety — klient instaluje dowolny kod, a przypięty klucz hybrydowy **niczego nie zatrzymuje**. Działa **dziś na aarch64**, bo źródło jest aktywne. Dopiero ta zmiana sprawia, że warstwa 3 chroni treść, a nie samą listę nazw | 🖥️ Mac | 🔴 **[P0]** |
-| **V2-MS14** 🖥️ | **`pkg install <nazwa>` w ogóle nie weryfikuje manifestu** — robi to tylko `update` i `-a` (`pkg-cli/src/main.rs:187-191` → `process_packages()` woła `get_all_package_names()` wyłącznie przy `all == true`) | najczęstsza operacja użytkownika omija jedyną działającą weryfikację | 🖥️ Mac | 🔴 **[P1]** |
+| **V2-MS13** 🖥️ | **Egzekwować blake3 z podpisanego manifestu przy instalacji** — dziś `PkgarBackend::install()` sprawdza pakiet **wyłącznie** kluczem pobranym z tego samego hosta; w całym `pkg-lib` są **dwa** porównania blake3 i **żadne nie jest kontrolą integralności** (`library.rs:144`, `package_state.rs:278` — oba decydują „czy aktualizować") | **To jest prawdziwa dziura, nie V2-MS12.** Kto przejmie host pakietów, zostawia oryginalne `repo.toml`+`.sig` (zweryfikują się), podmienia `id_ed25519.pub.toml` na swój i przepodpisuje pakiety — klient instaluje dowolny kod, a przypięty klucz hybrydowy **niczego nie zatrzymuje**. Działa **dziś na aarch64**, bo źródło jest aktywne. Dopiero ta zmiana sprawia, że warstwa 3 chroni treść, a nie samą listę nazw | 🖥️ Mac | ✅ |
+| **V2-MS14** 🖥️ | **`pkg install <nazwa>` w ogóle nie weryfikuje manifestu** — robi to tylko `update` i `-a` (`pkg-cli/src/main.rs:187-191` → `process_packages()` woła `get_all_package_names()` wyłącznie przy `all == true`) | najczęstsza operacja użytkownika omija jedyną działającą weryfikację | 🖥️ Mac | ✅ |
 | **V2-MS12** 🔑 | **Klucz podpisujący pakiety** — cookbook **generuje go sam**, jest przechowywany **jawnym tekstem** (`skey` = 128 znaków hex; `docs/tokeny.md` twierdził inaczej), a bramka z `U-213` wykrywa jego utratę i rozjazd | 🟡 **Kopia zapasowa ISTNIEJE i jest zweryfikowana** (`U-216`): `~/.eos-keys/eos-pkg-signing.secret.toml`, suma zgodna co do bajtu, na **innym nośniku** niż oryginał. Zostaje: (a) trzecia kopia **poza tym Makiem** — dziś obie leżą na jednym komputerze, (b) uczynienie go kluczem operatora, ale **po `V2-MS13`**, bo sama rotacja nie zamyka dziury i kosztuje republikację 642 MB | 🔑 operator | 🟡 **[P2]** |
-| **V2-MS15** 🖥️ | **Brak ochrony przed rollback/freeze, wbrew publicznej deklaracji** — `repo.toml` ma tylko `build_id`, zero znacznika czasu, licznika i wygaśnięcia; host może w nieskończoność serwować starą, **poprawnie podpisaną** parę indeks+pakiety | README publikowany przez `publish-repo-pages.sh` obiecuje ochronę przed *freeze* i *rollback*, której **nie ma** — a to tekst kierowany na zewnątrz | 🖥️ Mac | 🔴 **[P1]** |
+| **V2-MS15** 🖥️ | **Brak ochrony przed rollback/freeze, wbrew publicznej deklaracji** — `repo.toml` ma tylko `build_id`, zero znacznika czasu, licznika i wygaśnięcia; host może w nieskończoność serwować starą, **poprawnie podpisaną** parę indeks+pakiety | README publikowany przez `publish-repo-pages.sh` obiecuje ochronę przed *freeze* i *rollback*, której **nie ma** — a to tekst kierowany na zewnątrz | 🖥️ Mac | ✅ |
 
 ## 3. Sterowniki — co mamy, czego brakuje, co zbudować
 
@@ -599,14 +599,22 @@ eos-notes: V2-NT01 Markdown → V2-NT02 szyfrowanie → NT03 organizacja → NT0
   **jeden krok właściciela** (wgranie certyfikatu w firmware). Ścieżka „działa od razu na każdym
   pececie" wymaga podpisu Microsoftu, który — jak pokazuje §2.3 — blokują dziś sprawy
   pozatechniczne, nie kod.
-- **Podpis pakietów NIE chroni dziś ich treści.** Przypięty w obrazie klucz hybrydowy weryfikuje
-  *manifest*, ale jego hasze blake3 **nigdy nie są egzekwowane na bajtach, które się instalują**
-  (`V2-MS13`). Klucz pakietów klient **pobiera z tego samego hosta** co pakiety — nie przypina go.
-  Kto przejmie host, zostawia oryginalny podpisany manifest, podstawia własny klucz i przepodpisuje
-  pakiety; klient melduje „manifest OK, pakiet OK". Działa **dziś na aarch64**. Dopóki `V2-MS13`
-  nie wyląduje, warstwa 3 chroni **listę nazw, nie treść**.
-- **`pkg install <nazwa>` nie sprawdza manifestu w ogóle** — robi to tylko `update` i `-a` (`V2-MS14`).
-- **Nie ma ochrony przed rollback i freeze** (`V2-MS15`); publikowany README obiecywał ją do `U-213`.
+- **Podpis pakietów chroni treść — od `U-223`.** Hasze blake3 z podpisanego manifestu są
+  egzekwowane na bajtach, które faktycznie się instalują (`V2-MS13`), na **każdej** ścieżce, bo
+  `install` też pobiera i weryfikuje manifest (`V2-MS14`), a indeks niesie licznik i termin
+  ważności, więc poprawnie podpisany **stary** indeks jest odrzucany (`V2-MS15`). Zamknięty atak:
+  kto przejmie host pakietów, nie odtworzy już „manifest OK, pakiet OK" podstawiając własny klucz
+  i przepodpisując pakiety — hasz nie zgadza się z tym, co podpisał wydawca.
+- **Czego to nie obejmuje, i trzeba to mówić wprost:** znacznik antycofkowy leży w zwykłym pliku
+  obok przypiętego klucza, więc **root na maszynie może go skasować**. To ochrona przed
+  napastnikiem w sieci, nie przed lokalnym. Źródło bez zdalnych repozytoriów jest z egzekwowania
+  indeksu **świadomie zwolnione** — w trakcie budowania obrazu `redox_installer` ma już wpisany
+  przypięty klucz, a `repo.toml.sig` jeszcze nie istnieje; bez tego wyjątku **każdy build by padał**.
+- **Publikacja repozytorium pakietów pozostaje zablokowana na `R-702`** — nie z powodu kodu.
+  Połowa prywatna klucza podpisującego indeks **nie istnieje** (`keys/eos-repo-sign.pub.toml` to
+  sama połowa publiczna), a wygenerowanie klucza jest **działaniem człowieka** i świadomie nie jest
+  zautomatyzowane. Zdalne repozytorium (`gh0s777tt.github.io/eos-pkg-x86_64`) **nie serwuje dziś
+  żadnego indeksu** — samo README — więc nie ma czego cofać ani zamrażać, dopóki klucz nie powstanie.
 - **Weryfikacja jądra i initfs istnieje (`V2-MS02`), ale NIE znaczy „zweryfikowany łańcuch rozruchu".**
   `initfs` niesie wyłącznie sterowniki dyskowe; `xhcid`, `e1000d`, `usbhidd`, `usbscsid`, `ihdad`,
   `rtl8168d` i dziesięć innych ładuje się z **niepodpisanego** roota po jego zamontowaniu, przez
