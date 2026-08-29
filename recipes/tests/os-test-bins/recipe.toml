@@ -39,9 +39,12 @@ skips=(
     basic/sys_select/select
     basic/sys_time/select
     basic/sys_wait/waitpid
-    # E-OS U-220: znaleziony pomiarem, nie było go na liście upstreamu. Przebieg stanął
-    # na nim na 90+ s przy zerowym przyroście logu i jednym rdzeniu w kolko.
-    signal/pthread_kill
+    # E-OS U-220: znaleziony pomiarem, nie było go na liście upstreamu. Przebieg stawał
+    # na nim na 90+ s przy zerowym przyroście logu i jednym rdzeniu w kółko.
+    # Przedrostek "basic/" jest konieczny: ten test należy do drzewa basic/, więc jego wynik
+    # ma ścieżkę out/redox/basic/signal/..., inaczej niż wpisy signal/ppoll-* poniżej, które
+    # są w osobnym drzewie signal/. Bez przedrostka znacznik powstaje obok i test i tak rusza.
+    basic/signal/pthread_kill
     signal/ppoll-block-sleep-raise-write
     signal/ppoll-block-sleep-write-raise
 )
