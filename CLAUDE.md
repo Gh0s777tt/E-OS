@@ -772,6 +772,39 @@ Trzeci warunek, niezależny od odtwarzalności: **czy coś tego jeszcze nie czyt
 stemplem `make`. „Pliki zerowej długości" nie są bezpieczną kategorią; są kategorią, która
 *wygląda* bezpiecznie. Tak samo `repo.tag` (`U-212`).
 
+### 21.2b Gdy kontener nie czyta pliku, którego jest właścicielem — SELinux MCS
+
+Objaw jest sprzeczny sam ze sobą i dlatego myli: `ls -n` pokazuje właściciela `0 0` i tryb `600`,
+proces ma `CAP_DAC_OVERRIDE`, a odczyt zwraca `EACCES`. **Świeży plik `600` w tym samym katalogu
+czyta się bez problemu** — i to jest krok, który rozstrzyga.
+
+Przyczyna: maszyna podmana to Fedora CoreOS z SELinuksem w trybie `Enforcing`, a każdy kontener
+dostaje **losową parę kategorii MCS**. Pliki dziedziczą kategorie kontenera, który je utworzył,
+więc kontener z innymi kategoriami jest odcięty. Zmierzone (`U-218`) na kluczu podpisującym pakiety:
+
+```
+container_file_t:s0            id_ed25519.pub.toml   <- czytelny
+container_file_t:s0:c22,c82    id_ed25519.toml       <- EACCES z każdego innego kontenera
+```
+
+Skutek był **cichy i kosztowny**: `cook` kończył się `Package archive error: Permission denied
+… "Reading secret"`, więc **żaden pakiet x86_64 nie powstawał**, a `make` i tak składał obraz
+z tego, co zastał. Rozpoznanie:
+
+```bash
+podman machine ssh eos-build 'sudo ls -Z <ścieżka-w-wolumenie>'
+```
+
+Naprawa to wyrównanie etykiety do katalogu (`s0`, jak reszta wolumenu) — **po sprawdzeniu, że
+plik ma kopię zapasową**:
+
+```bash
+podman machine ssh eos-build 'sudo chcon -l s0 <ścieżka>'
+```
+
+Nie „naprawiaj" tego przez `--security-opt label=disable` — to wyłącza izolację dla całego
+kontenera zamiast poprawić jeden plik.
+
 ### 21.3 Czego **nigdy** nie kasujesz
 
 - **Klucze i wszystko bez kopii zapasowej.** `build/id_ed25519.toml`, `build/sb-signing/`,

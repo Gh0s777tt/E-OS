@@ -58,6 +58,22 @@ then
     bootloader "${ARCH}-unknown-uefi" bootloader.efi bootloader.efi
     bootloader "${ARCH}-unknown-uefi" bootloader-live.efi bootloader-live.efi
 
+    SBROOT="${COOKBOOK_STAGE%/recipes/*}"
+
+    # V2-MS01: stamp SBAT into both UEFI bootloaders, BEFORE they are signed. An Authenticode
+    # signature covers the whole binary, so a section added after sbsign silently destroys it.
+    # SBAT gives E-OS its own revocation lane -- a generation number firmware compares -- rather
+    # than waiting for a DBX entry only Microsoft can publish (ADR-0006).
+    #
+    # BIOS gets no SBAT on purpose: bootloader.bios is a flat NASM image with no PE section
+    # table to hold one, and no firmware reads SBAT in legacy boot. Its hard 384 KiB budget is
+    # therefore untouched.
+    for f in bootloader.efi bootloader-live.efi
+    do
+        python3 "${SBROOT}/scripts/eos-add-sbat.py" \
+            "${COOKBOOK_STAGE}/usr/lib/boot/${f}" "${COOKBOOK_RECIPE}/sbat.csv"
+    done
+
     # V2-N03 / R-F27: sign the UEFI bootloaders for Secure Boot, IN THE STAGE, so the pkgar
     # and the whole downstream chain (blake3 -> repo.toml -> repo.toml.sig -> the ISO's ESP)
     # all carry the signed binaries. The installer builds the live ISO's ESP from THIS package
@@ -70,12 +86,21 @@ then
     # silent claim of signed. The key is the operator's action, like every signing key.
     # Derive the redox root from COOKBOOK_STAGE so the path is right whether cook runs nested
     # (PODMAN_BUILD=1, root at /mnt/redox) or directly (PODMAN_BUILD=0, root at /work/redox).
-    SBROOT="${COOKBOOK_STAGE%/recipes/*}"
     SBKEY="${SBROOT}/build/sb-signing/mok.key"
     SBCRT="${SBROOT}/build/sb-signing/mok.crt"
     if [ -f "$SBKEY" ] && [ -f "$SBCRT" ]
     then
-        command -v sbsign >/dev/null 2>&1 || { apt-get update -qq >/dev/null 2>&1; apt-get install -y -qq sbsigntool >/dev/null 2>&1; }
+        # V2-MS05: sbsigntool comes from the build image (podman/redox-base-containerfile),
+        # not from an apt-get during cook. Fetching it here left the version of the tool that
+        # SIGNS THE BOOT CHAIN outside the pinned build description -- two builds of the same
+        # revision could be signed by different code, and the fetch needed network besides.
+        # If it is missing, the image is stale: rebuild it rather than papering over it.
+        command -v sbsign >/dev/null 2>&1 || {
+            echo "V2-MS05: sbsign missing from the build image."
+            echo "  The image predates sbsigntool being added to podman/redox-base-containerfile."
+            echo "  Rebuild it:  make build/container.tag   (or: podman build --file podman/redox-base-containerfile --tag redox-base .)"
+            exit 1
+        }
         for f in bootloader.efi bootloader-live.efi
         do
             b="${COOKBOOK_STAGE}/usr/lib/boot/${f}"

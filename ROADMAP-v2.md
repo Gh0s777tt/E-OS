@@ -175,11 +175,11 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 
 | poz. | co | dlaczego warto **niezależnie** od Microsoftu | gdzie | stan |
 |---|---|---|---|---|
-| **V2-MS01** 🖥️ | **Sekcja `.sbat`** w obu bootloaderach (`eos,1,E-OS,eos-bootloader,<wersja>,<url>`) + `sbat.csv` w recepturze | daje projektowi mechanizm unieważniania wersji bez czekania na DBX | 🖥️ Mac | 🔴 |
+| **V2-MS01** 🖥️ | **Sekcja `.sbat`** w obu bootloaderach UEFI | ✅ **ZROBIONE** (`U-218`): 158 B, `eos-bootloader,1,E-OS,…`, dokładana **przed** podpisem (Authenticode pokrywa całą binarkę); oba podpisy nadal ważne, BIOS nietknięty. Daje własną ścieżkę unieważniania wersji zamiast czekania na DBX | 🖥️ Mac | ✅ |
 | **V2-MS02** 🖥️ | **Bootloader weryfikuje jądro i initfs** podpisem, nie bajtami magicznymi | ✅ **ZROBIONE i udowodnione** (`U-212`): nietknięty obraz bootuje, jedna zmiana bajtu w jądrze → **odmowa**. Zakres celowo wąski — patrz §11 | 🖥️ Mac · 🔑 | ✅ *(czeka na push forka)* |
 | **V2-MS03** 🖥️ | **Naprawić trzy dokumenty**: `threat-model.md`, `hardening.md`, `plan-do-sprzetu.md` | ✅ **ZROBIONE** (`U-211`) — twierdziły, że nikt nie podpisuje bootloadera; nieprawda od `U-207`. Przy okazji `U-216` poprawił `docs/tokeny.md`, który mylił się w dwóch punktach o warstwie 2 | 🖥️ Mac | ✅ |
 | **V2-MS04** 🖥️ | **Bramka Secure Boot w CI** — wpiąć `eos-secureboot-proof.sh` do `.gitlab-ci.yml` | dowód przestaje zależeć od jednego laptopa | 🐧 CI | 🔴 |
-| **V2-MS05** 🖥️ | **Hermetyczne podpisywanie** — przypiąć `sbsigntool` zamiast `apt-get` w czasie `cook` | dziś wersja narzędzia podpisującego nie jest częścią opisu builda | 🖥️ Mac | 🔴 |
+| **V2-MS05** 🖥️ | **Hermetyczne podpisywanie** — `sbsigntool` z obrazu bazowego zamiast `apt-get` w czasie `cook` | ✅ **ZROBIONE** (`U-218`): wersja narzędzia podpisującego łańcuch rozruchu jest teraz częścią przypiętego opisu builda, a krok nie wymaga sieci | 🖥️ Mac | ✅ |
 | **V2-MS06** 🔑 | **Klucz na tokenie sprzętowym** (PKCS#11, YubiKey/Nitrokey) zamiast pliku bez hasła | klucz podpisujący rozruch leży dziś jako zwykły plik | 🔑 operator | 🔴 |
 | **V2-MS07** 🖥️ | **Reprodukowalność bajtowa** obrazu i binarki EFI + publikowanie haszy | `R-303`; warunek konieczny każdej recenzji, ale i tak potrzebny do wydań | 🐧 CI | 🔴 |
 | **V2-MS08** 🖥️ | **SBOM SPDX** generowany przy każdym buildzie (dziś statyczny dla 0.1.0 i cicho się starzeje) | uczciwy spis składników; wymóg Microsoftu od 10.2025 | 🖥️ Mac | 🔴 |
