@@ -707,6 +707,87 @@ macOS obcina `comm` do 15 znaków, więc `pgrep qemu-system-aarch64` **nigdy** n
 W `U-181` każdy odczyt „qemu: 0" był fałszywy, a ja na tej podstawie uznałem żywe przebiegi
 za martwe i uruchamiałem kolejne, spowalniając te działające. Używaj `pgrep -f` albo `ps`.
 
+## 21. Sprzątanie — kasuje się **plik**, nigdy **katalog**
+
+Ten rozdział powstał z prośby o porządek („kasować niepotrzebne pliki, stare buildy, żeby nie
+zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-214`). Pomiar pokazał
+trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
+rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
+klucz istniejący w **jednej kopii bez backupu**.
+
+### 21.1 Najpierw zmierz, **który** dysk boli — prawie nigdy ten, na który patrzysz
+
+Zmierzone 2026-08-29, przed sprzątaniem: dysk **zewnętrzny** (drzewo projektu) miał
+**1,2 TiB wolnego**, a **wewnętrzny** — 23 GiB przy 89 % zajętości. Sprzątanie w katalogu
+projektu zwalniało więc miejsce tam, gdzie go nie brakowało.
+
+> **Zanim skasujesz cokolwiek „dla miejsca": wypisz `df -h` OBU dysków i powiedz, który
+> sprzątasz.** Bez tego zdania sprzątanie jest ryzykiem bez zysku.
+
+**`du` na exFAT myli się o rząd wielkości.** Jednostka alokacji to 1 MiB (`diskutil info` →
+*Allocation Block Size*), więc każdy plik zajmuje minimum 1 MiB. Zmierzone: `recipes/` to
+**6,6 GB według `du` i 1,9 MB realnej treści** w 3376 plikach — 99,97 % to puste miejsce
+w klastrach, nie śmieci. Migawka forka Ion: **1,35 MiB treści w 906 MiB**. Cytuj **obie**
+liczby — `du -sh` i sumę rzeczywistą — albo nie cytuj żadnej (§4.3).
+
+### 21.2 Zasada nadrzędna — i dlaczego sama nie wystarcza
+
+> **Kasuj wyłącznie to, co potrafisz odtworzyć jednym poleceniem — i zapisz to polecenie
+> obok, we wpisie CHANGELOG-a, ZANIM skasujesz.**
+
+Warunek **konieczny, nie wystarczający**. Dwa kontrprzykłady zmierzone w tym drzewie:
+
+1. **Odtwarzalny ≠ te same bajty.** `release/*.tar.gz` odtwarza `publish-repo.sh` jednym
+   poleceniem — ale skrypt **podpisuje manifest na nowo**, więc suma kontrolna wyjdzie inna.
+   Pytanie brzmi nie „czy umiem to zbudować", tylko **„czy umiem odtworzyć TE bajty".**
+2. **Odtwarzalny katalog potrafi zawierać nieodtwarzalny plik.** Drzewo w wolumenie `eos-work`
+   jest w całości odtwarzalne — **poza `build/id_ed25519.toml`**, kluczem, którym podpisano
+   78 opublikowanych pakietów, istniejącym w jednej kopii. `rm -rf build/` kasuje ten klucz;
+   `rm build/jakiś-plik` — nie.
+
+**Stąd forma reguły: kasujesz plik, nigdy katalog.** Wyjątek jest jeden i wprost usankcjonowany
+w §20.3: `recipes/*/source` i `recipes/*/target`, bo cookbook odtwarza je od zera. Wszędzie
+indziej **wylistuj pliki, przeczytaj listę, skasuj listę.**
+
+Trzeci warunek, niezależny od odtwarzalności: **czy coś tego jeszcze nie czyta.**
+`build/container.tag` ma **0 bajtów** i wygląda na pusty log — a `mk/podman.mk` czyni go
+stemplem `make`. „Pliki zerowej długości" nie są bezpieczną kategorią; są kategorią, która
+*wygląda* bezpiecznie. Tak samo `repo.tag` (`U-212`).
+
+### 21.3 Czego **nigdy** nie kasujesz
+
+- **Klucze i wszystko bez kopii zapasowej.** `build/id_ed25519.toml`, `build/sb-signing/`,
+  `build/boot-signing/`. Jeśli nie potrafisz wskazać drugiej kopii — to nie jest śmieć,
+  to jedyny egzemplarz.
+- **Wolumeny `eos-work` i `eos-root`** — 37 GB cache'u budowania. `--wipe-caches` nigdy.
+- **Cokolwiek śledzonego przez gita.**
+- **Artefakt, który jest dowodem.** Pułapka zmierzona w `U-214`: `eos-x86_64-harddrive.img`
+  i `eos-x86_64-live.iso` wyglądały na automatyczny wypluwek builda i leżały **dokładnie pod
+  ścieżką, którą `scripts/eos-build.sh` nadpisuje przy każdym uruchomieniu** — a były jedynymi
+  nośnikami prawdziwego certyfikatu `CN=E-OS Secure Boot`. Dowód, którego nie da się odtworzyć
+  jednym poleceniem, **przenieś do `~/eos-artifacts/dowody/` i nazwij tym, czego dowodzi.**
+
+### 21.4 Wolno bez pytania
+
+Tylko to, i tylko po przejściu §21.2:
+
+| co | polecenie odtwarzające — **zapisz je we wpisie** |
+|---|---|
+| `tools/*/target/` | `cargo build --release --manifest-path tools/<nazwa>/Cargo.toml` |
+| `recipes/*/source`, `recipes/*/target` | `make c.<przepis>` — procedura w §20.3 |
+| `prefix/` w katalogu projektu | pobierze się sam z `static.redox-os.org`; build i tak używa kopii w wolumenie |
+| sidecary `._*`, `.DS_Store` | `dot_clean -m .` — Finder odtwarza je sam, 0 śledzonych w gicie |
+| twoja sonda / łatka diagnostyczna | ona i tak miała zniknąć — §20.4 |
+| obrazy, których dowód jest **już zapisany** w CHANGELOG-u | `scripts/eos-build.sh <arch>` |
+
+### 21.5 Wymaga pytania właściciela
+
+Kosz systemowy, cudze projekty, archiwa, cokolwiek starszego niż bieżąca praca. Zmierz,
+pokaż listę z rozmiarami i **poczekaj na odpowiedź** — nawet gdy jesteś pewien. Przy
+`_archiwum-migawek` (51 GB) pewność była uzasadniona co do 16 713 z 16 715 plików; te dwa
+pozostałe nie istniały nigdzie w gicie, bo publikacja orphan-commitem zniszczyła historię forka.
+Kasowanie „całości, bo wszystko odtwarzalne" straciłoby je bezpowrotnie.
+
 ## 19. TODO — czego naprawdę brakuje
 
 Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika dopiero, gdy
