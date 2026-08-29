@@ -262,10 +262,58 @@ fn publish_packages(config: &CliConfig) -> Result<()> {
         packages.insert(package_name, version_str.to_string());
     }
 
+    // V2-MS15: the signature proves origin, not currency. Two fields close two distinct
+    // attacks that the signature alone leaves open, and neither field covers the other:
+    //   * `serial` stops a ROLLBACK -- an older, still correctly signed index replayed so a
+    //     machine reinstalls a version with a known hole. The client keeps a watermark.
+    //   * `expires` stops a FREEZE -- the newest signed index served forever so fixes never
+    //     arrive. The serial equals the watermark there, so the ratchet cannot see it.
+    //
+    // The counter comes from the commit count rather than a clock: it is monotonic by
+    // construction, survives a rebuild of the same tree, and needs no state file on the
+    // builder. EOS_REPO_SERIAL overrides it for a publisher that keeps its own counter.
+    // The counter is supplied by the caller and is deliberately NOT read from git here. This
+    // binary runs inside the build container, whose /work/redox tree is a SEPARATE git history
+    // that the sync script copies files into and never commits to -- its HEAD has not moved
+    // since it was created. Asking git here therefore returns the same number on every publish
+    // forever, which is the worst of the three possible outcomes: the client would store that
+    // value as its watermark, every later index would carry the identical value, `serial >=
+    // watermark` would always hold, and the rollback ratchet would look armed while protecting
+    // nothing. A missing serial is honest -- the client treats 0 as "no freshness claim" and
+    // falls back to pre-V2-MS15 behaviour -- but a frozen one lies. scripts/eos-build.sh reads
+    // the count from the real repository on the host and passes it in.
+    let serial = std::env::var("EOS_REPO_SERIAL")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(0);
+    if serial == 0 {
+        eprintln!(
+            "\x1b[01;38;5;214mrepo - EOS_REPO_SERIAL unset: publishing an index with no \
+             rollback protection. This is expected for a local image build and wrong for a \
+             published repository.\x1b[0m"
+        );
+    }
+    // A window, not a deadline: long enough that a normally maintained machine never trips it,
+    // short enough that a host silently freezing updates is noticed. Zero disables the check,
+    // which is what an unpublished local build wants.
+    let expires = std::env::var("EOS_REPO_EXPIRES_DAYS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map(|days| {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            if now == 0 { 0 } else { now + days * 86_400 }
+        })
+        .unwrap_or(0);
+
     let repository = Repository {
         build_id: get_ident().commit.clone(),
         packages,
         outdated_packages,
+        serial,
+        expires,
     };
 
     fs::serialize_and_write(&repo_toml_path, &repository)?;

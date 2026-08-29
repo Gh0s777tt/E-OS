@@ -33,8 +33,15 @@ before="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/redox-live.iso 2>/dev/nu
 key_present="$(inbox 'test -f /work/redox/build/sb-signing/mok.crt && echo yes || echo no')"
 
 echo "==> build ARCH=$ARCH in the eos-work volume (this is what make-from-here cannot do)"
+# V2-MS15: the repo index carries a monotonic serial so a client can refuse a replayed older
+# index. It has to be counted HERE, in the real repository -- the build tree inside the volume is
+# a different git history that never receives commits, so counting there would hand every publish
+# the same number and arm nothing. Empty if this is somehow not a checkout; the builder then says
+# so loudly rather than inventing a value.
+serial="$(git rev-list --count HEAD 2>/dev/null || true)"
 podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-limit=-1 \
-  -v "$VOL":/work -v eos-root:/root --env PODMAN_BUILD=0 localhost/redox-base:latest \
+  -v "$VOL":/work -v eos-root:/root --env PODMAN_BUILD=0 \
+  --env EOS_REPO_SERIAL="$serial" localhost/redox-base:latest \
   bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all 2>&1 | tail -3"
 
 after="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/redox-live.iso 2>/dev/null | tr '\n' ' '" || true)"

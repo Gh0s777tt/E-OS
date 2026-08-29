@@ -38,7 +38,12 @@ object = { version = "0.38", features = ["build_core"] }
 pkgar = { git = "https://gitlab.redox-os.org/redox-os/pkgar.git" }
 pkgar-core = { git = "https://gitlab.redox-os.org/redox-os/pkgar.git" }
 pkgar-keys = { git = "https://gitlab.redox-os.org/redox-os/pkgar.git" }
-redox-pkg = { git = "https://gitlab.redox-os.org/redox-os/pkgutils.git", default-features = false }
+# E-OS V2-MS15: pinned to the E-OS fork, not upstream. The host tools built from this
+# manifest include repo_builder, which WRITES repo.toml, while the client that READS it is
+# built from recipes/core/pkgutils -- the fork. Leaving this on upstream meant the producer
+# and the consumer of the manifest were different codebases, so a field added on one side
+# simply did not exist on the other. Pinned by rev for the same reason every other fork is.
+redox-pkg = { git = "https://github.com/Gh0s777tt/eos-pkgutils.git", rev = "e28063ee2f6ffee19322dedaf2d0e4ab737feb75", default-features = false }
 redox_installer = { git = "https://gitlab.redox-os.org/redox-os/installer.git", default-features = false }
 redoxer = { git = "https://gitlab.redox-os.org/redox-os/redoxer.git", default-features = false }
 regex = "1.11"

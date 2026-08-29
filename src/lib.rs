@@ -170,12 +170,22 @@ impl From<pkg::PackageError> for Error {
 impl From<pkg::backend::Error> for Error {
     fn from(value: pkg::backend::Error) -> Self {
         match value {
-            pkg::backend::Error::IO(error)
-            | pkg::backend::Error::Download(pkg::net_backend::DownloadError::IO(error)) => {
+            // The two I/O variants no longer carry the same payload, so they can no longer share
+            // an arm. The backend one gained a path and a context (upstream daed9a5), which are
+            // exactly the two fields this conversion used to fill with None and a placeholder --
+            // so splitting the arm is not just an arity fix, it stops discarding the information
+            // that says WHICH file failed. The download variant genuinely has no path: it fails
+            // on a URL, not on a filesystem entry, so None there is accurate rather than lazy.
+            pkg::backend::Error::IO(source, path, context) => Error::Io {
+                source,
+                path: Some(path),
+                context,
+            },
+            pkg::backend::Error::Download(pkg::net_backend::DownloadError::IO(source)) => {
                 Error::Io {
-                    source: error,
+                    source,
                     path: None,
-                    context: "Package backend I/O",
+                    context: "Package download I/O",
                 }
             }
             error => Error::PackageBackend(error),
