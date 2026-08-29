@@ -141,15 +141,64 @@ rzecz i inne zasady. Warstwy są niezależne: żadna nie zastępuje pozostałych
 | # | Warstwa | Co dowodzi | Algorytm | Stan (`U-191`) |
 |---|---|---|---|---|
 | 1 | Podpisy commitów i tagów | kto napisał kod | SSH | ✅ działa |
-| 2 | Podpisy per-pakiet | że `.pkgar` nie podmieniono | ed25519 (pkgar) | ✅ działa |
+| 2 | Podpisy per-pakiet | że `.pkgar` nie podmieniono | ed25519 (pkgar) | 🚧 działa, ale klucz **generuje się sam** i wymaga kopii (`U-213`) |
 | 3 | Podpis manifestu repo | że lista pakietów jest nasza | ed25519 + ML-DSA-65 | 🚧 kod gotowy, **brak klucza** |
 | 4 | Sumy kontrolne wydania | że pobrany obraz jest nasz | minisign | ✅ **zrotowany (`U-205`)** |
 | 5 | Secure Boot / measured boot | że maszyna wystartowała z tego obrazu | — | ❌ nie istnieje (`R-913`) |
 
-**Warstwy 1 i 2 nie wymagają od Ciebie niczego.** Commity podpisuje Twój klucz SSH
-(`gpg.format = ssh`, `commit.gpgsign = true`), a każdy pakiet w obrazie — lokalny klucz
-ed25519, który cookbook trzyma zaszyfrowany, z trybem `600`, w `build/` (katalog ignorowany
-przez gita, więc klucz nigdy nie trafia do repozytorium).
+**Warstwa 1 nie wymaga od Ciebie niczego.** Commity podpisuje Twój klucz SSH
+(`gpg.format = ssh`, `commit.gpgsign = true`).
+
+**Warstwa 2 wymaga — i to zdanie brzmiało tu wcześniej odwrotnie, co było źródłem realnej
+luki (`U-213`, `U-214`).** Dwa twierdzenia z poprzedniej wersji tego akapitu okazały się
+nieprawdziwe po zmierzeniu:
+
+- *„nie wymaga od Ciebie niczego"* — wymaga **kopii zapasowej**. Klucz powstaje **sam**:
+  `src/cook/package.rs` generuje nową parę, gdy `build/id_ed25519.toml` nie istnieje. Nikt go
+  świadomie nie ustanowił, a mimo to podpisał **78 opublikowanych pakietów**. Katalog `build/`
+  jest kasowany rutynowo, pkgar nie ma keyringu ani listy unieważnień (`R-711`), więc utrata
+  jest **cicha i nieodwracalna**: następny build po prostu wygeneruje inny klucz.
+- *„cookbook trzyma zaszyfrowany"* — **nie trzyma**. Plik ma pola `salt`, `nonce` i `skey`,
+  ale `skey` to 128 znaków szesnastkowych, czyli 64 bajty **surowego** klucza. Tryb `600`
+  i `.gitignore` to cała ochrona.
+
+### Warstwa 2 — kopia zapasowa klucza pakietów
+
+Klucz żyje **wewnątrz maszyny podmana**, nie w katalogu projektu, i kontener go **nie
+przeczyta** (mapowanie `userns` daje `EACCES` mimo `uid=0` — to nie uszkodzenie). Dlatego
+kopię robi się przez `podman machine ssh`, i **robi ją człowiek** — materiał klucza nie
+przechodzi przez narzędzia, które logują.
+
+```bash
+mkdir -p ~/.eos-keys && chmod 700 ~/.eos-keys
+podman machine ssh eos-build 'sudo cat /var/home/core/.local/share/containers/storage/volumes/eos-work/_data/redox/build/id_ed25519.toml' \
+  > ~/.eos-keys/eos-pkg-signing.secret.toml
+chmod 600 ~/.eos-keys/eos-pkg-signing.secret.toml
+```
+
+**Zweryfikuj kopię, nie zakładaj — i zrób to tak, żeby nie odsłonić sekretu.** Porównanie sum
+kontrolnych dowodzi wierności, nie pokazując ani bajtu treści:
+
+```bash
+shasum -a 256 ~/.eos-keys/eos-pkg-signing.secret.toml
+podman machine ssh eos-build 'sudo sha256sum /var/home/core/.local/share/containers/storage/volumes/eos-work/_data/redox/build/id_ed25519.toml'
+```
+
+Obie sumy muszą być identyczne. Osobno sprawdź, że to **ten** klucz, którego oczekuje
+repozytorium — połówka publiczna jest zacommitowana i porównywalna bez sekretu:
+
+```bash
+cat keys/eos-pkg-signing.pub.toml     # musi zgadzać się z build/id_ed25519.pub.toml
+```
+
+Od `U-213` pilnuje tego bramka w `src/cook/package.rs`: gdy repozytorium zapisuje klucz,
+a `build/` go nie ma, **build odmawia** zamiast po cichu wygenerować nowy; a po podpisaniu
+sprawdza klucz odczytany **z nagłówka gotowego `.pkgar`**, nie z połówki publicznej — bo
+podpisuje sekret, więc porównanie samego `.pub.toml` byłoby teatrem.
+
+> **Czego ta kopia jeszcze nie załatwia.** Oryginał i kopia leżą **na tym samym Macu**.
+> Trzecia kopia poza maszyną (nośnik offline albo menedżer haseł) to nadal otwarta pozycja —
+> a klucz jest jawnym tekstem, więc nośnik musi być zaszyfrowany.
 
 ### Warstwy 3 i 4 to DWA RÓŻNE klucze
 
