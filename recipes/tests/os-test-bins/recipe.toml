@@ -45,6 +45,12 @@ skips=(
     # ma ścieżkę out/redox/basic/signal/..., inaczej niż wpisy signal/ppoll-* poniżej, które
     # są w osobnym drzewie signal/. Bez przedrostka znacznik powstaje obok i test i tak rusza.
     basic/signal/pthread_kill
+    # E-OS U-221: drugi wieszacz znaleziony tym samym pomiarem — 75 s bez przyrostu logu,
+    # CPU 32%, czyli jeden rdzeń z czterech. Też nie ma go na liście upstreamu.
+    basic/time/timer_settime
+    # E-OS U-221: trzeci. Przewidziany przed wystąpieniem — pause() blokuje do nadejścia
+    # sygnału, czyli ta sama maszyneria co dwa powyższe. Zawiesił się dokładnie tam.
+    basic/unistd/pause
     signal/ppoll-block-sleep-raise-write
     signal/ppoll-block-sleep-write-raise
 )
