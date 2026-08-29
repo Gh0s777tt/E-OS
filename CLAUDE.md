@@ -724,6 +724,24 @@ projektu zwalniało więc miejsce tam, gdzie go nie brakowało.
 > **Zanim skasujesz cokolwiek „dla miejsca": wypisz `df -h` OBU dysków i powiedz, który
 > sprzątasz.** Bez tego zdania sprzątanie jest ryzykiem bez zysku.
 
+**Układ nośników jest myląco rozproszony i warto go znać, zanim ktoś zaproponuje „przeniesienie
+buildów na zewnętrzny" — bo one już tam są** (zmierzone `U-214`, ustawione 2026-08-15):
+
+| gdzie | co | nośnik |
+|---|---|---|
+| `/Volumes/Project itp` (exFAT, 1,8 TiB) | drzewo projektu, repo, `~/eos-artifacts` **nie** | zewnętrzny |
+| `/Volumes/EOS-Podman` (**APFS**, 300 GiB, sparsebundle na powyższym) | **dysk maszyny podmana** `eos-build-arm64.raw` (80 GB), a w nim wolumeny `eos-work` i `eos-root` | zewnętrzny |
+| `~/.local/share/containers` | **dowiązanie** → `/Volumes/EOS-Podman/containers` — ten sam i-węzeł, nie kopia | — |
+| `/System/Volumes/Data` (228 GiB) | system, `~/Library`, `~/eos-artifacts` | wewnętrzny |
+
+Dwa wnioski, oba kosztowałyby czas, gdyby ich nie zapisać. Po pierwsze: **budowanie nie zajmuje
+dysku wewnętrznego** — jedyne, co tam zostaje po pracy, to `~/eos-artifacts`. Po drugie:
+sparsebundle jest **APFS-em na exFAT-cie**, więc maszyna dostaje porządny system plików mimo
+nośnika — ale zależy od tego, żeby wolumen zewnętrzny był zamontowany i **czytelny**. Gdy
+2026-08-29 macOS cofnął uprawnienie do wolumenów wymiennych, podman działał dalej wyłącznie
+dlatego, że `diskimages-helper` trzymał już otwarte deskryptory; wymuszony `diskutil unmount`
+wyrwałby wtedy nośnik spod działającej maszyny razem z 37 GB cache'u.
+
 **`du` na exFAT myli się o rząd wielkości.** Jednostka alokacji to 1 MiB (`diskutil info` →
 *Allocation Block Size*), więc każdy plik zajmuje minimum 1 MiB. Zmierzone: `recipes/` to
 **6,6 GB według `du` i 1,9 MB realnej treści** w 3376 plikach — 99,97 % to puste miejsce
