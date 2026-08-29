@@ -4,6 +4,12 @@
 > 2026-08-29 (`U-211`) i pozostaje wyłącznie jako archiwum historyczne — wszystkie 74 otwarte
 > pozycje `R-*` żyją teraz w §9.
 >
+> **Aktualizacja 2026-08-29 wieczór** (`U-212`–`U-216`): `V2-MS02` **zrobione i udowodnione**;
+> `V2-MS03` zamknięte; `V2-MS12` **skorygowane co do przesłanki** — klienci NIE przypinają klucza
+> pakietów, więc rotacja niczego nie zamykała; w jego miejsce doszły `V2-MS13`–`V2-MS15`, w tym
+> **jedyna pozycja `[P0]` w całej roadmapie**. Sprzątanie dysku (`U-214`) odzyskało 121 GB i dało
+> `CLAUDE.md` §21.
+>
 > **Każdy stan poniżej jest zmierzony w plikach albo w binarkach**, nie przepisany z podsumowań —
 > audyt `U-201` (143 twierdzenia, 32 fałszywe), `U-203` (inwentarz sterowników), a dla §2 własne
 > odczyty nagłówka PE i repozytorium `rhboot/shim-review` sklonowanego lokalnie.
@@ -53,10 +59,10 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 | **Szyfrowanie dysku (FDE)** | RedoxFS AES-XTS z akceleracją ARMv8 Crypto (`R-502`) | 🖥️ Mac | ✅ |
 | **Podpisy post-kwantowe** | hybryda ed25519 + ML-DSA-65 (`R-503`), klucz wygenerowany i przypięty (`U-196`/`U-197`) | 🖥️ Mac | ✅ |
 | **Repozytorium pakietów** | **pierwsza publikacja ZROBIONA** (`R-008`/`U-209`): 78 pakietów, 893 MB, HTTP 200; `50_eos` **aktywne na aarch64**, x86_64 czeka na publikację | 🖥️ Mac + 🔑 | 🟡 |
-| **Weryfikacja podpisu u klienta** | kod w obrazie, klucz przypięty; pełna ścieżka fetch+verify niezłapana na żywo (`R-703`) | 🖥️ Mac | 🟡 |
+| **Weryfikacja podpisu u klienta** | ⚠️ **słabsza, niż wyglądała** — manifest jest weryfikowany przypiętym kluczem, ale jego hasze **nie są egzekwowane na instalowanych bajtach**, a klucz pakietów klient pobiera z hosta (`V2-MS13`/`V2-MS14`) | 🖥️ Mac | 🔴 |
 | **Demon aktualizacji `eos-update`** | `R-705` demon, `R-706` transakcja+rollback, `R-704` anti-rollback, `R-707` apply-on-reboot | 🖥️ Mac | 🔴 |
 | **Reprodukowalny pipeline wydań** | tag → obraz → wydanie (`R-303`); **bajtowa** reprodukowalność niezweryfikowana | 🐧 CI + 🔑 | 🟡 |
-| **Podpisany bootloader / Secure Boot** | ✅ **ZROBIONE i udowodnione kluczem operatora** — patrz §2.1 | 🖥️ Mac · 🔑 | ✅ |
+| **Podpisany bootloader / Secure Boot** | ✅ udowodnione kluczem operatora (§2.1), a od `U-212` bootloader **weryfikuje też jądro i initfs** — nietknięty obraz bootuje, jeden zmieniony bajt jest odrzucony | 🖥️ Mac · 🔑 | ✅ |
 | **Measured boot / TPM 2.0** | `R-913` — nie istnieje; piąta warstwa zaufania z `docs/tokeny.md` wciąż pusta | ⚙️ | 🔴 |
 
 ### 1.3 Znana niestabilność, powiedziana wprost
@@ -171,7 +177,7 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 |---|---|---|---|---|
 | **V2-MS01** 🖥️ | **Sekcja `.sbat`** w obu bootloaderach (`eos,1,E-OS,eos-bootloader,<wersja>,<url>`) + `sbat.csv` w recepturze | daje projektowi mechanizm unieważniania wersji bez czekania na DBX | 🖥️ Mac | 🔴 |
 | **V2-MS02** 🖥️ | **Bootloader weryfikuje jądro i initfs** podpisem, nie bajtami magicznymi | ✅ **ZROBIONE i udowodnione** (`U-212`): nietknięty obraz bootuje, jedna zmiana bajtu w jądrze → **odmowa**. Zakres celowo wąski — patrz §11 | 🖥️ Mac · 🔑 | ✅ *(czeka na push forka)* |
-| **V2-MS03** 🖥️ | **Naprawić trzy dokumenty**: `threat-model.md:79`, `hardening.md:168`, `plan-do-sprzetu.md:39-41` | dziś dokumentacja bezpieczeństwa zaprzecza kodowi | 🖥️ Mac | 🔴 **[XS]** |
+| **V2-MS03** 🖥️ | **Naprawić trzy dokumenty**: `threat-model.md`, `hardening.md`, `plan-do-sprzetu.md` | ✅ **ZROBIONE** (`U-211`) — twierdziły, że nikt nie podpisuje bootloadera; nieprawda od `U-207`. Przy okazji `U-216` poprawił `docs/tokeny.md`, który mylił się w dwóch punktach o warstwie 2 | 🖥️ Mac | ✅ |
 | **V2-MS04** 🖥️ | **Bramka Secure Boot w CI** — wpiąć `eos-secureboot-proof.sh` do `.gitlab-ci.yml` | dowód przestaje zależeć od jednego laptopa | 🐧 CI | 🔴 |
 | **V2-MS05** 🖥️ | **Hermetyczne podpisywanie** — przypiąć `sbsigntool` zamiast `apt-get` w czasie `cook` | dziś wersja narzędzia podpisującego nie jest częścią opisu builda | 🖥️ Mac | 🔴 |
 | **V2-MS06** 🔑 | **Klucz na tokenie sprzętowym** (PKCS#11, YubiKey/Nitrokey) zamiast pliku bez hasła | klucz podpisujący rozruch leży dziś jako zwykły plik | 🔑 operator | 🔴 |
@@ -182,7 +188,7 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 | **V2-MS11** 🖥️ | **Chainload przez shim** + protokół weryfikacji (dopiero po V2-MS10) | ostatni krok toru B; bez V2-MS10 bezcelowy | 🖥️ Mac | 💡 |
 | **V2-MS13** 🖥️ | **Egzekwować blake3 z podpisanego manifestu przy instalacji** — dziś `PkgarBackend::install()` sprawdza pakiet **wyłącznie** kluczem pobranym z tego samego hosta; w całym `pkg-lib` są **dwa** porównania blake3 i **żadne nie jest kontrolą integralności** (`library.rs:144`, `package_state.rs:278` — oba decydują „czy aktualizować") | **To jest prawdziwa dziura, nie V2-MS12.** Kto przejmie host pakietów, zostawia oryginalne `repo.toml`+`.sig` (zweryfikują się), podmienia `id_ed25519.pub.toml` na swój i przepodpisuje pakiety — klient instaluje dowolny kod, a przypięty klucz hybrydowy **niczego nie zatrzymuje**. Działa **dziś na aarch64**, bo źródło jest aktywne. Dopiero ta zmiana sprawia, że warstwa 3 chroni treść, a nie samą listę nazw | 🖥️ Mac | 🔴 **[P0]** |
 | **V2-MS14** 🖥️ | **`pkg install <nazwa>` w ogóle nie weryfikuje manifestu** — robi to tylko `update` i `-a` (`pkg-cli/src/main.rs:187-191` → `process_packages()` woła `get_all_package_names()` wyłącznie przy `all == true`) | najczęstsza operacja użytkownika omija jedyną działającą weryfikację | 🖥️ Mac | 🔴 **[P1]** |
-| **V2-MS12** 🔑 | **Klucz podpisujący pakiety musi stać się kluczem operatora** — cookbook **generuje go sam** (`src/cook/package.rs`: brak `build/id_ed25519.toml` → `SecretKeyFile::new()`); dołożona bramka wykrywa utratę i rozjazd | ⚠️ **KOREKTA WCZEŚNIEJSZEGO ZAPISU:** twierdziłem tu, że „klienci ten klucz przypinają" — **to nieprawda**. `repo_manager.rs:105` pobiera `id_ed25519.pub.toml` z tego samego hosta co pakiety, przy każdym braku w cache. Rotacja **nie zamyka** ataku z §V2-MS13 i kosztuje republikację **642 MB** (zmierzone; nie 893 MB) oraz unieważnienie 78 artefaktów. Zostaje jako higiena kotwicy — **po V2-MS13, nie przed**. Pilne jest natomiast to, że klucz istnieje w **jednej kopii bez backupu**, na tym samym nośniku co reszta | 🔑 operator | 🟡 **[P2]** |
+| **V2-MS12** 🔑 | **Klucz podpisujący pakiety** — cookbook **generuje go sam**, jest przechowywany **jawnym tekstem** (`skey` = 128 znaków hex; `docs/tokeny.md` twierdził inaczej), a bramka z `U-213` wykrywa jego utratę i rozjazd | 🟡 **Kopia zapasowa ISTNIEJE i jest zweryfikowana** (`U-216`): `~/.eos-keys/eos-pkg-signing.secret.toml`, suma zgodna co do bajtu, na **innym nośniku** niż oryginał. Zostaje: (a) trzecia kopia **poza tym Makiem** — dziś obie leżą na jednym komputerze, (b) uczynienie go kluczem operatora, ale **po `V2-MS13`**, bo sama rotacja nie zamyka dziury i kosztuje republikację 642 MB | 🔑 operator | 🟡 **[P2]** |
 | **V2-MS15** 🖥️ | **Brak ochrony przed rollback/freeze, wbrew publicznej deklaracji** — `repo.toml` ma tylko `build_id`, zero znacznika czasu, licznika i wygaśnięcia; host może w nieskończoność serwować starą, **poprawnie podpisaną** parę indeks+pakiety | README publikowany przez `publish-repo-pages.sh` obiecuje ochronę przed *freeze* i *rollback*, której **nie ma** — a to tekst kierowany na zewnątrz | 🖥️ Mac | 🔴 **[P1]** |
 
 ## 3. Sterowniki — co mamy, czego brakuje, co zbudować
@@ -593,6 +599,14 @@ eos-notes: V2-NT01 Markdown → V2-NT02 szyfrowanie → NT03 organizacja → NT0
   **jeden krok właściciela** (wgranie certyfikatu w firmware). Ścieżka „działa od razu na każdym
   pececie" wymaga podpisu Microsoftu, który — jak pokazuje §2.3 — blokują dziś sprawy
   pozatechniczne, nie kod.
+- **Podpis pakietów NIE chroni dziś ich treści.** Przypięty w obrazie klucz hybrydowy weryfikuje
+  *manifest*, ale jego hasze blake3 **nigdy nie są egzekwowane na bajtach, które się instalują**
+  (`V2-MS13`). Klucz pakietów klient **pobiera z tego samego hosta** co pakiety — nie przypina go.
+  Kto przejmie host, zostawia oryginalny podpisany manifest, podstawia własny klucz i przepodpisuje
+  pakiety; klient melduje „manifest OK, pakiet OK". Działa **dziś na aarch64**. Dopóki `V2-MS13`
+  nie wyląduje, warstwa 3 chroni **listę nazw, nie treść**.
+- **`pkg install <nazwa>` nie sprawdza manifestu w ogóle** — robi to tylko `update` i `-a` (`V2-MS14`).
+- **Nie ma ochrony przed rollback i freeze** (`V2-MS15`); publikowany README obiecywał ją do `U-213`.
 - **Weryfikacja jądra i initfs istnieje (`V2-MS02`), ale NIE znaczy „zweryfikowany łańcuch rozruchu".**
   `initfs` niesie wyłącznie sterowniki dyskowe; `xhcid`, `e1000d`, `usbhidd`, `usbscsid`, `ihdad`,
   `rtl8168d` i dziesięć innych ładuje się z **niepodpisanego** roota po jego zamontowaniu, przez
