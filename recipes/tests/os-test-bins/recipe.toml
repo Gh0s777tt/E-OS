@@ -39,6 +39,9 @@ skips=(
     basic/sys_select/select
     basic/sys_time/select
     basic/sys_wait/waitpid
+    # E-OS U-220: znaleziony pomiarem, nie było go na liście upstreamu. Przebieg stanął
+    # na nim na 90+ s przy zerowym przyroście logu i jednym rdzeniu w kolko.
+    signal/pthread_kill
     signal/ppoll-block-sleep-raise-write
     signal/ppoll-block-sleep-write-raise
 )

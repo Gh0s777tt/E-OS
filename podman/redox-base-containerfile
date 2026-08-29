@@ -41,6 +41,7 @@ RUN apt-get update \
         libsdl1.2-dev \
         libsdl2-ttf-dev \
         lzip \
+        libtool-bin \
         m4 \
         make \
         meson \
