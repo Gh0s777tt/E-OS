@@ -165,7 +165,12 @@ runs with `--network=host` (required for FUSE/recipe fetching today).
 
 ## ⚠️ Known limits (don't assume these)
 
-- No **UEFI Secure Boot** / TPM measured-boot chain yet.
+- **UEFI Secure Boot: signed**, and since `V2-MS02` the bootloader also **verifies the kernel
+  and initfs** rather than checking magic bytes. Both proven with negative controls
+  (`eos-secureboot-proof.sh`, `eos-boot-verify-proof.sh`). Still missing: **TPM measured boot**
+  (`R-913`); **signature checking for the ~16 drivers that load from the root filesystem after
+  mount** (no IOMMU, so a substituted driver gets DMA); and **anti-rollback** — an older,
+  validly signed kernel is still accepted.
 - No formal verification or completed security audit (pre-1.0).
 - The **third-party ports** (the ~1900 cookbook recipes for `vim`, `curl`, `gcc`, the
   COSMIC desktop, …) build with their own upstream flags — E-OS's `overflow-checks`

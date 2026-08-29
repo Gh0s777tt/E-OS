@@ -76,7 +76,20 @@ space** — a compromised driver is a compromised *process*, not a kernel.
 E-OS is **pre-1.0 alpha**. It does **not** yet provide:
 
 - **Formal verification** of the kernel or crypto.
-- **UEFI Secure Boot** signing / a measured-boot (TPM) chain.
+- A **measured-boot (TPM)** chain (`R-913`). Secure Boot signing of the bootloader exists
+  (ADR-0005), and since `V2-MS02` the bootloader **verifies the kernel and initfs** it loads
+  (Ed25519 over a domain-separated SHA-512; proven by `scripts/eos-boot-verify-proof.sh`, which
+  boots an untouched image and gets a refusal from one with a single flipped kernel byte).
+  **Say only what that buys**, because the gap either side of it is wide:
+  - It does **not** make the boot chain verified. `initfs` carries only the disk drivers;
+    `xhcid`, `e1000d`, `usbhidd`, `usbscsid`, `ihdad`, `rtl8168d` and ten more load from the
+    **unsigned** root after mount, via `pcid` — and with no IOMMU (`Dmar::init` is still a TODO)
+    a substituted driver reaches DMA, i.e. the same compromise by a different file.
+  - It does **not** stop rollback: an older, correctly signed, vulnerable kernel still verifies.
+  - On **BIOS** it is evidence of tampering, not a trust anchor — stage1/2/3 are raw sectors
+    nothing authenticates, so an attacker who can write the kernel can replace the verifier.
+  - In **live** mode the whole disk image is read into RAM unverified before the kernel is
+    taken from it.
 - **Hardened, audited defaults** across every service — the desktop image ships a
   passwordless `user` and `root:password` for convenience (**change these** —
   see hardening.md).

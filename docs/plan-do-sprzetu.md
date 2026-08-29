@@ -36,9 +36,18 @@ przeszedł `boot-smoke` pod emulacją (`U-172`), ale **nigdy nie na sprzęcie**.
 `scripts/ventoy.sh` **nie zadziała** — ma zaszyte `CONFIGS=(demo desktop)` i nie zna `eos`
 (`R-F28`). Do czasu poprawki: zwykłe `dd` obrazu `redox-live.iso`.
 
-### 0.3 **Wyłącz Secure Boot w BIOS-ie** ← bez tego nic nie ruszy
-`bootloader.efi` jest budowany dla UEFI, ale **nikt go nie podpisuje** — `pesign`, `sbsign` i
-`shim` nie występują w repozytorium ani razu (`R-F27`). Firmware odrzuci niepodpisany bootloader.
+### 0.3 **Secure Boot: wgraj nasz certyfikat albo wyłącz** ← wybierz jedno
+**Nieaktualne jest twierdzenie, że nikt nie podpisuje bootloadera** — `recipes/core/bootloader/`
+`recipe.toml:52-65` podpisuje **oba** bootloadery (`bootloader.efi` i `bootloader-live.efi`)
+w czasie `cook`, gdy operator poda klucz (`scripts/eos-sb-setup-key.sh`). Udowodnione na obu
+nośnikach kluczem operatora (`U-210`), z kontrolą negatywną: obcy klucz → `Access Denied`.
+
+Masz zatem dwie drogi, obie poprawne:
+- **wgraj certyfikat E-OS** do firmware (`db`/MOK) — instalacja przy włączonym Secure Boot;
+- **albo wyłącz Secure Boot** — szybsze, jeśli tylko testujesz.
+
+Automatyczna instalacja *bez* żadnego z tych kroków wymagałaby shima podpisanego przez
+Microsoft — dlaczego tego dziś nie robimy, mówi [`ADR-0006`](adr/0006-sciezka-do-weryfikacji-microsoftu.md).
 
 ### 0.4 Wybierz **komputer stacjonarny, nie laptop**
 Omijasz w ten sposób największą lukę: **nie ma sterownika I2C**, więc nie ma I2C-HID, więc

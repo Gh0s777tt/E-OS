@@ -3,13 +3,37 @@
 # (must live under /mnt/redox so it's visible inside the build container).
 git = "https://github.com/Gh0s777tt/eos-bootloader.git"
 branch = "eos-rebased"
-rev = "b249982f29f1cf0a918a9dca6881d0c4a23417de"
+rev = "87b214b5b481be7f7049fbb07cf927961b00da5b"
 
 [build]
 template = "custom"
 script = """
 OUTDIR="${COOKBOOK_BUILD}"
 mkdir -pv "${COOKBOOK_STAGE}/usr/lib/boot"
+
+# V2-MS02: inject the boot-verification PUBLIC key into the bootloader source and switch on
+# verification. The anchor has to live inside the bootloader binary, because that binary is the
+# one artefact the firmware authenticates (V2-N03) -- a key sitting next to the kernel on disk
+# would simply be swapped along with it.
+#
+# The key file must land under source/src/, because mk/*.mk depend on
+# `$(shell find $(SOURCE)/src -type f)`; anywhere else and make would answer "up to date" and
+# quietly ship a bootloader carrying the PREVIOUS key. Copy only when the bytes differ, or the
+# mtime bump would force a full LTO rebuild on every cook.
+SBROOT="${COOKBOOK_STAGE%/recipes/*}"
+BOOTPUB="${SBROOT}/build/boot-signing/boot.pub.bin"
+EOS_BOOT_FEATURES=""
+if [ -f "$BOOTPUB" ]
+then
+    [ "$(wc -c < "$BOOTPUB" | tr -d ' ')" = 32 ] || { echo "V2-MS02: boot.pub.bin must be 32 raw bytes"; exit 1; }
+    cmp -s "$BOOTPUB" "${COOKBOOK_SOURCE}/src/eos-boot-verify.pub.bin" \
+        || cp -v "$BOOTPUB" "${COOKBOOK_SOURCE}/src/eos-boot-verify.pub.bin"
+    EOS_BOOT_FEATURES="verify-boot"
+    echo "V2-MS02: boot-verification key injected -- bootloader WILL verify kernel and initfs"
+else
+    echo "V2-MS02: no boot key at build/boot-signing/ -- bootloader will NOT verify what it loads"
+fi
+export EOS_BOOT_FEATURES
 
 function bootloader {
     export TARGET="$1"

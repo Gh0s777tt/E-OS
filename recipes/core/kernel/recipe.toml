@@ -13,4 +13,36 @@ script = """
 make -f ${COOKBOOK_SOURCE}/Makefile
 mkdir -pv "${COOKBOOK_STAGE}/usr/lib/boot"
 cp -v kernel "${COOKBOOK_STAGE}/usr/lib/boot"
+ROLE_TAG="e-os.boot.kernel"
+PAYLOAD="${COOKBOOK_STAGE}/usr/lib/boot/kernel"
+
+# V2-MS02: sign this payload so the bootloader will load it. The bootloader verifies Ed25519
+# over SHA-512(role || len_le || data) and refuses to boot what it cannot verify. Signing here,
+# in the STAGE, is what makes the signature reach every medium: pkgar archives the whole stage
+# directory recursively, so `<payload>.sig` becomes a package entry and rides into the live ISO,
+# the installed harddrive.img and the live->disk install alike (the same reasoning as U-207,
+# where signing anywhere else missed the artefact the firmware actually loads).
+#
+# Gated on an operator key at build/boot-signing/boot.key (off-repo, gitignored), exactly like
+# the Secure Boot key. No key -> unsigned, and the bootloader is then also built WITHOUT
+# verification, so the pair stays consistent instead of producing an image that cannot boot.
+SBROOT="${COOKBOOK_STAGE%/recipes/*}"
+BOOTKEY="${SBROOT}/build/boot-signing/boot.key"
+if [ -f "$BOOTKEY" ]
+then
+    python3 - "$ROLE_TAG" "$PAYLOAD" "${SBROOT}/build/boot-signing/.digest" <<'PYEOF'
+import hashlib, sys
+tag, path, out = sys.argv[1], sys.argv[2], sys.argv[3]
+data = open(path, 'rb').read()
+h = hashlib.sha512()
+h.update(tag.encode()); h.update(len(data).to_bytes(8, 'little')); h.update(data)
+open(out, 'wb').write(h.digest())
+PYEOF
+    openssl pkeyutl -sign -inkey "$BOOTKEY" -rawin \
+        -in "${SBROOT}/build/boot-signing/.digest" -out "${PAYLOAD}.sig"
+    rm -f "${SBROOT}/build/boot-signing/.digest"
+    echo "V2-MS02: signed $(basename "$PAYLOAD") ($(wc -c < "${PAYLOAD}.sig" | tr -d ' ') B)"
+else
+    echo "V2-MS02: no boot key at build/boot-signing/ -- $(basename "$PAYLOAD") left UNSIGNED"
+fi
 """

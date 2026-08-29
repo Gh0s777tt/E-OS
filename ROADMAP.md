@@ -1,4 +1,15 @@
-# 🗺️ E-OS Roadmap
+# 🗺️ E-OS Roadmap v1 — **ARCHIWUM (scalone do ROADMAP-v2.md)**
+
+> **Ten dokument nie jest już prowadzony.** 2026-08-29 (`U-211`) został **scalony**
+> do [`ROADMAP-v2.md`](ROADMAP-v2.md), które jest odtąd jedyną roadmapą projektu.
+>
+> Wszystkie **75 nieukończonych pozycji** (16 🚧 · 43 ⏳ · 16 💡) żyje teraz w
+> [`ROADMAP-v2.md` §9](ROADMAP-v2.md#9-scalony-rejestr-zadań--wszystkie-otwarte-pozycje-r-z-roadmap-v1),
+> wraz z rozstrzygnięciem pięciu sprzeczności, które oba dokumenty ze sobą miały (§9.8).
+> **67 pozycji zrobionych zostaje tutaj jako zapis historyczny** — to jest jedyny powód,
+> dla którego ten plik nadal istnieje.
+
+---
 
 > Living document — updated every release. Status keys: ✅ done · 🚧 in progress ·
 > ⏳ planned · 💡 idea. Versions follow [SemVer](https://semver.org); each

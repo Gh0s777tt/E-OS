@@ -42,6 +42,8 @@
   - [ADR-0002 Build forks from source](adr/0002-budowanie-z-forkow-nie-z-binarek-upstreamu.md)
   - [ADR-0003 Vendored code stays upstream-shaped](adr/0003-vendorowany-kod-zostaje-na-formie-upstreamu.md)
   - [ADR-0004 Hybrid manifest signature](adr/0004-hybrydowy-podpis-manifestu.md)
+  - [ADR-0005 Secure Boot bez Microsoftu](adr/0005-secure-boot-bez-microsoftu.md)
+  - [ADR-0006 Ścieżka do weryfikacji Microsoftu](adr/0006-sciezka-do-weryfikacji-microsoftu.md)
 - [Hardening guide](hardening.md)
 - [Disk encryption](encryption.md)
 

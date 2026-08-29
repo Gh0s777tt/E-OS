@@ -40,7 +40,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/bootloader.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/bootloader"
 pinned_branch = "eos-rebased"
-pinned_rev    = "b249982f29f1cf0a918a9dca6881d0c4a23417de"
+pinned_rev    = "87b214b5b481be7f7049fbb07cf927961b00da5b"
 
 [[repo]]
 name   = "eos-kernel"

@@ -67,3 +67,4 @@ keys/._*
 
 # Secure Boot signing key placed for the bootloader recipe (V2-N03) — off-repo, never tracked
 build/sb-signing/
+build/boot-signing/
