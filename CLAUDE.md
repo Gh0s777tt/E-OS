@@ -531,6 +531,92 @@ pierwszą kontrolą — §4.2 zastosowane do samej bramki.
 
 Braki są wypisane w **TODO** na końcu tego dokumentu. Nie udawaj, że istnieją.
 
+### 13.1 `scripts/verify.sh` — jedno polecenie przed **każdym** commitem
+
+```sh
+bash scripts/verify.sh            # pełny łańcuch
+bash scripts/verify.sh --fast     # bez wolnych skanów — NIE jest pełną weryfikacją
+bash scripts/verify.sh --help
+```
+
+Skrypt przechodzi cały łańcuch — format → lint → typecheck → build → test → bramki projektu →
+skany bezpieczeństwa — i **kończy się kodem niezerowym przy dowolnej porażce**. **Wywołuje** te
+same polecenia co pipeline'y (`ci-integrity.sh`, `cargo fmt/clippy/check/build/test`,
+`shellcheck`, `actionlint`, `hadolint`, `cargo-llvm-cov`, `gitleaks`, `cargo-deny`,
+`osv-scanner`, `semgrep`), a nie opisuje ich reguł po raz drugi — druga kopia reguły to kopia, która się
+rozjeżdża (§6, `U-164`).
+
+**Dlaczego wymagane, a nie zalecane.** Trzy pomiary, nie trzy opinie: bramki GitLaba padają
+w ~0 s na `ci_quota_exceeded` od 2026-08-28 (C-7); GitHub Actions dla tego repozytorium **w
+ogóle się nie uruchamia** — 2026-08-30 minimalny workflow `on: push` na świeżej gałęzi nie
+wyprodukował **żadnego** przebiegu, ani zakolejkowanego, ani czerwonego (pomiar zostaje
+powtarzalny w `.github/workflows/_canary.yml`); a C-6 mówi, że każdy commit w historii szedł
+prosto na `main`, więc nawet działający pipeline sprawdzałby kod **po** publikacji i
+zlustrzaniu. Przebieg na własnej maszynie jest dziś jedyną bramką, o której wiadomo, że się
+wykona.
+
+| Zachowanie | Dlaczego tak |
+|---|---|
+| brak narzędzia = `SKIPPED` **i kod niezerowy** | `gitleaks \|\| true` przepuścił podłożony klucz, drukując zielone (`U-140`); skaner nieobecny daje ten sam wynik co skaner wyłączony. Świadome odstępstwo: `--allow-missing` — wtedy podsumowanie wypisuje, czego **nie** zmierzono |
+| `exit 1` ≠ `exit 2` | 1 = bramka **znalazła wadę**, naprawiasz drzewo. 2 = bramka **nie mogła się wykonać**, naprawiasz przybornik. Ten sam podział co `FAIL (instrument):` w `ci-integrity.sh` (`U-177`) |
+| `--fast` pomija coverage, `cargo-deny`, `osv-scanner`, `semgrep` | …i mówi o tym w podsumowaniu: zielone z `--fast` **nie jest** pełną weryfikacją |
+| każdy etap wykonuje się także po porażce wcześniejszego | jeden przebieg ma dać cały obraz, a nie pierwszą skargę |
+
+**Czego `verify.sh` NIE dowodzi** — i nie udaje, że dowodzi: `pin-check` (**nie klonuje** —
+robi po jednym `git ls-remote` na przypięty fork, 26 z nich, czyli 26 rund do github.com;
+poprawione w przeglądzie 2026-08-30, wcześniej ten akapit i nagłówek `verify.sh` mówiły
+„klonuje", czego `scripts/eos-repos.sh:104` nie robi), `docs-currency` (potrzebuje bazy diffa
+MR), `mirror-drift` / `rebase-check` (zadania scheduled, te **klonują** każdy fork i jego
+upstream), `build-image` + `ci-boot-smoke.sh` (podman i 37 GB cache'u, runner `eos-heavy`)
+oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porównuje graf
+zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
+baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
+
+**Zmierzone 2026-08-30 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
+
+| przebieg | wynik | kod |
+|---|---|---|
+| `--fast` | 10 PASS · 0 FAIL · 1 `SKIPPED (could not run)` · 4 `SKIPPED (--fast)` | **2** |
+| pełny | 12 PASS · 0 FAIL · 3 `SKIPPED (could not run)` · 0 `SKIPPED (--fast)` | **2** |
+| `--fast --allow-missing` | to samo, ale brak pomiaru jest świadomy | **0** |
+
+Trzy `SKIPPED (could not run)` w pełnym przebiegu to `tar-pins` (bramki nie ma — niżej),
+`coverage` i `cargo-deny` (na tym hoście nie ma `cargo-llvm-cov` ani `cargo-deny`).
+
+Kontrola negatywna (`§4.1`), dwie, obie zmierzone, nie założone: po podmianie etapu
+`hadolint` na plik z błędnie sformułowaną instrukcją przebieg daje `hadolint FAIL` i
+`exit 1`; po przywróceniu wcześniejszej usterki etapu `osv-scanner` (`-L` wskazujące
+`Cargo.toml` zamiast `Cargo.lock`) — `osv-scanner FAIL` i `exit 1`. Skrypt potrafi zapalić
+się na czerwono, nie tylko na zielono.
+
+**Poprawka z przeglądu 2026-08-30, zostawiona widoczna (§2 reguła 4).** Etap `osv-scanner`
+podawał do `-L` **manifest** `Cargo.toml`, a nie plik blokady. `osv-scanner` nie traktuje
+tego jako węższego skanu, tylko kończy się kodem 127 z `could not determine extractor
+suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnościami `git`)
+**nie był w ogóle sprawdzany**, a bramka meldowała to jako wadę drzewa. Po poprawce:
+163 + 57 pakietów, `osv-scanner.toml` wczytany, `0 issues`. Dołożony został też etap
+`hadolint`, bo `lint.yml` `containerfiles` **blokuje** na `podman/*containerfile`, a
+`verify.sh` twierdził wcześniej, że żadne zadanie w tym drzewie hadolinta nie uruchamia.
+
+Ten jeden pominięty etap to `scripts/eos-check-tar-pins.py` — bramka, której łańcuch wymaga,
+a której **w drzewie nie ma**. To jest stan uczciwy, nie usterka skryptu: łańcuch pozostaje
+niekompletny, dopóki ktoś tej bramki nie napisze. Nie zamykaj tego przez `--allow-missing`.
+
+**Znana flaga w vendorowanym manifeście — zmierzona, nie wywnioskowana.**
+`cook::cook_build::tests::file_system_loop_no_infinite_loop` pada na
+`src/config.rs:209` z `Configuration is not initialized`: czyta globalny stan, który
+inicjalizuje **inny** test w tym samym binarium, więc wynik zależy od kolejności wątków.
+To wyścig, którego szanse **rosną z obciążeniem CPU**: **2 porażki na 18** domyślnych
+(równoległych) przebiegów na bezczynnej maszynie, **5 na 6** przebiegów robionych, gdy o
+procesor biły się inne zadania, i **0 na 3** przy `-- --test-threads=1`. Obciążony współdzielony
+runner CI jest więc dla tego testu **najgorszym**, a nie najlepszym przypadkiem. Czego **nie**
+ustalono: który test inicjalizuje ten globalny stan i czy upstream już to naprawił.
+Dotyczy tak samo `rust-checks` w `.gitlab-ci.yml` i zadania `rust`
+w `ci.yml` — obydwa wołają zwykłe `cargo test`. Jeśli `verify.sh` czerwieni się **na tej
+jednej nazwie testu i niczym więcej**, to nie jest Twoja zmiana. `verify.sh` tego **nie
+obchodzi** przez `--test-threads=1`: lokalna zieleń kupiona rozjazdem z CI to nadal czerwony
+pipeline, a flaga w bramce jest wadą do naprawienia, nie do schowania w bramce.
+
 ## 14. Bezpieczeństwo — kierunek i etapy
 
 **Model docelowy:** bezpieczeństwo oparte na **zdolnościach** (capability-based), z
