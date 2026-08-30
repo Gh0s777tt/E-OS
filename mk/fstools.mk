@@ -40,7 +40,20 @@ ifeq ($(REPO_OFFLINE),1)
 CARGO_OFFLINE_FLAG=--offline
 endif
 
-$(FSTOOLS_TAG): $(CONTAINER_TAG)
+# The host tools -- repo, repo_builder, cookbook_redoxer -- are what cook and package the OS.
+# This target used to depend on $(CONTAINER_TAG) alone, and with PODMAN_BUILD=0 (the mode every real
+# build runs in) that variable is EMPTY, so the target had ZERO prerequisites: once build/fstools.tag
+# existed, make never rebuilt the tools again no matter what changed in src/.
+#
+# Measured consequence: a full build on 2026-08-30 ran against a repo_builder binary from the
+# previous day while the source in the same tree already emitted the index `serial` field. The build
+# went green and the published index simply did not carry it. Nothing warned.
+#
+# Listing the sources fixes the cause. cargo still decides whether a rebuild is needed, so an
+# unchanged tree costs one no-op cargo invocation.
+COOKBOOK_HOST_SRC := $(shell find src -name '*.rs' 2>/dev/null)
+
+$(FSTOOLS_TAG): Cargo.toml Cargo.lock $(COOKBOOK_HOST_SRC) $(CONTAINER_TAG)
 ifeq ($(PODMAN_BUILD),1)
 	$(PODMAN_RUN) make $@
 else
