@@ -1,6 +1,6 @@
 [source]
 # E-OS vendored mirror of redox-os/netutils (edit freely; sync via scripts/sync-forks.sh).
-git = "https://github.com/Gh0s777tt/eos-netutils.git"
+git = "https://gitlab.com/e-os/eos-netutils.git"
 branch = "master"
 rev = "d3f578488802717318fcdb6f01fe4243cf401cff"
 

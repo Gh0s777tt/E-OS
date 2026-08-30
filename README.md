@@ -165,7 +165,7 @@ Everything in the **Shipped** table was verified on 2026-08-30 by mounting the b
 | Packet filtering / firewall | 📋 planned | [ROADMAP](ROADMAP.md) · audit `C-10` |
 | Published x86_64 package channel | 🚧 in progress | [ROADMAP](ROADMAP.md) · audit `C-4` |
 | Wi-Fi | 📋 planned | [ROADMAP](ROADMAP.md) |
-| Microsoft-signed shim path | 📋 planned | `docs/adr/0006-sciezka-do-weryfikacji-microsoftu.md` |
+| Microsoft-signed shim path | 📋 planned | `docs/adr/0006-path-to-microsoft-verification.md` |
 
 ### Deliberately absent
 
@@ -305,12 +305,12 @@ The full documentation set lives in [`docs/`](docs/) and is published as an mdBo
 
 | Area | Entry point |
 |---|---|
-| Getting started | [`docs/getting-started.md`](docs/getting-started.md) |
-| Building | [`docs/building.md`](docs/building.md) · [`docs/build-troubleshooting.md`](docs/build-troubleshooting.md) |
-| Installing | [`docs/install.md`](docs/install.md) |
+| Getting started | [`docs/getting-started/index.md`](docs/getting-started/index.md) |
+| Building | [`docs/getting-started/building.md`](docs/getting-started/building.md) · [`docs/getting-started/build-troubleshooting.md`](docs/getting-started/build-troubleshooting.md) |
+| Installing | [`docs/getting-started/install.md`](docs/getting-started/install.md) |
 | Architecture | [`docs/architecture/`](docs/architecture/) |
-| Security | [`docs/security.md`](docs/security.md) · [`docs/hardening.md`](docs/hardening.md) · [`docs/threat-model.md`](docs/threat-model.md) |
-| Packages | [`docs/packages.md`](docs/packages.md) |
+| Security | [`docs/security/index.md`](docs/security/index.md) · [`docs/security/hardening.md`](docs/security/hardening.md) · [`docs/security/threat-model.md`](docs/security/threat-model.md) |
+| Packages | [`docs/reference/packages.md`](docs/reference/packages.md) |
 | Decision records | [`docs/adr/`](docs/adr/) |
 | Audit reports | [`docs/audit/`](docs/audit/) |
 
@@ -379,7 +379,7 @@ The complete model, with evidence for each row, is in
 ## License, authors, acknowledgements
 
 **License:** [AGPL-3.0-or-later](LICENSE). Files inherited from Redox OS remain under **MIT** —
-see [`NOTICE`](NOTICE) and [`docs/licenses/THIRD_PARTY.md`](docs/licenses/THIRD_PARTY.md).
+see [`NOTICE`](NOTICE) and [`docs/reference/third-party-licenses.md`](docs/reference/third-party-licenses.md).
 
 **Authors:** Damian (`Gh0s777tt`) and the E-OS contributors.
 

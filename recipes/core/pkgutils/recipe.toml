@@ -1,6 +1,6 @@
 [source]
 # E-OS vendored mirror of redox-os/pkgutils (edit freely; sync via scripts/sync-forks.sh).
-git = "https://github.com/Gh0s777tt/eos-pkgutils.git"
+git = "https://gitlab.com/e-os/eos-pkgutils.git"
 # U-081 (R-703): the eos branch carries client-side repo.toml manifest signature
 # verification (a6c705b) + its regression test (5643d21).
 branch = "eos"

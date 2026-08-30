@@ -7,7 +7,7 @@
 # the repo.toml index and the ed25519 signing public key. Upload it as a release
 # asset, or unpack it on a static host so clients can fetch from
 #   <host>/pkg/<TARGET>/<pkg>.pkgar   and   <host>/pkg/id_ed25519.pub.toml
-# See docs/packages.md.
+# See docs/reference/packages.md.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"

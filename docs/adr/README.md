@@ -1,3 +1,10 @@
+---
+title: Architecture Decision Records
+status: accepted
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # Architecture Decision Records
 
 Krótkie zapisy decyzji, które trudno odtworzyć z samego kodu: **co** postanowiono,
@@ -10,7 +17,7 @@ Ta sama zasada co w `CLAUDE.md` §2 reguła 4: poprawka ma być widoczna.
 
 **Statusy:** `Proponowany` · `Przyjęty` · `Zastąpiony przez ADR-NNNN` · `Odrzucony`
 
-Szablon: [`0000-szablon.md`](0000-szablon.md).
+Szablon: [`0000-szablon.md`](0000-template.md).
 
 > Wiele decyzji w tym projekcie zostało do tej pory zapisanych **wyłącznie** we wpisach
 > `U-NNN` w `CHANGELOG.md`. Poniższe ADR-y wyciągają z nich te, które są nadrzędne wobec

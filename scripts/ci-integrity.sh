@@ -330,6 +330,21 @@ if [ -n "$vendored" ]; then
   bad "fork source vendored into this repo (R-F02) — pin the fork instead:"; echo "$vendored"
 else
   ok "no fork source vendored into this repo"
+
+# 12) Every recipe reachable from an image config -- INCLUDING the toolchain path, which is not
+# reachable from config/*/eos.toml -- must pin the blake3 of its tarball. fetch.rs warns and
+# continues without one, and config.rs rewrites ftp.gnu.org to a third-party mirror, so an unpinned
+# tarball is fetched from a host we have no relationship with and built unverified.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-tar-pins.py 2>&1)"; then
+    printf '%s\n' "$out" | grep -E '^\s+(ok|advisory):' || true
+  else
+    printf '%s\n' "$out"
+    bad "a recipe in the image closure fetches a tarball with no blake3"
+  fi
+else
+  cannot "check 12 could not run: python3 is missing -- tar pins are UNKNOWN, not proven present"
+fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"

@@ -112,6 +112,6 @@ chmod 0755 "${COOKBOOK_STAGE}/usr/bin/eos"
 cat > "${COOKBOOK_STAGE}/usr/share/eos/eos-release" <<'RELEASE'
 E-OS 0.1.0 (Genesis)
 A hardened AGPL-3.0 downstream of Redox OS.
-https://github.com/Gh0s777tt/E-OS
+https://gitlab.com/e-os/e-os
 RELEASE
 '''

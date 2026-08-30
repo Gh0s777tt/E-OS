@@ -1,3 +1,10 @@
+---
+title: Mocne strony, luki i priorytety
+status: historical record
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # Mocne strony, luki i priorytety
 
 **Data:** 2026-08-30 · **Tryb:** wyłącznie do odczytu

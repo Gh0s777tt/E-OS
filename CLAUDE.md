@@ -72,7 +72,7 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (11 kontroli)
+bash scripts/ci-integrity.sh                    # bramka integralności (12 kontroli)
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=26 drift=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -190,7 +190,7 @@ dotyczącej kluczy i `login_schemes.toml`, oraz forki `eos-bootloader`, `eos-ker
   podpisującego jest **działaniem człowieka** i nie jest automatyzowane.
 - **Bez niezwiązanych zmian w jednym MR.** Jedna zmiana logiczna na MR.
 - **Bez ręcznej edycji plików generowanych.** `Cargo.lock`, `cookbook.lock`, `sbom/*.cdx.json`,
-  `docs/licenses/THIRD_PARTY.md` — **regeneruj**, nie poprawiaj.
+  `docs/reference/third-party-licenses.md` — **regeneruj**, nie poprawiaj.
 - **Bez `--wipe-caches`.**
 - **Bez ręcznej edycji repozytoriów typu B.**
 

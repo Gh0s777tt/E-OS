@@ -118,7 +118,7 @@ Copy this into the MR description and fill it in. **Paste real command output, n
 - **One logical change per MR.** Unrelated fixes get their own MR, however small.
 - A reviewer may ask for the **measurement**, not just the reasoning. "It should work" is not an
   answer the project accepts — see `CLAUDE.md` §5.3 for why that rule exists.
-- Generated files (`Cargo.lock`, `cookbook.lock`, `sbom/*`, `docs/licenses/THIRD_PARTY.md`) must be
+- Generated files (`Cargo.lock`, `cookbook.lock`, `sbom/*`, `docs/reference/third-party-licenses.md`) must be
   **regenerated**, never hand-edited. A hand-edited lockfile will be sent back.
 
 ## Test requirements

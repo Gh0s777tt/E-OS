@@ -1,3 +1,10 @@
+---
+title: Audyt bezpieczeństwa
+status: historical record
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # Audyt bezpieczeństwa
 
 **Data:** 2026-08-30 · **Tryb:** wyłącznie do odczytu · **HEAD:** `51cac0382`
@@ -326,3 +333,89 @@ zbudowana warstwa autentyczności jest gotowa i **nieużywana**.
 - **Semantyka schematów jądra** (C-21).
 - **Zachowanie `pkg` przy 404 na `id_ed25519.pub.toml`** na opublikowanym hoście aarch64.
 - **DAST** — nieadekwatny dla systemu operacyjnego.
+
+---
+
+## 7. Aneks — znaleziska po dacie raportu
+
+Raport powyżej jest zapisem stanu z 2026-08-30 i nie jest zmieniany wstecz.
+Numeracja aneksu zaczyna się od **C-22**: C-1…C-21 są zajęte w tabeli powyżej.
+Poniżej to, co znalazło się później, przy pracy nad pozycjami z tej listy.
+
+### C-22 — HIGH — zapis dowolnego pliku z prawami roota przez katalog pobierania `pkg`
+
+**Znalezione:** 2026-08-30, przy okazji C-3 (test integracyjny `eos-pkgutils` padał
+niedeterministycznie; przyczyną okazała się dzielona ścieżka, nie sam test).
+
+`pkg-lib/src/lib.rs:26` ustawia `DOWNLOAD_DIR = "/tmp/pkg_download/"` — stała nazwa
+w katalogu zapisywalnym dla wszystkich, z przewidywalnymi nazwami plików
+(`<remote>_<pakiet>.pkgar`). Katalog powstawał przez `create_dir_all` bez sprawdzenia
+właściciela, a pliki przez `File::create`, które **podąża za dowiązaniem
+symbolicznym**.
+
+**Dowód (kontener, nie rozważanie teoretyczne).** Nieuprzywilejowany użytkownik
+tworzy katalog i podsadza dowiązanie:
+
+```
+$ su attacker -c 'mkdir -p /tmp/pkg_download && chmod 777 /tmp/pkg_download &&
+                  ln -sfn /tmp/PROOF_ARBITRARY_WRITE /tmp/pkg_download/_ncurses.pkgar'
+$ ls -l /tmp/pkg_download/
+lrwxrwxrwx. 1 attacker attacker 26 _ncurses.pkgar -> /tmp/PROOF_ARBITRARY_WRITE
+```
+
+root uruchamia instalację pakietu; po niej:
+
+```
+ZAPIS PRZESZEDŁ PRZEZ DOWIĄZANIE: 868992 bajtów, właściciel root
+```
+
+Plik należący do roota powstał w miejscu wybranym przez atakującego. Dotyczy to
+zarówno działającego systemu, jak i **hosta budowania**, gdzie `pkg` bywa uruchamiany
+w CI z współdzielonym `/tmp`.
+
+**Powiązane, ta sama przyczyna:** dwa równoległe pobrania obcinały sobie nawzajem
+plik klucza podpisującego (`missing field 'pkey'` z pustego pliku), a nieudane
+pobranie zostawiało plik zerowej długości, który kolejny przebieg traktował jak
+poprawny cache.
+
+**Naprawione w:** [eos-pkgutils MR !3](https://gitlab.com/e-os/eos-pkgutils/-/merge_requests/3)
+— katalog tworzony z prawami 0700 i odrzucany, jeśli należy do kogoś innego lub jest
+dowiązaniem; pliki otwierane z `O_NOFOLLOW`; pobieranie do nazwy tymczasowej
+i atomowa zamiana. Cztery testy regresji, każdy sprawdzony mutacją.
+
+**Pozostaje świadomie:** lokalny użytkownik może nadal zablokować `pkg`, tworząc
+`/tmp/pkg_download` wcześniej — odmowa jest właściwą stroną awarii, ale docelowo
+domyślna ścieżka nie powinna leżeć w katalogu zapisywalnym dla wszystkich. To
+decyzja o zachowaniu produktu, nie element poprawki bezpieczeństwa.
+
+### C-23 — MEDIUM — test w vendorowanym cookbooku przechodzi zależnie od kolejności
+
+**Znalezione:** 2026-08-30, przy budowaniu `scripts/verify.sh` (gałąź
+`chore/security-hardening`).
+
+`cook::cook_build::tests::file_system_loop_no_infinite_loop` czyta globalną
+konfigurację (`src/config.rs:209`), którą inicjuje tylko część testów, a która jest
+**per-wątek**. Uruchomiony równolegle wynik jest rzutem monetą — przy pomiarze 1 porażka
+na 3 przebiegi.
+
+**Dowód, deterministyczny.** Na czystym worktree z `origin/main`:
+
+```
+$ cargo test --locked --manifest-path Cargo.toml file_system_loop
+thread '...file_system_loop_no_infinite_loop' panicked at src/config.rs:209:25:
+Configuration is not initialized
+test result: FAILED. 0 passed; 1 failed; 8 filtered out
+```
+
+Ten sam zestaw z `--test-threads=1` przechodzi w komplecie. Wada jest więc wcześniejsza
+i niezwiązana z żadną zmianą w gałęzi, w której ją znaleziono.
+
+**Dlaczego to ma znaczenie.** `.gitlab-ci.yml` `rust-checks` uruchamia `cargo test`
+równolegle. Bramka, która czasem świeci na czerwono bez powodu, uczy ludzi ponawiać
+przebieg aż zzielenieje — a to jest dokładnie mechanizm C-6 (bramka istnieje i jest
+omijana), tylko od strony psychologicznej, nie konfiguracyjnej.
+
+**Obejście, nie naprawa.** `ci.yml` i `scripts/verify.sh` uruchamiają vendorowany zestaw
+z `--test-threads=1`, żeby bramka była deterministyczna. To **nie naprawia testu** —
+naprawa oznacza inicjalizację konfiguracji w samym teście albo uczynienie jej
+niezależną od wątku, i jest zmianą w kodzie upstreamu do zrobienia osobno.

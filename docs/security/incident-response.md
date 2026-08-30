@@ -9,8 +9,8 @@ does personally, in an order chosen so that the irreversible things happen last.
 
 To **report** a vulnerability, see [`../../SECURITY.md`](../../SECURITY.md). That document
 is the promise made to reporters; this one is what happens after the promise is triggered.
-For day-to-day contributor hygiene see [`../security.md`](../security.md); for the token
-inventory and the five-layer key map see [`../tokeny.md`](../tokeny.md).
+For day-to-day contributor hygiene see [`../security.md`](index.md); for the token
+inventory and the five-layer key map see [`../reference/keys-and-tokens.md`](../reference/keys-and-tokens.md).
 
 ## Why this file is not a generic template
 
@@ -107,7 +107,7 @@ The off-machine copy is the single cheapest thing on this page and it is not don
 
 ### 1.2 Tokens
 
-Four, from [`../tokeny.md`](../tokeny.md). Two of them may be the same value.
+Four, from [`../reference/keys-and-tokens.md`](../reference/keys-and-tokens.md). Two of them may be the same value.
 
 | Token | Stored in | Blast radius if leaked |
 |---|---|---|
@@ -167,7 +167,7 @@ closes it is a client that fails closed, not a human who answers faster.
 **Scope:** a token, password, or private key that reached somewhere it should not — a
 commit, a paste, a screenshot, a session transcript, a log.
 
-`docs/tokeny.md` §0 states the rule this playbook exists to enforce: a secret that passes
+`docs/reference/keys-and-tokens.md` §0 states the rule this playbook exists to enforce: a secret that passes
 through assistant tool calls is in the session transcript and must be treated as disclosed
 **even if nobody read it**. "Probably not copied" is not a property you can build a supply
 chain on.
@@ -189,7 +189,7 @@ chain on.
 ### 3.2 Scope (T+15 min)
 
 - Which of the four tokens was it, and was it the *shared* GitHub PAT? If
-  `GITHUB_MIRROR_PAT` and `EOS_GH_TOKEN` were issued as one value (which `docs/tokeny.md`
+  `GITHUB_MIRROR_PAT` and `EOS_GH_TOKEN` were issued as one value (which `docs/reference/keys-and-tokens.md`
   explicitly allows), one leak is two blast radii.
 - Was it key **material** rather than a token? Then this is §6, not §3.
 - How far back? `secret-scan` runs with `GIT_DEPTH: 0` precisely so gitleaks sees the whole
@@ -311,7 +311,7 @@ rather than a description of the tree:
 - A copy of the layer-2, layer-3 and layer-4 private keys on encrypted media **not in the
   same building as the Mac** — the layer-2 backup is currently on the same computer as the
   original (`V2-MS12`), and the layer-2 secret is stored as **plaintext** (`skey` is 128 hex
-  characters, i.e. 64 raw bytes; `docs/tokeny.md` §6a corrects an earlier claim that the
+  characters, i.e. 64 raw bytes; `docs/reference/keys-and-tokens.md` §6a corrects an earlier claim that the
   cookbook encrypted it), so the medium must be encrypted.
 - The list of what is pinned where, which is §1.1 of this file.
 
@@ -495,7 +495,7 @@ The cheap one, and there is a worked example: it was rotated at `U-205` from fin
 before the rotation can still be checked. Repeat that shape.
 
 It is cheap for one measured reason: the key is **not in the image**. An earlier version of
-`docs/tokeny.md` claimed it was, on the strength of two `grep` hits that both turned out to
+`docs/reference/keys-and-tokens.md` claimed it was, on the strength of two `grep` hits that both turned out to
 concern `/usr/share/eos/eos-release`, the release *identifier*. A probe of a running image
 found no minisign key (`U-192`). So rotation needs **no image rebuild and no client
 re-imaging**.
@@ -737,7 +737,7 @@ short one:
   Secure Boot *does* work here (§6.5, proven end-to-end with a negative control at `U-207`
   and `U-208`): it proves the boot chain was signed, not that the running system is
   unmodified. The layer that would say that is **measured boot / TPM 2.0**, which does not
-  exist — `R-913`, roadmapped as `V2-N02` and not started. `docs/tokeny.md` §6a calls this
+  exist — `R-913`, roadmapped as `V2-N02` and not started. `docs/reference/keys-and-tokens.md` §6a calls this
   "layer 5"; §1.1 of this file numbers the *keys*, where 5 is the Secure Boot MOK. Two
   different numbering schemes, one of them about a layer that has no key because it does not
   exist yet.

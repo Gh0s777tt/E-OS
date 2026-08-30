@@ -27,7 +27,7 @@
 # works; a pure-C tool like gperf ignores it and just uses system gcc/g++.
 #
 # Idempotent. Run once per build container before cooking host-dep recipes
-# (CI wires this into the image-build job; see docs/design-netsurf-pie.md).
+# (CI wires this into the image-build job; see docs/architecture/netsurf-pie.md).
 set -eu
 
 host_triple="$(rustc -vV | sed -n 's/^host: //p')"
