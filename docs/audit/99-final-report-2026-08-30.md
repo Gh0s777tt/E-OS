@@ -117,6 +117,30 @@ nieaktualne referencje. Świeży klon z prawdziwego zdalnego:
 | docs → **hartowanie** → p0 → restrukturyzacja | konflikt: **2 pliki** ← rekomendowana |
 | p0 → hartowanie → docs → restrukturyzacja | konflikt: 5 plików |
 
+**Sprostowanie do własnego pomiaru.** Powyższa tabela mierzyła tylko **pierwszy** konflikt,
+bo pętla przerywała się na nim. Przejście całej sekwencji do końca (z mechanicznym
+rozstrzyganiem `--theirs`, żeby zobaczyć wszystkie) pokazuje, że konfliktują **cztery**
+gałęzie, nie jedna:
+
+| krok | gałąź | konflikt |
+|---|---|---|
+| 1 | `chore/docs-rebuild` | czysto |
+| 2 | `chore/security-hardening` | **2**: `CLAUDE.md`, `SECURITY.md` |
+| 3 | `fix/p0-audit-findings` | **4**: `CLAUDE.md`, `docs/SUMMARY.md`, `docs/architecture/desktop-environment.md`, `docs/security/threat-model.md` |
+| 4 | `chore/repo-restructure` | czysto |
+| 5 | `docs/installer-design` | **2**: `docs/SUMMARY.md`, `docs/architecture/README.md` |
+| 6 | `feat/m1-bootable-medium` | **4**: `README.md`, `ROADMAP.md`, `docs/architecture/desktop-environment.md`, `scripts/ci-boot-smoke.sh` |
+
+Wszystkie konflikty są w **dokumentacji i jednym skrypcie**, żaden w kodzie produktu.
+Wzorzec też jest jeden: te same pliki edytowane niezależnie na kilku gałęziach, plus jeden
+plik przeniesiony przez restrukturyzację (`docs/design-desktop-environment.md` →
+`docs/architecture/desktop-environment.md`).
+
+**Pełne scalenie wszystkich sześciu przechodzi bramki:** `verify.sh` → **15 PASS, 0 FAIL,
+0 SKIPPED**. Z zastrzeżeniem, które trzeba powiedzieć wprost: konflikty rozstrzygnąłem
+w tym teście **mechanicznie** (`--theirs`), więc ten wynik dowodzi, że **bramki przechodzą**,
+a nie że scalenie jest semantycznie poprawne. Człowiek musi przejrzeć te 12 plików.
+
 **Rekomendowana kolejność:**
 
 1. `e-os !1` `chore/docs-rebuild` — podstawa dokumentacji
