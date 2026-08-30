@@ -1,473 +1,338 @@
-# CLAUDE.md — jak pracujemy w E-OS
+# CLAUDE.md — kontrakt pracy w E-OS
 
-> **Ten plik jest kontraktem, nie poradnikiem.** Opisuje, co musi być prawdą, zanim
-> zmiana trafi do repozytorium. Powstał z błędów popełnionych w tym drzewie — każda
-> reguła ma numer wpisu w `CHANGELOG.md`, który ją wymusił.
->
-> **Numeracja §1–§10 jest stabilna i nie wolno jej przenumerowywać.** Kilkanaście
-> wpisów CHANGELOG-a cytuje `§1.6`, `§4.1`, `§10.1`; przesunięcie numerów unieważniłoby
-> je po cichu — co §2 wprost zakazuje. Nowy materiał dopisujemy jako §11 i dalej.
+**Ostatni przegląd:** 2026-08-30 · **Właściciel:** Gh0s777tt · **Status:** obowiązujący
 
-## 0. Co to za repozytorium (przeskanowane, nie założone)
+To jest **kontrakt, nie poradnik**. Reguły w §4 są twarde: zmiana, która ich nie spełnia, nie jest
+skończona, niezależnie od tego, jak dobrze wygląda.
 
-| | |
+---
+
+## 1. Czym jest ten produkt
+
+E-OS to **dystrybucja Redox OS** — systemu z mikrojądrem napisanym w Rust — z dołożonym
+łańcuchem zaufania: weryfikowanym rozruchem, hybrydowo podpisanym indeksem pakietów i kuratorowanym
+pulpitem. Nie jest to system pisany od zera i nigdy nie należy go tak przedstawiać.
+
+**Cel produktowy:** Redox z prawdziwym łańcuchem zaufania. Nie Tails, nie Qubes, nie GrapheneOS —
+te robią co innego i porównywanie się z nimi jest nieuczciwe wobec czytelnika.
+
+## 2. To repozytorium
+
+Repozytorium **orkiestrujące**. Nie zawiera kodu systemu operacyjnego.
+
+| Katalog | Zawartość |
 |---|---|
-| **Typ repo** | **A — komponent własny E-OS** (repo orkiestrujące całym ekosystemem) |
-| **Licencja** | **AGPL-3.0-or-later** (`LICENSE`); pliki odziedziczone z Redoksa zostają na MIT — patrz `NOTICE` |
-| **Język / toolchain** | Rust `nightly-2026-05-24`, edition 2024 (`rust-toolchain.toml`), komponenty: `rust-src`, `rustfmt`, `clippy` |
-| **Skrzynka główna** | `redox_cookbook` — **vendorowany silnik budowania z upstreamu**, binarki `repo`, `repo_builder`, `cookbook_redoxer` |
-| **Skrzynka własna** | `tools/eos-repo-sign` — hybrydowe podpisywanie manifestu (ed25519 + ML-DSA-65) |
-| **Build** | GNU Make + `mk/*.mk`, wykonywany w kontenerze podmana; `flake.nix` obecny |
-| **CI** | **GitLab CI** (`.gitlab-ci.yml`, 12 zadań / 5 etapów). **GitHub nie ma workflowów** — tylko `CODEOWNERS`, `dependabot.yml`, szablony |
-| **Dokumentacja** | mdBook (`book.toml`, `docs/SUMMARY.md`), 38 plików `.md` w `docs/` |
-| **Skrypty** | 38 w `scripts/`, w tym `sync-forks.sh` i `publish-repo-pages.sh` — **oba obecne lokalnie** |
+| `recipes/` | receptury budowania — co z czego powstaje |
+| `config/` | definicje obrazów per architektura i wariant |
+| `src/` | **vendorowany upstreamowy `redox_cookbook`** — binarki `repo`, `repo_builder`, `cookbook_redoxer` |
+| `tools/eos-repo-sign` | **kod własny E-OS** — podpis hybrydowy ed25519 + ML-DSA-65 |
+| `scripts/` | automatyzacja budowania, podpisywania, publikacji i weryfikacji |
+| `mk/`, `Makefile` | system budowania |
+| `podman/` | definicje kontenerów |
+| `docs/` | dokumentacja, w tym raporty audytu |
 
-**Etapy CI i zadania (stan faktyczny):**
+**Rozróżnienie, które ma znaczenie przy każdej zmianie:** `src/` to kod upstreamu. Nie oceniamy go
+jako własnego i nie refaktoryzujemy dla estetyki — ale **ponosimy jego konsekwencje**, bo to on
+buduje system. Kod własny to `tools/`, `scripts/`, `recipes/core/*` i cztery forki.
 
-```
-verify : secret-scan · integrity · pin-check · docs-currency · renovate
-test   : rust-checks · shell-lint
-docs   : pages · docs-pdf
-release: semantic-release
-build  : build-image · build-image-x86_64
-```
+---
 
-**Komendy, które realnie coś robią:**
+## 3. Polecenia — zweryfikowane, nie przepisane
 
-```sh
-make CI=1 ARCH=aarch64 CONFIG_NAME=eos all   # pełny obraz (w kontenerze)
-bash scripts/ci-integrity.sh                 # bramka niezmienników (8 kontroli)
-bash scripts/eos-repos.sh pins --strict      # zgodność pinów, 26 repo
-bash scripts/ci-boot-smoke.sh <obraz>        # dowód: boot dochodzi do `eos login:`
-bash scripts/repro-intx-lines.sh <obraz>     # strażnik regresji R-F16 (10 konfiguracji)
-cargo fmt --manifest-path tools/eos-repo-sign/Cargo.toml -- --check
-cargo clippy --manifest-path tools/eos-repo-sign/Cargo.toml -- -D warnings
-cargo test  --manifest-path tools/eos-repo-sign/Cargo.toml
-cargo test  --manifest-path Cargo.toml       # 9 testów vendorowanego cookbooka
-shellcheck -S error scripts/*.sh             # blokujące; ostrzeżenia doradcze
-gitleaks detect --source . --no-banner --redact
+Wszystkie sprawdzone 2026-08-30 na hoście referencyjnym (Apple Silicon macOS + podman).
+
+### Budowanie
+
+```bash
+bash scripts/eos-build.sh x86_64      # albo aarch64
 ```
 
-**Układ na dysku (po uporządkowaniu, `U-186`):** `E-OS Project/` zawiera teraz
-**wyłącznie dwie pozycje** — to repozytorium w `E-OS/` oraz `_archiwum-migawek/`. Katalog
-nadrzędny **nie jest** repozytorium. W archiwum leży 80 nieaktualnych, rozpakowanych kopii
-forków (plus `e-os-main/`, czyli kopia tego repo), które wcześniej stały bezpośrednio obok i
-były przez to czytane jak źródło prawdy. **Nie są nim** — patrz §20.2. Build ich nie używa:
-pobiera przypięte rewizje (§1.6, §11).
+**Nie używaj `make all` z katalogu projektu.** Ten katalog leży na exFAT, którego podman nie
+podmontuje; `eos-build.sh` buduje w wolumenie i to jest jedyna działająca ścieżka na tym hoście.
 
+### Uruchamianie
 
-## 1. Definicja ukończenia — nic nie wychodzi, dopóki wszystko poniżej nie jest prawdą
+```bash
+bash scripts/ci-boot-smoke.sh ~/eos-artifacts/eos-x86_64-harddrive.img 300 --arch x86_64
+# -> boot-smoke: PASS — reached userspace login
+```
 
-Zmiana (poprawka, funkcja, skrypt, refaktor, wybór technologii) **nie jest gotowa**, dopóki:
+### Testy
 
-1. **Kompiluje się** — `cargo check` dla docelowej architektury w kontenerze budującym.
-2. **Integruje się** — `make CI=1 … all` przechodzi, a jeśli zmiana dotyka obrazu,
-   `scripts/ci-boot-smoke.sh` kończy się PASS (boot dochodzi do `eos login:`).
-3. **Ma dowód działania i kontrolę negatywną** — realny ślad, nigdy założenie: log
-   z serialu, marker `--selftest`, pcap albo screendump. Podaj dowód **i** napisz, że
-   widziałeś, jak sprawdzenie **pada bez poprawki** i przechodzi z nią. Zielone
-   sprawdzenie, którego nigdy nie widziałeś na czerwono, nie jest dowodem (§4.1).
-   Identyczny wynik przed i po **nie jest naprawą** — cofnij ją i wyjaśnij dlaczego (§4.4).
-4. **Jest udokumentowana** — patrz §2. Każda nowa funkcja, skrypt, API i technologia
-   opisane **co + dlaczego**. Bez wyjątków: nieudokumentowane = nieukończone.
-5. **Jest zapisana** — wpis w `CHANGELOG.md` (`[U-NNN]`, co + dlaczego + jak zweryfikowane),
-   komunikat w stylu Conventional Commits, zmiana mała i samodzielna.
-6. **Jest przypięta i wypchnięta** — jeśli zmienił się fork: **najpierw** commit na
-   **oba hosty**, potem podbicie `repos.toml` + rewizji w przepisie;
-   `scripts/eos-repos.sh pins --strict` musi być zielone. Przepisy pobierają dokładną
-   rewizję z lustra GitHuba, a **forki nie mają push-mirrora** — każdy wymaga dwóch
-   osobnych pushy i weryfikacji `git ls-remote` na obu hostach.
+```bash
+podman run --rm --network=host -v eos-work:/work -v eos-root:/root localhost/redox-base:latest \
+  bash -lc 'cd /work/redox && cargo test --release'
+cd tools/eos-repo-sign && cargo test
+```
 
-## 2. Dokumentacja jest częścią pracy, nie dodatkiem
+Stan faktyczny: `redox_cookbook` ma **9 testów** (wszystkie w kodzie upstreamu),
+`tools/eos-repo-sign` **9**, fork `eos-pkgutils` **33**. `src/bin/repo_builder.rs`
+i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 
-**Zasada:** po każdej ukończonej pracy zaktualizuj *każdy* dokument, którego dotyka, tak
-żeby czytelnik pierwszy raz w życiu widzący projekt rozumiał, *czym* to jest i *po co*.
+### Kontrole
 
-| Dokument | Rola | Aktualizuj gdy |
-|---|---|---|
-| `README.md` | Wizytówka: czym jest E-OS, status | zmiana widoczna dla użytkownika (nosi znacznik `SYNC:` — pilnuj prawdziwości) |
-| `CHANGELOG.md` | Każda zmiana, numerowana `U-NNN` | **każda** zmiana |
-| `ROADMAP.md` | Żywy plan, statusy ✅ 🚧 ⏳ | zmienia się status pozycji |
-| `docs/*.md` → mdBook | Podręcznik (projekt, build, sprzęt, bezpieczeństwo, CI) | **nowe strony wpisz do `docs/SUMMARY.md`**, inaczej mdBook je zignoruje |
-| `docs/design-*.md` | Jeden dokument projektowy na nietrywialny podsystem: *dlaczego*, odrzucone warianty, pułapki | projektujesz lub istotnie zmieniasz podsystem |
-| `HARDWARE.md`, `docs/hardware-*` | Macierz wsparcia sprzętu | zmiana wsparcia sterownika/architektury |
-| `SECURITY.md`, `docs/threat-model.md` | Postawa bezpieczeństwa i model zagrożeń | zmiana hardeningu lub łańcucha zaufania |
-| `repos.toml` | Manifest repo + pinów (źródło prawdy ekosystemu) | każde podbicie pina |
+```bash
+bash scripts/ci-integrity.sh                    # bramka integralności (11 kontroli)
+bash scripts/eos-repos.sh pins --strict         # -> pins ok=26 drift=0
+shellcheck -f gcc $(git ls-files 'scripts/*.sh')
+osv-scanner scan source --lockfile Cargo.lock
+hadolint podman/*containerfile
+gitleaks detect --config .gitleaks.toml --no-banner --redact
+```
 
-**Poprzeczka:** nagłówki i jedno zdanie „co to jest / po co istnieje" na górze każdego
-dokumentu; wyjaśniaj kompromisy i **odrzucone** warianty; linkuj powiązane dokumenty;
-przykłady mają być uruchamialne.
+### Pakowanie i publikacja
 
-**Pisz zapis tak, żeby ktoś inny mógł go sprawdzić.** Zdanie, którego czytelnik nie
-zweryfikuje, jest twierdzeniem, nie dokumentacją. Cztery reguły — każdej nauczyło to
-drzewo boleśnie (odpowiednik testowy w §4):
+```bash
+EOS_REPO_SIGN_KEY=<ścieżka-poza-repo> bash scripts/publish-repo.sh x86_64-unknown-redox
+```
 
-1. **Cytuj dowód w miejscu.** Komenda, liczba, `plik:linia`, rewizja. „Burza przerwań na
-   dzielonej linii" to opinia; „`virq 37` = 11 054 068 wobec 8 851 na timerze, z
-   `/scheme/sys/irq`" to zapis (`U-157`).
-2. **Zakresuj twierdzenie do tego, co zmierzone — ani szerzej.** Podaj architekturę, host,
-   konfigurację. `U-146` twierdziło „dwie linie INTx nie mogą działać naraz" na podstawie
-   pomiaru z fazy initfs i było błędne przy pierwszym spojrzeniu na późniejszy etap bootu;
-   `U-147` musiało to zawęzić, `U-148` jeszcze raz.
-3. **Powiedz, czego *nie* zweryfikowałeś**, w tym samym oddechu co to, co zweryfikowałeś.
-   Wpis wyliczający same sukcesy czyta się jak twierdzenie o kompletności, którego nie
-   udźwignie.
-4. **Poprawiaj w miejscu i zostaw poprawkę widoczną.** Gdy dokument okazuje się błędny,
-   napraw go **i** zapisz, że był błędny oraz dlaczego — nie przepisuj po cichu. Czytelnik,
-   który kiedyś oparł się na starym zdaniu, musi wiedzieć, że się zmieniło.
+Bez `EOS_REPO_SIGN_KEY` skrypt **odmawia** spakowania niepodpisanego indeksu. Obejście wymaga
+jawnego `EOS_ALLOW_UNSIGNED=1` — i to jest wzorzec do naśladowania wszędzie indziej.
 
-## 3. Standardy kodu — komentarze też są dokumentacją
+---
 
-- **Komentarz tłumaczy *dlaczego*, nie *co*.** Kod mówi, co robi; komentarz ma powiedzieć,
-  jaki problem rozwiązuje i co zostało odrzucone.
-- **Demon nie panikuje na sytuacji odwracalnej.** `unwrap()` na błędzie, który da się
-  obsłużyć, to awaria całego sterownika — lekcja `U-085` (virtio-core) i `U-149`
-  (`R-F17`: sterownik abortował na wartości zwracanej poprawnej z założenia).
-- **Porty firm trzecich zostają na formie upstreamu.** Nie „poprawiamy" vendorowanego kodu
-  kosmetycznie — każda dywergencja to koszt przy każdej synchronizacji (§11, typ B).
-- **Conventional Commits** dla komunikatów; commit mały i samodzielny.
+## 4. Styl, nazewnictwo i konwencje katalogów
 
-## 4. Dyscyplina weryfikacji — przetestuj, udowodnij test, zaudytuj twierdzenie
+- **Rust**: `rustfmt.toml` i `clippy.toml` są wspólne dla całego ekosystemu — jedna konfiguracja,
+  nie dwadzieścia cztery. Kod własny E-OS ma **zero `unsafe`**; jeśli musisz go dodać, wymagany
+  jest komentarz `SAFETY:` (bramka `ci-integrity.sh` kontrola 4).
+- **Powłoka**: `set -euo pipefail`, `shellcheck` bez błędów. Obecny stan: **0 błędów** w 50 skryptach.
+- **Commity**: Conventional Commits. Zakres to obszar, nie plik. Treść commita tłumaczy **dlaczego**
+  i **co zmierzono**, nie powtarza diffa.
+- **Końce linii**: `.gitattributes` jest jedynym źródłem prawdy. `CHANGELOG.md` jest przypięty na
+  **CRLF** — bramka to sprawdza i psuje się to łatwo przy zapisie z Pythona w trybie tekstowym.
+- **Nazewnictwo**: skrypty własne E-OS mają przedrostek `eos-`; skrypty odziedziczone z upstreamu
+  zostają pod swoimi nazwami.
+- **Dokumentacja**: nagłówek z tytułem, statusem, datą przeglądu i właścicielem.
 
-Każda poprawka przechodzi trzy bramki, w tej kolejności:
+---
 
-1. **Kompilacja** — `cargo check` w kontenerze wobec sysroota docelowego.
-2. **Integracja** — `make … all` + `boot-smoke` PASS.
-3. **Runtime** — dowód z serialu / `--selftest` / pcap / screendump.
+## 5. Protokół weryfikacji — reguły twarde
 
-Aplikacje GUI bez ekranu dostarczają `eos-<app> --selftest`, które dowodzi niewizualnego
-rdzenia (wypisuje `…-SELFTEST-OK`, sprawdzane z logu serialu jednorazową sondą w init.d —
-**sondy nigdy nie commitujemy**). Render GUI dowodzi się screendumpem.
+Te reguły nie podlegają negocjacji ani ocenie sytuacyjnej. Każda z nich powstała po tym, jak jej
+brak **coś zepsuł** — odniesienia są podane, żeby nie były abstrakcją.
 
-### 4.1 Test, którego nie widziałeś padającego, nie jest testem
+### 5.1 Każda zmiana ma testy
 
-Samo przejście nic nie dowodzi — test może przechodzić na starym kodzie, na niewłaściwym
-drzewie albo na niczym. **Pokaż, jak pada na wadzie, a potem jak przechodzi na poprawce.**
-Obie połowy, za każdym razem, i napisz o tym we wpisie.
+Nowe albo zaktualizowane. Bez wyjątku milczącego.
 
-To nie jest teoria. Każde z poniższych było zielone i nie chroniło niczego:
+**Jeśli testu napisać się nie da** — napisz wprost dlaczego i uzyskaj zgodę **przed** złożeniem
+zmiany. „Nie dało się" bez uzasadnienia jest odmową, nie wyjaśnieniem.
 
-- Hook `gitleaks` kończył się na `|| true`, więc podłożony klucz prywatny commitował się
-  bez przeszkód (`U-140`).
-- Bramka bash-4 łapała **własny literał regexu** i padała na czystym drzewie (`U-159`).
-- Kontrola negatywna tej samej bramki była nieważna: `git grep` widzi wyłącznie pliki
-  **śledzone**, więc nieśledzona sonda niczego nie dowodziła, dopóki nie zrobiono
-  `git add -N` (`U-159`).
-- `cd` bez `|| exit` w `ci-integrity.sh` — czyli w **samej bramce** — kazałby jej sprawdzać
-  przypadkowy katalog i meldować PASS na niewłaściwym drzewie (`U-159`).
+### 5.2 Zmiana jest skończona dopiero, gdy przechodzą wszystkie
 
-### 4.2 Udowodnij narzędzie, zanim uwierzysz w wynik negatywny
-
-„Brak wyjścia" znaczy jedno z dwojga: kod się nie wykonał albo **nie mierzysz tego, co
-myślisz**. Rozdziel te możliwości, zanim cokolwiek stwierdzisz.
-
-`U-151` orzekło, że `redoxfs` „nie da się instrumentować", po dwóch kanałach bez wyniku.
-To było błędne: przepis `base` kopiuje `redoxfs` do `initfs/bin/`, więc przebudowa samego
-`r.redoxfs` zostawiała w initfs **starą binarkę** (§9). Rozstrzygnął dopiero test
-bezwarunkowy: `panic!` w pierwszej linii `main()` — po którym boot **i tak** doszedł do
-logowania, co jest niemożliwe, jeśli uruchamiana jest ta binarka (`U-153`). Trzy podejścia
-poszły na mierzenie kodu, który nigdy nie startował.
-
-**Kontroluj zmienne.** Jeden eksperyment przy `R-F18` „przeszedł", bo przeniesienie
-`-device` na koniec linii poleceń QEMU zmieniło jego slot PCI, przez co urządzenie
-przestało dzielić badaną linię przerwań (`U-157`).
-
-**Kontekst błędu nie zastąpi sondy.** Kontekst mówi, **która operacja zawiodła**, ale
-milczy o tym, **czy ten kod w ogóle się wykonał**. Przy `R-F19` trzy kolejne milczące
-markery były dwuznaczne między „niewinny" a „nigdy nie uruchomiony"; dopiero bezwarunkowe
-sondy `PROBE-*` rozstrzygnęły to w jednym przebiegu i pokazały, że badana była gałąź, w
-którą program nie wchodzi (`U-166`).
-
-### 4.3 Mierz, nie wnioskuj
-
-Z wnioskowania wzięły się wszystkie błędne konkluzje w tym drzewie, publikowane po trzykroć:
-
-- Punkt blokady odczytano z tego, **gdzie urwał się log serialu**, zamiast z miejsca, w
-  którym kod zgłasza gotowość. `pcid-spawner` obwiniono dwa razy i nigdy nie był winny
-  (`U-146`, `U-147`, poprawione w `U-148`).
-- Rozstrzygnęło dopiero zmuszenie `init` do opowiadania o swoich jednostkach (`U-150`),
-  potem odpytywanie logu **zegarem ściennym**, które znalazło 84-sekundową dziurę
-  niewidoczną w znacznikach czasu (`U-154`), a na koniec liczniki przerwań kernela z
-  `/scheme/sys/irq` — 11 054 068 na jednej linii wobec 8 851 na timerze (`U-157`).
-
-Gdy da się coś policzyć — policz. Zacytuj liczbę we wpisie.
-
-### 4.4 Zmiana, która niczego nie mierzy, nie idzie do repo
-
-Jeśli przed i po jest identycznie, to nie jest poprawka — niezależnie od tego, jak dobrze
-brzmi uzasadnienie. Cofnij ją i zapisz dlaczego. `U-157` zrobiło dokładnie to ze zmianą
-modelu przerwań w kernelu, która była **prawdopodobnie bardziej poprawna**, a zmierzyła
-**111 s przed i 111 s po**: nic nie dawała, a groziła trwałym zamaskowaniem dzielonej linii
-przy śmierci jednego sterownika. Brzmieć sensownie to nie jest dowód.
-
-### 4.5 Audyt: twierdzenie bez aktualnego dowodu jest wadą
-
-Dokumentacja gnije po cichu, więc **weryfikuj twierdzenia w obszarze, który i tak ruszasz**:
-
-- Czy dokument nadal zgadza się z drzewem? **Drzewo wygrywa**, a dokument poprawiasz w tej
-  samej zmianie — nigdy „później".
-- Czy twierdzenie nadal ma dowód? `§10.1` twierdziło, że podpisywanie jest nieskonfigurowane,
-  podczas gdy każdy commit był podpisany, a GitLab raportował *verified* (`U-152`).
-- Czy bramka nadal pada na wadzie, dla której powstała? Uruchom jej kontrolę negatywną.
-- Czy pin jest na **obu** hostach (§1.6) i czy tożsamość wersji się zgadza (§8)?
-- **Czy to, co zbudowane, to naprawdę to, co przypięte?** `pins --strict` może być zielone,
-  a do obrazu i tak trafiać cudza binarka (`R-F20`, §9).
-
-Poprawianie własnego opublikowanego wniosku to zwykła praca, nie wstyd: nazwij, co było
-błędne, dlaczego i co pokazuje dowód. `U-147`, `U-148`, `U-153`, `U-155`, `U-157`, `U-164`
-i `U-166` są korektami wcześniejszych wpisów — i zapis jest przez to więcej wart.
-
-**Zapisuj też ślepe uliczki.** Wynik negatywny, który kosztował godziny, oszczędzi je
-następnemu podejściu tylko wtedy, gdy zostanie spisany — razem z powodem porażki i metodą,
-która zadziała zamiast niej (`U-151`, `U-157`, `U-166`).
-
-
-## 5. Niezmienniki operacyjne (nie łamać)
-
-- **GitLab jest źródłem prawdy.** `gitlab.com/e-os/e-os` → push-mirror → GitHub
-  (`Gh0s777tt/E-OS`, tylko do odczytu). Lustro **replikuje pushe, ale nie kasowania**.
-  Gałąź, branch i tag: gałęzie lądują na lustrze w sekundy, **tag dopiero przy następnym
-  przebiegu — zmierzone ~5 minut** (`U-152`). Dwie minuty ciszy to nie awaria; sprawdź
-  `glab api projects/:id/remote_mirrors`, zanim cokolwiek orzekniesz.
-- **Forki nie mają lustra** — każda zmiana wymaga **dwóch** pushy i weryfikacji
-  `git ls-remote` na obu hostach (§1.6). Automatyzacja: `scripts/eos-setup-mirrors.sh`
-  (suchy przebieg nie wymaga tokenu; `--apply` wymaga PAT-a i jest **działaniem operatora**).
-- **Nigdy nie używaj wklejonych tokenów, haseł ani PAT-ów — nawet na wyraźne żądanie.**
-  Twarda zasada. Zadania wymagające poświadczeń oddajesz człowiekowi (`U-158`).
-- **Legalne aspekty wkładu** (`CONTRIBUTING.md`, `docs/MAINTENANCE.md`): AGPL-3.0-or-later
-  dla nowej pracy (odziedziczone pliki Redoksa zostają na MIT — `NOTICE`), a commity są
-  **podpisywane** (`git commit -S`, działa od `1d3c62ea6`, patrz §10.1). W sprawie DCO,
-  poprawione w `U-152`: `CONTRIBUTING.md` formułuje je jako *warunki akceptowane przez sam
-  fakt wkładu* i prosi o **podpis kryptograficzny**, a **nie** o trailer `Signed-off-by:`.
-- **`repo/`, `build/`, `prefix/`, `recipes/*/source`, `recipes/*/target`** to artefakty —
-  nie commituje się ich i nie traktuje jako źródła prawdy.
-- **Końce linii są przypięte w `.gitattributes`, nie zostawione nawykowi edytora.**
-  `CHANGELOG.md` i 11 vendorowanych plików przepisów są przechowywane z **CRLF**,
-  reszta drzewa z LF. Nie normalizuj ich: przepisanie `CHANGELOG.md` na LF to różnica
-  **2036 linii**, która odrywa `git blame` od zapisu dowodowego, a w łatkach CRLF jest
-  **treścią** — po jego usunięciu hunk odrzucają `patch` i `git apply`. Zdarzyło się
-  w `U-169`; przypięte i obramkowane w `U-173` (kontrola 8 w `ci-integrity.sh`).
-
-## 6. Pomysły na podnoszenie poprzeczki
-
-Jedno źródło prawdy plus generowanie zamiast ręcznie utrzymywanych kopii. Preferuj bramkę,
-która pada, nad notatkę, która prosi. Każda reguła w tym pliku, która nie ma egzekutora,
-jest życzeniem — przenieś ją do `scripts/ci-*.sh` albo do `.gitlab-ci.yml` (§13).
-
-## 7. Kadencja — co dzieje się przy *każdej* zmianie, nie „później"
-
-| Krok | Co robisz |
+| Kontrola | Polecenie |
 |---|---|
-| **Przed** | Sprawdź, czy ta praca nie została już zrobiona (`git log`, CHANGELOG) — `U-133` zduplikowano, bo tego nie zrobiono. Ustal **typ repozytorium** (§11). |
-| **W trakcie** | Bramki §4 w kolejności. Test, którego nie widziałeś padającego, nie jest testem. |
-| **Dokumentacja** | §2, w tej samej zmianie. Napisz, czego **nie** zweryfikowałeś. |
-| **CHANGELOG** | Wpis `U-NNN`: co, dlaczego, jak zweryfikowane, co pozostaje otwarte. |
-| **Commit** | Conventional Commits, podpisany, mały. |
-| **Push** | Meta-repo: **tylko GitLab** — lustro zreplikuje, ręczny push na GitHuba ściga się z nim. Forki: oba hosty (§1.6). |
-| **Po** | **Obserwuj pipeline aż zzielenieje**, nie zakładaj. `glab ci list`. |
+| build | `bash scripts/eos-build.sh <arch>` |
+| pełny zestaw testów | `cargo test --release` w kontenerze **oraz** `cd tools/eos-repo-sign && cargo test` |
+| lintery | `shellcheck`, `cargo clippy` |
+| typy | `cargo check` |
+| skanery bezpieczeństwa | `gitleaks`, `osv-scanner`, `hadolint` |
+| bramka integralności | `bash scripts/ci-integrity.sh` |
 
-## 8. Wydania, tagi i numeracja — trzymaj je w zgodzie
+**Zielony build nie jest dowodem.** Patrz §5.3.
 
-- Tag wydania jest **adnotowany i podpisany**: `git tag -s -m …`. Nigdy `git tag <nazwa>`.
-  Tag lekki (`git cat-file -t` zwraca `commit`, nie `tag`) **nie może nieść podpisu** —
-  to nie jest zapomniane `-s`, tylko brak obiektu tagu (`U-152`).
-- **Tożsamość wersji musi się zgadzać** między tagiem, `README.md` (znacznik `SYNC:`),
-  banerem systemu i CHANGELOG-iem. Rozbieżność jest wadą, nie kosmetyką.
-- **Nie przepisuj opublikowanego tagu.** Zastąp go nowym i zostaw stary jako znacznik
-  historyczny — przepisanie jest gorsze niż zastąpienie (`U-152`).
-- Tag oznacza **drzewo**. Jeśli nie ma opublikowanych obrazów, napisz to w adnotacji i w
-  README — `v0.2.0` robi dokładnie tak i wymienia otwarte `R-F16` jako ograniczenie.
+### 5.3 Weryfikuj artefakt, nie kod wyjścia
 
-## 9. Gdzie to naprawdę działa
+**Każdą zmianę trzeba uruchomić, nie przemyśleć.** Do opisu zmiany wkleja się **prawdziwe wyjście
+polecenia**, nie jego streszczenie.
 
-- **Host: Apple M4 (arm64), `/bin/bash` 3.2, powłoka zsh.** Składnia bash 4 (`declare -A`,
-  `${x^^}`, `mapfile`) **nie działa** — bramka §5 w `ci-integrity.sh` tego pilnuje
-  (`U-124`, `U-159`). W zsh **nie nazywaj zmiennej `path`**: to tablica powiązana z `PATH`
-  i nadpisanie jej niszczy wyszukiwanie poleceń.
-- **Drzewo leży pod ścieżką ze spacją** (`/Volumes/Project itp/…`), więc niecytowane
-  `$@`/`$*`/`$(…)` rozpadają się tutaj **realnie**, nie teoretycznie (`U-159`).
-- **exFAT na dysku zewnętrznym**: brak plików rzadkich i uprawnień POSIX; obrazy VM leżą
-  w sparsebundle'ach APFS.
-- **Dwa nieśledzone pliki decydują o zawartości obrazu.** `.config` ustawia
-  `REPO_BINARY?=1`, więc cookbook domyślnie **pobiera** `<przepis>.pkgar` ze
-  `static.redox-os.org` zamiast kompilować; `cookbook.lock` trzyma wyjątki
-  `fsrule = "source"`. Oba są w `.gitignore`, więc świeży klon buduje **inny** obraz niż to
-  drzewo, a ręcznie utrzymywane wyjątki gniją — 13 z 26 przepisów z forkiem E-OS było
-  pominiętych, przez co kliencka weryfikacja podpisu manifestu (`R-703`) **nie istniała w
-  artefakcie**, choć każdy dokument nazywał ją zaimplementowaną (`U-164`).
-  **Na każdym świeżym drzewie uruchom `scripts/eos-source-rules.sh`** — kończy się kodem
-  błędu, dopóki luka istnieje.
-- **Przypięcie forka nie znaczy, że artefakt niesie kod forka.** Cargo rozwiązuje
-  zależności z **crates.io**, dopóki ktoś tego nie przekieruje, a gdy fork i wersja
-  opublikowana mają **ten sam numer**, różnica jest niewidoczna dla każdej bramki
-  patrzącej na przepisy i przypięcia. Wystąpiło **cztery razy**: `R-F10` (bootloader →
-  `redoxfs`), `R-F20` (przepisy jako binarki upstreamu), `R-F19` (`redox_installer` →
-  `redoxfs 0.9.1`) oraz `installer` → `redox-pkg 0.3.1`, czyli crate niosący
-  `verify_repo_manifest` — sprawdzone na binarce: cztery literały podpisu manifestu E-OS
-  miały **0 wystąpień**, przy instrumencie skontrolowanym najpierw.
-  **Uruchom `scripts/eos-fork-linkage.py`** w drzewie budowania — wywodzi nazwy crate'ów
-  z `[package] name` członków workspace'u forka (nie z nazwy repo, bo `eos-base` nie
-  dostarcza crate'a „base") i kończy się kodem błędu, gdy konsument bierze forkowany crate
-  z rejestru. Naprawa: `[patch.crates-io]` na `git`+`rev` forka, a potem **minimalne**
-  odświeżenie blokady (`cargo update -p <crate>`), nigdy `generate-lockfile`. Nie da się
-  tego wpiąć w lekkie CI: `recipes/*/*/source/` nie jest śledzone w gicie.
-- **`/work/redox` w kontenerze to OSOBNY klon E-OS, nie to repozytorium.** Ma własny
-  `HEAD` (sprawdzone: `6e7f6432`, gdy repo było na `dbee1618`) i własne, brudne drzewo
-  robocze. Edycja `recipe.toml` tutaj **nie wpływa** na build tam i odwrotnie. Powód jest
-  prozaiczny: maszyna podmana montuje tylko katalog domowy, a repo leży na `/Volumes`,
-  więc `make` z hosta pada na `statfs`. Zanim uwierzysz, że zbudowałeś to, co zmieniłeś,
-  sprawdź `git -C /work/redox/recipes/<r>/source rev-parse HEAD` (`U-170`).
-- **Cookbook nie przełączy rewizji na brudnym drzewie źródeł.** `git checkout <rev>`
-  kończy się „Aborting", przepis pada — a `make all` **i tak zbuduje obraz**, ze starym
-  kodem i bez ostrzeżenia. Po ręcznym łataniu źródeł zrób `git -C <źródło> reset --hard`
-  i `clean -fd`, zanim podbijesz przypięcie (`U-170`).
-- **Kontener budujący potrzebuje FUSE.** `make` uruchamia podmana z
-  `--cap-add SYS_ADMIN --device /dev/fuse`. Ręczne `podman run` bez tych flag przewraca
-  budowanie obrazu na `installer: failed to install: No such file or directory` — wygląda
-  to jak regresja w projekcie i nią nie jest. Zanim zaczniesz bisektować własne zmiany,
-  powtórz błąd na **linii bazowej**: to, co wziąłem za regresję, było moim wywołaniem
-  (`U-170`).
-- **Przebudowa jednego przepisu nie wystarcza, gdy jego binarka jedzie w initfs.** Przepis
-  `base` kopiuje `redoxfs` i inne do `initfs/bin/`, więc `make r.redoxfs` zostawia w initfs
-  **starą** binarkę. Przebuduj `r.<przepis>` **i** `r.base`, a przed zaufaniem wynikowi
-  negatywnemu sprawdź:
-  `strings recipes/core/base/target/<arch>/build/initfs/bin/<binarka> | grep <marker>`.
-  Rozstrzyga bezwarunkowa `panic!` na górze `main()`: jeśli boot dalej przechodzi, nie
-  uruchamiasz tego, co zbudowałeś (`U-151`, `U-153`).
-- **Gdy sparsebundle odpadnie w trakcie sesji — a odpadnie.** Zdarzyło się trzy razy w
-  jednej sesji (`U-162`). Niezawodna kolejność: `hdiutil detach -force` na **każdym**
-  podpięciu obrazu (`hdiutil info` je wylistuje), `hdiutil attach -nomount`,
-  `diskutil mount /dev/diskNsM`, a potem `podman machine stop` **i** `start` — maszyna
-  wpada w stan zombie, w którym twierdzi *already running*, a jej SSH pada. Wolumen,
-  który „failed to mount", albo APFS z *container superblock is invalid*, to niemal zawsze
-  **zwietrzałe podpięcie, nie uszkodzenie**: cache przetrwał wszystkie trzy razy.
-  **Nigdy nie sięgaj po `--wipe-caches`.**
-- **Cache buildów żyje w nazwanych wolumenach podmana** (`eos-work`, `eos-root`), nie w
-  kontenerze. `--recreate` jest tani i bezpieczny; `--wipe-caches` kasuje 37 GB.
+Po zmianie dotykającej tego, co trafia do obrazu albo do indeksu, sprawdź **wytworzony plik**:
 
-## 10. Podpisy, niebezpieczny kod, sekrety
-
-### 10.1 Podpisy — weryfikuj i podpisuj domyślnie
-
-**Zasada.** Commity są podpisywane; tagi wydań **bez wyjątku** (`git tag -s`). Tag jest
-tym, co użytkownik sprawdza przed wgraniem obrazu.
-
-**Stan zmierzony 2026-08-22 (`U-152`) — podpisywanie commitów DZIAŁA.** Wcześniejsza wersja
-tej sekcji twierdziła coś przeciwnego (konfiguracja pusta, 0 kluczy, 0/20 podpisanych). To
-było prawdą, gdy powstawało, i przestało nią być — a leżało tu nieaktualne, czyli dokładnie
-ten dryf, któremu ten plik ma zapobiegać.
-
-```
-gpg.format = ssh          user.signingkey = ~/.ssh/magazyn-wms-signing.pub
-commit.gpgsign = true     tag.gpgsign     = true
-gpg.ssh.allowedSignersFile = ~/.ssh/allowed_signers
-git log --format='%h %G?'  → każdy commit od 1d3c62ea6 ma G
-GitLab commit signature API → verification_status: verified
+```bash
+strings -a <binarka> | grep -q "<charakterystyczny ciąg nowej funkcji>"
+grep -E "^(serial|expires)" repo.toml
+# montowanie obrazu i odczyt jego zawartości
 ```
 
-Dwie rzeczy warto **wiedzieć**, a nie zgadywać: plik klucza nazywa się
-`magazyn-wms-signing` (klucz innego projektu, użyty ponownie — brzydka nazwa, nie wada),
-a **GitHub jest niepotwierdzony**, bo token `gh` nie ma zakresu `admin:ssh_signing_key`;
-jeśli klucz nie jest tam zarejestrowany jako **podpisujący**, commity na lustrze czyta się
-jako *Unverified*.
+**Zmierzone trzy razy w ciągu jednego dnia** (`U-224`): build kończył się sukcesem, a zmiana nie
+działała. `make` nie przebudowuje narzędzi hosta, więc indeks powstawał starą binarką i wychodził
+bez pola, które źródło już potrafiło zapisać.
 
-**Generowanie klucza to działanie człowieka i celowo nie jest zautomatyzowane** — klucz
-podpisujący nie może przejść przez narzędzia, które logują.
+### 5.4 Bramka sprawdzająca obecność nie jest bramką
 
-**Weryfikuj, nie zakładaj:** `git log --show-signature -1`, `git tag -v <tag>`,
-`git cat-file -t <tag>` (musi wypisać `tag`, nie `commit`) oraz
-`git log --format='%h %G?' -20`. Tag niepodpisany albo lekki jest blokerem wydania.
+Każda kontrola musi mieć **test negatywny** — dowód, że potrafi odmówić.
 
-### 10.2 Niebezpieczny kod musi się bronić
+Przykłady z tego repozytorium, wszystkie prawdziwe:
+- `grep -q 'SYNC:' README.md` przechodzi przy dowolnej wartości markera. Marker deklarował `U-152`,
+  gdy CHANGELOG był na `U-224` — **72 pozycje rozjazdu**, bramka zielona.
+- `serial` z zamrożonego licznika zawsze spełnia `>= znacznik`. Zapadka wyglądała na uzbrojoną
+  i nie chroniła niczego.
+- `cmd | tail` w kontenerze oddaje status `tail`, nie `cmd`. `cargo: command not found` przejechało
+  bez zatrzymania mimo `set -e`.
 
-Każdy blok `unsafe` w kodzie należącym do E-OS niesie w trzech liniach nad sobą komentarz
-`SAFETY:` z **niezmiennikiem, który czyni go poprawnym**. Pilnuje tego kontrola 4
-w `ci-integrity.sh`; zakres wyłącza vendorowany `src/` (patrz §11, typ B).
+**Jeśli nie umiesz pokazać, kiedy kontrola pada — nie masz kontroli.**
 
-**Kierunek docelowy:** `#![deny(unsafe_code)]` w komponentach krytycznych własnych E-OS.
-Każdy `unsafe`, który zostaje, ma mieć uzasadnienie **i plan usunięcia** (§14).
+### 5.5 Domyślnie fail-closed, wyjątek jawny
 
-### 10.3 Sekrety nigdy nie docierają do zdalnego
+Budowa bez zabezpieczenia **wymaga jawnej zmiennej środowiskowej**. Wzorzec poprawny:
+`publish-repo.sh` odmawia bez klucza, obejście to `EOS_ALLOW_UNSIGNED=1`.
 
-`gitleaks` działa jako hook `pre-commit` (**pada twardo** od `U-140`; obejście wyłącznie
-`EOS_SKIP_SECRET_SCAN=1` z uzasadnieniem w treści commita) oraz jako zadanie CI na pełnej
-historii (`GIT_DEPTH: 0`). Klucz **tajny** nigdy nie leży w repo: minisign do wydań i
-hybrydowy klucz `eos-repo-sign` trzymane są poza drzewem (`keys/README.md`), a do repo
-trafia wyłącznie połowa publiczna.
+Wzorzec błędny, wciąż obecny: brak klucza rozruchu daje bootloader **bez weryfikacji** i sukces
+builda, a jedyne ostrzeżenie zjada `| tail -3` w `eos-build.sh:62` (znalezisko `C-2`).
 
+### 5.6 Zmiany dotykające rozruchu, kryptografii, aktualizacji lub granic uprawnień
 
-## 11. Cztery typy repozytoriów — ustal typ, ZANIM cokolwiek zmienisz
+Wymagają **dodatkowo**, w opisie zmiany:
 
-Ekosystem E-OS to **30 repozytoriów** w `repos.toml`. Reguły zależą od typu, a pomylenie
-typu jest najkosztowniejszym błędem, jaki można tu popełnić.
+1. **pisemnej analizy ryzyka** — co się stanie, jeśli to zawiedzie, i kto to zauważy;
+2. **planu wycofania** — konkretnych poleceń, nie „przywrócimy poprzednią wersję".
+
+Obszary objęte: `recipes/core/bootloader`, `recipes/core/kernel`, `tools/eos-repo-sign`,
+`src/cook/package.rs`, `src/bin/repo_builder.rs`, `config/*/eos.toml` w części `[[files]]`
+dotyczącej kluczy i `login_schemes.toml`, oraz forki `eos-bootloader`, `eos-kernel`, `eos-pkgutils`.
+
+### 5.7 Zakazy
+
+- **Bez commitów na `main`.** Gałąź, potem merge request.
+- **Bez `force-push`.** Nigdy, także „tylko na swojej gałęzi".
+- **Bez sekretów.** Materiał klucza nie trafia do repozytorium ani do logu. Wygenerowanie klucza
+  podpisującego jest **działaniem człowieka** i nie jest automatyzowane.
+- **Bez niezwiązanych zmian w jednym MR.** Jedna zmiana logiczna na MR.
+- **Bez ręcznej edycji plików generowanych.** `Cargo.lock`, `cookbook.lock`, `sbom/*.cdx.json`,
+  `docs/licenses/THIRD_PARTY.md` — **regeneruj**, nie poprawiaj.
+- **Bez `--wipe-caches`.**
+- **Bez ręcznej edycji repozytoriów typu B.**
+
+### 5.8 Dokumentacja w tym samym MR
+
+`README.md`, `CHANGELOG.md`, `ROADMAP.md` i `ARCHITECTURE.md` aktualizuje się **w tej samej zmianie**,
+która ich dotyczy. Nie w następnej, nie „przy okazji".
+
+Audyt znalazł w tym repozytorium README twierdzące, że klucz nie istnieje, gdy istniał i był wpięty
+w obraz, oraz wymieniające dwie aplikacje, których w obrazie nie ma. To jest koszt odkładania.
+
+---
+
+## 6. Definicja ukończenia
+
+Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
+
+- [ ] Build przechodzi — `bash scripts/eos-build.sh <arch>` kończy się `Done.`
+- [ ] Testy przechodzą — pełny zestaw, nie wybrany podzbiór
+- [ ] `shellcheck` bez błędów, `clippy` bez ostrzeżeń w kodzie własnym
+- [ ] `bash scripts/ci-integrity.sh` → `integrity: PASS`
+- [ ] `gitleaks`, `osv-scanner`, `hadolint` bez nowych trafień
+- [ ] **Artefakt sprawdzony** — nie tylko kod wyjścia (§5.3)
+- [ ] Test **negatywny** istnieje dla każdej dodanej kontroli (§5.4)
+- [ ] Prawdziwe wyjście poleceń wklejone do opisu MR
+- [ ] Dokumentacja zaktualizowana w tym samym MR (§5.8)
+- [ ] Przy obszarach z §5.6 — analiza ryzyka i plan wycofania
+- [ ] `CHANGELOG.md` ma wpis z odniesieniem do commita
+- [ ] Commit podpisany, Conventional Commits, jedna zmiana logiczna
+
+---
+
+## 7. Zakazy — zebrane w jednym miejscu
+
+Pełne uzasadnienia w §5.7. Tutaj lista do szybkiego sprawdzenia:
+
+- commit na `main` · `force-push` · sekret w repozytorium lub w logu
+- niezwiązane zmiany w jednym MR · ręczna edycja pliku generowanego
+- ręczna edycja repozytorium typu B · `--wipe-caches`
+- generowanie klucza podpisującego przez narzędzia (to działanie człowieka)
+
+---
+
+## 8. Pułapki tego repozytorium
+
+Każda zmierzona, nie wydedukowana.
+
+| # | Pułapka | Objaw | Obejście |
+|---|---|---|---|
+| P-1 | **`make` nie przebudowuje narzędzi hosta** — `$(FSTOOLS_TAG)` nie ma prerekwizytów źródłowych | build zielony, zmiana nieobecna w artefakcie | `eos-build.sh` buduje je przed `make`; docelowo napraw `mk/fstools.mk` |
+| P-2 | **`make all` melduje „Nothing to be done"** i składa obraz ze starych artefaktów | obraz z poprzedniego kodu, bez ostrzeżenia | usuń `build/<arch>/<cfg>/repo.tag` przed budowaniem |
+| P-3 | **`cmd \| tail` w kontenerze** oddaje status `tail` | błąd przejeżdża mimo `set -e` | `set -o pipefail` **po stronie kontenera** |
+| P-4 | **Przekierowanie tworzy plik przed poleceniem** | zerowy plik udający artefakt | etapuj przez `.partial`, potem `mv` |
+| P-5 | **Katalog projektu na exFAT** | podman nie podmontuje; `make` z katalogu nie działa | `scripts/eos-build.sh` |
+| P-6 | **`redoxfs` nie ma trybu tylko-do-odczytu** | montowanie obrazu **go modyfikuje**; wielokrotne montowanie potrafi go uszkodzić | montuj **kopię**, nigdy oryginał |
+| P-7 | **Nieudane `hdiutil attach -mountpoint`** zostawia pusty katalog blokujący kolejne montowania | objawy udają uszkodzenie APFS | `hdiutil detach -force`, potem `attach` **bez** `-mountpoint` |
+| P-8 | **CHANGELOG jest CRLF** | zapis z Pythona w trybie tekstowym psuje końce linii; bramka pada | zapisuj binarnie, łącz przez `\r\n` |
+| P-9 | **`eos-sync-buildtree.sh` kopiuje tylko pliki śledzone** | nowy plik nie trafia do drzewa budowania | `git add` przed synchronizacją |
+| P-10 | **SELinux MCS na wolumenach podmana** | `EACCES` mimo uid 0 i `CAP_DAC_OVERRIDE` | `chcon -l s0` na pliku |
+| P-11 | **`grep -c` wypisuje `0` i zwraca status ≠ 0** | `\|\| echo 0` dokleja drugie zero i psuje arytmetykę | sprawdzaj status osobno |
+| P-12 | **Odczyt surowych urządzeń wymaga roota** | „błąd 5" z `fsck_apfs` **nie jest** dowodem uszkodzenia | nie diagnozuj na tej podstawie |
+
+---
+
+## 9. Skrypt weryfikacyjny
+
+Docelowo jedno polecenie uruchamiające cały §5.2:
+
+```bash
+bash scripts/eos-verify.sh          # PENDING — patrz ROADMAP, PROMPT 4
+```
+
+**Ten skrypt jeszcze nie istnieje.** Do czasu jego powstania uruchamiaj kontrole z §2 pojedynczo.
+Lokalna siatka zastępcza jest w `lefthook.yml` — zainstaluj raz:
+
+```bash
+brew install lefthook && lefthook install
+```
+
+Ma to znaczenie praktyczne: **CI nie działa od 2026-08-28** (wyczerpany limit minut GitLaba), więc
+bramki lokalne są dziś jedyną działającą kontrolą. Szczegóły:
+[`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §2.
+
+---
+
+## 10. Dokumentacja i jej utrzymanie
+
+`README.md`, `CHANGELOG.md`, `ROADMAP.md`, `ARCHITECTURE.md` — aktualizowane **w tym samym MR**
+co zmiana, którą opisują (§5.8). Nagłówek każdego dokumentu w `docs/` niesie tytuł, status,
+datę przeglądu i właściciela.
+
+Marker `<!-- SYNC: ... -->` w `README.md` deklaruje, do którego wpisu CHANGELOG-a README jest
+zsynchronizowane. **Bramka sprawdza jego obecność, nie wartość** — utrzymanie zgodności jest
+obowiązkiem człowieka, dopóki kontrola nie zostanie zaostrzona (ROADMAP, `S-4` sąsiedztwo).
+
+---
+
+## 11. Ekosystem — typy repozytoriów
+
+**30 repozytoriów** w `repos.toml`. GitLab jest źródłem prawdy, GitHub lustrem tylko do odczytu
+(`ADR-0001`). **Pomylenie typu repozytorium jest najkosztowniejszym błędem, jaki tu można popełnić.**
+
+Listy poniżej są **sprawdzane maszynowo** wobec `repos.toml` przez `scripts/eos-check-repo-types.py`
+(kontrola 7 w `ci-integrity.sh`). Rozjazd między tym plikiem a manifestem wywala bramkę — i o to chodzi.
 
 ### Typ A — komponenty własne E-OS
-`E-OS` (to repo) · `eos-control` · `eos-sysmon` · `eos-ui` · `eos-guard` · `eos-notes`
 
-Pełne standardy tego pliku. Rozwój i CI na **GitLabie**, GitHub jest **lustrem tylko do
-odczytu**. Tu wolno projektować, refaktorować i wprowadzać `#![deny(unsafe_code)]`.
+`E-OS` · `eos-control` · `eos-guard` · `eos-notes` · `eos-sysmon` · `eos-ui`
 
-### Typ B — vendorowane lustra redox-os  *(READ-ONLY)*
-`eos-coreutils` · `eos-extrautils` · `eos-ion` · `eos-netdb` · `eos-netutils` ·
-`eos-orbterm` · `eos-redox-fatfs` · `eos-redoxer` · `eos-orbclient` · `eos-liborbital`
+### Typ B — vendorowane lustra upstreamu *(READ-ONLY)*
 
-**Nigdy nie edytuj ręcznie.** Synchronizacja wyłącznie przez `scripts/sync-forks.sh`
-(patrz §0 — skryptu **nie ma w tym repo**, należy do repo orkiestrującego). Każda ręczna
-zmiana to dywergencja, którą trzeba ponosić przy **każdej** kolejnej synchronizacji — a nikt
-jej nie zobaczy, dopóki nie zaboli.
+`eos-coreutils` · `eos-extrautils` · `eos-ion` · `eos-liborbital` · `eos-netdb` · `eos-netutils` · `eos-orbclient` · `eos-orbterm` · `eos-redox-fatfs` · `eos-redoxer`
 
-Lustro wolno mieć własne: `README`, `LICENSE`, `.gitlab-ci.yml`, `.github/`, `.gitignore`.
-To obudowa forka, nie kod. **Cokolwiek poza tą listą czyni z repozytorium typ C** — nie
-dlatego, że tak brzmi definicja, tylko dlatego, że kodu nikt nie audytuje ani nie testuje
-w repo opisanym jako lustro.
+### Typ C — forki z łatkami E-OS
 
-### Typ C — forki z łatkami
-`eos-kernel` · `eos-base` · `eos-relibc` · `eos-bootloader` · `eos-userutils` ·
-`eos-redoxfs` · `eos-orbutils` · `eos-orbdata` · `eos-pkgutils` · `eos-installer` ·
-`eos-orbital` · `eos-pkgar`
+`eos-base` · `eos-bootloader` · `eos-installer` · `eos-kernel` · `eos-orbdata` · `eos-orbital` · `eos-orbutils` · `eos-pkgar` · `eos-pkgutils` · `eos-redoxfs` · `eos-relibc` · `eos-userutils`
 
-Utrzymuj **rebaseowalność**: łatki małe, tematyczne, każda z uzasadnieniem w treści commita
-i ze statusem wobec upstreamu (*zgłoszone / przyjęte / lokalne na stałe*). Łatka bez
-uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to
-`scripts/eos-rebase-check.sh` (doradczo, w zadaniu scheduled).
+### Typ D — repozytoria artefaktowe
 
-> **Skąd te listy (`U-169`).** Nie z pamięci — z pomiaru. `scripts/eos-mirror-drift.sh`
-> liczy commity każdego forka ponad upstreamem i dzieli je **po dotkniętych plikach**.
-> Wynik obalił poprzednią wersję tej sekcji: **żaden** z 22 forków nie jest pusty (łącznie
-> 146 własnych commitów), a pięć repozytoriów opisanych tu jako lustra niosło realny kod —
-> `eos-redoxfs` (poprawka `no_std`), `eos-orbutils` (23 commity, demon powiadomień),
-> `eos-pkgutils` (weryfikacja podpisu manifestu, `R-703`), `eos-installer` (panel sieciowy),
-> `eos-orbital` (zrzut ekranu), `eos-pkgar` (`read_at` nie panikuje na skróconej paczce).
-> `eos-orbdata` figurował jednocześnie w **obu** listach. Dokładnie tak zginęła kliencka
-> weryfikacja podpisu w `U-164`: leżała w repo, którego nikt nie traktował jak kodu.
->
-> Dlatego typ jest teraz **polem `type` w `repos.toml`**, a nie zdaniem w dokumencie —
-> bramka porównuje deklarację z pomiarem i **przewraca pipeline**, gdy się rozjadą.
-> Poprawiaj `repos.toml` albo usuń kod z forka; **samo poprawienie tego akapitu nic nie da.**
+`eos-pkg-aarch64` · `eos-pkg-x86_64`
 
-### Typ D — repozytoria pakietów  *(READ-ONLY)*
-`eos-pkg-x86_64` · `eos-pkg-aarch64`
+---
 
-Artefakty `.pkgar`. Publikacja **wyłącznie** przez `scripts/publish-repo-pages.sh`
-(lub `publish-repo.sh`). Nigdy nie commituj tam ręcznie — a lustra dla nich są
-**zakazane**: `eos-setup-mirrors.sh` pomija `role = "pkg"`, bo push-mirror **nadpisałby
-opublikowaną zawartość** (`U-158`).
+## 12. Praca z lustrami i forkami
 
-### Zasady nadrzędne (obowiązują ponad wszystkim powyżej)
+**Typ B — nigdy nie edytuj ręcznie.** Synchronizacja wyłącznie przez `scripts/sync-forks.sh`,
+który **jest w tym repozytorium**. Każda ręczna zmiana to dywergencja, którą trzeba ponosić przy
+**każdej** kolejnej synchronizacji — a nikt jej nie zobaczy, dopóki nie zaboli.
 
-1. **Ustal typ repozytorium przed zmianą.** Niejasne? **Pytaj, nie zgaduj.**
-2. **Lustra (B) i pakiety (D) są tylko do odczytu.**
-3. **Łatki (C) muszą pozostać rebaseowalne.**
-4. **Żadnych sekretów** — nigdy, w żadnym typie (§10.3, §5).
-5. **Żadnych nieudokumentowanych zmian** (§2).
-6. **Żadnych nieprzetestowanych zmian** (§4).
-7. **Nie twierdź, że działa, jeśli nie uruchomiłeś testów.** Wynik cytuj, nie streszczaj.
+Lustro wolno mieć własne: `README*`, `LICENSE*`, `COPYING*`, `.gitlab-ci.yml`, `.github/*`,
+`.gitignore`. Lista jest wymuszona w `scripts/eos-mirror-drift.sh:29`.
+**Cokolwiek poza nią czyni z repozytorium typ C** — nie dlatego, że tak brzmi definicja, tylko
+dlatego, że kodu nikt nie audytuje ani nie testuje w repo opisanym jako lustro.
 
-## 12. Definicja ukończenia — osobno dla każdego typu
+> Ma to bezpośrednią konsekwencję dla dokumentacji: dołożenie do lustra `CHANGELOG.md`,
+> `CLAUDE.md` czy `.editorconfig` **przekwalifikuje je na typ C** i wywali `eos-mirror-drift.sh`.
+> Jeśli dokumentacja ma tam trafić, najpierw rozszerz listę w skrypcie — osobną zmianą,
+> z uzasadnieniem.
 
-**Typ A — komponent własny**
-§1 w całości: kompilacja → integracja → runtime **z kontrolą negatywną** → dokumentacja →
-`CHANGELOG` → pin i push na oba hosty. Dla zmian w obrazie: `ci-boot-smoke.sh` PASS.
+**Typ C — utrzymuj rebaseowalność.** Łatki małe, tematyczne, każda z uzasadnieniem w treści
+commita i ze statusem wobec upstreamu (*zgłoszona / przyjęta / lokalna na stałe*). Łatka bez
+uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scripts/eos-rebase-check.sh`.
 
 **Typ B — vendorowane lustro**
 1. Zmiana pochodzi **wyłącznie** z `sync-forks.sh`, nigdy z ręki.
@@ -995,3 +860,6 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 - **SBOM obrazu** — `sbom` pokrywa manifesty Rusta; SBOM-y obrazów w `sbom/` nadal
   powstają ręcznie.
 - **Podpisane ISO** — obraz to `harddrive.img`; ISO nie jest publikowane.
+
+**Forki nie mają automatycznego lustra.** Push wymaga **dwóch** poleceń — na GitLab i na GitHub.
+Repozytorium główne ma działające lustro; forki nie.
