@@ -95,7 +95,7 @@ nie unosi:
   `docs/plan-do-sprzetu.md:16-18`: *„Nic w tym repozytorium nigdy nie działało na fizycznym
   sprzęcie — każda weryfikacja to QEMU"*, oraz `CHANGELOG.md:140`: *„zero boot claim has ever
   been made on metal; every one is QEMU"*. `ROADMAP.md:420` nazywa osobną listę „What needs
-  the x86 rig or real hardware", a `ROADMAP-v2.md:886` mierzy skutek: `docs/hardware-matrix.md`
+  the x86 rig or real hardware", a `ROADMAP.md` mierzy skutek: `docs/hardware-matrix.md`
   ma **zero wierszy z E-OS**,
 - `R-601` (partycja → instalacja → reboot → login) został udowodniony po raz pierwszy
   dopiero w `U-176` (`ROADMAP.md:323`) i tylko pod TCG,
@@ -452,7 +452,7 @@ Dowody z drzewa `feat/m1-bootable-medium`:
 
    To nie jest kosmetyka: audyt dryfu na tej samej gałęzi wymienia te same ścieżki
    (`docs/audit/98-doc-drift-2026-08-30.md:387-391`) i wskazuje właściciela zadania
-   (`:393-396` → `ROADMAP-v2.md:885`, pozycja **`R-608`** *(część)*, kryterium
+   (`:393-396` → `ROADMAP.md`, pozycja **`R-608`** *(część)*, kryterium
    `grep -c 'redox-live.iso' docs/install.md` → 0), notując przy tym, że
    `docs/plan-do-sprzetu.md` i `docs/ci.md` *„nie mają właściciela w żadnym zadaniu M1"*.
    **Uwaga do tych trzech numerów:** ten plik audytu jest dziś modyfikowany w drzewie roboczym

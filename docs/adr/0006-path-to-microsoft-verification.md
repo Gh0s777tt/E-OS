@@ -8,7 +8,7 @@ owner: Gh0s777tt
 # ADR-0006: Ścieżka do weryfikacji Microsoftu — przygotowanie bez zobowiązania
 
 - **Status:** Przyjęty. **Uzupełnia [ADR-0005](0005-secure-boot-without-microsoft.md), nie zastępuje go.**
-- **Kontekst:** `V2-MS01`–`V2-MS11`, `R-F27`, ROADMAP-v2 §2
+- **Kontekst:** `V2-MS01`–`V2-MS11`, `R-F27`, ROADMAP.md §5.1
 - **Data:** 2026-08-29 (`U-211`)
 
 ## Problem

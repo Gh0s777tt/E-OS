@@ -7,8 +7,7 @@
   `scripts/eos-sign-boot-payload.sh:32`, `scripts/eos-boot-verify-proof.sh:13`,
   `config/x86_64/eos.toml`, `config/aarch64/eos.toml`, `mk/config.mk:174`, `mk/fstools.mk:25`,
   `docs/encryption.md`, `docs/architecture/installer.md` §5, §8,
-  `docs/architecture/system-updates.md` §1.3–§1.5, §4.6 i §11, `ROADMAP-v2.md:887`, `:921`,
-  `:977`
+  `docs/architecture/system-updates.md` §1.3–§1.5, §4.6 i §11, `ROADMAP.md`
 - **Zakres:** system plików korzenia i **układ partycji przy instalacji na goły sprzęt** —
   ESP, root, `/home`, swap, rezerwa pod sloty A/B, nazwy i typy wpisów GPT.
 - **Czego ta ADR NIE rozstrzyga:** mechaniki aktualizacji i miejsca wskaźnika aktywnego slotu
@@ -37,7 +36,7 @@ takim znaczniku piszę, co trzeba sprawdzić i gdzie. Źródła forków (`eos-in
 `recipes/core/installer/` i `recipes/core/redoxfs/` zawierają wyłącznie `recipe.toml`, a
 `build/fstools/` i `build/x86_64/eos/` nie istnieją w tym checkoucie. Twierdzenia o wnętrzu
 instalatora i RedoxFS-a pochodzą z briefu, ze specyfikacji w `docs/architecture/` albo
-z `ROADMAP-v2.md` — nigdy z odczytu kodu na miejscu.
+z `ROADMAP.md` — nigdy z odczytu kodu na miejscu.
 
 ---
 
@@ -122,7 +121,7 @@ kontrolą*. **Każda liczba w §D4 jest warunkowa wobec naprawy `R-607`.**
 
 Przeszukanie źródeł instalatora i `config/*.toml` nie znajduje żadnego wsparcia dla swapu
 (za briefem; jedyne trafienie to niezwiązany komentarz o „path swap"). Nie znalazłem też
-w `ROADMAP-v2.md` pozycji `R-*` dla wymiany stron. Pytanie „czy robimy partycję swap" jest
+w `ROADMAP.md` pozycji `R-*` dla wymiany stron. Pytanie „czy robimy partycję swap" jest
 więc dziś pytaniem do **jądra**, nie do instalatora.
 
 ### K6. Dwie istniejące specyfikacje przeczą sobie w arytmetyce
@@ -290,7 +289,7 @@ Trzy konsekwencje, które trzeba wziąć razem z decyzją:
   tego obszaru.
   **Korekta:** wcześniejsza wersja tego akapitu powtarzała za `installer.md` §8.1, że nie ma
   na to pozycji `R-*` i że jest to „luka także w roadmapie". **To jest już nieaktualne** —
-  roadmapa tę lukę zamknęła w reakcji na tamto zdanie: `ROADMAP-v2.md:887` i `:950` zakładają
+  roadmapa tę lukę zamknęła w reakcji na tamto zdanie: `ROADMAP.md` zakłada
   **`R-615`** („`fsck` dla RedoxFS", **NOWY PODSYSTEM**, `[P2·XL·🖥️]`, 🔴). Ta ADR nie zakłada
   nowej pozycji i nie nadaje tej pracy drugiej nazwy; osobne `/home` **podnosi wagę `R-615`**,
   bo mnoży liczbę woluminów, których nie ma czym sprawdzić.
@@ -446,7 +445,7 @@ o zasięgu porównywalnym z całą resztą tego dokumentu. **NIEREALNE DZIŚ.**
 ### 5. `raid1d` jako „A/B dla ubogich"
 
 Kuszące, bo `raid1d` **jest** w obrazie — RAID-1 w przestrzeni użytkownika, z trybem
-zdegradowanym i resyncem (`ROADMAP-v2` §3.1). `docs/update-system-design.md:105` wprost nazywa
+zdegradowanym i resyncem (`ROADMAP.md` §8.1). `docs/update-system-design.md:105` wprost nazywa
 go *„poor-man's A/B substrate"* i **od razu zastrzega**, że nie jest zaprojektowany jako
 mechanizm wycofania.
 
@@ -530,7 +529,7 @@ różnica między niewygodą a utratą danych. **NIEREALNE DZIŚ.**
 | poprawić `installer.md`: §5.2 (root „reszta"; ogon „swap **albo** A/B" → D7; `0x2f600` = 193 536 B → **194 048 B**), §5.3 (próg ogona 256 GiB → 128 GiB), §8.2 (`/home` od 256 GiB → 64 GiB) | razem z przyjęciem tej ADR | — |
 | narzędzie do slotów kluczy RedoxFS (plik klucza dla `/home`) | razem z osobnym `/home` | **`ADR-0010` §„Etap 2" (`redoxfs-keys`)** — nie `R-609`; `ADR-0010` odnotowuje, że rejestr nie ma na to żadnej pozycji `R-*`, i to tam należy ją założyć |
 | mechanizm montowania drugiego woluminu przy starcie, jeśli go nie ma | j.w. | rozszerzenie `R-609` / `eos-base` |
-| `fsck` dla RedoxFS | otwarte; osobne `/home` podnosi wagę, bo mnoży woluminy | **`R-615`** — pozycja **istnieje** (`ROADMAP-v2.md:887`, `:950`), nie zakładać drugiej |
+| `fsck` dla RedoxFS | otwarte; osobne `/home` podnosi wagę, bo mnoży woluminy | **`R-615`** — pozycja **istnieje** (`ROADMAP.md`), nie zakładać drugiej |
 | silne sumy kontrolne w RedoxFS | otwarte | **NOWY PODSYSTEM** |
 | instalacje sprzed tej ADR nie dostaną A/B bez reinstalacji | do zakomunikowania przy `R-710b` | `R-710` |
 
@@ -538,13 +537,13 @@ różnica między niewygodą a utratą danych. **NIEREALNE DZIŚ.**
 Jest **układową połową `R-609`** („ręczne partycjonowanie / instalacja obok", 💡, `[P3·XL]`,
 wymaga `R-604`) — konkretnie `R-609d` („tryby partycjonowania w stanie S4: ręczny edytor GPT,
 ponowne użycie istniejącego ESP, instalacja w wolnym miejscu, wykrywanie innych systemów po
-ESP", `ROADMAP-v2.md:921`) — i **warunkiem wstępnym `R-710b`** (sloty A/B, `[P3·XL]`, wymaga
+ESP", `ROADMAP.md`) — i **warunkiem wstępnym `R-710b`** (sloty A/B, `[P3·XL]`, wymaga
 `R-707` **i** `R-609`).
 
 Rozcięcie `R-710` na `R-710a`/`R-710b` **nie jest już propozycją**, i wcześniejsza wersja tego
-akapitu myliła się, pisząc, że `system-updates.md` §1.5 je „proponuje": `ROADMAP-v2.md:977`
-przyjmuje je **jako wiążące**, `R-710b` stoi w kamieniu milowym M8 (`:930`) i w grafie
-zależności (`:1018`), a `:1051` zapisuje dokładnie tę zależność, którą ta ADR uzasadnia —
+akapitu myliła się, pisząc, że `system-updates.md` §1.5 je „proponuje": `ROADMAP.md`
+przyjmuje je **jako wiążące**, `R-710b` stoi w kamieniu milowym M8 (`ROADMAP.md` §3.4) i w grafie
+zależności (§6.5), który zapisuje dokładnie tę zależność, którą ta ADR uzasadnia —
 „`R-710b` wymaga `R-609`, a nie tylko `R-707`". Ta ADR dokłada do tego **uzasadnienie
 geometryczne**, a nie nowy numer. `R-710a` (aktualizacje różnicowe) jest od niej niezależne.
 Nie dodaję nowych numerów `R-7xx`, bo przestrzeń `R-70x` jest dziś dwuznaczna między
@@ -641,7 +640,7 @@ wprowadzaniem w błąd.
 | CoW wewnętrzny w RedoxFS | **JEST** | `docs/architecture.md:82` |
 | klon drzewa (`clone_at`, fast-clone) | **JEST** | `src/clone.rs` (za briefem) |
 | monitor integralności `eos-guard` (blake3) | **JEST** | `config/x86_64/eos.toml` |
-| `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP-v2` §3.1 |
+| `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP.md` §8.1 |
 | ESP 512 MiB zamiast 1 MiB | **DO ZBUDOWANIA** | D5 |
 | nazwy wpisów GPT `EOS-*` | **DO ZBUDOWANIA** | D9 |
 | osobna partycja `/home` | **DO ZBUDOWANIA** | D6, rozszerzenie `R-609` |
@@ -649,15 +648,15 @@ wprowadzaniem w błąd.
 | ogon nieprzydzielony pod slot B | **DO ZBUDOWANIA** | D8 |
 | konfigurowalne parametry Argon2id | **DO ZBUDOWANIA** | `key.rs` + zapis parametrów w slocie (za briefem); przedmiot **`ADR-0010`**, tu dla kompletności |
 | realny rozmiar bloku (4Kn) | **DO ZBUDOWANIA** | `R-607` |
-| tryb ręczny / instalacja obok | **DO ZBUDOWANIA** | `R-609` (💡, `[P3·XL]`), rozpisane jako `R-609a`–`R-609d` (`ROADMAP-v2.md:915`–`:921`) |
-| wykrywanie obcych systemów po ESP | **DO ZBUDOWANIA** | `R-609d` (`ROADMAP-v2.md:921`); odczyt FAT-a już mamy |
+| tryb ręczny / instalacja obok | **DO ZBUDOWANIA** | `R-609` (💡, `[P3·XL]`), rozpisane jako `R-609a`–`R-609d` (`ROADMAP.md`) |
+| wykrywanie obcych systemów po ESP | **DO ZBUDOWANIA** | `R-609d` (`ROADMAP.md`); odczyt FAT-a już mamy |
 | instalacja na `raid1d` | **DO ZBUDOWANIA** | `R-912` / `V2-D04` |
 | montowanie drugiego woluminu przy starcie | **`[NIEZWERYFIKOWANE]` → DO ZBUDOWANIA** | brak `fstab` w `config/`; sprawdzić `eos-base` |
-| sloty A/B roota | **NOWY PODSYSTEM** | `R-710b` — rozcięcie przyjęte jako wiążące (`ROADMAP-v2.md:977`); wymaga `R-707`, `R-609` i zapisu w bootloaderze |
+| sloty A/B roota | **NOWY PODSYSTEM** | `R-710b` — rozcięcie przyjęte jako wiążące (`ROADMAP.md`); wymaga `R-707`, `R-609` i zapisu w bootloaderze |
 | trwały licznik prób rozruchu | **NOWY PODSYSTEM** | bootloader `[NIEZWERYFIKOWANE]` nie zapisuje niczego |
 | migawki / subwoluminy RedoxFS | **NOWY PODSYSTEM** | `update-system-design.md:104` |
 | silne (kryptograficzne) sumy danych | **NOWY PODSYSTEM** | dziś seahash |
-| `fsck` dla RedoxFS | **NOWY PODSYSTEM** | **`R-615`** (`ROADMAP-v2.md:887`, `[P2·XL·🖥️]`) — brak narzędzia, ale pozycja **jest** |
+| `fsck` dla RedoxFS | **NOWY PODSYSTEM** | **`R-615`** (`ROADMAP.md`, `[P2·XL·🖥️]`) — brak narzędzia, ale pozycja **jest** |
 | swap / wymiana stron | **NOWY PODSYSTEM** | brak w drzewie; pytanie do jądra |
 | btrfs jako root | **NIEREALNE DZIŚ** | brak sterownika, brak wsparcia w bootloaderze, brak warstwy szyfrującej pod spodem |
 | ZFS jako root | **NIEREALNE DZIŚ** | koszt portu i model pamięci (ARC) wobec mikrojądra |
@@ -719,5 +718,5 @@ Lista jest częścią decyzji, nie przypisem do niej.
 - Szyfrowanie: [`0010-encryption-stack.md`](0010-encryption-stack.md) — sloty kluczy, klucz
   odzyskiwania, `redoxfs-keys`, czyli warunek D6; oraz [`../encryption.md`](../guides/encryption.md)
 - Model zagrożeń: [`../threat-model.md`](../security/threat-model.md)
-- Roadmapa: `ROADMAP-v2.md` — `R-604`, `R-607`, `R-609` (`R-609a`–`R-609d`), **`R-615`**,
+- Roadmapa: `ROADMAP.md` — `R-604`, `R-607`, `R-609` (`R-609a`–`R-609d`), **`R-615`**,
   `R-707`, `R-710a`/`R-710b`, `R-912`, `R-913`

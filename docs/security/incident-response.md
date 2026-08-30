@@ -83,7 +83,7 @@ it says so.
 | 6 | Boot verification (kernel + initfs) | `boot.pub.bin` compiled into the bootloader | `build/boot-signing/` in `eos-work`; operator copy via `EOS_BOOT_KEY` | Yes — needs an image rebuild |
 
 **Layer 2 is not a trust anchor, and mistaking it for one is a documented error.** It is
-tempting to read `keys/eos-pkg-signing.pub.toml` as something clients pin; `ROADMAP-v2.md`
+tempting to read `keys/eos-pkg-signing.pub.toml` as something clients pin; `ROADMAP.md`
 said exactly that and `U-213` disproved it by reading the code: `pkg-lib`'s
 `sync_keys_internal` **downloads** `id_ed25519.pub.toml` from the same host that serves the
 packages on every cache miss, and `/etc/pkg/packages.toml` `[pubkeys.local]` is where the

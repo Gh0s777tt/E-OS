@@ -3,8 +3,8 @@
 - **Status:** Propozycja — do zatwierdzenia. Nic z tego nie jest zaimplementowane.
 - **Kontekst roadmapy.** Pozycje nadrzędne: `R-601` (udowodnione), `R-603`, `R-604`, `R-605`,
   `R-606`, `R-607`, `R-608`, `R-609`, `R-610`, `R-D01`, `R-D08`, `R-904`, `R-913`, `R-930`.
-  **Rozpisanie na zadania zrobiła już `ROADMAP-v2.md` §12** (epik **EP-2**, kamienie **M3**
-  i **M4**, `ROADMAP-v2.md:787`): `R-603a`–`R-603e`, `R-604a`–`R-604d`, `R-607a`/`R-607b`,
+  **Rozpisanie na zadania zrobiła już `ROADMAP.md` §6** (epik **EP-2**, kamienie **M3**
+  i **M4**): `R-603a`–`R-603e`, `R-604a`–`R-604d`, `R-607a`/`R-607b`,
   `R-601d`/`R-601e`, `R-608a`, `R-609a`–`R-609d`, `R-711`, `R-1010`, oraz dwie pozycje
   **założone tam z tego dokumentu** — `R-815` (kanał komend administracyjnych do dysków)
   i `R-D13` (katalog i18n + bramka parytetu kluczy). **Ten dokument nie zakłada żadnego
@@ -20,7 +20,7 @@
   [`../threat-model.md`](../security/threat-model.md), [`../hardening.md`](../security/hardening.md),
   [`../known-issues.md`](../reference/known-issues.md),
   [`../adr/0005-secure-boot-without-microsoft.md`](../adr/0005-secure-boot-without-microsoft.md),
-  [`../../ROADMAP-v2.md`](../../ROADMAP-v2.md).
+  [`ROADMAP.md`](../../ROADMAP.md).
 
 **Skąd pochodzą cytaty z wnętrza instalatora i RedoxFS.** W tym drzewie roboczym
 `recipes/core/installer/` i `recipes/core/redoxfs/` zawierają **wyłącznie `recipe.toml`** —
@@ -102,7 +102,7 @@ piaskownicy (`C-5`, `R-1010`), trwałego dziennika audytu (`C-9`), konta awaryjn
 Tora, VPN-a, trybu amnezyjnego, TPM-a, FIDO2, LVM-a, btrfs/ZFS, systemd, ostree. (§6.4, §6.5)
 
 **Wreszcie: każdy zielony wynik w tym projekcie pochodzi z QEMU.** Nic z tego nigdy nie działało
-na fizycznym sprzęcie (`ROADMAP-v2.md` §1.3, `R-607`/`R-607b`).
+na fizycznym sprzęcie (`ROADMAP.md` §14.1, `R-607`/`R-607b`).
 
 ---
 
@@ -117,7 +117,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 | Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `c8d32ad39e5c` | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
 | Front-endy: `redox_installer_tui` i `redox_installer_gui` — **oba są w obrazie** | `config/server.toml:20` (`installer = {}`) i `config/desktop.toml:20` (`installer-gui = {}`), oba wciągane przez `config/{aarch64,x86_64}/eos.toml`; binarka GUI: `recipes/gui/installer-gui/manifest` (`binary=/usr/bin/redox_installer_gui`) |
 | Umie: GPT + EFI/BIOS, RedoxFS, pełne szyfrowanie AES-XTS, weryfikacja pkgar ed25519, fast-clone | `docs/install.md` §2–3, `ROADMAP.md` `R-F24` |
-| Instalacja end-to-end **udowodniona 3× z rzędu** (partycja → instalacja → reboot → login) — **wyłącznie pod QEMU/TCG** | `R-601`, `scripts/ci-install-smoke.sh`, `ROADMAP-v2.md:55` i §1.3 |
+| Instalacja end-to-end **udowodniona 3× z rzędu** (partycja → instalacja → reboot → login) — **wyłącznie pod QEMU/TCG** | `R-601`, `scripts/ci-install-smoke.sh`, `ROADMAP.md` §14.1 |
 | Wybór dysku to **gołe menu numeryczne**: `Select a drive from 1 to N`, pozycje to ścieżki `/scheme/disk/...` | `scripts/install-smoke-drive.py:202,209`; w kodzie: `choose_disk()` w `src/bin/installer_tui.rs` **[z briefu]** |
 | `disk_paths()` iteruje po schematach `disk*`, **pomija partycje** i zwraca **wyłącznie ścieżkę i rozmiar**. Na Linuksie jest **pustą funkcją** (`fn disk_paths(_paths: &mut Vec<…>) {}`) | `src/bin/installer_tui.rs` **[z briefu]** |
 | Komentarz upstreamu w `installer_tui.rs:15-17` nazywa całą brakującą pracę: `1. Linux: Implement disk listing…` · `2. Allow partitioning to allow dual boot…` · `3. Prompt everything (disk password, users, preconfigured packages, import from existing img)` | **[z briefu]** |
@@ -126,7 +126,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 | Kont nie tworzy, pakietów nie wybiera — klonuje domyślne z `base.toml` | `R-603`, `docs/install.md:57-64` (ostrzeżenie w §2) |
 | Hostname każdej instalacji to `eos` | `config/aarch64/eos.toml:58-61` (`path = "/etc/hostname"`, `data = "eos"`), tak samo w `config/x86_64/eos.toml`; `R-606` |
 | `DiskWrapper::open` zawsze raportuje rozmiar bloku 512 (`src/disk_wrapper.rs:28`, `// TODO: get real block size…`) → strażnik `match block_size { 512 => …, _ => bail!(…) }` w `src/installer.rs:604` jest **martwym kodem** i dysk 4Kn zostanie zapisany z geometrią liczoną na złym sektorze | **[z briefu]**; pozycja: `R-607` / `R-607a` |
-| Instalacja z pliku konfiguracyjnego **działa już dziś**: `redox_installer <diskpath.img> [--config=file.toml] [--write-bootloader[=PATH]] [--live]`, w tym `[general] encrypt_disk` i `general.skip_partitions` | składnia: `src/bin/installer.rs` **[z briefu]**, potwierdzona w `ROADMAP-v2.md` `R-609b`. **Uwaga:** `docs/install.md:78` podaje przestarzałą formę `redox_installer <config.toml> <disk>` — to jest przypadek `R-608`, nie druga poprawna składnia |
+| Instalacja z pliku konfiguracyjnego **działa już dziś**: `redox_installer <diskpath.img> [--config=file.toml] [--write-bootloader[=PATH]] [--live]`, w tym `[general] encrypt_disk` i `general.skip_partitions` | składnia: `src/bin/installer.rs` **[z briefu]**, potwierdzona w `ROADMAP.md` `R-609b`. **Uwaga:** `docs/install.md:78` podaje przestarzałą formę `redox_installer <config.toml> <disk>` — to jest przypadek `R-608`, nie druga poprawna składnia |
 | Scalanie konfiguracji **nie deduplikuje**: `Config::merge` → `self.files.extend(other_files)`, wygrywa ostatni wpis | `docs/known-issues.md:388` |
 | RedoxFS: KDF to **Argon2id** (`argon2::Algorithm::Argon2id`, `Version::V0x13`, wyjście 16 B), parametry **domyślne i niekonfigurowalne** (`ParamsBuilder::new()` ustawia wyłącznie `output_len`) | `src/key.rs` **[z briefu]**; szerzej `ADR-0010` |
 | RedoxFS: nagłówek ma **64 sloty klucza** — `pub key_slots: [KeySlot; 64]`; `KeySlot` = `salt` + para `EncryptedKey` (dwa klucze, bo AES-XTS) | `src/header.rs:31` **[z briefu]** |
@@ -137,7 +137,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 
 **Wniosek:** silnik działa i jest udowodniony pod emulacją. Brakuje **wszystkiego, co jest nad
 nim** — czyli dokładnie tego, co opisuje ten dokument. To jest rozszerzenie `R-603`/`R-604`
-(rozpisane w `ROADMAP-v2.md` §12 jako `R-603a`–`R-603e` i `R-604a`–`R-604d`), a nie nowa praca
+(rozpisane w `ROADMAP.md` §6 jako `R-603a`–`R-603e` i `R-604a`–`R-604d`), a nie nowa praca
 obok nich.
 
 ---
@@ -166,7 +166,7 @@ obok nich.
 **Znacznik: DO ZBUDOWANIA.** Nie wymaga niczego, czego Redox nie ma: to biblioteka w Ruście plus
 dwa istniejące front-endy plus pliki TOML w obrazie. Koszt: `L`. Oba front-endy już istnieją
 (`config/server.toml:20`, `config/desktop.toml:20`), więc to jest przebudowa, nie start od zera.
-**Pozycja: `R-603a`** (`ROADMAP-v2.md` §12.5, M3) — nie nowa praca.
+**Pozycja: `R-603a`** (`ROADMAP.md` §6.4, M3) — nie nowa praca.
 
 **Nie dopisujemy nowego silnika instalacji.** `redox_installer` przeszedł przez pięć usterek,
 z których każda ukrywała następną (`R-F19` → `R-F21` → `R-F22` → `R-F24`), i dopiero teraz działa.
@@ -201,7 +201,7 @@ Parytet zadeklarowany jest bezwartościowy. Definicja operacyjna:
 > Ten sam plik odpowiedzi przepuszczony przez TUI i przez GUI produkuje **bajtowo identyczny**
 > `config.toml` wyjściowy i identyczną listę ostrzeżeń.
 
-**Bramka (`DO ZBUDOWANIA`, `S`) — to jest `R-601d`, nie nowa pozycja** (`ROADMAP-v2.md` §12.5,
+**Bramka (`DO ZBUDOWANIA`, `S`) — to jest `R-601d`, nie nowa pozycja** (`ROADMAP.md` §6.4,
 M3: *„Bramka parytetu GUI ↔ TUI: oba frontendy muszą pokrywać ten sam zbiór stanów"*). Kształt:
 test w CI, który uruchamia `eos-setup --replay <answers.toml>` w trybie `--frontend=tui`
 i `--frontend=gui-headless`, i porównuje oba wyjścia. Bramka nie sprawdza pikseli — sprawdza,
@@ -295,14 +295,14 @@ pokaż, co zniknie, potem poproś o potwierdzenie, nigdy odwrotnie.** Szczegół
 | **Istniejące partycje** | **DO ZBUDOWANIA** (`M`) — `R-604a` | GPT/MBR trzeba przeczytać, a nie tylko zapisać; silnik już umie pisać GPT, a `disk_paths()` **pomija partycje** **[z briefu]**, więc czytania nie ma w ogóle |
 | **Rozpoznane systemy operacyjne** | **DO ZBUDOWANIA** (`M`) — `R-604a`, `R-609d` | rozpoznanie po GUID typu partycji + sygnaturze systemu plików + obecności `EFI/*/BOOT*.EFI` na ESP; patrz §4.4 |
 
-> **`ROADMAP-v2.md` §12.5 stawia to samo ograniczenie i trzeba je powtórzyć tutaj:** *„M3 działa
+> **`ROADMAP.md` §6.4 stawia to samo ograniczenie i trzeba je powtórzyć tutaj:** *„M3 działa
 > bez `R-815`. Identyfikacja dysku degraduje się wtedy do ścieżki, rozmiaru, typu interfejsu
 > i wymienności — czyli **mniej**, niż mówi zamówienie."* To ma być napisane **na ekranie**,
 > a nie odkryte przy zgłoszeniu.
 
 ### 4.2 SMART — klasyfikacja i co dokładnie trzeba zbudować
 
-**Znacznik: NOWY PODSYSTEM (`L`). Pozycja: `R-815`** — założona przez `ROADMAP-v2.md` §12.5/§12.6
+**Znacznik: NOWY PODSYSTEM (`L`). Pozycja: `R-815`** — założona przez `ROADMAP.md` §6.2 i §6.4
 **na podstawie tej sekcji**, w rodzinie `R-8xx`, bo `R-812`–`R-814` są zarezerwowane przez
 `docs/driver-manager-design.md`. Powody, po kolei:
 
@@ -419,7 +419,7 @@ Trzy różne rzeczy, które zamówienie zlewa w jedną:
 |---|---|---|
 | **Wypalenie nośnika instalacyjnego na USB przez `dd`** | **JEST** | `docs/install.md:87,101` (§4) — `harddrive.img` i `redox-live.iso` |
 | **Wypalenie przez `popsicle`** | **[NIEZWERYFIKOWANE]** | cel istnieje — `Makefile:16-17`: `popsicle: $(BUILD)/redox-live.iso` → `popsicle-gtk …` — ale wywołuje **linuksowe narzędzie GTK po stronie hosta**, którego na hoście budowania tego projektu (macOS/Apple Silicon, `CLAUDE.md` §9) nie ma; `installer.md:94` mówi wprost, że ta ścieżka **nigdy nie była testowana przez E-OS**. Istnienie celu Make nie jest dowodem na „JEST" |
-| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP-v2.md:471`, `installer.md:142`, `docs/plan-do-sprzetu.md:36`). Kreator nie może się na to powoływać |
+| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `docs/plan-do-sprzetu.md:36`). Kreator nie może się na to powoływać |
 | **Instalacja E-OS *na* pendrive jako cel** | **DO ZBUDOWANIA** (`S`) | silnik pisze na dowolne `/scheme/disk/...`; brakuje wykrycia „to jest wymienne" i ostrzeżenia |
 | **Instalacja z USB na USB** (źródło i cel wymienne) | **DO ZBUDOWANIA** (`M`) | wymaga rozróżnienia źródła od celu — patrz pierwsza reguła odmowy w §4.6 (`R-604c`) |
 
@@ -438,7 +438,7 @@ z `R-F24`, obie z QEMU/TCG, więc na metalu będą inne (`R-607` tego jeszcze ni
 ### 4.8 Partycjonowanie ręczne i instalacja obok
 
 **To jest `R-609`** („ręczne partycjonowanie / instalacja obok / dual-boot", `[P3·XL]`,
-zależne od `R-604`), rozpisane w `ROADMAP-v2.md` §12.5 jako **`R-609d`** (ręczny edytor GPT,
+zależne od `R-604`), rozpisane w `ROADMAP.md` §6.4 jako **`R-609d`** (ręczny edytor GPT,
 ponowne użycie istniejącego ESP z zapisem **wyłącznie** do `EFI/EOS/`, instalacja w wolnym
 miejscu, wykrywanie innych systemów po ESP). Tam też stoi granica, którą trzeba tu powtórzyć:
 **zmiana rozmiaru NTFS/ext4 to NIEREALNE DZIŚ**, bo nie mamy nawet odczytu tych systemów plików.
@@ -645,7 +645,7 @@ Blokada jest twardsza: klucza używa się **przy rozruchu, w bootloaderze**, czy
 uruchomieniem jakiegokolwiek sterownika**. Bootloader musiałby mieć własny stos USB HID i własną
 implementację CTAP2. `usbhidd` w systemie nic tu nie pomaga — on startuje później.
 
-**TPM2 z polityką PCR — NIEREALNE DZIŚ.** `ROADMAP-v2.md` §1.2 mówi wprost o TPM 2.0
+**TPM2 z polityką PCR — NIEREALNE DZIŚ.** `ROADMAP.md` §8.4 mówi wprost o TPM 2.0
 i measured boot: *„nie istnieje; piąta warstwa zaufania z `docs/reference/keys-and-tokens.md` wciąż pusta"*
 (`R-913`). Brakuje sterownika TPM, brakuje dziennika zdarzeń TCG, brakuje pomiarów w bootloaderze
 — a polityka PCR bez pomiarów jest polityką nad pustym zbiorem. To jest **cały łańcuch**, nie
@@ -672,7 +672,7 @@ klucz) **odrzucony**. Bez kontroli negatywnej „klucz zapisany" znaczy tylko �
 **Czego w rejestrze brakuje i czego ten dokument nie zakłada:** nie ma pozycji `R-*` na
 **zarządzanie slotami klucza woluminu** (klucz odzyskiwania, wiele haseł, plik klucza, kopia
 nagłówka). `ADR-0010` §4 nazywa tę lukę i wskazuje naturalne miejsce — domknięty epik `R-5xx`.
-**Numer nadaje `ROADMAP-v2.md`**, nie ten dokument i nie ADR.
+**Numer nadaje `ROADMAP.md`**, nie ten dokument i nie ADR.
 
 ### 5.8 Wolumin ukryty i plausible deniability — realne ograniczenia
 
@@ -761,7 +761,7 @@ i `config/aarch64/eos.toml:4` to `include = ["../desktop.toml"]`, a `config/` ma
 warstw: `base.toml`, `minimal.toml`, `desktop.toml`, `desktop-minimal.toml`, `server.toml`,
 `dev.toml`. Zamówienie „profil dziedziczy po bazowym i nadpisuje go" opisuje więc rzecz, która
 **już działa** — na poziomie plików. **Czego nie ma:** scalania **decyzji** zamiast plików,
-blokad („tego nie wolno nadpisać") i wykrywania kolizji. To jest `R-603c+` w `ROADMAP-v2.md` §12.5.
+blokad („tego nie wolno nadpisać") i wykrywania kolizji. To jest `R-603c+` w `ROADMAP.md` §6.4.
 
 Profil kreatora dziedziczy analogicznie: `bazuje_na = "business"`. Rozstrzyganie: **głębokie,
 kluczowane scalanie**, nie konkatenacja list.
@@ -897,7 +897,7 @@ przed czym **nie** chroni.
 | **Measured boot / anti-evil-maid** | **NIEREALNE DZIŚ** (`R-913`) | podmieniony bootloader może przechwycić hasło; Secure Boot chroni przed **niepodpisanym** bootloaderem, nie przed fizycznym dostępem do firmware |
 | **Ochrona metadanych w czasie pracy** | **NIEREALNE DZIŚ** | FDE chroni dane w spoczynku; działający system pokazuje wszystko |
 | **Anonimowość na poziomie systemu (jak Tails)** | **NIEREALNE DZIŚ** | brak trybu amnezyjnego, brak wymuszonego routingu przez Tor, brak kasowania RAM przy wyłączeniu |
-| **Walidacja na fizycznym sprzęcie** | — | **każdy** zielony ptaszek w tym projekcie to QEMU (`ROADMAP-v2.md` §0); `R-607` otwarte |
+| **Walidacja na fizycznym sprzęcie** | — | **każdy** zielony ptaszek w tym projekcie to QEMU (`ROADMAP.md` §14.1); `R-607` otwarte |
 | **Audyt kryptografii przez stronę trzecią** | — | `docs/encryption.md`: *„E-OS has not had a third-party cryptographic audit"* |
 
 #### 6.5.3 Zdanie, które kreator musi wyświetlić
@@ -1217,7 +1217,7 @@ niczego, nie ma też takiej bramki w `lefthook.yml` ani w CI. Pakiet `gettext` w
 konfiguracjach (`config/server.toml:18`), ale jako zależność portów, nie jako mechanizm dla
 własnych aplikacji.
 
-**Znacznik: NOWY PODSYSTEM (`M`). Pozycja: `R-D13`** — założona przez `ROADMAP-v2.md` §12.5/§12.6
+**Znacznik: NOWY PODSYSTEM (`M`). Pozycja: `R-D13`** — założona przez `ROADMAP.md` §6.2 i §6.4
 **na podstawie tej sekcji i `installer-profiles.md` §9**, w rodzinie `R-Dxx`, bo brak dotyczy
 całej powłoki (`eos-control` ma napisy zaszyte w kodzie), nie samego instalatora. Ten dokument
 **nie zakłada dla i18n osobnego numeru**.
@@ -1442,7 +1442,7 @@ Wszystkie zamówione zdolności w jednym miejscu.
 
 ## 15. Kolejność wdrożenia i przypięcie do roadmapy
 
-Ten dokument **nie tworzy nowych identyfikatorów**. Rozpisanie zrobiła `ROADMAP-v2.md` §12
+Ten dokument **nie tworzy nowych identyfikatorów**. Rozpisanie zrobiła `ROADMAP.md` §6
 (epik **EP-2**, kamienie **M3** i **M4**); poniżej mapowanie sekcja → zadanie, żeby nikt nie
 nadał tej samej pracy drugiej nazwy.
 
@@ -1477,12 +1477,12 @@ nadał tej samej pracy drugiej nazwy.
 **Korekta wobec wcześniejszej wersji tej sekcji.** Stała tu teza: *„Jedna nowa praca, która nie
 ma dziś pozycji: kanał komend administracyjnych do dysków … kandydat na osobną pozycję w rodzinie
 `R-8xx` — do rozstrzygnięcia przy zatwierdzaniu"*. **To już zostało rozstrzygnięte** i pozostawienie
-tamtego zdania groziło dołożeniem drugiej nazwy do tej samej pracy. `ROADMAP-v2.md` §12.5 i §12.6
+tamtego zdania groziło dołożeniem drugiej nazwy do tej samej pracy. `ROADMAP.md` §6.2 i §6.4
 zakładają ją jako **`R-815`** — numer wybrany dlatego, że `R-812`–`R-814` rezerwuje
 `docs/driver-manager-design.md`. Tak samo i18n z §11 ma już **`R-D13`**. **Żadnej z tych dwóch
 nie wolno zakładać ponownie.**
 
-**Czego w rejestrze nadal nie ma** — nazwane, nie ponumerowane, bo numer nadaje `ROADMAP-v2.md`:
+**Czego w rejestrze nadal nie ma** — nazwane, nie ponumerowane, bo numer nadaje `ROADMAP.md`:
 
 1. **Zarządzanie slotami klucza woluminu** (klucz odzyskiwania, wiele haseł, plik klucza, kopia
    nagłówka) — §5.7; lukę nazywa też `ADR-0010` §4 i wskazuje domknięty epik `R-5xx`.

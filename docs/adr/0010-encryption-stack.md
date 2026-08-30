@@ -382,7 +382,7 @@ klocków (rozwinięcie w `installer-wizard.md` §5.4):
 
 **TPM2** — `R-913` / `V2-N02`: brak sterownika TIS/CRB, brak stosu TSS, brak dziennika zdarzeń
 TCG, brak pomiarów w bootloaderze. Polityka PCR bez pomiarów jest polityką nad pustym zbiorem.
-`ROADMAP-v2.md` §1.2 mówi o piątej warstwie zaufania z `docs/reference/keys-and-tokens.md`, że **wciąż jest pusta**
+`ROADMAP.md` §8.4 mówi o piątej warstwie zaufania z `docs/reference/keys-and-tokens.md`, że **wciąż jest pusta**
 (tabela w §6a, wiersz 5: „❌ nie istnieje"). To jest **cały łańcuch**, nie jedna funkcja, i ma
 własną pozycję w rejestrze — nie tworzę dla niej drugiej nazwy.
 
@@ -392,7 +392,7 @@ pomaga, bo startuje później. Bootloader musiałby dostać własny stos USB HID
 implementację CTAP2 — w komponencie, który już raz panikował na zaszyfrowanym roocie.
 
 Warto to powiedzieć wprost, bo to zmienia wymowę całego dokumentu: **dopóki nie ma TPM-a,
-„dysk jest zaszyfrowany" nie znaczy „ten dysk w tej maszynie"** (`ROADMAP-v2.md:407`). Nie ma
+„dysk jest zaszyfrowany" nie znaczy „ten dysk w tej maszynie"** (`ROADMAP.md`). Nie ma
 anti-evil-maid i ADR tego nie obiecuje.
 
 ### 3.5 Nagłówek odłączony na nośniku wymiennym
@@ -517,7 +517,7 @@ się **„Hardware capabilities (`R-50x`)"**, motyw: *„storage resilience + cr
 z uciętym motywem. Wszystkie trzy wypisane tam pozycje — `R-501`, `R-502`, `R-503` — są ✅.
 Żeby z tego nie wyszło „epik zamknięty": jego rozwinięcia `R-501b` (resync/rebuild) i `R-501c`
 (root-on-RAID) żyją dalej, przypisane do `R-912`, więc przestrzeń `R-50x` nie jest wolna od pracy
-— jest wolna od **tej** pracy. **Numer nadaje `ROADMAP-v2.md`, nie ten dokument.**
+— jest wolna od **tej** pracy. **Numer nadaje `ROADMAP.md`, nie ten dokument.**
 
 ---
 

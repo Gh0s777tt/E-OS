@@ -18,7 +18,7 @@ Klucz publiczny repo JEST wpięty w oba obrazy: `/etc/pkg/eos-repo-sign.pub.toml
 (config/x86_64/eos.toml, sekcja R-702; hybryda ed25519 + ML-DSA-65 wg ADR-0004).
 `/etc/pkg.d/50_eos` JEST w obrazie, ale ZAKOMENTOWANY — pkg-lib `update_remotes()`
 pomija linie z `#`, więc plik parsuje się czysto i daje zero źródeł.
-ROADMAP-v2 §9.5 `R-701`: publikacja ✅ (U-209), `50_eos` aktywne na aarch64 (U-210);
+ROADMAP.md §5.3 `R-701`: publikacja ✅ (U-209), `50_eos` aktywne na aarch64 (U-210);
 x86_64 zostaje — to jest znalezisko C-4 (brak kanału aktualizacji na x86_64).
 `/etc/pkg.d/50_redox` (upstream Redoksa) jest w obrazie świadomie WYŁĄCZONY (R-701a) i
 pilnuje tego check 9 w scripts/ci-integrity.sh.
