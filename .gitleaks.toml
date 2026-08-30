@@ -28,4 +28,15 @@ paths = [
   # git+https source URL inside a lockfile would be missed HERE — the guardian
   # grep covers that pattern tree-wide.
   '''(^|/)Cargo\.lock$''',
+  # The E-OS package-signing PUBLIC key. 74 bytes, one field `pkey`, whose value is 64 hex
+  # characters = 32 bytes — the size of an ed25519 PUBLIC key. A pkgar SECRET key has a different
+  # shape entirely (salt, nonce and an encrypted blob; compare build/id_ed25519.toml), so this file
+  # cannot be a secret by construction.
+  #
+  # Corroborated independently: GitHub's own secret scanning is enabled on this repository and
+  # returns an empty alert list for it. gitleaks flags it on entropy alone.
+  #
+  # This is a deliberate blind spot of exactly one file. The value is also pinned into the image at
+  # /etc/pkg/packages.toml [pubkeys.local], so a change to it is visible in two places, not one.
+  '''^keys/eos-pkg-signing\.pub\.toml$''',
 ]
