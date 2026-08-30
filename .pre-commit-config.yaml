@@ -1,0 +1,404 @@
+# E-OS pre-commit hooks — file hygiene that lefthook does not cover.
+#
+# ── THIS IS NOT A SECOND HOOK MANAGER ────────────────────────────────────────────────
+# The project already has one: lefthook.yml, installed with `lefthook install`, documented
+# in docs/ci.md ("Local hooks", line 269), docs/MAINTENANCE.md:56 and docs/security.md:48.
+# (README.md:316 describes the same fail-closed gitleaks hook but never names the manager,
+# so a reader who starts there does not learn that a hook manager is involved at all.)
+# Both managers install a script at .git/hooks/pre-commit, and whichever ran its `install`
+# last is the one git executes. Two managers racing for one file is how a gate that
+# everybody believes is on turns out to be off — finding C-6 exactly.
+#
+# So: lefthook keeps ownership of .git/hooks, and pre-commit is invoked BY it. Run
+# `lefthook install` (never `pre-commit install`) and add one command to lefthook.yml
+# under `pre-commit: commands:`:
+#
+#     hygiene:
+#       run: pre-commit run --hook-stage pre-commit --files {staged_files}
+#
+# That leaves exactly one thing writing .git/hooks and one place to look when a commit is
+# refused. (pre-commit will try to preserve a foreign hook as `pre-commit.legacy`, but that
+# depends on who installed last; correctness must not rest on an ordering accident.)
+#
+# Measured on the working clone, 2026-08-30: .git/hooks contains ONLY the git *.sample
+# files. Nothing is installed — not lefthook, not this — so the fail-closed gitleaks hook
+# that README.md, CLAUDE.md and docs/security.md all describe as "on, fails closed" is not
+# running on this machine at all. Adding a second manager on top of that does not fix it;
+# `lefthook install` does. Fix that first, then this file starts mattering.
+#
+# ── WHAT LEFTHOOK KEEPS, AND WHY IT IS NOT REPEATED BELOW ────────────────────────────
+# Every check listed here already exists in lefthook.yml. A second copy is not a second
+# gate — it is a second set of semantics to keep in step, and the one that drifts is the
+# one nobody notices has stopped agreeing.
+#
+#   * gitleaks (pre-commit)      — lefthook's version fails closed and treats a MISSING
+#                                  gitleaks as a failure, with one documented, named
+#                                  override (EOS_SKIP_SECRET_SCAN=1, justified in the
+#                                  commit body). That shape was paid for: the hook ended
+#                                  in `|| true` until U-140 and blocked nothing. A second
+#                                  scanner here would mean a second bypass switch and a
+#                                  second answer to "was this commit scanned?", and
+#                                  README.md's "three points" claim would silently become
+#                                  four. detect-secrets is absent for the same reason plus
+#                                  one more: it needs a baseline file, and a baseline is a
+#                                  list of secrets you have agreed to stop looking at.
+#   * rustfmt (pre-commit)       — lefthook runs it on tools/**/*.rs against
+#                                  tools/eos-repo-sign/Cargo.toml only. That asymmetry is
+#                                  deliberate (see .gitlab-ci.yml `rust-checks`): the root
+#                                  manifest is the vendored redox_cookbook, and fmt/clippy
+#                                  are not gated on upstream code. A path-glob formatter
+#                                  added here would eventually catch src/ and start
+#                                  reformatting somebody else's tree.
+#   * clippy, ci-integrity.sh    — lefthook pre-push. They compile and walk the whole tree;
+#                                  at pre-commit time they would cost seconds on every
+#                                  commit to re-answer a question that has not changed.
+#   * Conventional Commits       — lefthook commit-msg, one regex over the subject line.
+#                                  A second regex here is a second definition of what a
+#                                  valid subject is; when they disagree the commit is
+#                                  rejected by one and accepted by the other, and the
+#                                  message says nothing about which. If it ever moves, it
+#                                  moves — it does not get copied.
+#
+# ── DELIBERATELY ABSENT ──────────────────────────────────────────────────────────────
+#   * trailing-whitespace / end-of-file-fixer / mixed-line-ending. These rewrite files,
+#     and twelve tracked files are pinned to CRLF between the `eos:crlf-pinned` markers in
+#     .gitattributes (CHANGELOG.md plus eleven vendored recipe files). Normalising them is
+#     the U-169 incident: a one-line CHANGELOG append became a 2036-line whitespace diff
+#     and detached `git blame` from every measurement it cited. A fixer here would cause
+#     the very thing the eos-crlf-pins hook below exists to prevent — and note that
+#     .editorconfig already says `end_of_line = lf` with no CHANGELOG.md override, so the
+#     editors are pointed the wrong way and only a gate stands between that and a repeat.
+#   * ruff / black / any Python formatter. There is no pyproject.toml, no ruff.toml and no
+#     agreed style in this tree, so introducing one would rewrite six scripts in the same
+#     commit that adds the gate — a style decision wearing a hardening badge.
+#   * yamllint / check-yaml. Measured: yamllint even at `-d relaxed` reports line-length
+#     warnings across .gitlab-ci.yml today, and the dev host's python3 has no YAML parser
+#     (`import yaml` -> ModuleNotFoundError), so a check-yaml equivalent would either be
+#     red on arrival or silently skip. actionlint below covers the YAML that actually
+#     cannot be verified any other way.
+#   * Third-party hook repos (`repo: https://github.com/...` + `rev:`). `rev` takes a tag,
+#     and a tag moves. This project's rule since U-118 is pin-or-verify — .gitlab-ci.yml
+#     SHA256-pins the cargo-deny, mdbook and mdbook-mermaid tarballs rather than trusting
+#     the name — and no pinned revision for a hook repo was available when this file was
+#     written. So every hook below is `repo: local` running a tool the developer already
+#     has, and the checks that would otherwise come from pre-commit/pre-commit-hooks
+#     (check-added-large-files, detect-private-key, check-merge-conflict) are reimplemented
+#     here in ~10 lines each. Swap them for the upstream hooks the day someone supplies a
+#     40-char commit SHA for the `rev`.
+#
+# ── CONVENTIONS BELOW ────────────────────────────────────────────────────────────────
+# `FAIL:` means an invariant is broken — fix the tree. `FAIL (instrument):` means the
+# check could not be RUN, so nothing was measured — fix the machine. Keeping the two apart
+# is U-177's lesson from scripts/ci-integrity.sh, where a missing python3 was reported as
+# a repo-type mismatch that did not exist. Both still exit non-zero: a check that could
+# not run is not a pass.
+#
+# Shell here targets the dev host: bash 3.2 and BSD grep/sed (CLAUDE.md §9). No `declare
+# -A`, no `mapfile`, no `${x^^}`, no GNU-only `\s`/`\d`. Every expansion is quoted — the
+# tree lives under a path containing a space, which is the shape of all three real bugs
+# the first shellcheck run found (.gitlab-ci.yml `shell-lint`).
+#
+# Run everything by hand: `pre-commit run --all-files`
+
+# 3.2.0 is the release that accepts the git-hook stage names used below. Declaring it
+# means an older pre-commit refuses this file outright instead of quietly running nothing,
+# which is the right way round for a version mismatch.
+minimum_pre_commit_version: "3.2.0"
+
+# Not fail_fast. One commit should tell you everything that is wrong with it, not the
+# first thing; a gate you have to run five times to see five problems gets bypassed.
+fail_fast: false
+
+default_stages: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+
+      # ── nothing over 5 MB gets committed ───────────────────────────────────────────
+      # This repo's large files are all build OUTPUTS: repo/**/*.pkgar (dozens are well
+      # over 5 MB), release/*.tar.gz, and the harddrive images. .gitignore covers /build/,
+      # /prefix/, /repo, /release/*.img and /release/*.tar.gz, so the accident this
+      # catches is the one .gitignore cannot: `git add -f`, a new output path nobody has
+      # ignored yet, or a binary asset pasted into the tree.
+      #
+      # For scale: the largest file tracked in this repo today is CHANGELOG.md at 373,595
+      # bytes. The ceiling has roughly 14x headroom over anything that legitimately lives
+      # here, so it should never fire on real work — and when it does fire it is right.
+      # (The 100 MB figure in docs/packages.md is a different limit for a different repo:
+      # scripts/publish-repo-pages.sh:29 checks `-size +99M` against GitHub's blob limit
+      # for the *package-hosting* repos. It is not this rule and is 20x looser.)
+      #
+      # Unlike upstream's check-added-large-files this looks at every staged file, not
+      # only newly added ones. Cheap, and a file that grew past the ceiling is exactly as
+      # unwelcome as one that arrived over it.
+      #
+      # There is no bypass switch on purpose. If something over 5 MB genuinely belongs in
+      # history, raise the number here in its own commit where the decision is reviewable
+      # — `--no-verify` is not reviewable, and it also turns off every other hook.
+      #
+      # The `[ -r "$f" ]` branch is not decoration (added 2026-08-30 in review, after it
+      # was demonstrated missing). Without it, `wc -c < "$f"` on an unreadable file leaves
+      # $n empty, `[ "" -gt 5242880 ]` prints "integer expression expected" and evaluates
+      # FALSE, and a 6 MB file walks through a green hook — measured, exit 0. That is the
+      # U-140 shape with no `|| true` in sight: the gate could not run and said PASS.
+      - id: eos-large-file
+        name: no file over 5 MB
+        language: system
+        entry: >-
+          bash -c 'max=5242880; rc=0;
+          for f in "$@"; do [ -f "$f" ] || continue;
+          if [ ! -r "$f" ]; then printf "FAIL (instrument): %s could not be read, so its size was never measured. This is NOT a clean result.\n" "$f"; rc=1; continue; fi;
+          n=$(wc -c < "$f" | tr -d " ");
+          if [ -z "$n" ]; then printf "FAIL (instrument): wc gave no byte count for %s; its size was never measured.\n" "$f"; rc=1; continue; fi;
+          if [ "$n" -gt "$max" ]; then printf "FAIL: %s is %s bytes; the ceiling is %s bytes (5 MB)\n" "$f" "$n" "$max"; rc=1; fi;
+          done;
+          [ "$rc" -eq 0 ] || printf "%s\n" "  Build outputs belong in build/, repo/ and release/ (gitignored) or in the package-hosting repos (docs/packages.md), not in git history. If this file really must ship here, raise the ceiling in .pre-commit-config.yaml in its own commit.";
+          exit $rc' eos-large-file
+
+      # ── private-key material ───────────────────────────────────────────────────────
+      # NOT excluded: keys/. Excluding the directory where a private key would actually
+      # land is the one exclusion that would make this hook pointless. keys/ holds public
+      # material only (keys/README.md: "the public keys live here") and it stays in scope.
+      #
+      # Verified 2026-08-30 against the real tree — this fires on nothing that is here
+      # today. Every file in keys/ is a PEM-less shape: eos-repo-sign.pub.toml and
+      # eos-pkg-signing.pub.toml are TOML hex under [public_keys] / `pkey`,
+      # eos-release.pub and wycofane/eos-release-DCEC85BA6057ED4A.pub are minisign public
+      # keys ("untrusted comment: minisign public key ..."). A tree-wide grep for the
+      # PEM/PuTTY headers below returns zero matches, so this gate starts green and any
+      # future red is a genuine event.
+      #
+      # Complements, does not duplicate, scripts/ci-integrity.sh check 10: that one looks
+      # for the E-OS/pkgar secret shape (a `[secret_keys]` table plus a long hex literal)
+      # over tracked files at pre-push. This one looks for the PEM/OpenSSH/PuTTY shape in
+      # what you are about to stage. Different formats, different moments.
+      #
+      # grep's exit code is read, not discarded (corrected 2026-08-30 in review; it used to
+      # end in `|| true`). BSD grep answers 0 = found, 1 = not found, 2 = could not read a
+      # file — verified on this host. Collapsing 2 into "no hits" is literally the U-140
+      # mistake in the one hook whose whole job is refusing to pass an unscanned commit.
+      - id: eos-private-key
+        name: no private-key material
+        language: system
+        entry: >-
+          bash -c '[ "$#" -gt 0 ] || exit 0;
+          rx="^-+ *BEGIN [A-Z0-9 ]*PRIVATE KEY( BLOCK)?-+|^PuTTY-User-Key-File-[0-9]|^SSH PRIVATE KEY FILE FORMAT";
+          hits=$(grep -lE "$rx" "$@" 2>/dev/null); grc=$?;
+          if [ "$grc" -gt 1 ]; then printf "FAIL (instrument): grep exited %s scanning the staged files (2 = one could not be read). Nothing was reliably scanned -- this is NOT a clean result.\n" "$grc"; exit 1; fi;
+          if [ -n "$hits" ]; then printf "FAIL: private-key material in staged file(s):\n";
+          printf "%s\n" "$hits" | sed "s/^/    /";
+          printf "%s\n" "  Do not commit this. Treat the key as compromised, rotate it, and find out how it got into the tree. keys/ carries PUBLIC material only (keys/README.md); secret keys are gitignored (keys/*.secret.toml) and caught again by ci-integrity.sh check 10.";
+          exit 1; fi;
+          exit 0' eos-private-key
+
+      # ── merge-conflict markers ─────────────────────────────────────────────────────
+      # Verified: zero matches across the tree today, including the .patch/.diff files
+      # under patches/ and recipes/ (an added line in a diff starts with `+`, so it cannot
+      # collide) and every markdown file (no 7-character setext underline anywhere).
+      # Nothing needed excluding, so nothing is. The setext case is a real false positive
+      # waiting to happen — a markdown H1 underlined with exactly seven `=` trips it
+      # (confirmed against a fixture) — but excluding *.md would blind the check to the
+      # file type conflict markers most often survive in, so the answer is to notice it.
+      #
+      # `grep | head` throws grep's status away and this loop has no pipefail, so an
+      # unreadable file would have read as "no markers". The `[ -r ]` branch is what keeps
+      # that from being a silent pass (added 2026-08-30 in review).
+      - id: eos-merge-markers
+        name: no merge-conflict markers
+        language: system
+        entry: >-
+          bash -c 'rx="^(<<<<<<< |>>>>>>> |=======\$)"; rc=0;
+          for f in "$@"; do [ -f "$f" ] || continue;
+          if [ ! -r "$f" ]; then printf "FAIL (instrument): %s could not be read; it was not scanned for markers.\n" "$f"; rc=1; continue; fi;
+          hits=$(grep -nE "$rx" "$f" 2>/dev/null | head -5 || true);
+          if [ -n "$hits" ]; then printf "FAIL: %s still carries merge-conflict markers:\n" "$f";
+          printf "%s\n" "$hits" | sed "s/^/    /"; rc=1; fi;
+          done; exit $rc' eos-merge-markers
+
+      # ── CRLF pins hold ─────────────────────────────────────────────────────────────
+      # The one rule in this file that also exists elsewhere, and the repetition is the
+      # point. scripts/ci-integrity.sh check 8 enforces the same invariant, but lefthook
+      # runs ci-integrity.sh at PRE-PUSH — by then the damaging commit exists and the fix
+      # is a manual revert, which is precisely what U-169 cost. Same rule, one step
+      # earlier, where the cost is retyping a `git checkout`.
+      #
+      # The file list is READ OUT OF .gitattributes, never restated here, so the two
+      # cannot drift about which files are pinned — the same reasoning check 8 gives for
+      # doing it that way, and the reason adding a file to the block is a one-line change.
+      # CHANGELOG.md is held to the stricter form (EVERY line CRLF): a partly normalised
+      # file still holds CRs elsewhere and would sail past a has-a-CR test.
+      #
+      # pre-commit stashes unstaged changes while hooks run, so reading the work tree here
+      # reads what is actually being committed.
+      - id: eos-crlf-pins
+        name: CRLF-pinned files keep their line endings
+        language: system
+        entry: >-
+          bash -c 'if [ ! -f .gitattributes ]; then printf "FAIL (instrument): .gitattributes is missing, so the pin list could not be read. Nothing was checked -- this is NOT a clean result.\n"; exit 1; fi;
+          pinned=$(sed -n "/^# --- eos:crlf-pinned ---\$/,/^# --- end eos:crlf-pinned ---\$/p" .gitattributes | grep -v "^#" | cut -d " " -f1 | tr "\n" " ");
+          if [ -z "$pinned" ]; then printf "FAIL (instrument): the eos:crlf-pinned block in .gitattributes is empty or its markers are gone. Nothing was checked.\n"; exit 1; fi;
+          cr=$(printf "\r"); rc=0;
+          for f in "$@"; do case " $pinned " in *" $f "*) ;; *) continue ;; esac;
+          if [ ! -r "$f" ]; then printf "FAIL (instrument): %s is CRLF-pinned but could not be read, so its line endings were never checked.\n" "$f"; rc=1; continue; fi;
+          if ! grep -q "$cr" "$f"; then printf "FAIL: %s is CRLF-pinned in .gitattributes but the staged copy has no CR left in it.\n" "$f"; rc=1; fi;
+          if [ "$f" = CHANGELOG.md ]; then n=$(grep -cv "$cr\$" "$f" | tr -d " ");
+          if [ "$n" -ne 0 ]; then printf "FAIL: CHANGELOG.md has %s line(s) ending LF instead of CRLF.\n" "$n"; rc=1; fi; fi;
+          done;
+          [ "$rc" -eq 0 ] || printf "%s\n" "  An editor normalised the line endings (.editorconfig says end_of_line = lf and has no override for these files). Restore them before committing. U-169 turned a one-line CHANGELOG append into a 2036-line whitespace diff and detached git blame from every entry it touched.";
+          exit $rc' eos-crlf-pins
+
+      # ── shellcheck: errors block ───────────────────────────────────────────────────
+      # Scope and severity mirror .gitlab-ci.yml `shell-lint`, which is the reasoned
+      # version: scripts/ only, because build.sh and the *_bootstrap.sh at the repo root
+      # are inherited from upstream Redox and recipes/wip/ is scratch — gating those means
+      # carrying upstream divergence for no safety gain. One deliberate difference: the CI
+      # glob `scripts/*.sh` is flat, this regex is not, so a future scripts/hooks/*.sh is
+      # covered here. Widening a lint is safe; narrowing one silently is not.
+      #
+      # Measured on this tree with shellcheck 0.11.0: 0 errors. The gate starts green, so
+      # the first red it ever shows is a change someone just made.
+      #
+      # Fails closed on a missing shellcheck, like lefthook's gitleaks: skipping a lint
+      # and passing the commit has the same outcome as not having the lint.
+      #
+      # `._*` is excluded for the same measured reason the actionlint hook below excludes
+      # it, and this half needed it more: `scripts/._backtrace.sh` exists on this working
+      # clone right now, `^scripts/.*\.sh$` matches it, and shellcheck answers a 4 KB
+      # AppleDouble blob with `SC2148 error` — i.e. the BLOCKING gate goes red about the
+      # sidecar, not about any script. Gitignored is not the same as unstageable; U-196 is
+      # the commit where one of these got in anyway.
+      - id: eos-shellcheck-error
+        name: shellcheck (errors block)
+        language: system
+        files: ^scripts/.*\.sh$
+        exclude: (^|/)\._
+        entry: >-
+          bash -c 'command -v shellcheck >/dev/null 2>&1 || { printf "FAIL (instrument): shellcheck is not on PATH (brew install shellcheck). Nothing was linted, so this red is about the runner, not the scripts.\n"; exit 1; };
+          shellcheck -f gcc -S error "$@"' eos-shellcheck-error
+
+      # ── shellcheck: warnings advisory ──────────────────────────────────────────────
+      # The other half of the same split, reproduced rather than tightened. The same run
+      # that found 0 errors found 16 warnings; driving those to zero is worth doing
+      # deliberately, not inside the change that introduces the gate.
+      #
+      # `|| true` here is NOT the U-140 pattern. U-140 was `|| true` on the ONLY secret
+      # scan, which made the gate decorative. Here the blocking half sits directly above
+      # and does the gating; this hook exists to print. `verbose: true` is load-bearing —
+      # pre-commit hides the output of a hook that passes, so without it an always-zero
+      # advisory hook would produce nothing at all and merely look like a gate.
+      #
+      # Fails OPEN on a missing shellcheck, deliberately: the hook above already refuses
+      # the commit in that case, and two identical instrument errors help nobody.
+      - id: eos-shellcheck-warning
+        name: shellcheck (warnings, advisory)
+        language: system
+        verbose: true
+        files: ^scripts/.*\.sh$
+        exclude: (^|/)\._
+        entry: >-
+          bash -c 'command -v shellcheck >/dev/null 2>&1 || exit 0;
+          shellcheck -f gcc -S warning "$@" || true;
+          exit 0' eos-shellcheck-warning
+
+      # ── actionlint on the workflows ────────────────────────────────────────────────
+      # This is the hook with the strongest claim to exist. GitHub Actions does not
+      # execute for this repository: a minimal `on: push` workflow pushed straight to
+      # github.com on a fresh branch produced no run at all — not queued, not failed
+      # (established by experiment 2026-08-30; the block is above the repository). So a
+      # workflow file's mistakes cannot be found by running it. actionlint at commit time
+      # is not a convenience here, it is the only pre-merge check the workflows get.
+      #
+      # Measured 2026-08-30 16:58 with actionlint 1.7.12: no findings on any workflow in
+      # .github/workflows. Deliberately not written as a count — an earlier version of this
+      # comment said "all six", and there were eight at the time of the measurement above
+      # (ci, docs, lint, release, sbom, scorecard, security, stale) with a ninth having come
+      # and gone within the hour. A count of files that other people add is a claim that
+      # rots without anybody touching this file.
+      #
+      # "Clean" here is a timestamp, not a property, and the gap is short: at 16:57 the same
+      # command failed on .github/workflows/security.yml with SC2012, because actionlint
+      # also runs shellcheck over `run:` blocks when shellcheck is on PATH — which is the
+      # one place shell in this repo lives outside scripts/, and the reason this hook is
+      # worth more than a YAML syntax check.
+      #
+      # `._*` is excluded because macOS AppleDouble sidecars match *.yml and are binary
+      # noise; .gitignore drops them, but one was force-committed once already (U-196), so
+      # the exclusion is not theoretical.
+      - id: eos-actionlint
+        name: actionlint (workflows are never executed, so this is the only check)
+        language: system
+        files: ^\.github/workflows/[^/]+\.ya?ml$
+        exclude: (^|/)\._
+        entry: >-
+          bash -c 'command -v actionlint >/dev/null 2>&1 || { printf "FAIL (instrument): actionlint is not on PATH (brew install actionlint). The workflow was NOT checked -- and GitHub will not check it either, so nothing measured it.\n"; exit 1; };
+          actionlint "$@"' eos-actionlint
+
+      # ── TOML parses ────────────────────────────────────────────────────────────────
+      # CORRECTED 2026-08-30 in review, and the correction is the interesting half. This
+      # comment used to say that repos.toml, cookbook.lock and the recipe.toml files "are
+      # read by the gates themselves: ci-integrity.sh checks 6, 7 and 11 all parse them".
+      # They do not parse them. Nothing under scripts/ owns a TOML parser at all — checked
+      # by grepping the whole directory for `tomllib`, zero hits:
+      #   * check 6  -> eos-source-rules.sh:35, `grep -rl "Gh0s777tt/eos-" recipes/*/*/recipe.toml`
+      #   * check 7  -> eos-check-repo-types.py, which imports `re, sys` and splits the
+      #                 manifest on the literal string `[[repo]]`
+      #   * check 11 -> `sed -n 's/^...name = "\(eos-...\)"...//p' repos.toml`
+      #   * and eos-repos.sh `_parse()` does the same by regex.
+      # A broken TOML file is therefore INVISIBLE to every shell/python gate here: they read
+      # past the break and answer confidently about a file nobody could load. That is a
+      # worse failure than the one the old comment described, and it is the argument for
+      # this hook — not "the gates go noisy", but "the gates do not notice".
+      #
+      # The parsers that do exist are further away and cost more when they trip: the
+      # vendored cookbook loads every recipe with the `toml` crate (src/recipe.rs:205, via
+      # src/config.rs), so a syntax error surfaces inside a podman build minutes later, and
+      # cargo does the same for the two manifests.
+      #
+      # recipes/wip/ is excluded on evidence, not taste: 7 of its recipe.toml files do not
+      # parse as TOML today (microbin, mbedtls3, mbedtls4, libcamera, libhandy, reth,
+      # spacemacs). It is scratch space — the same scope call .gitlab-ci.yml `shell-lint`
+      # makes — and a gate that is red on arrival gets bypassed on arrival. The other 3,346
+      # TOML files in the tree parse clean, so this starts green everywhere it applies.
+      - id: eos-toml-syntax
+        name: TOML parses
+        language: system
+        files: (\.toml|^cookbook\.lock)$
+        exclude: (^recipes/wip/|(^|/)\._)
+        entry: >-
+          bash -c 'command -v python3 >/dev/null 2>&1 || { printf "FAIL (instrument): python3 is not on PATH. No TOML was parsed.\n"; exit 1; };
+          python3 -c "import tomllib" 2>/dev/null || { printf "FAIL (instrument): this python3 has no tomllib (needs 3.11+). No TOML was parsed -- this is NOT a syntax verdict.\n"; exit 1; };
+          rc=0;
+          for f in "$@"; do if [ ! -r "$f" ]; then printf "FAIL (instrument): %s is not readable; it was not parsed.\n" "$f"; rc=1; continue; fi;
+          err=$(python3 -c "import sys, tomllib; tomllib.load(open(sys.argv[1], \"rb\"))" "$f" 2>&1) || { printf "FAIL: %s does not parse as TOML:\n" "$f"; printf "%s\n" "$err" | tail -1 | sed "s/^/    /"; rc=1; };
+          done; exit $rc' eos-toml-syntax
+
+      # ── Python parses ──────────────────────────────────────────────────────────────
+      # Syntax only, no style — see DELIBERATELY ABSENT above. Motivation, restated
+      # 2026-08-30 after review found the first version overclaiming: ci-integrity.sh check
+      # 7 shells out to scripts/eos-check-repo-types.py, and an interpreter that dies on
+      # that file exits 1 — the same code a real MISMATCH uses. The old comment stopped
+      # there and called the two "indistinguishable", present tense. They are not, and have
+      # not been since U-177: check 7 requires the verdict LINE `repo-types: MISMATCH`
+      # before it blames the tree, the checker's contract reserves exit 2 for
+      # CANNOT-MEASURE, and anything else falls to `cannot`. A SyntaxError there today
+      # reads as `FAIL (instrument):`. (The mismatch that did not exist — CI job
+      # 16155620600, named in check 7's own comment — was exit 127, no python3 at all.)
+      #
+      # So this hook is not restoring a distinction; U-177 already paid for that. It stops
+      # the checker being unrunnable one step before the gate that depends on it, which is
+      # worth having because an unrunnable gate still costs a diagnosis every time.
+      # Measured: all six scripts/*.py and recipes/tests/hello-redox/files/test.py parse.
+      #
+      # `ast.parse`, not `py_compile`, on purpose: py_compile writes __pycache__/ and
+      # .gitignore has no entry for it, so the hook would litter the tree it is guarding.
+      - id: eos-python-syntax
+        name: Python parses
+        language: system
+        files: \.py$
+        exclude: (^|/)\._
+        entry: >-
+          bash -c 'command -v python3 >/dev/null 2>&1 || { printf "FAIL (instrument): python3 is not on PATH. No Python was parsed.\n"; exit 1; };
+          rc=0;
+          for f in "$@"; do err=$(python3 -c "import sys, ast; ast.parse(open(sys.argv[1], encoding=\"utf-8\").read(), sys.argv[1])" "$f" 2>&1) || { printf "FAIL: %s is not valid Python:\n" "$f"; printf "%s\n" "$err" | tail -2 | sed "s/^/    /"; rc=1; };
+          done; exit $rc' eos-python-syntax
