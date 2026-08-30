@@ -1,0 +1,12 @@
+name: canary
+on:
+  push:
+    branches: ["chore/security-hardening"]
+permissions:
+  contents: read
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "runner reached"
