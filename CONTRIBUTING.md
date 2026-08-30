@@ -1,82 +1,153 @@
-# 🤝 Contributing to E-OS
+---
+title: Contributing
+status: current
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
 
-Thanks for your interest in **E-OS**! Contributions of all kinds are welcome —
-code, docs, design, testing, and ideas.
+# Contributing to E-OS
 
-> 📌 **First, the essentials:** read the **[Code of Conduct](CODE_OF_CONDUCT.md)**
-> and, for vulnerabilities, the **[Security Policy](SECURITY.md)** (never file
-> security bugs in public). New here? Start with
-> **[docs/getting-started.md](docs/getting-started.md)**.
->
-> 🧭 **Standards & Definition of Done:** **[CLAUDE.md](CLAUDE.md)** is the working
-> agreement for everyone (humans and AI assistants) — the three verification gates,
-> what "done" means, and the rule that every change updates the docs it affects.
+Read [`CLAUDE.md`](CLAUDE.md) first. It is the working contract; this file is the practical path
+through it.
 
-## Ways to contribute
+> **Honest note on process maturity.** This project has had **zero merge requests** in its entire
+> history — every commit so far went straight to `main`. The workflow below is what the project is
+> moving to, not a description of what has happened. Blocking direct pushes to `main` is the first
+> item on the roadmap (`S-1`) precisely because the pipeline gate is already configured and
+> currently bypassed.
 
-- 🐛 **Report bugs** / 💡 **request features** via the issue templates.
-- 📝 **Improve docs** under `docs/` (or this file).
-- 🎨 **Design** — wallpapers, icons, themes in the E-OS red/black identity.
-- 🔧 **Code** — fixes, the curated `eos.toml`, branding, tooling, hardening.
-- 🧪 **Test** — build & boot on different hardware/QEMU and report results.
+## Development environment
 
-## Development setup
-
-See **[docs/getting-started.md](docs/getting-started.md)** and
-**[docs/building.md](docs/building.md)**. The one rule to remember:
+| Requirement | Notes |
+|---|---|
+| macOS (Apple Silicon) or Linux | the reference host is Apple Silicon macOS |
+| podman | the build is hermetic; nothing is installed on the host toolchain |
+| QEMU | `qemu-system-x86_64` / `qemu-system-aarch64` for boot smoke tests |
+| ~90 GB free disk | a full build tree with caches measures ~70 GB |
+| `shellcheck`, `gitleaks`, `osv-scanner`, `hadolint` | local gates; CI runs the same |
 
 ```bash
-make CI=1 all   # CI=1 is required for non-interactive builds
-make qemu       # boot it
+git clone https://gitlab.com/e-os/e-os.git && cd e-os
+brew install lefthook && lefthook install     # local gates before every push
+bash scripts/eos-build.sh x86_64
+bash scripts/ci-boot-smoke.sh ~/eos-artifacts/eos-x86_64-harddrive.img 300 --arch x86_64
 ```
 
-## Workflow
+**Do not use `make all` from the project directory** if your checkout is on exFAT — podman cannot
+bind-mount it. `scripts/eos-build.sh` exists for exactly this reason.
 
-1. **Fork** and create a topic branch off `main`
-   (`git switch -c feat/my-change`).
-2. Make focused changes. Keep PRs **small** — they're reviewed faster.
-3. **Sign your commits** (`git commit -S`) where possible — see
-   [docs/security.md](docs/security.md).
-4. Update **[CHANGELOG.md](CHANGELOG.md)** (numbered entry) for user-facing
-   changes, and **[ROADMAP.md](ROADMAP.md)** if relevant.
-5. Run `rustfmt` on Rust changes; keep CI green.
-6. Open a **Pull Request** using the template and link any issue/roadmap item.
+## Where to make a change
 
-### Commit style
+E-OS spans 30 repositories with **enforced types**. Getting the type wrong is the most expensive
+mistake available here.
 
-Short, imperative subject; explain *why* in the body. Conventional prefixes are
-appreciated (`feat:`, `fix:`, `docs:`, `ci:`, `security:`).
+| You want to change | Go to |
+|---|---|
+| what goes into an image | `config/*/eos.toml` in this repository |
+| how a package is built | `recipes/` in this repository |
+| kernel, bootloader, libc, filesystem | the corresponding `eos-*` fork (type C) |
+| an E-OS application | `eos-control`, `eos-notes`, `eos-ui` (type A) |
+| upstream Redox code | **upstream**, then sync — never edit a type-B mirror by hand |
 
-## Contribution terms (DCO + license)
+The full type table is [`CLAUDE.md` §11](CLAUDE.md), generated from `repos.toml` and checked by CI.
 
-By contributing you agree that:
+## Branch strategy
 
-- You wrote the change or have the right to submit it, under the
-  [Developer Certificate of Origin](https://developercertificate.org/).
-- Your contribution is licensed under **AGPL-3.0-or-later** (the project
-  license). Inherited Redox files keep their original MIT notices — see
-  [NOTICE](NOTICE).
+| Branch | Purpose |
+|---|---|
+| `main` | integration; protected; **no direct pushes** |
+| `feat/<topic>`, `fix/<topic>`, `docs/<topic>`, `chore/<phase>-<topic>` | work branches |
+| `lts/0.1` | long-term support line |
+| `archive/*` | historical, never merged |
 
-### AI-assisted contributions
+**No force-push, anywhere.** Not on your own branch either — it destroys the review record.
 
-AI-assisted work **is allowed** in E-OS. If you use AI tooling, **you** remain
-responsible for the result: understand the change, test it, ensure it's correct,
-and confirm it's compatible with AGPL-3.0. Don't paste secrets into prompts.
+## Commits
 
-> ⚠️ Note: this differs from **upstream Redox**, which does **not** accept
-> LLM-generated contributions. If you're contributing *to Redox itself*, follow
-> [their policy](docs/REDOX-CONTRIBUTING.md), not this one.
+[Conventional Commits](https://www.conventionalcommits.org/). The scope is an area, not a filename.
 
-## Deep OS / upstream work
+```
+feat(pkg): enforce the signed index on package bytes
+fix(boot): refuse to boot when the signature is absent
+docs(readme): rebuild from verified facts
+```
 
-E-OS re-bases on upstream Redox rather than forking the kernel. For substantial
-kernel/driver/relibc work, the right home is often **upstream Redox** — their
-contributor guide (preserved here as
-[docs/REDOX-CONTRIBUTING.md](docs/REDOX-CONTRIBUTING.md)) and the
-[Redox Book](https://doc.redox-os.org/book/) are excellent references. Upstreaming
-benefits both projects — and E-OS inherits it on the next re-base. 🙏
+The body explains **why** and **what was measured** — not what the diff already shows. A commit
+body that restates the diff is wasted; one that records the measurement that justified the change
+is the most valuable artefact in the repository.
 
-## Questions?
+### Sign-off and signing
 
-Open a [discussion or issue](https://github.com/Gh0s777tt/E-OS/issues), or read
-the **[FAQ](docs/faq.md)**.
+- **DCO sign-off** — every commit carries `Signed-off-by:`, added with `git commit -s`. This is your
+  statement that you have the right to submit the work under the project licence.
+- **Commit signing** — commits are signed (`commit.gpgsign true`, `gpg.format ssh`). Signing is not
+  yet enforced by a server-side rule (`C-20`), so please self-enforce.
+
+## Pull / merge request checklist
+
+Copy this into the MR description and fill it in. **Paste real command output, not summaries.**
+
+```markdown
+## What changed and why
+
+## Verification (real output, not a description)
+- [ ] `bash scripts/eos-build.sh <arch>` → ends with `Done.`
+- [ ] `cargo test --release` (in container) → <paste result line>
+- [ ] `cd tools/eos-repo-sign && cargo test` → <paste result line>
+- [ ] `bash scripts/ci-integrity.sh` → `integrity: PASS`
+- [ ] `shellcheck -f gcc $(git ls-files 'scripts/*.sh')` → no errors
+- [ ] `osv-scanner scan source --lockfile Cargo.lock` → no new findings
+- [ ] Artefact verified, not just the exit code (CLAUDE.md §5.3): <how>
+
+## Tests
+- [ ] New or updated tests accompany this change
+- [ ] A negative test exists for every check added (CLAUDE.md §5.4)
+- [ ] If no test was possible: why, and who approved it
+
+## Documentation
+- [ ] README / CHANGELOG / ROADMAP / ARCHITECTURE updated in THIS MR
+- [ ] CHANGELOG entry references the commit
+
+## For boot / crypto / update / privilege changes (CLAUDE.md §5.6)
+- [ ] Written risk analysis: what happens if this fails, and who notices
+- [ ] Rollback plan: the actual commands
+```
+
+## Review expectations
+
+- **One logical change per MR.** Unrelated fixes get their own MR, however small.
+- A reviewer may ask for the **measurement**, not just the reasoning. "It should work" is not an
+  answer the project accepts — see `CLAUDE.md` §5.3 for why that rule exists.
+- Generated files (`Cargo.lock`, `cookbook.lock`, `sbom/*`, `docs/reference/third-party-licenses.md`) must be
+  **regenerated**, never hand-edited. A hand-edited lockfile will be sent back.
+
+## Test requirements
+
+Every change carries tests. Where a test genuinely cannot be written — cross-compiled Redox targets
+do not run on the build host — say so explicitly and get agreement **before** submitting.
+
+Current reality, so you know what you are joining: `redox_cookbook` has 9 tests, all in upstream
+code; `tools/eos-repo-sign` has 9; the `eos-pkgutils` fork has 33. `repo_builder.rs` and
+`cook/package.rs` — the code that writes the signed index and signs packages — have **none**. Fixing
+that is roadmap item `S-13` and contributions are welcome.
+
+## Release process
+
+1. Ensure `CHANGELOG.md` `[Unreleased]` is complete and every entry names its commit.
+2. Move `[Unreleased]` to a new version heading with the date.
+3. Tag **annotated and signed**: `git tag -s vX.Y.Z -m "E-OS vX.Y.Z"`.
+4. Build and boot-smoke both architectures.
+5. `scripts/make-release.sh` — refuses to assemble a release without `MINISIGN_SECRET_KEY`;
+   unsigned requires an explicit `EOS_ALLOW_UNSIGNED=1`.
+6. Publish the package repository and verify the index signature from a clean checkout.
+7. Regenerate and commit the SBOM for the tag.
+8. Create the release object. *Note: `v0.2.0` is tagged and signed but has no release object —
+   step 8 was missed and is roadmap item `S-20`'s neighbour.*
+
+## Code of conduct
+
+[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) applies to every space this project uses.
+
+## Security issues
+
+**Never** in a public issue or MR. [`SECURITY.md`](SECURITY.md).

@@ -1,0 +1,31 @@
+# The BLOCKING half of the `markdown` job in .github/workflows/lint.yml.
+#
+# Everything off, then exactly the two rules that catch a LINK THAT IS NOT A LINK.
+# The link checker (lychee) cannot see either defect: both produce plain text, so
+# there is no link left for it to resolve, and the page ships with dead prose where a
+# reference should be. That is a correctness bug, not a style preference, which is why
+# these two block while the full rule set next to them is still advisory.
+#
+# Verified clean across every file under docs/ on 2026-08-30 before this gate was
+# introduced — it starts green, so any failure is a defect this change did not create.
+#
+# FILENAME IS LOad-BEARING. markdownlint-cli2 accepts a `--config` only if the name is
+# one it recognises, or a prefix of one (`<prefix>.markdownlint-cli2.yaml`). The first
+# version of this file was `.markdownlint-blocking.yaml`, which the action rejected
+# outright:
+#
+#   Failed due to error: Error: Unable to use configuration file
+#   '.github/linters/.markdownlint-blocking.yaml'; Configuration file should be one of
+#   the supported names ... or a prefix with a supported name
+#
+# That is a step which cannot pass, in the blocking half of the job — found by running
+# the workflow rather than by reading it. Renaming also means the rules move under a
+# `config:` key, which is the cli2 schema rather than the markdownlint one.
+config:
+  default: false
+
+  # MD011 / no-reversed-links: (text)[url] instead of [text](url).
+  MD011: true
+
+  # MD042 / no-empty-links: [text]() — a link with no destination.
+  MD042: true

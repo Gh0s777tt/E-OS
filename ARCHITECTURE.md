@@ -1,112 +1,239 @@
-# E-OS Architecture
+---
+title: Architecture
+status: current
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
 
-A top-down map of the system, so a first-time reader can place any component in
-one read. E-OS is a **hardened downstream of [Redox OS](https://redox-os.org)** —
-a Rust microkernel OS — rebranded "Crimson" (red/black `#E50914`) with original
-apps and security hardening on top.
+# Architecture
 
-> This file is the entry point. Each layer links to its deep docs. The canonical
-> component + pin list is [`repos.toml`](repos.toml); the working standard is
-> [`CLAUDE.md`](CLAUDE.md).
+This document describes what the code does, verified against the built image on 2026-08-30. Where a
+diagram shows a boundary, that boundary exists in the source and the file:line is given.
 
-## The layers
+## Contents
+
+- [Component map](#component-map)
+- [Boot flow](#boot-flow)
+- [Update flow](#update-flow)
+- [Data flow](#data-flow)
+- [Trust boundaries](#trust-boundaries)
+- [Build topology](#build-topology)
+
+---
+
+## Component map
+
+E-OS is a microkernel system. The kernel provides scheduling, memory and IPC; **drivers,
+filesystems, the RAID layer and the network stack are ordinary user-space processes**. A driver
+fault does not take the kernel with it.
+
+Resources are addressed as **schemes** — URL-like namespaces such as `file:`, `tcp:`, `display:`,
+`proc:`. Access is granted per user by an explicit allowlist in `/etc/login_schemes.toml`.
+
+```mermaid
+graph TB
+  subgraph K["Kernel — Rust, minimal TCB"]
+    SCHED[scheduler] --- MEM[memory] --- IPC[scheme IPC]
+  end
+
+  subgraph D["User-space drivers — 16 processes"]
+    PCID[pcid · pcid-spawner]
+    NET["e1000d · rtl8168d · ixgbed<br/>virtio-netd · usbnetd"]
+    USB["xhcid · usbctl · usbhubd<br/>usbhidd · usbscsid"]
+    SND["ac97d · ihdad · sb16d · audiod"]
+    VID["ihdgd · fbcond · vboxd"]
+    IN[inputd]
+  end
+
+  subgraph S["System services"]
+    FS["redoxfs<br/>+ raid1d"]
+    NS["netstack · dhcpd · dns"]
+    PTY[ptyd] 
+    IPCD[ipcd]
+  end
+
+  subgraph U["User space"]
+    ORB["orbital<br/>display server · WM · compositor"]
+    LOG["orblogin · launcher · background"]
+    APP["cosmic-edit · cosmic-files · cosmic-term<br/>netsurf-fb · eos-notes · eos-control"]
+    CLI["ion · bash · nushell · pkg · installer"]
+  end
+
+  K --> D
+  K --> S
+  D --> S
+  S --> ORB
+  ORB --> LOG --> APP
+  K --> CLI
+
+  style K fill:#8b0000,stroke:#e50914,color:#fff
+  style D fill:#4a1010,stroke:#c0392b,color:#fff
+```
+
+**Verified:** the driver list is `/lib/drivers` and `/usr/lib/drivers` in the built image; the
+application list is `/usr/bin` plus `/ui/apps` launcher entries.
+
+---
+
+## Boot flow
+
+The distinguishing property of E-OS: **the bootloader authenticates what it loads before it uses
+it**. Not after, and not by magic bytes.
+
+```mermaid
+sequenceDiagram
+    participant FW as UEFI firmware
+    participant BL as bootloader.efi
+    participant FS as RedoxFS
+    participant K as kernel
+
+    FW->>BL: verify Authenticode signature (+ SBAT revocation)
+    Note over FW,BL: SBAT is stamped BEFORE signing —<br/>Authenticode covers the whole file
+    BL->>FS: read kernel bytes
+    BL->>FS: read kernel.sig
+    alt signature missing
+        BL--xBL: panic — refuse to boot unverified code
+    end
+    alt verification key is all zeros
+        BL--xBL: panic — built without a boot key
+    end
+    BL->>BL: ed25519 verify over SHA-512(ROLE_KERNEL ‖ len_le ‖ data)
+    BL->>BL: only now check ELF magic
+    BL->>FS: read initfs + initfs.sig
+    BL->>BL: same, with ROLE_INITFS — a signed initfs cannot verify as a kernel
+    BL->>K: transfer control
+    K->>K: start user-space drivers, then redoxfs, then orbital
+```
+
+**Source:** `eos-bootloader/src/main.rs:436-451` and `src/eos_boot_verify.rs:16-17, 49-56, 72-81`.
+
+**Known weakness.** The whole block is behind `#[cfg(feature = "verify-boot")]`, and the feature is
+enabled only when `build/boot-signing/boot.pub.bin` exists
+(`recipes/core/bootloader/recipe.toml:26-36`). Without the key the recipe prints a warning and
+builds a bootloader that verifies nothing — and `scripts/eos-build.sh:62` pipes make through
+`tail -3`, so the warning is not seen. Tracked as `C-2`; the fix is to require an explicit
+`EOS_ALLOW_UNVERIFIED_BOOT=1`.
+
+---
+
+## Update flow
+
+Complete, correct, and **switched off** on x86_64.
+
+```mermaid
+sequenceDiagram
+    participant P as pkg (on device)
+    participant R as package repository
+    participant IMG as pinned keys in image
+
+    P->>R: GET repo.toml + repo.toml.sig
+    P->>IMG: read /etc/pkg/eos-repo-sign.pub.toml
+    P->>P: verify hybrid ed25519 + ML-DSA-65
+    alt signature missing or invalid
+        P--xP: RepoManifestUnsigned / SigInvalid — refuse
+    end
+    P->>P: check serial >= watermark (rollback)
+    P->>P: check expires > now (freeze)
+    P->>R: GET <package>.pkgar
+    P->>P: blake3(package header) == entry in verified index
+    alt mismatch
+        P--xP: ManifestHashMismatch — refuse, do not extract
+    end
+    P->>IMG: read [pubkeys.local] from /etc/pkg/packages.toml
+    P->>P: verify per-package ed25519 signature
+    P->>P: extract
+```
+
+**Two facts that belong together.** The mechanism above is real and tested (33 tests in
+`eos-pkgutils`). And **both entries in `/etc/pkg.d/` are commented out**, so on x86_64 no update can
+occur at all. The aarch64 channel is published but its live index predates `serial`/`expires`.
+Tracked as `C-4` and `C-12`.
+
+The index-enforcement exemption is load-bearing rather than lax: during an image build
+`redox_installer` has already written the pinned key into the new sysroot while `repo.toml.sig` does
+not exist yet, so a source with no remotes is exempt. Without that exemption every build would fail.
+It is a named function with its own test so it is not deleted as redundant.
+
+---
+
+## Data flow
+
+```mermaid
+graph LR
+  subgraph DEV["Device"]
+    APPD[application] -->|scheme call| KERN[kernel]
+    KERN -->|file:| RFS[redoxfs]
+    RFS -->|AES-XTS if enabled| DISK[(disk)]
+    KERN -->|tcp: udp: icmp:| NSTK[netstack]
+    NSTK --> NIC[network driver]
+  end
+
+  subgraph OFF["Off device"]
+    NIC -->|TLS: rustls in pkg<br/>OpenSSL 3.5.3 in curl/git| NET((network))
+  end
+
+  style DISK fill:#1a1a1a,stroke:#555,color:#aaa
+```
+
+- **At rest:** AES-XTS in RedoxFS, offered by the installer, **not on by default**. Hardware
+  accelerated on aarch64; software path on x86_64. The key-derivation function has **not** been
+  audited — recorded as an open question.
+- **In transit:** `pkg` uses rustls (currently carrying `rustls-webpki 0.103.4` with six advisories,
+  finding `C-3`); `curl`, `git` and `wget` use OpenSSL 3.5.3.
+- **Passwords:** argon2id, `m=19456, t=2, p=1`, in `/etc/shadow`.
+
+---
+
+## Trust boundaries
 
 ```mermaid
 graph TD
-    subgraph meta["meta — this repo (gitlab.com/e-os/e-os)"]
-        R[recipes/ + config/*.toml]
-        S[scripts/ + tools/eos-repo-sign]
-        D[docs/ mdBook + CHANGELOG/ROADMAP]
-    end
-    subgraph apps["apps — E-OS originals"]
-        NOTES[eos-notes]
-        GUARD[eos-guard]
-        UI[eos-ui — shared Slint-on-Orbital backend]
-    end
-    subgraph gui["gui"]
-        ORBITAL[orbital — compositor + WM]
-        ORBUTILS[orbutils — launcher/greeter/settings]
-        ORBDATA[orbdata — Crimson theme/assets]
-        ORBTERM[orbterm] ; ORBCLIENT[orbclient]
-    end
-    subgraph core["core — userspace"]
-        BASE[eos-base — drivers + daemons + init]
-        UTILS[coreutils/extrautils/ion/userutils]
-        NET[netstack/netutils/netdb]
-        PKG[pkgar/pkgutils — signed packages]
-        INST[installer]
-    end
-    subgraph kernell["core-critical"]
-        KERNEL[eos-kernel — microkernel]
-        RELIBC[eos-relibc — libc]
-        REDOXFS[eos-redoxfs]
-        BOOT[eos-bootloader — UEFI]
-    end
-    NOTES & GUARD --> UI --> ORBITAL
-    ORBUTILS --> ORBITAL --> BASE
-    UTILS & NET & PKG & INST --> BASE --> KERNEL
-    BASE --> RELIBC --> KERNEL
-    KERNEL --> REDOXFS
-    BOOT --> KERNEL
-    R -.pins.-> apps & gui & core & kernell
+  UP["static.redox-os.org<br/><b>UNPINNED</b> — key fetched from the same host"]:::bad
+  MIR["github.com/Gh0s777tt mirror<br/>22 of 26 recipes fetch from here"]:::warn
+  BLD["build machine<br/>4 private keys live here"]:::warn
+  IMGX["signed image + pinned keys"]:::ok
+  DEVU["device — user account<br/>25 schemes, no raw IP, <b>no sandbox</b>"]:::warn
+  DEVR["device — root"]:::ok
+
+  UP -->|30 of 65 packages<br/>as prebuilt binaries| BLD
+  MIR -->|source for 22 recipes| BLD
+  BLD -->|ed25519 + hybrid PQ signatures| IMGX
+  IMGX --> DEVR
+  DEVR -->|login_schemes.toml| DEVU
+
+  classDef ok fill:#14532d,stroke:#22c55e,color:#fff
+  classDef warn fill:#4a3410,stroke:#d97706,color:#fff
+  classDef bad fill:#4a1010,stroke:#dc2626,color:#fff
 ```
 
-## What each layer is
+| Boundary | Enforced by | State |
+|---|---|---|
+| Firmware → bootloader | Authenticode + SBAT | **enforced** |
+| Bootloader → kernel/initfs | ed25519 with domain separation | **enforced**, fail-closed at runtime; fail-**open** at build time (`C-2`) |
+| Repository → device | hybrid signature + pinned key + blake3 on bytes + serial/expires | **enforced**, currently unused (`C-4`) |
+| Upstream binaries → build | `sync_keys()` fetches the key from the serving host | **not enforced** (`C-1`) |
+| Source mirror → build | nothing compares GitLab and GitHub heads | **not enforced** |
+| root → user | `/etc/login_schemes.toml` allowlist, `ip` removed | **enforced per account** |
+| application → application | — | **absent** (`C-5`) |
 
-- **core-critical** — the trusted base. `eos-kernel` (capability-secure Rust
-  microkernel: scheduling, memory, IPC, IRQ), `eos-relibc` (the C library every
-  program links; also the dynamic loader `ld.so`), `eos-redoxfs` (the filesystem,
-  incl. AES-XTS full-disk encryption), `eos-bootloader` (UEFI boot + FDE prompt).
-  These carry E-OS's kernel/loader hardening — see [docs/hardening.md](docs/hardening.md).
-- **core (userspace)** — `eos-base` is the big one: all **drivers** (PCI, NVMe,
-  xHCI/USB, e1000/virtio net, graphics, audio) and **daemons** (`pcid`, `randd`,
-  `rtcd`, netstack) plus init. Around it: the shell (`ion`), core/extra utils,
-  `userutils` (login + first-boot password enforcement), the **signed package**
-  tools (`pkgar`/`pkgutils`, see [docs/update-system-design.md](docs/update-system-design.md)),
-  and the `installer`.
-- **gui** — `orbital` is the single-process software compositor + window manager +
-  display server. `orbutils` ships the Crimson launcher/taskbar, the `orblogin`
-  greeter, and `eos-settings`; `orbdata` holds the theme/wallpaper/icons; `orbterm`
-  the terminal. Full plan in [docs/design-desktop-environment.md](docs/design-desktop-environment.md).
-- **apps (E-OS originals)** — first-party applications. `eos-ui` is the **shared
-  crate** that lets modern [Slint](https://slint.dev) run on Redox: it drives
-  Slint's software renderer over `orbclient` (winit cannot run on Redox) and
-  bootstraps fonts. `eos-notes` (notes, SQLite/WAL) and `eos-guard` (file-integrity
-  monitor, blake3 baseline) both build on it — the pattern for any new app is in
-  [docs/creating-an-eos-app.md](docs/creating-an-eos-app.md).
-- **meta (this repo)** — no OS code; it **assembles** the OS. `recipes/` +
-  `config/*.toml` pin every component to an exact fork revision and define the
-  image; `scripts/eos-repos.sh` manages the repo/pin manifest; `tools/eos-repo-sign`
-  signs the package repo; `docs/` is this manual. See [docs/ci.md](docs/ci.md).
+The weakest link is at the **start** of the chain, not the end. Layers 3–5 are carefully built and
+work; the entry — fetching upstream binaries and sources from a mirror — has no anchor.
 
-## How it is built & shipped
+---
 
-The meta repo pins each component to an exact revision in [`repos.toml`](repos.toml)
-and the `recipes/`. The build runs in a container (`make CI=1 … all`), producing a
-bootable image that is **boot-smoke verified** (`scripts/ci-boot-smoke.sh`) and
-accompanied by a generated **SBOM** (`scripts/gen-sbom.py`). Hosting: GitLab
-`e-os/e-os` is the source of truth; GitHub `Gh0s777tt/*` is the read-only mirror the
-recipes fetch from. Two-tier CI (light shared-runner checks + a self-hosted heavy
-OS build) is documented in [docs/ci.md](docs/ci.md).
+## Build topology
 
-A map of the meta repo itself: `src/` is the **vendored upstream
-`redox_cookbook`** (the recipe build engine — upstream code, carrying no E-OS
-modifications, so the CLAUDE.md §3 doc-comment standard does not apply to it);
-`recipes/` are the package definitions with the E-OS fork pins; `patches/`
-holds *reference copies* of the branding diffs whose real life is commits in
-the forks (see `patches/README.md` — nothing applies them at build time);
-`tools/` is E-OS-authored host tooling (e.g. `eos-repo-sign`); `mk/` +
-`Makefile` + `build.sh` are the upstream build entry points; `scripts/` mixes
-upstream helpers with the E-OS-authored CI/ops scripts (each E-OS script
-carries a what+why header).
+```mermaid
+graph LR
+  REPO["E-OS repo<br/>recipes · config · cookbook"] -->|eos-sync-buildtree.sh| VOL[(podman volume<br/>eos-work)]
+  VOL -->|make in container| PKGS["85 .pkgar packages"]
+  PKGS -->|repo_builder| IDX["repo.toml + serial"]
+  IDX -->|eos-repo-sign| SIG["repo.toml.sig<br/>ed25519 + ML-DSA-65"]
+  PKGS --> IMGB["harddrive.img · live.iso"]
+  IMGB -->|sbsign| SB["Secure Boot signed EFI"]
+```
 
-## Where to go next
-
-- **Internals** (boot flow, schemes, the trusted computing base): [docs/architecture.md](docs/architecture.md)
-- Build it: [docs/building.md](docs/building.md) · [docs/getting-started.md](docs/getting-started.md)
-- Write an app: [docs/creating-an-eos-app.md](docs/creating-an-eos-app.md)
-- Design records: [docs/ SUMMARY → Design & proposals](docs/SUMMARY.md)
-- Security posture: [SECURITY.md](SECURITY.md) · [docs/threat-model.md](docs/threat-model.md)
-- What's done vs claimed: [docs/reality-ledger.md](docs/reality-ledger.md)
-- The working standard: [CLAUDE.md](CLAUDE.md)
-</content>
+The checkout lives on exFAT, which podman cannot bind-mount, so the build tree is a **separate git
+history inside a podman volume**. Two consequences that have both caused real defects: `make` from
+the project directory does not work, and anything counting commits inside the container counts the
+wrong history (which is why the index `serial` is computed on the host).

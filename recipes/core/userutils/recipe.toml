@@ -1,6 +1,6 @@
 [source]
 # E-OS: `eos login:` console prompt. Rebased onto current redox-os/userutils mainline (July).
-git = "https://github.com/Gh0s777tt/eos-userutils.git"
+git = "https://gitlab.com/e-os/eos-userutils.git"
 branch = "eos-july"
 rev = "a43ba3e530371affbd7d39c3cb1ef81c814e63a0"
 

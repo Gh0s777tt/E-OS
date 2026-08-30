@@ -6,7 +6,7 @@
 #     pin-check, rust fmt/clippy/test + cargo-deny, docs pages.  — this file, default.
 #   * HEAVY (self-hosted runner, tag `eos-heavy`): full OS image build + QEMU
 #     smoke test, only on tags / schedules (see `build-image`). Register your own
-#     runner — see docs/ci.md. Never runs on shared runners.
+#     runner — see docs/operations/ci.md. Never runs on shared runners.
 variables:
   # Full clone so gitleaks scans the WHOLE history, not just the last few commits.
   GIT_DEPTH: 0
@@ -287,7 +287,7 @@ pages:
 # self-hosted eos-heavy runner, which has the toolchain + Chromium and spends no
 # shared CI minutes. `needs: []` detaches it from stage order so a quota-exhausted
 # light tier can't skip it; allow_failure keeps a docs hiccup non-blocking. Runs
-# on tags + schedules (not every push). See docs/ci.md.
+# on tags + schedules (not every push). See docs/operations/ci.md.
 docs-pdf:
   stage: docs
   tags: [eos-heavy]
@@ -327,7 +327,7 @@ docs-pdf:
 # ─────────────────────────────  LIGHT: release  ────────────────────────────
 # semantic-release: derive the version from Conventional Commits, tag and cut a
 # GitLab Release (it does NOT rewrite the manual U-NNN CHANGELOG.md). DORMANT until
-# you set a masked, protected CI variable GITLAB_TOKEN (scope: api) — see docs/ci.md.
+# you set a masked, protected CI variable GITLAB_TOKEN (scope: api) — see docs/operations/ci.md.
 semantic-release:
   stage: release
   image: node:20-slim
@@ -356,7 +356,7 @@ build-image:
   # exhausted (`ci_quota_exceeded` on the light jobs) this — the only
   # verification that actually boots the OS — must still run instead of being
   # skipped by the failed earlier stages. `needs: []` detaches it from stage
-  # ordering. See docs/ci.md (CI minutes).
+  # ordering. See docs/operations/ci.md (CI minutes).
   needs: []
   rules:
     # U-152: manual on the tag path -- see the note on docs-pdf. The scheduled path
@@ -396,7 +396,7 @@ build-image:
 # x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
 # Apple Silicon runs under TCG (slow/flaky), so this is MANUAL and non-blocking.
 # Trigger it from the pipeline UI, or move it to a dedicated x86_64 `eos-heavy`
-# runner (your separate x86 rig) for a native boot-smoke. See docs/ci.md.
+# runner (your separate x86 rig) for a native boot-smoke. See docs/operations/ci.md.
 build-image-x86_64:
   stage: build
   tags: [eos-heavy]
@@ -435,7 +435,7 @@ build-image-x86_64:
 # ──────────────────  Renovate (scheduled dependency updates)  ───────────────
 # Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
 # DORMANT until you add a scheduled pipeline + a masked CI variable RENOVATE_TOKEN
-# (a GitLab PAT, scope: api). See docs/ci.md.
+# (a GitLab PAT, scope: api). See docs/operations/ci.md.
 renovate:
   stage: verify
   image: renovate/renovate:slim

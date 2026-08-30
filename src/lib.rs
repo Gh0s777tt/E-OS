@@ -10,6 +10,17 @@ pub const WALK_DEPTH: usize = 16;
 /// Default remote package source, for recipes with build type = "remote"
 pub const REMOTE_PKG_SOURCE: &str = "https://static.redox-os.org/pkg";
 
+/// Directory the package manager downloads remote metadata and signing keys into.
+pub const REMOTE_PKG_DIR: &str = "build/remotes";
+
+/// The cached upstream signing key, named `pub_key_<host>.toml` after the host in
+/// `REMOTE_PKG_SOURCE`. This one file is the whole cryptographic gate on every prebuilt package we
+/// download: `cook::cook_build` reads it and hands it to `pkgar::extract`, and
+/// `cook::fetch_repo::pin_upstream_key` overwrites it with the pinned key on every run. Both sites
+/// must agree on the path, so it is written once here — `fetch_repo`'s tests fail if the host in
+/// `REMOTE_PKG_SOURCE` changes and this constant does not follow it.
+pub const REMOTE_PKG_PUBKEY_CACHE: &str = "build/remotes/pub_key_static.redox-os.org.toml";
+
 pub fn is_redox() -> bool {
     cfg!(target_os = "redox")
 }

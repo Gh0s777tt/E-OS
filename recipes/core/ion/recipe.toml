@@ -1,6 +1,6 @@
 [source]
 # E-OS vendored mirror of redox-os/ion (edit freely; sync via scripts/sync-forks.sh).
-git = "https://github.com/Gh0s777tt/eos-ion.git"
+git = "https://gitlab.com/e-os/eos-ion.git"
 branch = "master"
 rev = "1da444c86705289a40a0bed4c33b9565d1d2f8a1"
 

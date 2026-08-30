@@ -1,3 +1,10 @@
+---
+title: docs/img — web-optimized screenshot copies for the docs site
+status: current
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # docs/img — web-optimized screenshot copies for the docs site
 
 **Canonical screenshots live in [`assets/screenshots/`](../../assets/screenshots)**

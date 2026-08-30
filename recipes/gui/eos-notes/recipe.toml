@@ -1,7 +1,7 @@
 [source]
 # E-OS original app — Crimson notes (Slint software renderer + SQLite/WAL).
 # Dev + CI: https://gitlab.com/e-os/eos-notes (recipes fetch the GitHub mirror).
-git = "https://github.com/Gh0s777tt/eos-notes.git"
+git = "https://gitlab.com/e-os/eos-notes.git"
 branch = "main"
 rev = "9f9eae6e7a03adba07fa6dc577b1074b2a6cc8ff"
 

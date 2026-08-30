@@ -1,4 +1,16 @@
-FROM debian:stable-backports
+# Base image pinned by DIGEST, not by tag, as of 2026-08-30.
+#
+# WHY A DIGEST AND NOT apt VERSIONS. hadolint reports DL3008 ("pin versions in apt get install")
+# against the RUN line below, and following that literally would be worse here: Debian removes
+# superseded package versions from the archive, so a containerfile pinning 78 exact apt versions
+# stops building the first time any of them rotates -- turning a reproducibility measure into a
+# scheduled outage. Pinning the base image by digest fixes the package set deterministically for
+# that image without depending on the archive keeping old versions.
+#
+# The tag is kept alongside the digest for readability. The digest is what podman resolves.
+# To move to a newer base: pull the tag, read the new digest, and update it here in its own commit
+# so the change is visible in review rather than arriving silently on the next build.
+FROM docker.io/library/debian:stable-backports@sha256:03723759e77a42a22bd023dcceefdc1f5baa71c975635cfaba7a015047877060
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends -t stable-backports \

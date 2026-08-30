@@ -18,12 +18,12 @@
   `R-610` (zależności builda instalatora na źródła E-OS), **`R-D13`** (katalog łańcuchów i18n —
   założona w rejestrze na wniosek §9 tego dokumentu). Rejestr rozpisał ten dokument na
   `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP-v2.md` §12.5 („M4") i §12.7.
-- **Powiązane:** [`docs/plan.md`](../plan.md) §2 (trzy edycje, jedna baza) · [`docs/install.md`](../install.md) ·
-  [`docs/encryption.md`](../encryption.md) · [`docs/hardening.md`](../hardening.md) ·
-  [`docs/threat-model.md`](../threat-model.md) · [`ADR-0004`](../adr/0004-hybrydowy-podpis-manifestu.md) ·
-  [`ADR-0005`](../adr/0005-secure-boot-bez-microsoftu.md) ·
-  [`ADR-0010`](../adr/0010-stos-szyfrowania.md) (stos szyfrowania — źródło faktów z §8 poz. 13–13c) ·
-  [`ADR-0011`](../adr/0011-architektura-kreatora-instalacji.md) (granica silnik/frontend, która
+- **Powiązane:** [`docs/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/install.md`](../getting-started/install.md) ·
+  [`docs/encryption.md`](../guides/encryption.md) · [`docs/hardening.md`](../security/hardening.md) ·
+  [`docs/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
+  [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) ·
+  [`ADR-0010`](../adr/0010-encryption-stack.md) (stos szyfrowania — źródło faktów z §8 poz. 13–13c) ·
+  [`ADR-0011`](../adr/0011-installer-wizard-architecture.md) (granica silnik/frontend, która
   decyduje, gdzie ten resolver mieszka) · [`installer-wizard.md`](installer-wizard.md) §14
   (znaczniki — **kolizja zakresów opisana pod tabelą §8**)
 - **Przykłady:** [`examples/profiles/`](examples/profiles/) — cztery kompletne profile i

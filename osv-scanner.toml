@@ -1,0 +1,31 @@
+# osv-scanner exceptions.
+#
+# An entry here is a claim that a finding does not apply to THIS dependency graph, with the
+# evidence for that claim and a date on which the claim expires. It is not a way to make the
+# gate quiet: `ignoreUntil` means the finding comes back on its own, so a stale exception
+# fails the build instead of hiding forever.
+#
+# The bar for adding one: say which code path would have to exist for the finding to be
+# reachable, and show that it does not. "Probably fine" is not a reason.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0253"
+ignoreUntil = 2026-11-30
+reason = """
+lru 0.16.4: use-after-free in LruCache::pop(), reachable only when the Drop implementation of a
+stored KEY panics, which skips detach() and leaves a dangling node in the list.
+
+Not reachable here, checked rather than assumed:
+  - lru is pulled only by ratatui-core 0.1.0 (cargo tree -i lru), which uses exactly one cache:
+    `type Cache = LruCache<(Rect, Layout), (Segments, Spacers)>` (layout/layout.rs:36).
+  - The key type is (Rect, Layout). `grep -rn "impl Drop"` over the whole of ratatui-core/src
+    returns nothing, so neither half of the key has a Drop that can panic.
+  - This is the build tool's terminal UI in the vendored redox_cookbook. It runs on a
+    developer's machine and is not part of the shipped image, so it is not product surface.
+
+Cannot be fixed by updating: the advisory is fixed in 0.18.2, and ratatui-core 0.1.0 constrains
+lru to ^0.16 (0.16.4 is the newest that resolves). Clearing it needs a ratatui bump in vendored
+upstream code, which is a deliberate change to make on its own rather than inside a CI commit.
+
+Review by 2026-11-30: either ratatui has moved, or this exception has to be argued again.
+"""
