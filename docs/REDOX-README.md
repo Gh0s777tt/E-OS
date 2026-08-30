@@ -16,12 +16,12 @@ Redox is under active development by a vibrant community, you can see the key li
 
 Redox _is not_ just a kernel, it's a **full-featured operating system**, providing components (file system, display server, core utilities, etc.) that together make up a functional and convenient operating system. Redox uses the COSMIC desktop apps, and provides source code compatibility with many Rust, Linux and BSD programs.
 
-[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
 ## More Links
 
 - [Book](https://doc.redox-os.org/book/)
-- [Contribute](CONTRIBUTING.md)
+- [Contribute](../CONTRIBUTING.md)
 - [Hardware Compatibility](https://doc.redox-os.org/book/hardware-support.html)
 - Run Redox in a [Virtual Machine](https://doc.redox-os.org/book/running-vm.html) or on [Real Hardware](https://doc.redox-os.org/book/real-hardware.html)
 - [Trying Out Redox](https://doc.redox-os.org/book/trying-out-redox.html)

@@ -228,16 +228,16 @@ Recommended order, realistic per-item scope and QEMU verification plans live in
 
 *Historical context: GitHub Actions is disabled account-wide (HTTP 422, 0 runs
 complete), which at audit time (2026-07-13) made every advertised pipeline inert.
-**That framing no longer applies** (see [docs/reality-ledger.md](reality-ledger.md)
+**That framing no longer applies** (see [docs/reality-ledger.md](docs/reality-ledger.md)
 note of 2026-07-23): integrity has moved to **GitLab CI** — light gates
 (`secret-scan` · `integrity` · `pin-check` · `docs-currency` · `rust-checks`) on
 shared runners plus the heavy `build-image` + boot-smoke on the self-hosted
-`eos-heavy` runner ([docs/ci.md](ci.md)). Only the `.github/` workflows themselves
+`eos-heavy` runner ([docs/ci.md](docs/ci.md)). Only the `.github/` workflows themselves
 remain dead, and GitHub `Gh0s777tt/*` is a read-only mirror. The items below are
 kept with their final statuses as the record of that recovery.*
 
 - ✅ `R-001` **Reality-ledger / verification matrix doc** — DONE: the doc exists
-  and is maintained at [docs/reality-ledger.md](reality-ledger.md) (generated
+  and is maintained at [docs/reality-ledger.md](docs/reality-ledger.md) (generated
   2026-07-13, reconciliation note 2026-07-23; listed in `docs/SUMMARY.md`).
   Follow-up: refresh it at every release. `[P0·S·any]`
 - ✅ `R-002` **Local `make release` (non-Actions) with real checksums** — DONE (`U-069`: `scripts/make-release.sh`; `release/SHA256SUMS` regenerated over the real images). — Build eos-<ver>-<arch>.img, regenerate SHA256SUMS over the ACTUAL retained artifact (current release/SHA256SUMS is dated Jul-5 and lists phantom eos-0.1.0-<arch>.img while builds are build/<arch>/eos/harddrive.img at 1400 MiB), and minisign locally so install.md's verify/dd steps work. `[P0·M·any]`
