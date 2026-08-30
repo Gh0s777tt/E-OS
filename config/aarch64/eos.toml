@@ -99,10 +99,10 @@ VERSION_CODENAME=genesis
 ID=eos
 ID_LIKE=redox-os
 ANSI_COLOR="1;31"
-HOME_URL="https://github.com/Gh0s777tt/E-OS"
-DOCUMENTATION_URL="https://github.com/Gh0s777tt/E-OS/tree/main/docs"
-SUPPORT_URL="https://github.com/Gh0s777tt/E-OS/issues"
-BUG_REPORT_URL="https://github.com/Gh0s777tt/E-OS/issues"
+HOME_URL="https://gitlab.com/e-os/e-os"
+DOCUMENTATION_URL="https://e-os.gitlab.io/e-os/"
+SUPPORT_URL="https://gitlab.com/e-os/e-os/-/issues"
+BUG_REPORT_URL="https://gitlab.com/e-os/e-os/-/issues"
 """
 
 # Login banner (/etc/issue) — overrides userutils' default Redox banner.
@@ -129,7 +129,7 @@ data = """
 path = "/etc/motd"
 postinstall = true
 data = """
-Welcome to E-OS - forged in Rust.  https://github.com/Gh0s777tt/E-OS
+Welcome to E-OS - forged in Rust.  https://gitlab.com/e-os/e-os
 Type  eos-welcome  for a quick start.
 """
 

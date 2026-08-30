@@ -1,7 +1,7 @@
 [source]
 # E-OS: build the red/black-themed bootloader from the local patched checkout
 # (must live under /mnt/redox so it's visible inside the build container).
-git = "https://github.com/Gh0s777tt/eos-bootloader.git"
+git = "https://gitlab.com/e-os/eos-bootloader.git"
 branch = "eos-rebased"
 rev = "87b214b5b481be7f7049fbb07cf927961b00da5b"
 

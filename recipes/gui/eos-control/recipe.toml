@@ -2,7 +2,7 @@
 # E-OS original app — unified control center (system + processes + capabilities
 # + security). Supersedes eos-sysmon and eos-guard in the image (their standalone
 # repos remain, archived). Dev + CI: https://gitlab.com/e-os/eos-control.
-git = "https://github.com/Gh0s777tt/eos-control.git"
+git = "https://gitlab.com/e-os/eos-control.git"
 branch = "main"
 rev = "40dc67fde3b48ddf945a84840e1d4d788f359119"
 

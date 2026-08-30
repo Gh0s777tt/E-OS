@@ -2,7 +2,7 @@
 # E-OS original app #2 — Crimson filesystem integrity monitor (blake3 + SQLite,
 # Slint GUI over the shared eos-ui Orbital backend).
 # Dev + CI: https://gitlab.com/e-os/eos-guard (recipes fetch the GitHub mirror).
-git = "https://github.com/Gh0s777tt/eos-guard.git"
+git = "https://gitlab.com/e-os/eos-guard.git"
 branch = "main"
 rev = "06263607526b0d47eb77147f149aa17f00d8e0e3"
 

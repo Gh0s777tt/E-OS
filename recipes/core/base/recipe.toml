@@ -5,7 +5,7 @@
 # reverted on this branch (it deadlocked userspace on the July stack; the kernel
 # R-401b jitter entropy still seeds randd) — see docs/reference/known-issues.md.
 # Upstream: https://gitlab.redox-os.org/redox-os/base.git
-git = "https://github.com/Gh0s777tt/eos-base.git"
+git = "https://gitlab.com/e-os/eos-base.git"
 branch = "eos-july"
 # U-081: K-01 raid1d superblock validation (f00f4825) + K-06 randd seed hardening
 # and pcid ACPI _PRT walk (a5cf1b0c). U-082: randd retries rdrand on carry-flag
