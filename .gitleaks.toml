@@ -39,4 +39,13 @@ paths = [
   # This is a deliberate blind spot of exactly one file. The value is also pinned into the image at
   # /etc/pkg/packages.toml [pubkeys.local], so a change to it is visible in two places, not one.
   '''^keys/eos-pkg-signing\.pub\.toml$''',
+  # Upstream Redox's pkgar package-signing PUBLIC key, pinned so the build stops trusting a copy
+  # fetched from the same host that serves the packages. Same shape as the entry above: 74 bytes,
+  # one `pkey` field, 64 hex characters = 32 bytes = an ed25519 PUBLIC key. gitleaks flags it on
+  # entropy alone.
+  #
+  # One thing is different and worth stating: this is a THIRD PARTY's public key. It is not secret
+  # to us and it is not secret to upstream either -- it is published at
+  # https://static.redox-os.org/pkg/id_ed25519.pub.toml for anyone to fetch.
+  '''^keys/upstream-redox-pkg\.pub\.toml$''',
 ]

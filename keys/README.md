@@ -79,6 +79,53 @@ Verify a downloaded manifest:
 eos-repo-sign verify keys/eos-repo-sign.pub.toml repo.toml   # checks repo.toml.sig
 ```
 
+## 3. Upstream package key — pinned, not downloaded (C-1)
+
+`keys/upstream-redox-pkg.pub.toml` is upstream Redox's package-signing key, and it is the only
+trust anchor for the prebuilt packages we do not build ourselves. It is **not ours** — we hold no
+private half and cannot rotate it. It is here so that nobody has to take it from the network.
+
+**The problem it fixes.** `RepoManager::sync_keys()` downloads that key from
+`https://static.redox-os.org/pkg` and caches it in `build/remotes/`. That is the same host that
+serves the packages, and nothing compared the key against anything: trust on first use, decided by
+whoever answered the request. `cook::cook_build` then hands exactly that cached file to
+`pkgar::extract`, so it is the whole cryptographic gate on **30 of the 65 packages** in a shipped
+image. Whoever controlled the host supplied both the packages and the key that "verified" them.
+`cook::fetch_repo::pin_upstream_key` now writes this file from the pin on every run, before any
+package is opened, and sets the key on the remote so no download is attempted.
+
+**How the value was established, and what that is worth.** A pin cannot prove a key was ever the
+right one — it can only stop it changing without anyone noticing. Before committing it, the value
+was taken from four independent witnesses and all four were byte-identical:
+
+| Witness | Date observed | Value |
+|---|---|---|
+| `https://static.redox-os.org/pkg/pub.toml`, live | 2026-08-30 | `578b09da…59677e` |
+| This tree's pre-existing `build/remotes/` cache | earlier build | `578b09da…59677e` |
+| archive.org snapshot | 2023 | `578b09da…59677e` |
+| archive.org snapshot | 2024 | `578b09da…59677e` |
+
+Two of those witnesses are years apart and outside upstream's control at the time we read them,
+which is what makes this more than "whatever the host said today". It is still evidence, not
+proof: if the key was already wrong in 2023, every witness is wrong together. Say so plainly
+rather than describing the pin as verification.
+
+**If upstream rotates the key.** The build stops, loudly — extraction fails because the packages
+are signed with a key that is not the pinned one. That is the intended behaviour and it must not
+be worked around by deleting the pin. Instead:
+
+1. Confirm the new value from more than one source that upstream does not solely control (their
+   announcement, the live host, an archived snapshot taken after the rotation).
+2. Update `keys/upstream-redox-pkg.pub.toml` **in its own commit**, with the witnesses recorded in
+   the commit message and the table above updated.
+3. Do not batch that commit with anything else. A key change should be reviewable on its own.
+
+**What guards it.** `cook::fetch_repo`'s tests cover the three ways this silently stops working: a
+poisoned cache surviving the run, a remote left without a key so `sync_keys()` fetches one anyway,
+and the written path drifting away from the path `cook_build` reads. The last one matters most —
+change the host in `REMOTE_PKG_SOURCE` without updating `REMOTE_PKG_PUBKEY_CACHE` and the pin
+would land beside the file that is actually used, restoring the old behaviour with no visible sign.
+
 ## CI signing
 
 CI-side signing (`.github/workflows/release.yml`) is **inert** — GitHub Actions is
