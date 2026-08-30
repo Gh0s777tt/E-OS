@@ -66,7 +66,14 @@ E-OS's OS-level security posture is documented in:
 
 ## 🛡️ How we harden this repository
 
-CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* used).
+CI is defined in **two** places, and neither is currently doing its job unaided.
+**GitLab** (`.gitlab-ci.yml`) is the authoritative pipeline, but every job there has
+failed in ~0 s with `ci_quota_exceeded` since 2026-08-28. **GitHub Actions**
+(`.github/workflows/`) was added as the remediation — a public repository has no minute
+cap — but Actions do not execute on this account today: a minimal `on: push` workflow
+pushed straight to github.com produces no run at all. Turning that back on is step 0 of
+[docs/security/github-configuration.md](docs/security/github-configuration.md).
+Until one of the two is running, treat every gate below as *written, not enforced*.
 
 - 🔑 **gitleaks** scans the **whole history** on GitLab CI (`secret-scan`), and
   **cargo-deny** checks RustSec advisories / licenses / sources on every merge
