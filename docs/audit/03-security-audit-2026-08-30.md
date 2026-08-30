@@ -339,9 +339,10 @@ zbudowana warstwa autentyczności jest gotowa i **nieużywana**.
 ## 7. Aneks — znaleziska po dacie raportu
 
 Raport powyżej jest zapisem stanu z 2026-08-30 i nie jest zmieniany wstecz.
+Numeracja aneksu zaczyna się od **C-22**: C-1…C-21 są zajęte w tabeli powyżej.
 Poniżej to, co znalazło się później, przy pracy nad pozycjami z tej listy.
 
-### C-18 — HIGH — zapis dowolnego pliku z prawami roota przez katalog pobierania `pkg`
+### C-22 — HIGH — zapis dowolnego pliku z prawami roota przez katalog pobierania `pkg`
 
 **Znalezione:** 2026-08-30, przy okazji C-3 (test integracyjny `eos-pkgutils` padał
 niedeterministycznie; przyczyną okazała się dzielona ścieżka, nie sam test).
