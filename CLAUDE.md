@@ -440,7 +440,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (8 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (12 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
