@@ -334,5 +334,532 @@ dlatego, że kodu nikt nie audytuje ani nie testuje w repo opisanym jako lustro.
 commita i ze statusem wobec upstreamu (*zgłoszona / przyjęta / lokalna na stałe*). Łatka bez
 uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scripts/eos-rebase-check.sh`.
 
+**Typ B — vendorowane lustro**
+1. Zmiana pochodzi **wyłącznie** z `sync-forks.sh`, nigdy z ręki.
+2. Różnica wobec upstreamu jest **zerowa** albo świadomie udokumentowana z powodem.
+3. Pin podbity w `repos.toml` **i** w przepisie; `pins --strict` zielone.
+4. Obraz przebudowany, `boot-smoke` PASS — synchronizacja lustra potrafi zmienić ABI.
+5. **Sprawdzone, że to, co zbudowane, to to, co przypięte** (`eos-source-rules.sh`, §9).
+
+**Typ C — fork z łatkami**
+1. Wszystko z typu A, plus:
+2. Każda łatka ma uzasadnienie i status wobec upstreamu.
+3. `git rebase` na aktualny upstream **przechodzi bez konfliktów** albo konflikt jest
+   rozwiązany i opisany.
+4. Push na **oba** hosty przed podbiciem pina, każdy zweryfikowany `git ls-remote` (§1.6).
+
+**Typ D — repozytorium pakietów**
+1. Zmiana wyłącznie przez `publish-repo-pages.sh` / `publish-repo.sh`.
+2. `repo.toml` **podpisany** — publikacja bez podpisu jest odmawiana, chyba że świadomie
+   `EOS_ALLOW_UNSIGNED=1` (`U-120`), czego **nie robimy** dla niczego publicznego.
+3. Żadnych luster (§11, typ D).
+4. Klient potrafi zweryfikować manifest — a to **sprawdza się w artefakcie**, nie w forku
+   (`U-164`).
+
+## 13. CI/CD jako egzekutor, nie jako sugestia
+
+**Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
+`integrity` (8 kontroli niezmienników) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
+`cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
+doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
+`build-image-x86_64` · `coverage` · `sbom` · `rustdoc` · oraz dwa zadania **scheduled**,
+które wymagają sieci i klonują upstreamy: `mirror-drift` (blokujące) i `rebase-check`
+(doradcze). Zaplanuj je w *Settings → CI/CD → Schedules*; dziennie w zupełności wystarczy.
+
+**Zasada:** bramka na `|| true` jest **ozdobą**, nie bramką (`U-140`). Jeśli sprawdzenie
+nie może zapalić się na czerwono, nie istnieje.
+
+**Druga strona tej samej zasady (`U-177`): czerwone musi mówić, CO jest złamane — drzewo
+czy przyrząd.** Kontrola, która nie mogła się wykonać, i kontrola, która wykryła usterkę,
+wymagają przeciwnych reakcji, więc nie wolno im wypisywać tego samego komunikatu. Gorszy
+wariant tej samej wady to zielone: `git grep` bez gita wypisuje pusto, a pusto czyta się
+jak „czysto". Stąd w `ci-integrity.sh` osobne `FAIL (instrument):` i sonda narzędzi przed
+pierwszą kontrolą — §4.2 zastosowane do samej bramki.
+
+**Docelowo pipeline ma padać przy:**
+
+| Warunek | Stan dziś |
+|---|---|
+| wykryty sekret (gitleaks) | ✅ **działa**, hook + CI na pełnej historii |
+| CVE w zależnościach (`cargo-deny check advisories`) | ✅ **działa** na obu manifestach (`U-159`) |
+| błędy shellcheck w `scripts/` | ✅ **działa** (ostrzeżenia jeszcze doradcze) |
+| niezgodność pinów | ✅ **działa** (`pins --strict`) |
+| składnia bash 4 na hoście z bash 3.2 | ✅ **działa** (kontrola 5) |
+| **spadek pokrycia testami** | ✅ **działa** (`U-168`) — `coverage` gatuje `tools/eos-repo-sign` progiem 38% (zmierzona baza 38,84%); vendorowany manifest raportowany, nie gatowany |
+| **typ repo niezgodny z tym, co fork faktycznie niesie** | ✅ **działa** (`U-169`) — `mirror-drift` porównuje `type` z `repos.toml` z pomiarem na forku i **pada**; offline'owy odpowiednik to kontrola 7 (`CLAUDE.md` §11 vs `repos.toml`) |
+| **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
+| **ciche znormalizowanie końców linii** | ✅ **działa** (`U-173`, kontrola 8) — `.gitattributes` powstrzymuje gita, kontrola 8 edytor: pada przed pushem, nazywając plik, któremu zniknął CRLF |
+| **bramka, która nie mogła się wykonać** | ✅ **działa** (`U-177`) — brak `git`/`grep`/`awk` albo katalog spoza drzewa roboczego przerywa `ci-integrity.sh` **przed** pierwszą kontrolą; brak `python3` lub pliku pomocniczego pada jako `FAIL (instrument):` w kontroli 6 i 7, nigdy jako złamany niezmiennik |
+| **konflikt rebase łatek** | ⚠️ **doradcze** (`U-169`) — `rebase-check` wykrywa konflikt przez `git merge-tree`, ale nie blokuje: ruch upstreamu to nie nasza usterka, chodzi o to, by dowiedzieć się **teraz**, a nie przy następnej synchronizacji |
+| **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
+
+Braki są wypisane w **TODO** na końcu tego dokumentu. Nie udawaj, że istnieją.
+
+### 13.1 `scripts/verify.sh` — jedno polecenie przed **każdym** commitem
+
+```sh
+bash scripts/verify.sh            # pełny łańcuch
+bash scripts/verify.sh --fast     # bez wolnych skanów — NIE jest pełną weryfikacją
+bash scripts/verify.sh --help
+```
+
+Skrypt przechodzi cały łańcuch — format → lint → typecheck → build → test → bramki projektu →
+skany bezpieczeństwa — i **kończy się kodem niezerowym przy dowolnej porażce**. **Wywołuje** te
+same polecenia co pipeline'y (`ci-integrity.sh`, `cargo fmt/clippy/check/build/test`,
+`shellcheck`, `actionlint`, `hadolint`, `cargo-llvm-cov`, `gitleaks`, `cargo-deny`,
+`osv-scanner`, `semgrep`), a nie opisuje ich reguł po raz drugi — druga kopia reguły to kopia, która się
+rozjeżdża (§6, `U-164`).
+
+**Dlaczego wymagane, a nie zalecane.** Trzy pomiary, nie trzy opinie: bramki GitLaba padają
+w ~0 s na `ci_quota_exceeded` od 2026-08-28 (C-7); GitHub Actions dla tego repozytorium **w
+ogóle się nie uruchamia** — 2026-08-30 minimalny workflow `on: push` na świeżej gałęzi nie
+wyprodukował **żadnego** przebiegu, ani zakolejkowanego, ani czerwonego (pomiar zostaje
+powtarzalny w `.github/workflows/_canary.yml`); a C-6 mówi, że każdy commit w historii szedł
+prosto na `main`, więc nawet działający pipeline sprawdzałby kod **po** publikacji i
+zlustrzaniu. Przebieg na własnej maszynie jest dziś jedyną bramką, o której wiadomo, że się
+wykona.
+
+| Zachowanie | Dlaczego tak |
+|---|---|
+| brak narzędzia = `SKIPPED` **i kod niezerowy** | `gitleaks \|\| true` przepuścił podłożony klucz, drukując zielone (`U-140`); skaner nieobecny daje ten sam wynik co skaner wyłączony. Świadome odstępstwo: `--allow-missing` — wtedy podsumowanie wypisuje, czego **nie** zmierzono |
+| `exit 1` ≠ `exit 2` | 1 = bramka **znalazła wadę**, naprawiasz drzewo. 2 = bramka **nie mogła się wykonać**, naprawiasz przybornik. Ten sam podział co `FAIL (instrument):` w `ci-integrity.sh` (`U-177`) |
+| `--fast` pomija coverage, `cargo-deny`, `osv-scanner`, `semgrep` | …i mówi o tym w podsumowaniu: zielone z `--fast` **nie jest** pełną weryfikacją |
+| każdy etap wykonuje się także po porażce wcześniejszego | jeden przebieg ma dać cały obraz, a nie pierwszą skargę |
+
+**Czego `verify.sh` NIE dowodzi** — i nie udaje, że dowodzi: `pin-check` (**nie klonuje** —
+robi po jednym `git ls-remote` na przypięty fork, 26 z nich, czyli 26 rund do github.com;
+poprawione w przeglądzie 2026-08-30, wcześniej ten akapit i nagłówek `verify.sh` mówiły
+„klonuje", czego `scripts/eos-repos.sh:104` nie robi), `docs-currency` (potrzebuje bazy diffa
+MR), `mirror-drift` / `rebase-check` (zadania scheduled, te **klonują** każdy fork i jego
+upstream), `build-image` + `ci-boot-smoke.sh` (podman i 37 GB cache'u, runner `eos-heavy`)
+oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porównuje graf
+zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
+baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
+
+**Zmierzone 2026-08-30 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
+
+| przebieg | wynik | kod |
+|---|---|---|
+| `--fast` | 10 PASS · 0 FAIL · 1 `SKIPPED (could not run)` · 4 `SKIPPED (--fast)` | **2** |
+| pełny | 12 PASS · 0 FAIL · 3 `SKIPPED (could not run)` · 0 `SKIPPED (--fast)` | **2** |
+| `--fast --allow-missing` | to samo, ale brak pomiaru jest świadomy | **0** |
+
+Trzy `SKIPPED (could not run)` w pełnym przebiegu to `tar-pins` (bramki nie ma — niżej),
+`coverage` i `cargo-deny` (na tym hoście nie ma `cargo-llvm-cov` ani `cargo-deny`).
+
+Kontrola negatywna (`§4.1`), dwie, obie zmierzone, nie założone: po podmianie etapu
+`hadolint` na plik z błędnie sformułowaną instrukcją przebieg daje `hadolint FAIL` i
+`exit 1`; po przywróceniu wcześniejszej usterki etapu `osv-scanner` (`-L` wskazujące
+`Cargo.toml` zamiast `Cargo.lock`) — `osv-scanner FAIL` i `exit 1`. Skrypt potrafi zapalić
+się na czerwono, nie tylko na zielono.
+
+**Poprawka z przeglądu 2026-08-30, zostawiona widoczna (§2 reguła 4).** Etap `osv-scanner`
+podawał do `-L` **manifest** `Cargo.toml`, a nie plik blokady. `osv-scanner` nie traktuje
+tego jako węższego skanu, tylko kończy się kodem 127 z `could not determine extractor
+suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnościami `git`)
+**nie był w ogóle sprawdzany**, a bramka meldowała to jako wadę drzewa. Po poprawce:
+163 + 57 pakietów, `osv-scanner.toml` wczytany, `0 issues`. Dołożony został też etap
+`hadolint`, bo `lint.yml` `containerfiles` **blokuje** na `podman/*containerfile`, a
+`verify.sh` twierdził wcześniej, że żadne zadanie w tym drzewie hadolinta nie uruchamia.
+
+Ten jeden pominięty etap to `scripts/eos-check-tar-pins.py` — bramka, której łańcuch wymaga,
+a której **w drzewie nie ma**. To jest stan uczciwy, nie usterka skryptu: łańcuch pozostaje
+niekompletny, dopóki ktoś tej bramki nie napisze. Nie zamykaj tego przez `--allow-missing`.
+
+**Znana flaga w vendorowanym manifeście — zmierzona, nie wywnioskowana.**
+`cook::cook_build::tests::file_system_loop_no_infinite_loop` pada na
+`src/config.rs:209` z `Configuration is not initialized`: czyta globalny stan, który
+inicjalizuje **inny** test w tym samym binarium, więc wynik zależy od kolejności wątków.
+To wyścig, którego szanse **rosną z obciążeniem CPU**: **2 porażki na 18** domyślnych
+(równoległych) przebiegów na bezczynnej maszynie, **5 na 6** przebiegów robionych, gdy o
+procesor biły się inne zadania, i **0 na 3** przy `-- --test-threads=1`. Obciążony współdzielony
+runner CI jest więc dla tego testu **najgorszym**, a nie najlepszym przypadkiem. Czego **nie**
+ustalono: który test inicjalizuje ten globalny stan i czy upstream już to naprawił.
+Dotyczy tak samo `rust-checks` w `.gitlab-ci.yml` i zadania `rust`
+w `ci.yml` — obydwa wołają zwykłe `cargo test`. Jeśli `verify.sh` czerwieni się **na tej
+jednej nazwie testu i niczym więcej**, to nie jest Twoja zmiana. `verify.sh` tego **nie
+obchodzi** przez `--test-threads=1`: lokalna zieleń kupiona rozjazdem z CI to nadal czerwony
+pipeline, a flaga w bramce jest wadą do naprawienia, nie do schowania w bramce.
+
+## 14. Bezpieczeństwo — kierunek i etapy
+
+**Model docelowy:** bezpieczeństwo oparte na **zdolnościach** (capability-based), z
+mikrojądrem jako TCB. Schematy i przestrzenie nazw Redoksa są mechanizmem — root **nie
+jest** wszechwładny, bo dostęp zależy od zdolności, nie od UID-a (co zmierzono w `U-161`:
+`sudo` i root padają identycznie).
+
+**Etapami, świadomie, bez udawania że już są:**
+
+1. **Kompartmentalizacja w duchu Qubes OS** — pakiet `contain` jako odpowiednik AppVM;
+   `Namespace::fork()` jest nieuprzywilejowany i potrafi wyłącznie **zawężać**. Dziś
+   wyłączony; włączenie i polityka per aplikacja to `R-1010`/krok 10 planu.
+2. **Niemutowalny root w duchu Talos Linux** — obraz podpisany, aktualizacja A/B z
+   wycofaniem (`R-706`, `R-707`, `R-710`).
+3. **Enklawy (Gramine/SGX)** — dopiero po (1) i (2); dziś **poza zakresem**, wpisane jako
+   kierunek, nie jako plan.
+
+**Klucze podpisujące pakiety:** docelowo **HSM lub Vault**. Dziś klucz **tajny** leży poza
+repozytorium w rękach operatora (`keys/README.md`), a w drzewie jest tylko część publiczna.
+Klucz hybrydowy (ed25519 + ML-DSA-65) opisany w `docs/security.md`.
+**Generowanie klucza jest działaniem człowieka (§10.1).**
+
+**`unsafe`:** każdy blok z `SAFETY:` (§10.2), a docelowo `#![deny(unsafe_code)]`
+w komponentach krytycznych własnych E-OS. Każdy pozostawiony `unsafe` ma nieść
+uzasadnienie **oraz plan usunięcia**.
+
+## 15. Dokumentacja — struktura docelowa
+
+**Jest dziś:** mdBook (`book.toml`, `docs/SUMMARY.md`), 38 plików w `docs/`, w tym
+`docs/architecture.md`, `docs/threat-model.md`, `docs/hardware-matrix.md`,
+`docs/design-*.md`, `docs/adr`-podobne uzasadnienia rozsiane po CHANGELOG-u.
+`mdbook-mermaid` jest wpięty w `pages` i `docs-pdf`.
+
+**Cele i ich stan** (`U-168` domknęło część z nich — kolumna *Stan* jest
+aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
+
+| Cel | Stan |
+|---|---|
+| `docs/architecture/` z diagramami **Mermaid** | ✅ **jest** (`U-168`): topologia repozytoriów i ścieżka budowania, wpisane do `SUMMARY.md` |
+| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§2 reguła 4) |
+| `docs/adr/` — decyzje architektoniczne (ADR) | ✅ **jest** (`U-168`): szablon + ADR-0001…0004 wyciągnięte z realnych decyzji; CHANGELOG pozostaje dowodem |
+| `docs/hardware/` — macierz kompatybilności | ⚠️ jest `docs/hardware-matrix.md` + `HARDWARE.md` |
+| CHANGELOG generowany z Conventional Commits | ⚠️ `semantic-release` jest w CI, ale wpisy `U-NNN` pisane są ręcznie i **niosą dowody** — automat ich nie zastąpi |
+| Dokumentacja HTML ze zrzutami z QEMU | ⚠️ mdBook + `assets/screenshots/`; **MkDocs nie jest używany** |
+| `rustdoc` dla API | ✅ **jest** (`U-168`): zadanie `rustdoc` publikuje dokumentację `tools/eos-repo-sign` jako artefakt |
+
+## 16. Testowanie
+
+**Jest dziś:** `cargo test` na obu manifestach (9 testów vendorowanego cookbooka + 9
+w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU aarch64),
+`repro-intx-lines.sh` (10-konfiguracyjny strażnik regresji z kolumną czasu),
+`ci-install-smoke.sh` (dwuetapowy dowód instalacji), `--selftest` w aplikacjach GUI.
+
+**Docelowo — nic z poniższych nie jest jeszcze wpięte:**
+
+- **`cargo nextest`** zamiast `cargo test` (równoległość, czytelny raport) — ❌ brak.
+- **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ⚠️ aarch64 działa;
+  **x86_64 nigdy nie był bootowany na tym hoście**, `build-image-x86_64` jest `manual`.
+- **`cargo-fuzz`** dla parserów wejścia niezaufanego (matcher katalogu sterowników,
+  `repo.toml`, deskryptory HID) — ❌ brak.
+- **`miri`** dla kodu `unsafe` — ❌ brak.
+- **Pokrycie (`cargo-llvm-cov`)** — ✅ **jest** (`U-168`). Zmierzone: `tools/eos-repo-sign` **38,84%**, vendorowany cookbook **2,92%**. Bramka obejmuje wyłącznie kod własny; próg 38% ma łapać **regresję**, a nie certyfikować 38% jako dobry wynik. Sprawdzone, że potrafi paść (przy progu 60% kończy się błędem).
+
+## 17. Wydania — odtwarzalność i łańcuch dostaw
+
+**Jest dziś:** `scripts/make-release.sh` (sumy SHA256 + podpis **minisign**, odmawia
+publikacji niepodpisanej bez `EOS_ALLOW_UNSIGNED=1`), katalog `sbom/`, tag adnotowany
+i podpisany (`v0.2.0`), pipeline `semantic-release`.
+
+**Docelowo:**
+
+- **Build odtwarzalny** — ten sam wejściowy commit daje bit w bit ten sam obraz.
+  ⚠️ Dziś **nie jest zweryfikowany**, a `.config`/`cookbook.lock` poza gitem wprost temu
+  przeczą (§9, `R-F20`).
+- **SBOM (`cargo-cyclonedx`)** — ✅ **wpięty** (`U-168`): zadanie `sbom` generuje CycloneDX
+  1.3 dla obu manifestów jako artefakt (zweryfikowane: 47 komponentów dla
+  `eos-repo-sign`). SBOM-y obrazów w `sbom/` nadal powstają ręcznie.
+- **Podpis artefaktów (`cosign`)** — ❌ brak; dziś minisign.
+- **Podpisany obraz ISO** — ❌ brak; obraz to `harddrive.img`, ISO nie jest publikowane.
+
+## 18. Praca z AI w tym repozytorium
+
+1. **Zanim cokolwiek zmienisz — ustal typ repozytorium (§11)** i zastosuj reguły tego typu.
+2. **Niejasne? Pytaj, nie zgaduj.** Dotyczy zwłaszcza granicy B/C: repo wyglądające na
+   czyste lustro potrafi nieść kod E-OS (`U-164`).
+3. **Mierz, nie wnioskuj** (§4.3). Trzy razy w jednej sesji opublikowano błędny wniosek
+   wyprowadzony z tego, gdzie urwał się log.
+4. **Sprawdź instrument, zanim uwierzysz w wynik negatywny** (§4.2).
+5. **Nie twierdź, że działa, jeśli nie uruchomiłeś testów.** Cytuj wynik.
+6. **Poprawiaj własne opublikowane wnioski jawnie** (§2, reguła 4; §4.5).
+7. **Nigdy nie dotykaj tokenów i kluczy** (§5, §10.3). Zadania wymagające poświadczeń
+   oddajesz człowiekowi.
+8. **Łatka diagnostyczna żyje wyłącznie w drzewie build kontenera**, nigdy w forku, i jest
+   cofana przed commitem — a obraz po cofnięciu przebudowany i sprawdzony `boot-smoke`.
+
+
+## 20. Higiena drzew — rób to na bieżąco, nie „potem"
+
+Ten rozdział powstał z pomiarów, nie z przeczucia. Każda reguła ma pod sobą konkretną
+usterkę, która realnie kosztowała czas.
+
+### 20.1 To repozytorium **nie jest** tym, z czego buduje `make`
+
+`make` buduje z `/work/redox` w wolumenie `eos-work` — **osobnego klonu** lustra GitHub.
+Nic ich automatycznie nie synchronizuje. Objaw rozjazdu jest **cichy**: `U-185` pokazał
+przypięcie klucza, które poprawnie trafiło do `config/aarch64/eos.toml` *tutaj*, podczas gdy
+build użył kopii *tam* — i obraz wyszedł bez klucza, **bez jednego błędu po drodze**.
+
+> **Przed każdym budowaniem, którego wynik ma coś dowodzić:**
+> ```
+> scripts/eos-sync-buildtree.sh          # pokaż różnice
+> scripts/eos-sync-buildtree.sh --apply  # wyrównaj
+> scripts/eos-build.sh [arch]           # albo: zsynchronizuj I zbuduj w wolumenie
+> ```
+> Bez tego zdanie „obraz zawiera X" jest twierdzeniem o **nieznanym** drzewie.
+
+### 20.2 Katalogi `<fork>-<gałąź>/` są nieaktualnymi migawkami, nie źródłem prawdy
+
+Obok tego repozytorium leżało ~80 katalogów w rodzaju `eos-base-eos-july/`,
+`eos-kernel-master/`, zduplikowanych dodatkowo w `E-OS Github/`. **To nie są repozytoria
+gita** — to rozpakowane archiwa. Nie da się z nich pchać, nie widać w nich historii i
+**starzeją się w ciszy**: w `U-186` żaden z nich nie zawierał poprawek `R-F18` ani `R-F24`,
+choć obie były wypchnięte, a `eos-base-eos-july` odpowiadał rewizji `816546df^` — **jeden
+commit przed** przypięciem.
+
+Zostały przeniesione do `../_archiwum-migawek/` (przeniesione, nie usunięte) razem z
+`PRZECZYTAJ-MNIE.md` wyjaśniającym, czym są. Katalog projektu zawiera teraz **wyłącznie
+`E-OS/` i to archiwum**. Jeśli kiedyś znów pojawią się takie katalogi obok repozytorium —
+przenieś je tam od razu, zamiast czytać.
+
+> **Czytając kod forka, czytaj fork** — świeży klon albo `recipes/*/source` w drzewie
+> budowania po `--apply`. Migawka nadaje się do szybkiego zerknięcia i **do niczego więcej**.
+> Diagnoza postawiona na migawce po wypchnięciu poprawki będzie fałszywa.
+
+### 20.3 `recipes/*/source` nie jest czystym klonem upstreamu
+
+Cookbook nakłada tam łatki receptury. `git checkout -- .` w takim drzewie **usuwa je** i
+build pada w miejscu bez związku z przyczyną — w `U-185` na `unresolved imports
+nix::unistd::Group, User` w `nushell`. Żeby odzyskać czysty stan, **usuń `source/` i
+`target/`** i pozwól cookbookowi pobrać oraz załatać od nowa.
+
+### 20.4 Łatka diagnostyczna żyje wyłącznie w drzewie budowania
+
+Nigdy w forku, nigdy w commicie. Cofnij ją, **zanim** przypniesz nową rewizję — inaczej
+`git checkout <rev>` w drzewie receptury odmówi nadpisania i build stanie (`U-185`).
+Po cofnięciu przebuduj i przepuść boot-smoke, żeby wiedzieć, co naprawdę mierzysz.
+
+### 20.5 Po wypchnięciu zmiany w forku — domknij pętlę od razu
+
+W jednym ciągu, nie „przy okazji":
+
+1. `git push` do **obydwu** zdalnych (`origin` **i** `gitlab` — forki nie mają lustra, §1.6),
+2. zaktualizuj `pinned_rev` w `repos.toml` **oraz** `rev` w `recipes/*/recipe.toml`,
+3. `scripts/eos-repos.sh pins` — musi dać `drift=0`,
+4. `scripts/eos-sync-buildtree.sh --apply`,
+5. przebuduj i uruchom bramkę, która tę zmianę pokrywa.
+
+Pominięcie kroku 4 to dokładnie usterka z §20.1: pomiar dotyczy wtedy starego kodu.
+
+### 20.6 Sprawdź przyrząd, zanim uwierzysz w wynik
+
+`U-186`: audyt szukający „pracy, której nigdzie nie wypchnięto" porównywał pliki przez
+`git hash-object`. Dla pliku **spoza** repozytorium git nie stosuje filtrów z
+`.gitattributes`, więc plik z CRLF dostaje inny skrót niż jego znormalizowany odpowiednik w
+historii — i **każdy plik z CRLF wychodził jako „nieobecny"**. Poprawny wywołanie to
+`git hash-object --path <ścieżka-względna> <plik>`. Po korekcie: **0 z 3657** zamiast 6.
+
+> Zanim zgłosisz brak czegoś, **udowodnij, że przyrząd znajduje to, co istnieje** (§4.2).
+> Wynik negatywny z niesprawdzonego narzędzia to nie wynik.
+
+### 20.7 `pgrep` bez `-f` nie widzi długich nazw procesów
+
+macOS obcina `comm` do 15 znaków, więc `pgrep qemu-system-aarch64` **nigdy** nie trafia.
+W `U-181` każdy odczyt „qemu: 0" był fałszywy, a ja na tej podstawie uznałem żywe przebiegi
+za martwe i uruchamiałem kolejne, spowalniając te działające. Używaj `pgrep -f` albo `ps`.
+
+## 21. Sprzątanie — kasuje się **plik**, nigdy **katalog**
+
+### 21.1 Najpierw zmierz, **który** dysk boli — prawie nigdy ten, na który patrzysz
+
+Zmierzone 2026-08-29, przed sprzątaniem: dysk **zewnętrzny** (drzewo projektu) miał
+**1,2 TiB wolnego**, a **wewnętrzny** — 23 GiB przy 89 % zajętości. Sprzątanie w katalogu
+projektu zwalniało więc miejsce tam, gdzie go nie brakowało.
+
+> **Zanim skasujesz cokolwiek „dla miejsca": wypisz `df -h` OBU dysków i powiedz, który
+> sprzątasz.** Bez tego zdania sprzątanie jest ryzykiem bez zysku.
+
+**Układ nośników jest myląco rozproszony i warto go znać, zanim ktoś zaproponuje „przeniesienie
+buildów na zewnętrzny" — bo one już tam są** (zmierzone `U-214`, ustawione 2026-08-15):
+
+| gdzie | co | nośnik |
+|---|---|---|
+| `/Volumes/Project itp` (exFAT, 1,8 TiB) | drzewo projektu, repo, `~/eos-artifacts` **nie** | zewnętrzny |
+| `/Volumes/EOS-Podman` (**APFS**, 300 GiB, sparsebundle na powyższym) | **dysk maszyny podmana** `eos-build-arm64.raw` (80 GB), a w nim wolumeny `eos-work` i `eos-root` | zewnętrzny |
+| `~/.local/share/containers` | **dowiązanie** → `/Volumes/EOS-Podman/containers` — ten sam i-węzeł, nie kopia | — |
+| `/System/Volumes/Data` (228 GiB) | system, `~/Library`, `~/eos-artifacts` | wewnętrzny |
+
+Dwa wnioski, oba kosztowałyby czas, gdyby ich nie zapisać. Po pierwsze: **budowanie nie zajmuje
+dysku wewnętrznego** — jedyne, co tam zostaje po pracy, to `~/eos-artifacts`. Po drugie:
+sparsebundle jest **APFS-em na exFAT-cie**, więc maszyna dostaje porządny system plików mimo
+nośnika — ale zależy od tego, żeby wolumen zewnętrzny był zamontowany i **czytelny**. Gdy
+2026-08-29 macOS cofnął uprawnienie do wolumenów wymiennych, podman działał dalej wyłącznie
+dlatego, że `diskimages-helper` trzymał już otwarte deskryptory; wymuszony `diskutil unmount`
+wyrwałby wtedy nośnik spod działającej maszyny razem z 37 GB cache'u.
+
+**`du` na exFAT myli się o rząd wielkości.** Jednostka alokacji to 1 MiB (`diskutil info` →
+*Allocation Block Size*), więc każdy plik zajmuje minimum 1 MiB. Zmierzone: `recipes/` to
+**6,6 GB według `du` i 1,9 MB realnej treści** w 3376 plikach — 99,97 % to puste miejsce
+w klastrach, nie śmieci. Migawka forka Ion: **1,35 MiB treści w 906 MiB**. Cytuj **obie**
+liczby — `du -sh` i sumę rzeczywistą — albo nie cytuj żadnej (§4.3).
+
+### 21.2 Zasada nadrzędna — i dlaczego sama nie wystarcza
+
+> **Kasuj wyłącznie to, co potrafisz odtworzyć jednym poleceniem — i zapisz to polecenie
+> obok, we wpisie CHANGELOG-a, ZANIM skasujesz.**
+
+Warunek **konieczny, nie wystarczający**. Dwa kontrprzykłady zmierzone w tym drzewie:
+
+1. **Odtwarzalny ≠ te same bajty.** `release/*.tar.gz` odtwarza `publish-repo.sh` jednym
+   poleceniem — ale skrypt **podpisuje manifest na nowo**, więc suma kontrolna wyjdzie inna.
+   Pytanie brzmi nie „czy umiem to zbudować", tylko **„czy umiem odtworzyć TE bajty".**
+2. **Odtwarzalny katalog potrafi zawierać nieodtwarzalny plik.** Drzewo w wolumenie `eos-work`
+   jest w całości odtwarzalne — **poza `build/id_ed25519.toml`**, kluczem, którym podpisano
+   78 opublikowanych pakietów, istniejącym w jednej kopii. `rm -rf build/` kasuje ten klucz;
+   `rm build/jakiś-plik` — nie.
+
+**Stąd forma reguły: kasujesz plik, nigdy katalog.** Wyjątek jest jeden i wprost usankcjonowany
+w §20.3: `recipes/*/source` i `recipes/*/target`, bo cookbook odtwarza je od zera. Wszędzie
+indziej **wylistuj pliki, przeczytaj listę, skasuj listę.**
+
+Trzeci warunek, niezależny od odtwarzalności: **czy coś tego jeszcze nie czyta.**
+`build/container.tag` ma **0 bajtów** i wygląda na pusty log — a `mk/podman.mk` czyni go
+stemplem `make`. „Pliki zerowej długości" nie są bezpieczną kategorią; są kategorią, która
+*wygląda* bezpiecznie. Tak samo `repo.tag` (`U-212`).
+
+### 21.2b Gdy kontener nie czyta pliku, którego jest właścicielem — SELinux MCS
+
+Objaw jest sprzeczny sam ze sobą i dlatego myli: `ls -n` pokazuje właściciela `0 0` i tryb `600`,
+proces ma `CAP_DAC_OVERRIDE`, a odczyt zwraca `EACCES`. **Świeży plik `600` w tym samym katalogu
+czyta się bez problemu** — i to jest krok, który rozstrzyga.
+
+Przyczyna: maszyna podmana to Fedora CoreOS z SELinuksem w trybie `Enforcing`, a każdy kontener
+dostaje **losową parę kategorii MCS**. Pliki dziedziczą kategorie kontenera, który je utworzył,
+więc kontener z innymi kategoriami jest odcięty. Zmierzone (`U-218`) na kluczu podpisującym pakiety:
+
+```
+container_file_t:s0            id_ed25519.pub.toml   <- czytelny
+container_file_t:s0:c22,c82    id_ed25519.toml       <- EACCES z każdego innego kontenera
+```
+
+Skutek był **cichy i kosztowny**: `cook` kończył się `Package archive error: Permission denied
+… "Reading secret"`, więc **żaden pakiet x86_64 nie powstawał**, a `make` i tak składał obraz
+z tego, co zastał. Rozpoznanie:
+
+```bash
+podman machine ssh eos-build 'sudo ls -Z <ścieżka-w-wolumenie>'
+```
+
+Naprawa to wyrównanie etykiety do katalogu (`s0`, jak reszta wolumenu) — **po sprawdzeniu, że
+plik ma kopię zapasową**:
+
+```bash
+podman machine ssh eos-build 'sudo chcon -l s0 <ścieżka>'
+```
+
+Nie „naprawiaj" tego przez `--security-opt label=disable` — to wyłącza izolację dla całego
+kontenera zamiast poprawić jeden plik.
+
+### 21.3 Czego **nigdy** nie kasujesz
+
+- **Klucze i wszystko bez kopii zapasowej.** `build/id_ed25519.toml`, `build/sb-signing/`,
+  `build/boot-signing/`. Jeśli nie potrafisz wskazać drugiej kopii — to nie jest śmieć,
+  to jedyny egzemplarz.
+- **Wolumeny `eos-work` i `eos-root`** — 37 GB cache'u budowania. `--wipe-caches` nigdy.
+- **Cokolwiek śledzonego przez gita.**
+- **Artefakt, który jest dowodem.** Pułapka zmierzona w `U-214`: `eos-x86_64-harddrive.img`
+  i `eos-x86_64-live.iso` wyglądały na automatyczny wypluwek builda i leżały **dokładnie pod
+  ścieżką, którą `scripts/eos-build.sh` nadpisuje przy każdym uruchomieniu** — a były jedynymi
+  nośnikami prawdziwego certyfikatu `CN=E-OS Secure Boot`. Dowód, którego nie da się odtworzyć
+  jednym poleceniem, **przenieś do `~/eos-artifacts/dowody/` i nazwij tym, czego dowodzi.**
+
+### 21.4 Wolno bez pytania
+
+Tylko to, i tylko po przejściu §21.2:
+
+| co | polecenie odtwarzające — **zapisz je we wpisie** |
+|---|---|
+| `tools/*/target/` | `cargo build --release --manifest-path tools/<nazwa>/Cargo.toml` |
+| `recipes/*/source`, `recipes/*/target` | `make c.<przepis>` — procedura w §20.3 |
+| `prefix/` w katalogu projektu | pobierze się sam z `static.redox-os.org`; build i tak używa kopii w wolumenie |
+| sidecary `._*`, `.DS_Store` | `dot_clean -m .` — Finder odtwarza je sam, 0 śledzonych w gicie |
+| twoja sonda / łatka diagnostyczna | ona i tak miała zniknąć — §20.4 |
+| obrazy, których dowód jest **już zapisany** w CHANGELOG-u | `scripts/eos-build.sh <arch>` |
+
+### 21.5 Wymaga pytania właściciela
+
+Kosz systemowy, cudze projekty, archiwa, cokolwiek starszego niż bieżąca praca. Zmierz,
+pokaż listę z rozmiarami i **poczekaj na odpowiedź** — nawet gdy jesteś pewien. Przy
+`_archiwum-migawek` (51 GB) pewność była uzasadniona co do 16 713 z 16 715 plików; te dwa
+pozostałe nie istniały nigdzie w gicie, bo publikacja orphan-commitem zniszczyła historię forka.
+Kasowanie „całości, bo wszystko odtwarzalne" straciłoby je bezpowrotnie.
+
+### 21.6 Trzy pułapki, które udają sukces
+
+Wszystkie trzy zmierzone tego samego dnia (`U-224`), wszystkie kończyły się **zielonym buildem**:
+
+1. **`make` NIE buduje narzędzi hosta.** `REPO_BIN` w `mk/config.mk` to zwykła ścieżka do
+   `./target/release/repo`; make używa tego, co tam leży. Zmiana w `src/bin/repo_builder.rs`
+   nie działa, dopóki ktoś ręcznie nie zbuduje binarki — build przechodzi, indeks wygląda
+   poprawnie, a nowe pole **po prostu go nie ma**. `eos-build.sh` buduje je teraz zawsze.
+2. **`cmd | tail` w kontenerze oddaje status `tail`, nie `cmd`.** `set -euo pipefail` w skrypcie
+   zewnętrznym **nie obowiązuje** wewnątrz `bash -lc` — `cargo: command not found` przewinęło
+   się bez zatrzymania czegokolwiek. Trzeba `set -o pipefail` po stronie kontenera.
+3. **Przekierowanie tworzy plik zanim polecenie ruszy.** `podman run ... cat brak > plik`
+   zostawia **plik zerowy**, który wygląda jak artefakt do wydania. Etapuj przez `.partial`
+   i nie zostawiaj pustych.
+
+Wspólny mianownik: **kontrola, która potrafi tylko przejść, nie jest kontrolą.** Po każdej
+zmianie sprawdzaj sam artefakt (`strings` na binarce, `grep` na wygenerowanym pliku), a nie to,
+że polecenie zwróciło zero.
+
+### 21.7 Wolumen EOS-Podman: nie montuj przez `-mountpoint`
+
+Nieudane `hdiutil attach -mountpoint /Volumes/EOS-Podman` **zostawia pusty katalog**, który
+blokuje każdą kolejną próbę montowania — objaw wygląda wtedy jak uszkodzenie APFS
+(„niemontowalny system plików", `mount_apfs: Input/output error`, `fsck` melduje zły
+superblok). Katalogu nie usuniesz bez roota, bo `/Volumes` należy do roota. **Lekarstwo:**
+`hdiutil detach /dev/diskN -force`, potem `hdiutil attach` **bez** `-mountpoint`. Uwaga: odczyt
+surowych urządzeń (`dd if=/dev/rdiskN`) wymaga roota, więc „błąd 5" z `fsck_apfs` uruchomionego
+jako użytkownik **nie jest dowodem uszkodzenia** — nie diagnozuj na tej podstawie.
+Ten rozdział powstał z prośby o porządek („kasować niepotrzebne pliki, stare buildy, żeby nie
+zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-214`). Pomiar pokazał
+trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
+rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
+klucz istniejący w **jednej kopii bez backupu**.
+
+## 19. TODO — czego naprawdę brakuje
+
+Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika dopiero, gdy
+**da się wskazać dowód**, że rzecz działa — nie gdy została zaplanowana.
+
+### Otwarte usterki (blokują `R-601`)
+
+| ID | Rzecz | Stan |
+|---|---|---|
+| `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
+| `R-F21` | `package_files()` czytało bazę pakietów ze starej ścieżki `/pkg`. | ✅ **naprawione** (`U-171`) — czyta przez `PackageState::from_sysroot`; przepisane, bo klucz też się przeniósł do `packages.toml` |
+| `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
+| `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`), potwierdzone ponownie **z poprawką `R-F18`** (`U-181`) |
+| `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
+| `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
+| `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
+| `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
+
+### Narzędzia, których w repo nie ma
+
+| Narzędzie | Decyzja |
+|---|---|
+| `cosign` | ❌ Zadanie da się napisać, ale **klucz podpisujący generuje człowiek** (§5, §10.3) — narzędzie, które loguje, nie może go dotknąć. Do wykonania przez operatora, nie przez automat. |
+| `nextest` | ⏳ Do podmiany za `cargo test`; korzyść to równoległość i czytelniejszy raport, nie nowa zdolność. Niski priorytet. |
+| `miri` | ⛔ **Świadomie pominięty** — E-OS-owy kod Rust ma **zero** bloków `unsafe` (pilnuje tego kontrola 4), a `miri` bada właśnie UB w `unsafe`. Uruchamianie go na vendorowanym drzewie oznaczałoby utrzymywanie dywergencji (ADR-0003). |
+| `cargo-fuzz` | ⛔ **Świadomie pominięty tutaj** — parsery warte fuzzowania (`pkgar`, RedoxFS, `redox_installer`) mieszkają w **forkach**, nie w tym repo. Miejsce dla nich to CI forka. |
+| `cargo-audit` | ⛔ Nadmiarowy wobec `cargo-deny check advisories`; lokalnie w `local-scan.sh`. |
+
+### Wymaga człowieka, nie automatu
+
+- **`eos-setup-mirrors.sh --apply`** — potrzebuje PAT GitHuba. Nigdy nie podawaj tokenu
+  narzędziu; to zadanie operatora (§5).
+- **Klucz podpisujący** — generowanie jest **celowo** niezautomatyzowane.
+
+### Nadal niezweryfikowane
+
+- **Odtwarzalność builda** — ten sam commit → ten sam obraz bit w bit. `.config` i
+  `cookbook.lock` są już **śledzone** (`U-168`, `U-169`), więc główna przeszkoda zniknęła,
+  ale samego porównania **nikt jeszcze nie wykonał**. Dopóki nie wykona — to nie jest fakt.
+- **SBOM obrazu** — `sbom` pokrywa manifesty Rusta; SBOM-y obrazów w `sbom/` nadal
+  powstają ręcznie.
+- **Podpisane ISO** — obraz to `harddrive.img`; ISO nie jest publikowane.
+
 **Forki nie mają automatycznego lustra.** Push wymaga **dwóch** poleceń — na GitLab i na GitHub.
 Repozytorium główne ma działające lustro; forki nie.

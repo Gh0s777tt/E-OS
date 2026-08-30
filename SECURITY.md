@@ -81,6 +81,15 @@ installed x86_64 system through the update mechanism. Tracked as `C-4`; see
   **known gaps with roadmap entries**, not vulnerabilities. Reporting them is welcome as a design
   discussion, not as an advisory.
 
+CI is defined in **two** places, and neither is currently doing its job unaided.
+**GitLab** (`.gitlab-ci.yml`) is the authoritative pipeline, but every job there has
+failed in ~0 s with `ci_quota_exceeded` since 2026-08-28. **GitHub Actions**
+(`.github/workflows/`) was added as the remediation — a public repository has no minute
+cap — but Actions do not execute on this account today: a minimal `on: push` workflow
+pushed straight to github.com produces no run at all. Turning that back on is step 0 of
+[docs/security/github-configuration.md](docs/security/github-configuration.md).
+Until one of the two is running, treat every gate below as *written, not enforced*.
+
 ## Known gaps
 
 Published deliberately. A security policy that hides the gaps is worth less than none.

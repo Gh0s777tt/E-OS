@@ -1,0 +1,473 @@
+# Formatters, linters and docs checks for E-OS, running on the GitHub mirror.
+#
+# Why this file exists at all: GitLab is the source of truth, but every shared-runner
+# job there has failed in 0 s with `ci_quota_exceeded` since 2026-08-28 (audit C-7).
+# fmt, clippy and shell-lint have not actually executed since then. GitHub Actions has
+# no minute cap on a public repository, so this workflow is those same gates on a
+# runner that is not out of budget. It is a remediation, not a second opinion: where a
+# gate exists on both sides it is kept deliberately identical — same tool, same
+# version, same blocking/advisory split — so the two pipelines cannot disagree about
+# whether a commit is clean.
+#
+# Deliberately NOT here:
+#   * cargo test and coverage — ci.yml (`rust` and `coverage`: build + test of the host
+#     tooling). cargo-deny is not in the GitHub suite at all — it still runs only in
+#     .gitlab-ci.yml `rust-checks`, where its release asset is SHA256-pinned (U-118), and
+#     porting that download-verify-extract is a change of its own.
+#   * SBOM — sbom.yml (CycloneDX + SPDX); release.yml attaches the documents to a release.
+#   * gitleaks — security.yml. scripts/ci-integrity.sh — ci.yml's `gates` job. Both are
+#     project gates in their own right, not linting. scripts/eos-check-tar-pins.py is in
+#     no workflow because it has no implementation: the file does not exist in this tree
+#     (ci.yml records the measurement and why a skipping step would be U-140 again).
+#   * the OS image build. It needs podman and a warm 37 GB cache and cannot run on a
+#     GitHub runner at any timeout (see `build-image`, tag `eos-heavy`, in .gitlab-ci.yml).
+#
+# Blocking vs advisory: several jobs below run a tool twice — once advisory, once
+# blocking on a narrower severity. Every advisory half says at the step why it cannot
+# block yet and what would make it block. The project has already paid for the other
+# kind: the gitleaks pre-commit hook that ended in `|| true` (U-140) let a secret
+# through because it could only ever pass. A check that can only pass is not a check.
+name: lint
+
+on:
+  # R-F12's lesson, applied ahead of time: .gitlab-ci.yml's `docs-currency` triggered
+  # only on merge_request_event, this project has never opened a merge request, and so
+  # the job had never run once. Everything here lands by push to a branch (audit C-6),
+  # so `push` is the trigger that actually fires; `pull_request` is additional, not the
+  # basis. `tags-ignore` keeps a release tag from re-running the identical lint pass.
+  push:
+    tags-ignore: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# Read-only by default; nothing in this workflow writes to the repository, publishes,
+# or needs a token beyond cloning. Any job that ever needs more escalates at the job
+# level, never here.
+permissions:
+  contents: read
+
+# Superseded pushes to the same ref are pointless work — the newer commit is the one
+# that has to be clean.
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The image .gitlab-ci.yml's `shell-lint` job uses, at the same version. Two
+  # pipelines running different shellcheck versions over the same scripts is how you
+  # get a gate that is green on one side and red on the other. A tag is weaker than a
+  # digest: when this is bumped, prefer `koalaman/shellcheck-alpine@sha256:...` — the
+  # same reasoning that made cargo-deny's release asset SHA256-pinned (U-118).
+  SHELLCHECK_IMAGE: koalaman/shellcheck-alpine:v0.10.0
+
+jobs:
+  # ─────────────────────────────  Rust: fmt + clippy  ─────────────────────────────
+  # E-OS-OWNED CODE ONLY. The repo root Cargo.toml is the vendored redox_cookbook —
+  # upstream's build engine — and .gitlab-ci.yml's `rust-checks` deliberately runs only
+  # `cargo test` + `cargo-deny check advisories` against it: formatting and lint levels
+  # are upstream's choices, and gating them here would mean carrying style divergence in
+  # a vendored tree forever, for no safety gain (R-F15, the same call ci-integrity.sh
+  # check 4 makes for src/). That asymmetry is a decision, not an oversight — do not
+  # "fix" it by adding the root manifest below.
+  rust:
+    name: rust (fmt + clippy, tools/eos-repo-sign)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # Audit, not block: nobody has yet inventoried the egress this repo's
+          # toolchain needs (static.rust-lang.org, crates.io, index.crates.io, the
+          # docker/ghcr pulls below, PyPI). `block` before that inventory exists just
+          # breaks builds. What makes this blocking: one week of audit output, turned
+          # into an allowlist, then egress-policy: block with that allowlist.
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # No credentials left in .git/config for later steps to reach. This workflow
+          # only reads the tree; it never pushes.
+          persist-credentials: false
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          workspaces: tools/eos-repo-sign
+
+      # No toolchain action on purpose. rust-toolchain.toml pins the channel
+      # (nightly-2026-05-24) and the components (rust-src, rustfmt, clippy), and rustup
+      # installs exactly that on first `cargo` call. An action taking a `toolchain:`
+      # input would either duplicate the pin here — two places to drift — or silently
+      # override it. For the same reason there is no matrix over Rust versions: the pin
+      # is the point.
+      - name: Show the toolchain rust-toolchain.toml selected
+        run: rustup show
+
+      - name: cargo fmt --check
+        run: cargo fmt --manifest-path tools/eos-repo-sign/Cargo.toml -- --check
+
+      # Matches .gitlab-ci.yml `rust-checks` exactly. `--all-targets` would extend this
+      # to tests and benches; it is left off so the two pipelines gate the same set,
+      # not because test code deserves less. Widen it on both sides in one change.
+      - name: cargo clippy -D warnings
+        run: cargo clippy --manifest-path tools/eos-repo-sign/Cargo.toml -- -D warnings
+
+  # ────────────────────────────────  shellcheck  ──────────────────────────────────
+  # Scope is scripts/ — E-OS-owned code. build.sh, native_bootstrap.sh and
+  # podman_bootstrap.sh at the repo root are inherited from upstream Redox and
+  # recipes/wip/ is scratch; gating those would mean carrying upstream divergence for
+  # no safety gain (R-F14).
+  #
+  # ERRORS BLOCK, WARNINGS ARE ADVISORY — the split .gitlab-ci.yml's `shell-lint`
+  # introduced, reproduced here rather than tightened. Its reasoning, which still
+  # holds: the first run over these scripts (U-159) found 3 errors, all real and all
+  # the same shape — unquoted $@ / $* and an array interpolated into a string — which
+  # is not theoretical in a tree that lives under a path containing a space
+  # (/Volumes/Project itp/...), where an unquoted expansion splits a real argument.
+  # The same run found 18 warnings, and driving those to zero is worth doing
+  # deliberately rather than inside the change that introduces the gate.
+  #
+  # What makes the warnings blocking: `-S warning` reaching zero findings, then this
+  # job and .gitlab-ci.yml `shell-lint` both moving to `-S warning` in one change.
+  shell:
+    name: shell (shellcheck over scripts/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # A linter that matches no files exits 0 and looks identical to a clean run. This
+      # step is what stops a rename or a moved directory from turning the gate below
+      # into decoration, and it blocks — it is not part of the advisory half.
+      - name: Enumerate targets
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(scripts/*.sh)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no files matched scripts/*.sh — shellcheck would have linted nothing and passed"
+            exit 1
+          fi
+          printf '%s scripts to lint:\n' "${#files[@]}"
+          printf '  %s\n' "${files[@]}"
+          docker run --rm --entrypoint shellcheck "$SHELLCHECK_IMAGE" --version
+
+      - name: shellcheck — warnings and above (advisory)
+        # Advisory by `continue-on-error`, deliberately not by `|| true` inside the
+        # script: the exit status stays visible in the step result instead of being
+        # swallowed, and there is no line here that a future edit could turn into a
+        # `|| true` sitting on the blocking run below.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          docker run --rm -v "${GITHUB_WORKSPACE}:/mnt" -w /mnt \
+            --entrypoint shellcheck "$SHELLCHECK_IMAGE" \
+            -f gcc -S warning scripts/*.sh
+
+      - name: shellcheck — errors only (blocking)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          docker run --rm -v "${GITHUB_WORKSPACE}:/mnt" -w /mnt \
+            --entrypoint shellcheck "$SHELLCHECK_IMAGE" \
+            -f gcc -S error scripts/*.sh
+
+  # ───────────────────────────────  containerfiles  ───────────────────────────────
+  # hadolint's action defaults to `dockerfile: Dockerfile`, and this repo has no file
+  # by that name: the container definitions are podman/*containerfile (upstream Redox's
+  # naming, kept). Pointed at the default the action would lint nothing and pass. The
+  # obvious fix — `recursive: true` with a glob — has the same failure mode when the
+  # glob stops matching, so instead the file list is discovered here, the discovery
+  # fails loudly when it is empty, and it becomes the lint job's matrix. Adding a new
+  # podman/*containerfile therefore gets it linted with no edit to this file.
+  discover-containerfiles:
+    name: containerfiles (discover)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      files: ${{ steps.list.outputs.files }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: List podman/*containerfile
+        id: list
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(podman/*containerfile)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no files matched podman/*containerfile — hadolint would have had nothing to lint"
+            exit 1
+          fi
+          printf 'found:\n'
+          printf '  %s\n' "${files[@]}"
+          # Assigned first, not inlined into printf's argument list: a command
+          # substitution that fails inside an argument leaves printf succeeding with an
+          # empty string, which would write `files=` and hand the matrix below an
+          # unparseable fromJSON. As an assignment, `set -e` plus pipefail stop here.
+          json=$(printf '%s\n' "${files[@]}" | jq -Rsc 'split("\n")[:-1]')
+          printf 'files=%s\n' "$json" >> "$GITHUB_OUTPUT"
+
+  # One invocation per file, ERRORS BLOCK. hadolint prints every finding regardless of
+  # --failure-threshold, so warnings and info stay visible in the log; the threshold
+  # only decides what fails. That is the same split shell-lint uses, and it is chosen
+  # for the same reason. Measured over all three files on 2026-08-30 with hadolint 2.15.1:
+  # ZERO at error severity, so this job starts green, and below the threshold DL3008 (pin
+  # apt package versions) x3, DL3013 (pin the pip version) x1, DL3042 (pip without
+  # --no-cache-dir) x1 as warnings, plus DL3009 (delete the apt lists) x2 as info. Pinning
+  # every apt package in a Debian-based build container is a real maintenance decision
+  # about files inherited from upstream Redox — not something to impose from inside a CI
+  # change. The action carries its own hadolint build, so those counts may shift with a
+  # version bump; what was verified here is the local 2.15.1 run, not a CI run.
+  #
+  # What makes warnings blocking: decide the apt/pip pinning question, fix or `ignore:`
+  # the rules with a reason, then move failure-threshold to `warning`.
+  containerfiles:
+    name: containerfile (${{ matrix.containerfile }})
+    needs: discover-containerfiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        containerfile: ${{ fromJSON(needs.discover-containerfiles.outputs.files) }}
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: hadolint
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: ${{ matrix.containerfile }}
+          failure-threshold: error
+
+  # ──────────────────────────────────  markdown  ──────────────────────────────────
+  # Two passes over the same tree, for the same reason shellcheck has two.
+  #
+  # BLOCKING pass: MD011 (reversed link syntax) and MD042 (empty link) only. Both are
+  # correctness, not style — a reversed link renders as literal text and an empty link
+  # goes nowhere, and neither is visible to the link checker below, because neither
+  # produces a link for it to resolve. Verified clean across all 58 files under docs/
+  # on 2026-08-30 (markdownlint-cli2 v0.23.2, 0 issues), so this half starts green and
+  # can only go red on a new defect.
+  #
+  # ADVISORY pass: the full rule set. docs/ has never been linted, it is 58 hand-written
+  # files, and reflowing them inside the change that introduces the gate is how you get
+  # a diff nobody can review. What makes it blocking: get the advisory pass to zero,
+  # then drop `continue-on-error` and delete the blocking-only config.
+  markdown:
+    name: markdown (docs/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # Same reason as the shellcheck enumeration: a glob that stops matching turns the
+      # blocking pass below into decoration, and a zero-file run looks exactly like a
+      # clean one in the log.
+      - name: Enumerate targets
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=(docs/**/*.md)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no files matched docs/**/*.md — markdownlint would have linted nothing and passed"
+            exit 1
+          fi
+          printf '%s markdown files to lint\n' "${#files[@]}"
+
+      - name: markdownlint — full rule set (advisory)
+        continue-on-error: true
+        uses: DavidAnson/markdownlint-cli2-action@992badcdf24e3b8eb7e87ff9287fe931bcb00c6e # v20.0.0
+        with:
+          config: .github/linters/.markdownlint.yaml
+          globs: |
+            docs/**/*.md
+
+      - name: markdownlint — malformed links (blocking)
+        uses: DavidAnson/markdownlint-cli2-action@992badcdf24e3b8eb7e87ff9287fe931bcb00c6e # v20.0.0
+        with:
+          config: .github/linters/blocking.markdownlint-cli2.yaml
+          globs: |
+            docs/**/*.md
+
+  # ────────────────────────────────────  yaml  ────────────────────────────────────
+  # Scope is E-OS-authored CI and repo metadata: .github/ (this workflow included —
+  # a workflow that cannot parse is the most expensive YAML defect available here),
+  # .gitlab-ci.yml and lefthook.yml. Not `yamllint .`: the tree also carries vendored
+  # recipes/, upstream/ and a build/ cache that are not ours to style-gate.
+  #
+  # ERROR-LEVEL RULES BLOCK, WARNINGS ARE ADVISORY (yamllint's own exit-code contract:
+  # warnings are non-fatal unless --strict). Which rules sit at which level, and why,
+  # is documented in .github/linters/yamllint.yml — the blocking set is exactly the
+  # rules verified clean across every file in scope on 2026-08-30, so the gate starts
+  # green and any red is new.
+  yaml:
+    name: yaml (own CI + repo metadata)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      # Pinned exactly: an unpinned linter changes its own verdict on an unchanged tree,
+      # which is the CI equivalent of a flaky test. Bump it deliberately.
+      - name: Install yamllint
+        run: python -m pip install --disable-pip-version-check "yamllint==1.38.0"
+
+      - name: yamllint — warnings and above (advisory)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          yamllint -f github --strict -c .github/linters/yamllint.yml \
+            .github .gitlab-ci.yml lefthook.yml
+
+      - name: yamllint — errors only (blocking)
+        run: |
+          set -euo pipefail
+          yamllint -f github -c .github/linters/yamllint.yml \
+            .github .gitlab-ci.yml lefthook.yml
+
+  # ─────────────────────────────────  docs links  ─────────────────────────────────
+  # Split by what the project actually controls, which is the whole point of running a
+  # link checker at all:
+  #
+  #   BLOCKING  — local files. `--offline` blocks every network request, so this pass
+  #               resolves only relative links and images inside docs/. A link to a
+  #               file we deleted or renamed is our defect, it is reproducible, and it
+  #               is exactly what breaks the published mdBook. It fails the build.
+  #   ADVISORY  — http(s). An external host that 429s, moves behind Cloudflare or is
+  #               simply down for ten minutes is not a defect in this commit, and a
+  #               gate that reddens on somebody else's outage teaches people to ignore
+  #               red. This half stays advisory permanently and that is the design: the
+  #               blocking half above is what enforces link correctness for everything
+  #               inside the repo. Read it in the job summary; fix rot deliberately.
+  #
+  # The two passes are disjoint, not one pass with the teeth pulled: `--offline` checks
+  # only file links, `--scheme http --scheme https` checks only network links. There is
+  # no `|| true` anywhere below, and `failIfEmpty` keeps a mistyped glob from producing
+  # a green "0 links checked".
+  #
+  # Scope is docs/ — the tree mdBook publishes. README.md, SECURITY.md and CHANGELOG.md
+  # at the repo root are NOT checked here; that is a known gap, named rather than
+  # quietly left (CHANGELOG.md alone is ~370 KB of U-NNN history).
+  #
+  # EXPECTED TO BE RED ON ITS FIRST RUN. As of 2026-08-30 the blocking pass fails on
+  # two links in docs/design-desktop-environment.md, which point at
+  # ../assets/screenshots/eos-crimson-greeter.png and .../eos-crimson-desktop.png —
+  # neither file exists (assets/screenshots/ has the eos-* captures under other names).
+  # That is the gate doing its job on real rot, the same way shell-lint's first run
+  # found three real errors (U-159). Fix the two links or add the screenshots; do NOT
+  # add an --exclude-path for them, they are E-OS's own documentation.
+  docs-links:
+    name: docs links (lychee)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # Cannot be `block` for this job even once the audit is done: the advisory
+          # pass below exists precisely to reach arbitrary external hosts.
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # --exclude-path docs/REDOX-README.md: that file is upstream Redox's README kept
+      # verbatim, and its `./LICENSE` and `CONTRIBUTING.md` links resolve in upstream's
+      # repository layout, not in ours. Rewriting them would fork the file for a
+      # cosmetic reason; gating on them would fail this repo for upstream's paths. Same
+      # call as fmt/clippy skipping the vendored root manifest. It is a named,
+      # justified exclusion of one vendored file — not a severity that was turned off.
+      #
+      # Fragment checking (--include-fragments) is deliberately absent: anchor
+      # slugification differs between mdBook and GitHub, so a fragment failure here
+      # would not reliably mean a broken link on the published site.
+      - name: lychee — local files (blocking)
+        uses: lycheeverse/lychee-action@885c65f3dc543b57c898c8099f4e08c8afd178a2 # v2.6.1
+        with:
+          # The action SHA freezes its default lychee version; stating it makes the
+          # flag set above traceable to a release. NOTE: the action downloads that
+          # binary without a checksum, unlike the download-verify-extract discipline
+          # .gitlab-ci.yml applies to cargo-deny (U-118). Accepted here because lychee
+          # only reports on documentation — no supply-chain verdict depends on it.
+          lycheeVersion: v0.20.1
+          fail: true
+          failIfEmpty: true
+          output: lychee/internal.md
+          args: >-
+            --offline
+            --no-progress
+            --verbose
+            --exclude-path 'docs/REDOX-README\.md'
+            'docs/*.md'
+            'docs/**/*.md'
+
+      - name: lychee — external http(s) (advisory)
+        uses: lycheeverse/lychee-action@885c65f3dc543b57c898c8099f4e08c8afd178a2 # v2.6.1
+        with:
+          lycheeVersion: v0.20.1
+          # Advisory via the action's own switch, so lychee still runs to completion
+          # and still writes its job summary — as opposed to a shell `|| true`, which
+          # would hide which links are rotting.
+          fail: false
+          output: lychee/external.md
+          args: >-
+            --no-progress
+            --scheme http
+            --scheme https
+            --max-retries 3
+            --timeout 20
+            --max-concurrency 16
+            --exclude-all-private
+            'docs/*.md'
+            'docs/**/*.md'
