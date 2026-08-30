@@ -1,8 +1,18 @@
 # CI/CD & automation
 
-E-OS runs **all CI on GitLab** (`gitlab.com/e-os`). GitHub Actions is disabled
-account-wide, so GitHub is only a read-only mirror. The pipeline is defined in
-[`.gitlab-ci.yml`](https://github.com/Gh0s777tt/E-OS/blob/main/.gitlab-ci.yml).
+E-OS defines CI in two places. **GitLab** (`gitlab.com/e-os`,
+[`.gitlab-ci.yml`](https://github.com/Gh0s777tt/E-OS/blob/main/.gitlab-ci.yml)) is the
+source of truth and the pipeline that gates merge requests. **GitHub Actions**
+(`.github/workflows/`) runs on the read-only mirror and exists because the GitLab
+pipeline stopped measuring anything on 2026-08-28: every job fails in ~0 s with
+`ci_quota_exceeded` (audit finding C-7). A public repository has no Actions minute cap,
+which is the whole reason the second pipeline is a remediation rather than a duplicate.
+
+**Neither runs right now.** GitLab is out of minutes, and Actions do not execute on this
+account: a minimal `on: push` workflow with no branch filter, pushed directly to
+github.com on a fresh branch, produced no workflow run at all — not queued, not failed.
+Real workflows last ran here on 2026-06-16. See
+[docs/security/github-configuration.md](security/github-configuration.md) §2.
 
 ## Two tiers
 

@@ -1,0 +1,19 @@
+# markdownlint rules for docs/ — the ADVISORY pass of the `markdown` job in
+# .github/workflows/lint.yml. Everything default-on except the three below: two off and
+# one narrowed, each for a reason, not to make the output shorter.
+default: true
+
+# MD013 line-length: docs/ is hand-wrapped prose at several different widths and
+# mdBook reflows it anyway, so a column limit measures the author's editor, not the
+# document. .editorconfig sets no limit for *.md either.
+MD013: false
+
+# MD033 no-inline-html: the docs use raw HTML deliberately — centred banners, sized
+# <img> tags, the vendored upstream README — and mdBook renders it.
+MD033: false
+
+# MD024 no-duplicate-heading: these documents repeat section headings ("Status",
+# "Why", "Result") under different parents by design. Only flag duplicates that are
+# actually siblings, which is the case that produces two identical anchors.
+MD024:
+  siblings_only: true

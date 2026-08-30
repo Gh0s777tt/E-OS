@@ -35,6 +35,8 @@
 # Security
 
 - [Security guide](security.md)
+- [GitHub configuration](security/github-configuration.md)
+- [Incident response](security/incident-response.md)
 - [Threat model](threat-model.md)
 - [Decision records (ADR)](adr/README.md)
   - [Template](adr/0000-szablon.md)

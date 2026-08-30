@@ -1,0 +1,428 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# release — cut the tag and the notes, then build, SIGN and attach the artifacts
+# a GitHub runner can honestly produce.
+#
+# WHY A RELEASE PATH EXISTS ON GITHUB AT ALL. GitLab is the source of truth and
+# GitHub is a push-mirror. The GitLab release path is the `semantic-release` job
+# in .gitlab-ci.yml, and it has never run: its rule is
+#   `$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $GITLAB_TOKEN`
+# so it self-disables until a masked GITLAB_TOKEN exists (docs/ci.md §2 calls it
+# "dormant"), and since 2026-08-28 every shared-runner job in that namespace dies
+# in 0 s with `ci_quota_exceeded` (audit C-7). Keyless signing needs an OIDC
+# issuer bound to the build, which is the other thing only this side has.
+#
+# On the `C-NN` ids used below: they come from the 2026-08-30 security audit,
+# which is NOT in this tree — docs/audit/ holds AUDIT-2026-07-13.md and
+# AUDIT-2026-08-14.md, and neither uses C-NN numbering. Commit that audit before
+# citing it anywhere a reader is expected to look it up.
+#
+# WHICH RELEASE IS AUTHORITATIVE — settle this before arming anything.
+#   * While GITLAB_TOKEN is unset, this workflow is the only release path that
+#     can run, and it is authoritative for the version, the notes and the
+#     Release entry.
+#   * Both tools derive the version from Conventional Commits and both tag
+#     `vX.Y.Z` — .releaserc.json via `tagFormat: v${version}`, release-please
+#     via `"include-component-in-tag": false` in release-please-config.json.
+#     That flag is load-bearing, not decoration: it DEFAULTS TO TRUE, and with
+#     `package-name: e-os` the default tag is `e-os-v0.3.0`. That name matches
+#     neither the existing `v0.1.0`/`v0.2.0` history (U-152) nor the tag the
+#     signed-tag gate below checks out, so the whole publish job would fail on
+#     every release. Do not remove it.
+#     Armed at the same time they race for the same tag name on the
+#     same history and you get two competing releases. EXACTLY ONE may be armed:
+#     if you ever set GITLAB_TOKEN, delete or disable this workflow in the same
+#     change, and say so in CHANGELOG.md.
+#   * Neither writes CHANGELOG.md. .releaserc.json deliberately carries no
+#     @semantic-release/changelog plugin, and release-please here is pointed at
+#     RELEASE-NOTES.md (release-please-config.json). CHANGELOG.md is the
+#     hand-written U-NNN ledger; its entries carry measurements and corrections
+#     that a commit-message generator cannot reproduce.
+#
+# WHAT THIS PUBLISHES, AND WHAT IT DOES NOT. A GitHub runner cannot build the OS
+# image — that needs podman plus a warm ~37 GB cache and runs on the self-hosted
+# `eos-heavy` runner (.gitlab-ci.yml `build-image`). So `eos-<ver>-<arch>.img`,
+# its image SBOM and `release/eos-repo-<target>.tar.gz` are still assembled on
+# the build host by scripts/make-release.sh and scripts/publish-repo.sh, signed
+# with the operator's minisign / eos-repo-sign keys, and attached to the same tag
+# by hand. This workflow publishes what it can actually build and vouch for: the
+# host tool `tools/eos-repo-sign`, a CycloneDX SBOM of the checked-out tree, a
+# SHA256SUMS over both, and cosign signatures over that SHA256SUMS.
+# Nothing is published to crates.io: that would need a long-lived
+# CARGO_REGISTRY_TOKEN (or crates.io Trusted Publishing, whose action has no
+# resolved SHA in this change), and eos-repo-sign is a build-host tool rather
+# than a library anyone should depend on.
+#
+# ONE-WAY MIRROR — the thing to decide before turning this on. The release PR
+# release-please opens exists only on GitHub. Merging it creates a commit on the
+# GitHub `main` that GitLab does not have, and the next mirror push overwrites it
+# unless the mirror is configured to keep divergent refs. Either land the version
+# bump on GitLab (cherry-pick the release commit there) or accept that it lives
+# only on the mirror. This is a property of the mirror, not of release-please.
+# docs/ci.md §5 "GitHub mirror hygiene" states it flatly — "The GitHub repo is a
+# read-only mirror" — and this workflow is the first thing that writes to it. Arming
+# it makes that sentence false; update docs/ci.md §5 in the same change.
+# ─────────────────────────────────────────────────────────────────────────────
+name: release
+
+on:
+  push:
+    branches: [main]
+  # Re-attach signed artifacts to a tag that already has a Release — the path out
+  # of a failed signed-tag gate (see the `publish` job): fix the tag, dispatch
+  # with its name, get the assets. Leave the input empty and only release-please
+  # runs.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing signed tag to build and attach signed artifacts to (e.g. v0.3.0)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  # NOT cancel-in-progress. A release run that is killed between `cosign
+  # sign-blob` and `gh release upload` leaves a Release whose assets and
+  # signatures disagree, which is worse than a queued duplicate run.
+  cancel-in-progress: false
+
+jobs:
+  # ───────────────────────────  tag · notes · Release  ───────────────────────
+  release-please:
+    name: release PR, tag and GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write        # create the tag and the Release
+      pull-requests: write   # open and update the release PR
+    outputs:
+      # release-please emits per-package outputs prefixed with the package path
+      # when it is driven by a manifest, and unprefixed when it is driven by a
+      # single `release-type` input. This config is manifest-driven with one
+      # package at ".", which sets both shapes depending on version; take
+      # whichever is non-empty instead of betting on one.
+      release_created: ${{ steps.release.outputs.release_created || steps.release.outputs['.--release_created'] }}
+      tag_name: ${{ steps.release.outputs.tag_name || steps.release.outputs['.--tag_name'] }}
+    steps:
+      # audit, not block: the allowed-endpoint set for this job has not been
+      # measured. The audit run prints exactly what an allowlist would need, and
+      # guessing one now would produce a gate that fails for the wrong reason.
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      # No checkout: release-please works through the API.
+      #
+      # The PR is opened with GITHUB_TOKEN, and GitHub does not fire workflows
+      # for events created by that token — so the CI suite does NOT run on the
+      # release PR. Fixing that needs a PAT or a GitHub App, i.e. a long-lived
+      # credential this change deliberately does not introduce. Until then the
+      # release PR is reviewed against the CI result of the commits it contains.
+      - name: release-please
+        id: release
+        uses: googleapis/release-please-action@c2a5a2bd6a758a0937f1ddb1e8950609867ed15c # v4.3.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # ─────────────────────────  build · sign · attach  ─────────────────────────
+  # Everything that leaves the repository runs here, behind the `prod`
+  # environment. `environment:` names it; the required reviewers themselves live
+  # in repo Settings → Environments → prod and CANNOT be declared in this file —
+  # configure them there, and turn on "Prevent self-review". Note what that buys
+  # with one maintainer (audit C-18, no break-glass account): a deliberate pause
+  # and an approval record, not four eyes.
+  #
+  # release-please already published the Release entry by the time this runs, so
+  # a rejected/waiting approval leaves a Release with notes and no assets. That
+  # is visible and recoverable (approve, or re-run via workflow_dispatch); the
+  # alternative — gating release-please itself — would ask for an approval on
+  # every push to main, including the ones that only refresh the release PR.
+  publish:
+    name: sign and attach release artifacts
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true' || github.event.inputs.tag != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: prod
+    permissions:
+      contents: write   # upload assets onto the Release
+      id-token: write   # cosign keyless: mint the OIDC token. THIS JOB ONLY.
+    env:
+      TAG: ${{ github.event.inputs.tag || needs.release-please.outputs.tag_name }}
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: checkout the released tag
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ env.TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      # CLAUDE.md §10.1: "Tag niepodpisany albo lekki jest blokerem wydania" — an
+      # unsigned or lightweight tag blocks a release, and §8 repeats it: release
+      # tags are `git tag -s`, never `git tag <name>`. A tag created through the
+      # GitHub Releases API is a plain ref, so `git cat-file -t` prints `commit`
+      # and it cannot carry a signature at all (U-152). This gate therefore fails
+      # exactly the case where release-please minted the tag itself, and passes
+      # when the maintainer pushed `git tag -s vX.Y.Z` on GitLab first and let
+      # the mirror carry it: the Releases API reuses an existing tag ref rather
+      # than creating one, so the Release hangs off the signed tag.
+      #
+      # The release PR title names the version release-please chose, so the
+      # procedure is: read the version off the PR, sign the tag on GitLab, then
+      # merge. If you would rather not work that way, set "skip-github-release":
+      # true in release-please-config.json and drive this job from a tag push —
+      # that is the one-line change, not a redesign.
+      #
+      # This checks a signature is PRESENT, not that it VERIFIES. Verifying needs
+      # the allowed-signers file, and CLAUDE.md §10.1 puts the signing identity at
+      # ~/.ssh/magazyn-wms-signing.pub, which is not in this repo. Committing the
+      # public half as keys/allowed_signers and adding `git tag -v` here is the
+      # follow-up; it is named rather than faked.
+      - name: tag must be annotated and signed
+        run: |
+          set -euo pipefail
+          kind="$(git cat-file -t "$TAG")"
+          if [ "$kind" != "tag" ]; then
+            echo "::error::$TAG is a lightweight tag (git cat-file -t -> $kind)."
+            echo "::error::CLAUDE.md 10.1 makes that a release blocker. Delete it, push"
+            echo "::error::  git tag -s $TAG -m ... && git push --tags   (on GitLab),"
+            echo "::error::then re-run this workflow with input tag=$TAG."
+            exit 1
+          fi
+          # Read the object into a variable and match in-shell instead of piping
+          # into `grep -q`. Under `set -o pipefail` grep exits at the first match,
+          # `git cat-file` can then take SIGPIPE (141), and pipefail reports the
+          # PIPELINE as failed — rejecting a tag that is correctly signed. A gate
+          # that fails on a good tag is as broken as one that passes a bad one.
+          tag_obj="$(git cat-file tag "$TAG")"
+          case "$tag_obj" in
+            *"-----BEGIN SSH SIGNATURE-----"*|*"-----BEGIN PGP SIGNATURE-----"*) ;;
+            *)
+              echo "::error::$TAG is annotated but carries no signature block."
+              echo "::error::Re-tag with 'git tag -s' (CLAUDE.md 8, 10.1)."
+              exit 1
+              ;;
+          esac
+          echo "$TAG: annotated, signature block present (validity NOT checked here)"
+
+      # The toolchain is pinned by rust-toolchain.toml (nightly-2026-05-24, profile
+      # minimal). No setup action and no version matrix: rustup installs exactly
+      # that pin the first time a proxy runs, and anything that selected a
+      # toolchain here would quietly ignore the pin — same reasoning as the GitLab
+      # `rust-checks` job, which also just lets the file decide.
+      - name: rust toolchain (from rust-toolchain.toml)
+        run: |
+          set -euo pipefail
+          rustup show
+          cargo --version
+
+      # Audit C-14: sbom/ holds image documents for 0.1.0 only, while v0.2.0
+      # shipped — nothing regenerated them. This attaches a fresh SBOM to every
+      # release so the gap cannot reopen silently.
+      #
+      # Scope, stated plainly: this is the CHECKED-OUT SOURCE TREE (both Cargo
+      # manifests via their lockfiles), NOT the OS image. The image bill of
+      # materials still comes from scripts/gen-sbom.py over the cooked package
+      # metadata on the build host, and only that one describes what boots. It
+      # runs before the build step on purpose, so the document covers the source
+      # and not this job's own target/ output.
+      #
+      # Different producer from the GitLab `sbom` job, which runs cargo-cyclonedx
+      # per manifest: same standard, different tool, so the two documents will not
+      # be byte-identical. Pinning cargo-cyclonedx the way .gitlab-ci.yml pins
+      # cargo-deny needs a release checksum this change does not have.
+      - name: SBOM of the source tree (CycloneDX)
+        uses: anchore/sbom-action@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      # No build cache here on purpose. Swatinem/rust-cache is fine for the test
+      # pipeline, but this job's entire output is a signature over what it built,
+      # and a restored cache is state some other job wrote. A cold build costs
+      # minutes; a cache-poisoned signed artifact costs the trust chain.
+      # --locked pins the graph to the committed tools/eos-repo-sign/Cargo.lock.
+      - name: build eos-repo-sign
+        run: |
+          set -euo pipefail
+          cargo build --release --locked --manifest-path tools/eos-repo-sign/Cargo.toml
+          mkdir -p dist
+          cp tools/eos-repo-sign/target/release/eos-repo-sign \
+             "dist/eos-repo-sign-${TAG}-x86_64-unknown-linux-gnu"
+
+      # SHA256SUMS is the single signed object, exactly as scripts/make-release.sh
+      # does it with minisign: sign the checksum file, and every artifact listed in
+      # it is covered transitively. One signature to check, one file to publish.
+      - name: checksums
+        run: |
+          set -euo pipefail
+          mv sbom.cdx.json "dist/eos-${TAG}-source.cdx.json"
+          cd dist
+          sha256sum eos-repo-sign-* eos-*.cdx.json > SHA256SUMS
+          cat SHA256SUMS
+
+      # CLAUDE.md's "tools not in the repo" table lists cosign as ❌ because "the
+      # signing key is generated by a human (§5, §10.3) — a tool that logs must not
+      # touch it". Keyless removes that objection rather than working around it:
+      # there is no key. Fulcio issues a certificate bound to this workflow's OIDC
+      # identity for the life of one signature, and Rekor holds the public record.
+      # The operator's minisign key stays where it is, for the image artifacts
+      # this runner cannot build.
+      #
+      # The cosign BINARY version is not pinned: the installer's default is used
+      # because there is no verified checksum for a specific cosign release in
+      # this change. Pinning it (cosign-release: vX.Y.Z) is a follow-up.
+      - name: install cosign
+        uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
+
+      - name: sign SHA256SUMS (keyless, OIDC)
+        run: |
+          set -euo pipefail
+          cd dist
+          cosign sign-blob --yes \
+            --bundle SHA256SUMS.sigstore.json \
+            SHA256SUMS
+
+      # ── SLSA: what this actually reaches, stated honestly ──────────────────
+      # This produces a signed in-toto statement carrying a SLSA v1 provenance
+      # predicate over SHA256SUMS. That is genuine Build L1 — provenance exists,
+      # describes this build, and ships with the release. It is NOT L3, and do not
+      # describe a release as L3 anywhere.
+      #
+      # What is missing, exactly: the predicate below is assembled by a `run:`
+      # step INSIDE the same job that produced the artifacts, so anything able to
+      # change this workflow can change the provenance it emits. SLSA L3 requires
+      # provenance generated by the build platform outside the influence of the
+      # build steps, on an isolated builder. Two things would give that, and
+      # NEITHER has a resolved 40-char SHA in this change, so neither is used:
+      #   * slsa-framework/slsa-github-generator — the L3 route; its
+      #     .github/workflows/generator_generic_slsa3.yml reusable workflow signs
+      #     provenance in a job the caller cannot influence;
+      #   * actions/attest-build-provenance — moves generation to GitHub's
+      #     attestation API (and needs `attestations: write`), which is where the
+      #     "GitHub-native attestation" option would come from.
+      # Resolve a SHA for either and this step is what gets replaced.
+      #
+      # For the same reason, do not read L2 into this either without checking it
+      # against the spec: the DSSE signature is authenticated and bound to this
+      # workflow's identity, which is most of what L2 asks for, but the predicate
+      # is not platform-generated.
+      - name: build the provenance predicate
+        env:
+          SERVER_URL: ${{ github.server_url }}
+          REPO_URI: ${{ github.server_url }}/${{ github.repository }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          BUILD_REF: ${{ github.ref }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          REPO_ID: ${{ github.repository_id }}
+          OWNER_ID: ${{ github.repository_owner_id }}
+        run: |
+          set -euo pipefail
+          started_on="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          # The commit this build consumed is HEAD of the checkout, i.e. what $TAG
+          # points at — NOT github.sha. On the workflow_dispatch recovery path
+          # github.sha is the head of the branch the dispatch was started from and
+          # has no relation to the tag being rebuilt. Provenance that names the
+          # wrong commit is worse than no provenance, so read it off the tree.
+          built_commit="$(git rev-parse HEAD)"
+          jq -n \
+            --arg server_url   "$SERVER_URL" \
+            --arg repo_uri     "$REPO_URI" \
+            --arg workflow_ref "$WORKFLOW_REF" \
+            --arg build_ref    "$BUILD_REF" \
+            --arg commit       "$built_commit" \
+            --arg tag          "$TAG" \
+            --arg run_id       "$RUN_ID" \
+            --arg run_attempt  "$RUN_ATTEMPT" \
+            --arg repo_id      "$REPO_ID" \
+            --arg owner_id     "$OWNER_ID" \
+            --arg started_on   "$started_on" \
+            '{
+              buildDefinition: {
+                buildType: "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1",
+                externalParameters: {
+                  workflow: {
+                    ref: $build_ref,
+                    repository: $repo_uri,
+                    path: ".github/workflows/release.yml"
+                  }
+                },
+                internalParameters: {
+                  github: {
+                    repository_id: $repo_id,
+                    repository_owner_id: $owner_id
+                  }
+                },
+                resolvedDependencies: [
+                  {
+                    uri: ("git+" + $repo_uri + "@refs/tags/" + $tag),
+                    digest: { gitCommit: $commit }
+                  }
+                ]
+              },
+              runDetails: {
+                builder: { id: ($server_url + "/" + $workflow_ref) },
+                metadata: {
+                  invocationId: ($repo_uri + "/actions/runs/" + $run_id + "/attempts/" + $run_attempt),
+                  startedOn: $started_on
+                }
+              }
+            }' > dist/provenance.json
+          jq . dist/provenance.json > /dev/null
+
+      - name: attest provenance (keyless, OIDC)
+        run: |
+          set -euo pipefail
+          cd dist
+          cosign attest-blob --yes \
+            --predicate provenance.json \
+            --type "https://slsa.dev/provenance/v1" \
+            --bundle SHA256SUMS.provenance.sigstore.json \
+            SHA256SUMS
+
+      # Verification, for whoever downloads this (no key to distribute — the
+      # workflow identity IS the check):
+      #   sha256sum -c SHA256SUMS
+      #   cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+      #     --certificate-identity-regexp '^https://github\.com/Gh0s777tt/E-OS/\.github/workflows/release\.yml@' \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      #     SHA256SUMS
+      #   cosign verify-blob-attestation --bundle SHA256SUMS.provenance.sigstore.json \
+      #     --type https://slsa.dev/provenance/v1 \
+      #     --certificate-identity-regexp '^https://github\.com/Gh0s777tt/E-OS/\.github/workflows/release\.yml@' \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+      #     SHA256SUMS
+      # Documented here and nowhere else a downloader would look: SECURITY.md
+      # names only minisign, docs/packages.md describes the pkgar/ed25519 chain,
+      # and the single occurrence of `cosign` in docs/ is threat-model.md saying a
+      # local `act` run cannot exercise cosign OIDC. CLAUDE.md's "tools not in the
+      # repo" table still lists cosign as absent. Copying the two commands above
+      # into SECURITY.md, and striking that table row, is a docs task.
+      - name: attach artifacts to the Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release upload "$TAG" \
+            dist/eos-repo-sign-* \
+            dist/*.cdx.json \
+            dist/SHA256SUMS \
+            dist/SHA256SUMS.sigstore.json \
+            dist/SHA256SUMS.provenance.sigstore.json \
+            --clobber
+          echo "attached to $TAG:"
+          gh release view "$TAG" --json assets --jq '.assets[].name'

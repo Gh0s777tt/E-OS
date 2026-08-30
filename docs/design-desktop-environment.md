@@ -46,11 +46,14 @@ for apps if libcosmic's fork-sync burden grows; it also runs in software on Redo
 
 **Status (2026-07-12):** implemented and boot-verified on the MacBook (QEMU aarch64, ramfb +
 `screendump`). Both the greeter and the full desktop render red/black:
-[`assets/screenshots/eos-crimson-greeter.png`](../assets/screenshots/eos-crimson-greeter.png)
-(black+crimson radial glow, glowing red **diamond**, red Login button) and
-[`assets/screenshots/eos-crimson-desktop.png`](../assets/screenshots/eos-crimson-desktop.png)
-(deep-black/blood-red wallpaper with ember particles, **diamond Start** button, red folder icon,
-red clock). Landed in the local `eos-orbital`/`eos-orbutils`/`eos-orbdata` forks (not yet pushed —
+the greeter (black+crimson radial glow, glowing red **diamond**, red Login button) and the
+desktop (deep-black/blood-red wallpaper with ember particles, **diamond Start** button, red folder
+icon, red clock). Screenshots were taken during that verification and named
+`eos-crimson-greeter.png` / `eos-crimson-desktop.png`, but they were never committed —
+`assets/screenshots/` does not exist in this repository and `git log --diff-filter=A` finds no
+commit that ever added them, despite `241092f48` saying "(screenshots)" in its subject. The two
+links that used to sit here pointed at those absent files; they are gone rather than silently
+broken. The verification happened; the evidence for it is not in the tree. Landed in the local `eos-orbital`/`eos-orbutils`/`eos-orbdata` forks (not yet pushed —
 tokens compromised). What was done, concretely:
 - `eos-orbital` `src/config.rs` default colors → crimson (`background_color=rgb(12,2,2)`,
   `bar_color=rgba(22,3,3,210)`, `bar_highlight=rgba(140,10,10,220)`, `text_highlight=rgb(255,64,64)`).
