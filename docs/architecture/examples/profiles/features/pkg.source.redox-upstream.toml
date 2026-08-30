@@ -1,0 +1,111 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+#
+# Funkcja istnieje WYŁĄCZNIE po to, żeby dało się ją jawnie wyłączyć i żeby profil,
+# który ją włącza, przechodził przez potwierdzenie osłabienia (§6.4). Bez wpisu w katalogu
+# „włączenie upstreamowego repo” byłoby niewidoczne dla różnicy przy imporcie.
+schema = 1
+
+[feature]
+id       = "pkg.source.redox-upstream"
+version  = "1.0.0"
+category = "updates"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "JEST"
+evidence = """
+`/etc/pkg.d/50_redox` JEST w obrazie, świadomie zakomentowany (config/x86_64/eos.toml,
+sekcja R-701a). Plik z samymi komentarzami parsuje się czysto i daje zero źródeł, bo
+`update_remotes()` w pkg-lib pomija linie z `#` — dlatego zostawiono plik zamiast go kasować
+(`fs::read_dir` na brakującym /etc/pkg.d jest zawodne, a pusta linia trafiłaby do
+`add_remote("")` i wywaliła się na RepoPathInvalid).
+Check 9 w scripts/ci-integrity.sh pilnuje, żeby żaden obraz nie wysyłał aktywnego,
+nieuwierzytelnionego źródła pakietów.
+"""
+roadmap = ["R-701a"]
+
+[text.pl]
+name    = "Upstreamowe repozytorium Redoksa"
+summary = "static.redox-os.org. Binarki BEZ hartowania E-OS, kanał nieuwierzytelniony u klienta."
+
+[text.en]
+name    = "Upstream Redox package repository"
+summary = "static.redox-os.org. Binaries WITHOUT E-OS hardening, channel unauthenticated on the client."
+
+[effects.on]
+irreversible    = false
+requires_reboot = false
+weakening       = true      # wymusza potwierdzenie per-pozycja przy imporcie (§6.4)
+
+[[effects.on.pkgsource_enable]]
+name       = "50_redox"
+url        = "https://static.redox-os.org/pkg"
+pinned_key = ""             # brak przypiętego klucza — TOFU
+
+[effects.on.text.pl]
+description = "Odkomentowuje upstreamowe źródło. Klucz podpisujący jest pobierany TOFU z tego samego hosta, który serwuje pakiety."
+
+[effects.on.text.en]
+description = "Un-comments the upstream source. The signing key is fetched TOFU from the very host serving the packages."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Stan domyślny obrazu E-OS: źródło obecne, ale nieaktywne."
+residual_risk = "Brak — to jest stan pożądany."
+
+[effects.off.text.en]
+description   = "The E-OS image default: the source is present but inactive."
+residual_risk = "None — this is the intended state."
+
+[requires]
+features     = []
+capabilities = ["net.interface"]
+
+[conflicts]
+features = ["pkg.source.eos"]
+
+[conflicts.text.pl]
+reason = "Dwa źródła o rozbieżnych gwarancjach: o tym, co się zainstaluje, rozstrzygałaby kolejność, a nie polityka."
+
+[conflicts.text.en]
+reason = "Two sources with divergent guarantees: ordering, not policy, would decide what gets installed."
+
+[threat]
+model           = ["supply-chain"]
+severity_if_off = "niskie"      # WYŁĄCZONA jest stanem bezpiecznym
+
+[threat.text.pl]
+protects = "Nic. To funkcja OSŁABIAJĄCA — pole `severity_if_off` mówi, że jej wyłączenie jest bezpieczne."
+does_not_protect = """
+WŁĄCZONA sprowadza do systemu binarki zbudowane BEZ flag E-OS: bez `overflow-checks`,
+bez W⊕X przy granicy wywołań systemowych, bez ASLR map anonimowych (docs/hardening.md).
+Kanał jest nieuwierzytelniony u klienta do czasu R-703, a klucz pobierany TOFU z hosta,
+który serwuje pakiety, nie jest kotwicą zaufania — jest jej pozorem.
+"""
+
+[threat.text.en]
+protects = "Nothing. This is a WEAKENING feature; `severity_if_off` says turning it off is safe."
+does_not_protect = """
+Enabled, it pulls in binaries built WITHOUT the E-OS flags. The channel is unauthenticated
+on the client until R-703, and a key fetched TOFU from the host serving the packages is not
+a trust anchor — it is the appearance of one.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Cofnięcie: zakomentuj URL w `/etc/pkg.d/50_redox`. Cofnięcie NIE usuwa pakietów już zainstalowanych z tego źródła."
+
+[cost.text.en]
+runtime = "Undo: comment the URL out again. It does NOT remove packages already installed from that source."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "off"
+amnesic = "off"

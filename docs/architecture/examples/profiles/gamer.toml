@@ -1,0 +1,82 @@
+# E-OS — profil instalacyjny.  Schemat: docs/architecture/installer-profiles.md
+#
+# UWAGA DLA CZYTAJĄCEGO KOD, NIE TYLKO TEKST: ten profil NIE sprawia, że E-OS uruchamia gry.
+# docs/plan.md §2.2 nazywa to wprost — „E-OS nie uruchamia gier i roadmapa powinna to mówić
+# na głos". Brakuje CAŁEGO łańcucha, nie jednego ogniwa: zgodności z ABI Linuksa lub portów
+# natywnych (brak, brak pozycji), akceleracji GPU (brak — R-930 dokumentuje nieobecność),
+# wejścia z gamepada (brak — `usbhidd` obsługuje klawiaturę i mysz) i dźwięku o niskim
+# opóźnieniu (`ihdad` przekracza czas oczekiwania na odpowiedź RIRB kodeka i `audiod` kończy pracę).
+# Profil istnieje dlatego, że użytkownik i tak będzie go szukał. Lepiej, żeby znalazł
+# uczciwą odpowiedź w kreatorze niż milczenie.
+
+schema = 1
+
+[profile]
+id            = "eos.gamer"
+version       = "1.0.0"
+class         = "gaming"
+inherits      = ["eos.base"]
+author        = "E-OS"
+min_installer = "0.2.42"
+arch          = ["x86_64", "aarch64"]
+
+[profile.text.pl]
+name    = "E-OS Gaming"
+summary = "Stacja robocza z priorytetem na dostępność sprzętu i wejścia. NIE uruchamia gier — patrz ogłoszenie blokujące."
+
+[profile.text.en]
+name    = "E-OS Gaming"
+summary = "A workstation biased toward hardware and input availability. Does NOT run games — see the blocking notice."
+
+# ── Ogłoszenia ────────────────────────────────────────────────────────────────────
+# `severity = "blocking"` znaczy: kreator wymaga osobnego potwierdzenia, zanim pójdzie dalej,
+# a tryb nienadzorowany przerywa, chyba że podano `--accept-notices` w wierszu poleceń
+# (nigdy z wnętrza pliku).
+[[notice]]
+severity = "blocking"
+
+[notice.text.pl]
+body = """
+E-OS NIE URUCHAMIA GIER. Brakuje wszystkich czterech ogniw naraz:
+  * zgodność z ABI Linuksa lub porty natywne — nie ma i nie ma pozycji roadmapy,
+  * akceleracja GPU (warstwa klasy GEM / dma-fence) — nie ma; R-930 opisuje nieobecność,
+  * wejście z gamepada — nie ma; `usbhidd` pokrywa klawiaturę i mysz,
+  * dźwięk o niskim opóźnieniu — `ihdad` przekracza czas oczekiwania na RIRB, `audiod` kończy pracę.
+Ten profil daje wygodne domyślne ustawienia stacji roboczej. Nie daje grania.
+Źródło: docs/plan.md §2.2.
+"""
+
+[notice.text.en]
+body = """
+E-OS DOES NOT RUN GAMES. All four links are missing at once: Linux ABI compatibility or
+native ports, GPU acceleration, gamepad input, and low-latency audio. This profile gives
+convenient workstation defaults. It does not give gaming. Source: docs/plan.md §2.2.
+"""
+
+# ── Wybory ────────────────────────────────────────────────────────────────────────
+
+[[select]]
+feature = "user.schemes.minimal"
+state   = "off"
+reason  = "Zawężenie usuwa `serio` i `irq` z przestrzeni konta. Na maszynie z wejściem PS/2 albo z urządzeniem HID wymagającym własnej obsługi to jest różnica między działającym a niedziałającym sterowaniem, a docs/hardening.md §7 przyznaje, że pełnej sesji graficznej nie da się dziś zweryfikować bezgłowo. Wolimy jawne `off` z powodem niż `on` bez dowodu."
+
+[[select]]
+feature = "disk.encrypt"
+state   = "ask"
+reason  = "Bez zmian wobec `eos.base`. Szyfrowanie AES-XTS nie ma zmierzonego wpływu na przepustowość na tym sprzęcie — patrz uwaga niżej."
+
+[[select]]
+feature = "sys.identity"
+state   = "on"
+reason  = "Maszyna do gier zwykle stoi w sieci domowej razem z innymi; wspólna nazwa `eos` czyni ją nierozróżnialną."
+
+[[select]]
+feature = "storage.raid1"
+state   = "off"
+reason  = "Lustro zabiera połowę pojemności i nie jest kopią zapasową."
+
+# ── Uwagi profilu ─────────────────────────────────────────────────────────────────
+# Pole jawnie niezweryfikowane. Schemat wymaga, żeby takie rzeczy stały w pliku, a nie
+# w głowie autora profilu.
+[unverified]
+"disk.encrypt" = "[NIEZWERYFIKOWANE] Nie ma pomiaru narzutu AES-XTS-128 RedoxFS na przepustowość ani opóźnienie wejścia/wyjścia — ani na sprzęcie, ani pod QEMU. Nie twierdzimy, że jest mały; twierdzimy, że nie został zmierzony."

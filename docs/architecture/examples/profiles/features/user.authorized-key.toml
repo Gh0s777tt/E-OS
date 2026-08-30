@@ -1,0 +1,113 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "user.authorized-key"
+version  = "1.0.0"
+category = "accounts"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "DO ZBUDOWANIA"
+evidence = """
+Instalator umie zapisywać pliki z właścicielem i trybem (`[[files]]` z `uid`/`gid`/`mode` —
+config/x86_64/eos.toml używa tego dla `/home/user/.config`) oraz zakładać konta
+(`[users.<nazwa>]` z `password`, `uid`, `gid`, `shell` — config/base.toml:240).
+Czego NIE MA: front-endy instalatora NIE zbierają danych kont — to otwarta pozycja R-603
+(docs/install.md: „nie tworzy kont i nie pozwala wybrać pakietów”).
+Do zbudowania: pole na klucz publiczny w kreatorze + zapis pliku + reguła OOBE opisana
+w docs/plan.md §2.3 („konto zasilone kluczem publicznym z zablokowanym hasłem SPEŁNIA R-602”).
+"""
+roadmap = ["R-602", "R-603"]
+
+[text.pl]
+name    = "Klucz publiczny dla konta"
+summary = "Wgranie klucza SSH przy instalacji, z hasłem konta zablokowanym zamiast pustego."
+
+[text.en]
+name    = "Public key for the account"
+summary = "Seeds an SSH key at install time, with the account password locked rather than empty."
+
+[effects.on]
+irreversible    = false
+requires_reboot = false
+
+[[effects.on.files_write]]
+path        = "/home/user/.ssh/authorized_keys"
+mode        = 0o600
+uid         = 1000
+gid         = 1000
+postinstall = true
+data        = "@prompt:ssh-public-key"
+
+[[effects.on.users_set]]
+name     = "user"
+password = "@locked"        # zablokowane, nie puste — patrz `does_not_protect`
+
+[effects.on.text.pl]
+description = "Kreator prosi o klucz publiczny (wklejenie albo odczyt z nośnika) i blokuje hasło konta."
+
+[effects.on.text.en]
+description = "The wizard asks for a public key (paste or read from media) and locks the account password."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Konto zostaje z domyślnymi poświadczeniami obrazu."
+residual_risk = "Obraz E-OS wysyła `user` BEZ HASŁA i `root` z hasłem `password` (docs/install.md, docs/hardening.md). OOBE wymusza zmianę przy pierwszym logowaniu i to JEST zweryfikowane na każdej ścieżce (R-602), ale wymusza ją PRZY KONSOLI — na maszynie bezgłowej instalacja bez klucza nie ma jak dojść do pierwszego logowania."
+
+[effects.off.text.en]
+description   = "The account keeps the image default credentials."
+residual_risk = "The image ships `user` with NO password and `root` / `password`. The OOBE forces a change at first login on every path (R-602), but it does so AT THE CONSOLE — on a headless machine an install without a key has no way to reach that first login."
+
+[requires]
+features     = []
+capabilities = []
+
+[conflicts]
+features = []
+
+[threat]
+model           = ["remote-network", "local-unprivileged-process"]
+severity_if_off = "wysokie"
+
+[threat.text.pl]
+protects = "Usuwa domyślne poświadczenia — dokładnie tę ekspozycję, którą R-602 nazywa krytyczną w obrazie live."
+does_not_protect = """
+Klucz jest tak dobry, jak maszyna, z której pochodzi — instalator go nie ocenia i nie może.
+NIE ma konta awaryjnego (C-18): jeśli stracisz klucz prywatny przy zablokowanym haśle,
+na maszynie bezgłowej zostaje reinstalacja.
+NIE ma trwałego dziennika audytu (C-9), więc użycie klucza nie zostawia śladu.
+Hasło konta jest skrótowane argon2id, ale to skrót HASŁA KONTA, nie klucza woluminu —
+szyfrowanie dysku to osobna funkcja (`disk.encrypt`) i osobny sekret.
+"""
+
+[threat.text.en]
+protects = "Removes the default credentials — the exact exposure R-602 calls critical in the live image."
+does_not_protect = """
+The key is only as good as the machine it came from; the installer cannot judge it.
+No break-glass account (C-18): losing the private key with the password locked leaves
+reinstall as the only path on a headless machine.
+No persistent audit log (C-9). The account password hash (argon2id) is not the volume key.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Trzeba mieć klucz przygotowany PRZED instalacją."
+
+[cost.text.en]
+runtime = "The key must exist BEFORE the install starts."
+
+[recommend.class]
+desktop = "ask"
+gaming  = "off"
+server  = "on"
+amnesic = "off"
+
+[recommend.profile]
+"eos.business" = "on"

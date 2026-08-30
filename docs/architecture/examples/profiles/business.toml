@@ -1,0 +1,98 @@
+# E-OS — profil instalacyjny.  Schemat: docs/architecture/installer-profiles.md
+#
+# `class = "desktop"`, nie osobna klasa. Klasa jest ZAMKNIĘTYM słownikiem
+# (desktop | gaming | server | amnesic), żeby funkcja od osoby trzeciej mogła wydać
+# zalecenie, nie znając identyfikatorów naszych profili. To, co odróżnia „business” od
+# `eos.base`, to nie klasa, tylko BLOKADY — i tak ma być: blokada jest decyzją profilu,
+# klasa jest tylko podpowiedzią.
+
+schema = 1
+
+[profile]
+id            = "eos.business"
+version       = "1.0.0"
+class         = "desktop"
+inherits      = ["eos.base"]
+author        = "E-OS"
+min_installer = "0.2.42"
+arch          = ["x86_64", "aarch64"]
+
+[profile.text.pl]
+name    = "E-OS Business"
+summary = "Stacja robocza z hartowaniem wymuszonym przez profil. Szyfrowanie i wąska przestrzeń schematów są ZABLOKOWANE — użytkownik nie może ich wyłączyć w kreatorze."
+
+[profile.text.en]
+name    = "E-OS Business"
+summary = "A workstation with hardening enforced by the profile. Encryption and the narrow scheme namespace are LOCKED — the wizard will not let them be turned off."
+
+[[notice]]
+severity = "warning"
+
+[notice.text.pl]
+body = """
+Ten profil BLOKUJE dwie funkcje. Blokady nie da się zdjąć profilem potomnym — odblokowania
+nie ma z założenia (§3.6 dokumentu). Jeżeli potrzebujesz innych wartości, nie dziedzicz
+po tym profilu, tylko po `eos.base`.
+
+Czego ten profil NIE ZAŁATWIA, mimo nazwy: nie ma trwałego dziennika audytu (C-9), nie ma
+zapory (C-10), nie ma piaskownicy aplikacji (C-5), nie ma konta awaryjnego (C-18) i nie ma
+kopii zapasowej ani ścieżki odtworzenia w obrazie. „Business” opisuje zestaw domyślnych
+ustawień, nie zgodność z jakąkolwiek normą.
+"""
+
+[notice.text.en]
+body = """
+This profile LOCKS two features; a child profile cannot unlock them. There is no unlock by
+design. What it does NOT provide, despite the name: no persistent audit log (C-9), no
+firewall (C-10), no application sandbox (C-5), no break-glass account (C-18), no backup or
+recovery path. "Business" names a set of defaults, not compliance with any standard.
+"""
+
+# ── Wybory ────────────────────────────────────────────────────────────────────────
+
+[[select]]
+feature = "disk.encrypt"
+state   = "on"
+locked  = true
+reason  = "Sprzęt przenośny jest gubiony i kradziony. To jedyna kontrola w tym zestawie, która adresuje przeciwnika «fizyczny / zgubione urządzenie» (docs/threat-model.md §3), i jedyna, której NIE DA SIĘ dołożyć po instalacji — `irreversible = true` w definicji funkcji. Dlatego blokada, a nie pytanie."
+
+[[select]]
+feature = "user.schemes.minimal"
+state   = "on"
+locked  = true
+reason  = "Usuwa `memory`, `irq` i `serio` z konta interaktywnego. docs/hardening.md §7 potwierdza, że obraz z zawężoną listą bootuje do greetera bez błędów uprawnień; ryzyko resztkowe (niesprawdzona pełna sesja graficzna) jest jawnie zapisane w funkcji i akceptowane na poziomie tego profilu."
+
+[[select]]
+feature = "user.authorized-key"
+state   = "on"
+reason  = "Usuwa domyślne poświadczenia obrazu. Nie blokujemy: na maszynie z klawiaturą i monitorem OOBE (R-602) też załatwia sprawę, a blokada bez konta awaryjnego (C-18) zamienia zgubiony klucz prywatny w reinstalację."
+
+[[select]]
+feature = "sys.identity"
+state   = "on"
+reason  = "Flota maszyn o wspólnej nazwie `eos` jest niezarządzalna (R-606)."
+
+[[select]]
+feature = "pkg.source.eos"
+state   = "on"
+locked  = true
+reason  = "Maszyna bez kanału aktualizacji nie dostanie poprawki bezpieczeństwa. Blokada dotyczy INTENCJI — na x86_64 kanału jeszcze nie ma (C-4) i rozstrzygnie się jako niedostępny, co plik odpowiedzi odnotuje wprost. Zablokowana intencja nie jest kłamstwem o dostępności."
+
+[[select]]
+feature = "pkg.source.redox-upstream"
+state   = "off"
+locked  = true
+reason  = "Binarki bez flag hartowania E-OS w profilu, którego jedynym sensem jest hartowanie, byłyby sprzecznością (R-701a)."
+
+[[select]]
+feature = "net.sshd"
+state   = "ask"
+reason  = "Zdalne zarządzanie bywa wymagane. Pytamy, ale funkcja wymaga `user.authorized-key`, więc nie da się jej włączyć z uwierzytelnianiem hasłem — i tak nie ma zapory (R-904), co widać w jej opisie."
+
+[[select]]
+feature = "storage.raid1"
+state   = "ask"
+reason  = "Ma sens na stacji stacjonarnej z dwoma dyskami. Interakcja z zaszyfrowanym rootem jest NIEZWERYFIKOWANA — patrz `[unverified]`."
+
+[unverified]
+"storage.raid1 + disk.encrypt" = "[NIEZWERYFIKOWANE] Nie potwierdzono w drzewie, czy `raid1d` składa lustro nad zaszyfrowanym RedoxFS ani w którym momencie rozruchu. Do sprawdzenia PRZED dopuszczeniem obu naraz; do tego czasu kreator ma to pokazać jako ostrzeżenie, nie jako obsługiwaną kombinację."

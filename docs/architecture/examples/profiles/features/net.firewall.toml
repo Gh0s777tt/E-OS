@@ -1,0 +1,109 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+#
+# Funkcja o `stage = "NOWY PODSYSTEM"` NIE MOŻE mieć `state = "on"` w żadnym wysyłanym
+# profilu (V-12). Kreator pokazuje ją wyszarzoną z powodem. Wpis istnieje po to, żeby
+# w spisie funkcji było WIDAĆ brak, a nie żeby go ukryć.
+schema = 1
+
+[feature]
+id       = "net.firewall"
+version  = "0.1.0"
+category = "network"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "NOWY PODSYSTEM"
+evidence = """
+Nie istnieje żaden filtr pakietów. ROADMAP-v2 §9.7 `R-904`: „netstack wystawia
+`ip`/`udp`/`tcp`/`raw` (raw włączony) z ZEROWYM filtrowaniem; dotkliwa luka jak na system
+security-first". Znalezisko audytu C-10 (brak zapory).
+Co trzeba ZBUDOWAĆ, a czego Redox nie ma: warstwa filtrująca wewnątrz procesu netstacka
+(smoltcp) albo przed nim, język reguł, trwały magazyn reguł, interfejs sterujący i panel.
+Kolejność jest wymuszona: docs/plan.md §4 krok 5 — najpierw usunięcie `ip` z przestrzeni
+schematów użytkownika, bo zapora budowana przy dostępnych surowych gniazdach jest
+trywialnie omijalna. Ten krok JEST już wykonany w obrazie (config/x86_64/eos.toml, R-904a).
+Nie jest to port nftables/iptables — na Redoksie nie ma netfiltera i nie będzie.
+"""
+roadmap = ["R-904"]
+
+[text.pl]
+name    = "Zapora / filtr pakietów"
+summary = "NIE ISTNIEJE. Wpis pokazuje brak, którego profil nie może zasłonić."
+
+[text.en]
+name    = "Firewall / packet filter"
+summary = "DOES NOT EXIST. This entry makes the gap visible; a profile cannot paper over it."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true
+unavailable     = true      # V-12: walidator odrzuca każdy profil ustawiający `on`
+
+[effects.on.text.pl]
+description = "Nie do włączenia. Brak podsystemu."
+
+[effects.on.text.en]
+description = "Cannot be enabled. The subsystem does not exist."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Stan faktyczny: brak filtrowania ruchu w obie strony."
+residual_risk = "Każda uruchomiona usługa jest osiągalna z całej sieci, do której maszyna jest podłączona. Nie ma sposobu ograniczenia źródła, portu ani tempa prób. Dla profilu serwerowego to jest P0 (docs/plan.md §2.3)."
+
+[effects.off.text.en]
+description   = "The factual state: no filtering in either direction."
+residual_risk = "Every running service is reachable from the whole attached network, with no way to limit source, port or rate. For a server profile this is P0."
+
+[requires]
+features     = ["user.schemes.minimal"]
+capabilities = []
+
+[requires.text.pl]
+reason = "Zapora nad przestrzenią schematów zawierającą surowe gniazda nie jest kontrolą — patrz docs/plan.md §4 krok 5. Zależność jest w schemacie po to, żeby kolejność wynikała z danych, a nie z pamięci autora."
+
+[requires.text.en]
+reason = "A firewall above a scheme namespace holding raw sockets is not a control — the ordering lives in the data, not in the author's memory."
+
+[conflicts]
+features = []
+
+[threat]
+model           = ["remote-network"]
+severity_if_off = "krytyczne"
+
+[threat.text.pl]
+protects = "Nic — funkcji nie ma. To pole opisuje, co BYŁOBY chronione: przeciwnik «zdalny sieciowy» (docs/threat-model.md §3)."
+does_not_protect = """
+Nie chroni przed niczym dzisiaj.
+Nawet po zbudowaniu nie chroniłaby przed: ruchem tunelowanym w ICMP (`icmp` świadomie ZOSTAJE
+w przestrzeni użytkownika, żeby `ping` działał — config/x86_64/eos.toml, R-904a),
+IPv6 (netstack kompilowany wyłącznie `proto-ipv4`, R-903),
+ani złośliwym sterownikiem karty sieciowej — bez IOMMU sterownik programuje DMA gdziekolwiek.
+"""
+
+[threat.text.en]
+protects = "Nothing — the feature does not exist. This field states what WOULD be protected."
+does_not_protect = """
+Nothing today. Even once built it would not cover ICMP tunnelling (`icmp` deliberately stays
+in the user namespace so `ping` works), IPv6 (netstack is `proto-ipv4` only, R-903), or a
+malicious NIC driver — with no IOMMU it can DMA anywhere.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Nieznany — nie ma czego zmierzyć."
+
+[cost.text.en]
+runtime = "Unknown — there is nothing to measure."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "off"
+amnesic = "off"

@@ -1,0 +1,121 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+#
+# Ten plik należy do KATALOGU LOKALNEGO (/usr/share/eos/features/). Definicje funkcji
+# nie pochodzą nigdy z importu — profil z sieci może tylko WYBIERAĆ z tego katalogu
+# (§6.2 dokumentu). Nazwa pliku musi być równa `id` + `.toml` (V-02).
+
+schema = 1
+
+[feature]
+id       = "disk.encrypt"
+version  = "1.0.0"
+category = "storage"
+arch     = ["x86_64", "aarch64"]
+
+# Klasyfikacja zdolności (V-12). "JEST" wymaga niepustego `evidence`.
+stage    = "JEST"
+evidence = """
+docs/encryption.md — RedoxFS AES-XTS-128, klucz wyprowadzany z hasła (argon2).
+redox_installer 0.2.42: monit „redoxfs password (empty for none)” oraz
+`[general] encrypt_disk` w pliku konfiguracyjnym.
+Weryfikacja end-to-end 2026-07-11 na aarch64 i x86_64 pod UEFI: obraz zainstalowany
+z `encrypt_disk` bootuje zaszyfrowany root do `eos login:`, bootloader pyta
+`RedoxFS password (1/10):`, 0 wyjątków / 0 panik.
+"""
+roadmap = []
+
+[text.pl]
+name    = "Szyfrowanie całego dysku (RedoxFS AES-XTS-128)"
+summary = "Root instalowany jako zaszyfrowany RedoxFS. Hasło podajesz przy każdym rozruchu."
+
+[text.en]
+name    = "Full-disk encryption (RedoxFS AES-XTS-128)"
+summary = "The root is created as an encrypted RedoxFS. The password is entered at every boot."
+
+# ── Skutki włączenia ──────────────────────────────────────────────────────────────
+# Gramatyka efektów jest ZAMKNIĘTA (§3.5). Nie ma tu skryptu ani szablonu.
+[effects.on]
+irreversible    = true      # po instalacji nie da się dołożyć FDE bez reinstalacji
+requires_reboot = false
+
+# Wartość `@prompt:` jest jedyną dopuszczalną wartością dla encrypt_disk (V-17).
+# Literalne hasło w pliku profilu jest błędem walidacji, nie ostrzeżeniem.
+[[effects.on.general_set]]
+key   = "encrypt_disk"
+value = "@prompt:disk-password"
+
+[effects.on.text.pl]
+description = "Instalator tworzy root jako `redoxfs-mkfs --encrypt`; bootloader pyta o hasło przed załadowaniem jądra."
+
+[effects.on.text.en]
+description = "The installer creates the root with `redoxfs-mkfs --encrypt`; the bootloader prompts for the password before loading the kernel."
+
+# ── Skutki wyłączenia ─────────────────────────────────────────────────────────────
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Root jest niezaszyfrowany."
+residual_risk = "Każdy, kto ma dysk w ręku, czyta wszystko: pliki, hasła kont (skróty argon2id), klucze SSH, historię."
+
+[effects.off.text.en]
+description   = "The root is left unencrypted."
+residual_risk = "Anyone holding the disk reads everything: files, account password hashes, SSH keys, history."
+
+[requires]
+features     = []
+capabilities = ["installer.interactive_or_prompt"]
+
+[conflicts]
+features = []
+
+# ── Znaczenie dla modelu zagrożeń ─────────────────────────────────────────────────
+# `model` używa nazw przeciwników z docs/threat-model.md §3 — zamknięty słownik,
+# nie własna taksonomia.
+[threat]
+model         = ["physical-lost-device"]
+severity_if_off = "wysokie"
+
+[threat.text.pl]
+protects = "Przeciwnik «fizyczny / zgubione urządzenie» z docs/threat-model.md §3 — dysk w stanie wyłączonym."
+does_not_protect = """
+Nie chroni przed nikim, kto ma dostęp do WŁĄCZONEJ maszyny — po odblokowaniu klucz jest w RAM.
+Nie ma powiązania z TPM ani Secure Boot: bootloader jest NIEZASZYFROWANY, więc przeciwnik
+z fizycznym dostępem może podmienić bootloader i zaatakować sam monit o hasło (docs/encryption.md,
+docs/threat-model.md §6, R-913). Kryptografia nie przeszła audytu osoby trzeciej.
+Nie chroni przed złym hasłem — hasło jest jedynym sekretem.
+"""
+
+[threat.text.en]
+protects = "The physical / lost-device adversary from docs/threat-model.md §3 — a powered-off disk."
+does_not_protect = """
+Nothing against an attacker at a RUNNING machine — once unlocked, the key is in RAM.
+No TPM/Secure Boot binding: the bootloader is UNENCRYPTED, so a physical attacker can
+replace it and attack the password prompt itself (R-913). No third-party crypto audit.
+No protection against a weak password — it is the only secret.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0          # koszt liczy się przy tworzeniu FS, nie mierzone na sprzęcie
+reversible = false
+
+[cost.text.pl]
+runtime = "Hasło przy każdym rozruchu; brak auto-odblokowania i brak depozytu klucza (świadomie)."
+
+[cost.text.en]
+runtime = "Password at every boot; no auto-unlock and no key escrow (deliberate)."
+
+# ── Zalecenie ─────────────────────────────────────────────────────────────────────
+# Klucz PODSTAWOWY to klasa profilu (zamknięty słownik) — funkcja nie musi znać
+# identyfikatorów wszystkich profili. `[recommend.profile]` jest honorowane wyłącznie
+# dla profili z tego samego pochodzenia zaufania co funkcja (§3.2).
+[recommend.class]
+desktop = "ask"
+gaming  = "ask"
+server  = "on"
+amnesic = "on"
+
+[recommend.profile]
+"eos.business" = "on"
