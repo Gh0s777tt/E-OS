@@ -1,0 +1,248 @@
+# Issue / PR hygiene on the GitHub mirror.
+#
+# This one has NO counterpart in .gitlab-ci.yml and is not a duplicate of one:
+# that file has no stale job, and the tracker this touches is GitHub's. The issue
+# forms in .github/ISSUE_TEMPLATE/ are GitHub issue forms, the PR template is a
+# GitHub PR template, and CONTRIBUTING.md sends people to the GitHub issue
+# tracker. Code flows GitLab -> mirror; reports flow the other way.
+#
+# It is also the odd one out in this suite, though not for the reason it looks
+# like. Plenty of these workflows write: release.yml holds `contents: write` and
+# `pull-requests: write`, docs.yml `pages: write`, sbom.yml `contents: write`;
+# scorecard.yml and security.yml are on crons of their own. What is unique here
+# is the TARGET. Every other write lands on the project's own artifacts — a tag,
+# a Release asset, a Pages deploy — and is addressed to a log. This one writes on
+# OTHER PEOPLE'S reports, unattended, in the project's voice, and is addressed to
+# a person. That asymmetry is why the exemption list below is longer than the
+# logic it guards.
+#
+# C-7 (the GitLab pipeline failing in 0 s with ci_quota_exceeded since
+# 2026-08-28) is why this suite exists at all, but it has no bearing on the
+# numbers here. A stale bot is not a gate: nothing in this file can fail a build,
+# and nothing in this file should ever be pointed at as evidence that the tree
+# is healthy.
+
+name: stale
+
+on:
+  schedule:
+    # Weekly, not daily. The thresholds below are measured in months, so a 7-day
+    # scan granularity is invisible to a reporter while costing a seventh of the
+    # API budget. The odd minute is deliberate: GitHub queues cron runs globally
+    # and the top of the hour is where they get delayed or dropped.
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        # Defaults to TRUE on a manual run. The first pass over a tracker that
+        # has never had a stale bot is the only genuinely dangerous one — it can
+        # comment on years of backlog at once. Dispatch it dry, read the log,
+        # then dispatch it again with this unticked.
+        description: "Log what would be marked or closed, without commenting or closing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  # Two overlapping passes would both comment on the same issue. Cancelling is
+  # safe here in a way it would not be for a build: each run re-scans the open
+  # tracker from the start, so an interrupted pass is not a partial result to
+  # reconcile — the next run simply sees the same backlog.
+  group: stale
+  cancel-in-progress: true
+
+jobs:
+  stale:
+    # Forks inherit workflows. Without this guard, anyone who forks E-OS and
+    # leaves Actions on gets a bot labelling and closing THEIR issues in this
+    # project's voice. The mirror is the only place this should ever run.
+    if: github.repository == 'Gh0s777tt/E-OS'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A job-level block REPLACES the top-level grant rather than adding to it, so
+    # these two scopes are the entire token for this job. `contents:` is absent on
+    # purpose: nothing is checked out, and delete-branch is left off (see below),
+    # so this job never needs to touch the tree it is commenting about.
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Harden runner (egress audit)
+        # Audit, not block, for the same reason as the rest of the suite: the
+        # allowlist a block policy needs is written FROM an audit run's observed
+        # egress, not guessed. Discount the two hosts every job in this suite
+        # shows — github.com/codeload for the action tarballs and
+        # api.stepsecurity.io for harden-runner's own telemetry — and the only
+        # host this job has business reaching is api.github.com. Anything else in
+        # the audit log is the finding.
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Mark and close stale issues and pull requests
+        uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v9.1.0
+        with:
+          # ── Exemptions ─────────────────────────────────────────────────────
+          # A stale bot that closes a security report is a liability, so the
+          # protection here is layered rather than trusted to one setting:
+          #
+          #   1. Real reports never reach this bot at all. SECURITY.md routes
+          #      vulnerabilities to private GitHub Security Advisories and to
+          #      email, and an advisory is not an issue — actions/stale cannot
+          #      see it, label it or close it. That is the load-bearing layer.
+          #   2. A public one that slips through (bug_report.yml makes "this is
+          #      not a security vulnerability" a required checkbox, which stops
+          #      the honest and nobody else) is exempt once it carries a
+          #      security label.
+          #   3. `pinned` is in the list because actions/stale has no way to read
+          #      GitHub's native "pin to top" state — a pinned issue is invisible
+          #      to it. The label IS the pin, as far as this job is concerned.
+          #
+          # RESIDUAL, stated rather than papered over: layer 2 only protects an
+          # issue that has ALREADY been labelled. A public security report sitting
+          # untriaged for 120 days is not exempt from anything. The fix for that is
+          # triage, not a workflow input.
+          #
+          # `security` on the PR list is NOT applied by anything today, and the
+          # reason is worth writing down because the opposite is easy to assume.
+          # renovate.json really does set
+          # `vulnerabilityAlerts: { "labels": ["security"] }` — but the only
+          # Renovate runner in this tree is .gitlab-ci.yml's `renovate` job, and
+          # it is `RENOVATE_PLATFORM: gitlab` / `RENOVATE_REPOSITORIES: e-os/e-os`
+          # and dormant until a RENOVATE_TOKEN exists. Its output would be GitLab
+          # merge requests, which never appear as pull requests on this mirror.
+          # What opens PRs HERE is Dependabot, and .github/dependabot.yml labels
+          # them `dependencies,rust`; GitHub does not add `security` to a
+          # Dependabot security bump. So `security` below protects a
+          # hand-labelled PR and nothing else, until Renovate is pointed at the
+          # mirror or dependabot.yml grows the label. It is listed anyway because
+          # a maintainer typing the label is the realistic case.
+          #
+          # `upstream` and `roadmap` are here because of what E-OS is: it re-bases
+          # on Redox rather than forking it, so an issue tracking an upstream bug
+          # legitimately sits untouched for a year, and ROADMAP.md items are
+          # tracked in the open by design. Closing either loses the tracking and
+          # buys nothing. `good first issue` / `help wanted` are waiting on a
+          # stranger by definition; auto-closing them defeats their only purpose.
+          #
+          # Spell these as the repo spells them. A label that does not exist in
+          # the repo never matches, so the exemption is silently a no-op —
+          # `security` and `pinned` in particular must exist as labels for any of
+          # the above to protect anything.
+          exempt-issue-labels: "security,vulnerability,advisory,pinned,keep-open,blocked,upstream,roadmap,good first issue,help wanted"
+          # `dependencies` is deliberately NOT exempt: a bot-authored bump PR is
+          # cheap to regenerate, so closing a rotten one should lose nothing. Two
+          # honest caveats, because the paragraph above changes this one. First,
+          # the bot in question is Dependabot (weekly, .github/dependabot.yml),
+          # not Renovate. Second, a Dependabot SECURITY bump also carries only
+          # `dependencies,rust`, so it is not exempt either — and whether
+          # Dependabot re-opens a bump that something else closed is NOT verified
+          # here (GitHub Actions does not execute for this repo, so it could not
+          # be observed). Treat that as the open risk of this setting: if a
+          # security bump is ever seen closed by this bot and not re-raised, add
+          # `dependencies` to the list below rather than re-arguing the theory.
+          exempt-pr-labels: "security,vulnerability,pinned,keep-open,blocked"
+          # An issue in a milestone is scheduled work and an issue assigned to
+          # someone is claimed work. Neither is an unanswered report, which is the
+          # only thing this bot is here to find.
+          exempt-all-milestones: true
+          exempt-all-assignees: true
+
+          # ── Timings ────────────────────────────────────────────────────────
+          # Sized for what this project actually is: one maintainer (CODEOWNERS
+          # lists a single owner for every path) and a tracker that gets a handful
+          # of reports, not a queue. That cuts one way only — when an issue here
+          # goes quiet it is nearly always the maintainer's backlog, not the
+          # reporter's abandonment, so the numbers are set well past any promise
+          # the project has made rather than at the usual 60/7.
+          #
+          # 90 + 30 for issues: SECURITY.md's response table runs 72 h / 7 days /
+          # 30 days for a fix-or-mitigation plan, and then stops putting numbers
+          # on it — the row below, coordinated disclosure, is "by mutual
+          # agreement" and carries no clock. Thirty days is therefore the slowest
+          # DATED target the project publishes anywhere, and ninety days of total
+          # silence is three times past it. The `stale` label then sits visible
+          # for another thirty days before anything closes, and any comment, from
+          # anyone, resets the whole clock.
+          #
+          # 60 + 30 for PRs: shorter because a PR rots in a way an issue does not
+          # — the tree moves and the diff stops applying — and because closing one
+          # is nearly free. The branch, the diff and the review all survive a
+          # close; reopening is one click. Closing a bug report throws away
+          # somebody's afternoon of reproduction work.
+          days-before-issue-stale: 90
+          days-before-issue-close: 30
+          days-before-pr-stale: 60
+          days-before-pr-close: 30
+          stale-issue-label: "stale"
+          stale-pr-label: "stale"
+          # The humane core of the whole file, set explicitly because everything
+          # above depends on it: any update clears the label and restarts the
+          # clock from zero.
+          remove-stale-when-updated: true
+          # An auto-close is not a completed issue. Keeping the distinction means
+          # "closed as completed" still means something when reading back history
+          # for a release note.
+          close-issue-reason: not_planned
+          # Left at the default (false): a closed PR's branch is the contributor's
+          # only copy of their work in some workflows, and this job holds no
+          # `contents:` scope to delete one with anyway.
+          delete-branch: false
+
+          # Oldest first, so a backlog drains from the far end instead of the bot
+          # re-walking the same recent page every week. The operations cap is
+          # raised from the default 30 because at this volume one weekly pass
+          # should cover the whole tracker rather than dribbling through it over a
+          # month; it is still far under the hourly API allowance for GITHUB_TOKEN.
+          ascending: true
+          operations-per-run: 100
+
+          # Written as a comparison, not as a bare `${{ inputs.dry-run }}`, so a
+          # SCHEDULED run — where the `inputs` context is empty — resolves to the
+          # literal string "false" instead of an empty string. Scheduled runs are
+          # always real runs; only a manual dispatch can be a dry one.
+          debug-only: ${{ inputs.dry-run == true }}
+
+          stale-issue-message: |
+            This issue has had no activity for 90 days, so it has been labelled `stale`.
+
+            E-OS is maintained by one person. Silence here is almost always a backlog,
+            not a verdict on your report — please don't read it as one. **Any comment
+            removes the label and resets the clock**, including "still happening on
+            commit abc1234".
+
+            If nothing is added within 30 days it will be closed as *not planned*. That
+            is bookkeeping, not a judgement, and anyone can reopen it.
+
+            🔐 If this turns out to be a security issue, it does not belong in a public
+            issue at all. Report it privately instead —
+            https://github.com/Gh0s777tt/E-OS/security/advisories/new — see
+            https://github.com/Gh0s777tt/E-OS/blob/main/SECURITY.md
+
+          close-issue-message: |
+            Closed as *not planned*: 30 days with the `stale` label and no activity.
+
+            Nothing is lost — the issue, its history and its attachments are all still
+            here. Reopen it if it is still relevant, or open a fresh one with a current
+            commit and reproduction. Neither will be held against you.
+
+          stale-pr-message: |
+            This pull request has had no activity for 60 days, so it has been labelled
+            `stale`. Rebasing, pushing, or simply commenting removes the label and
+            resets the clock.
+
+            If nothing changes within 30 days it will be closed. A closed PR keeps its
+            branch, its diff and its review comments, and reopening is one click — so
+            this is a filing decision, not a rejection.
+
+            Thank you for the work; if you no longer have time for it, say so and it can
+            be picked up by someone else.
+
+          close-pr-message: |
+            Closed after 30 days with the `stale` label and no activity.
+
+            The branch, the diff and every review comment are still here — reopen it
+            whenever you want to pick it back up, or say so in a comment and it can be
+            reopened for you.

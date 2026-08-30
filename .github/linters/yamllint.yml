@@ -1,0 +1,61 @@
+# yamllint configuration for E-OS's own YAML — the `yaml` job in
+# .github/workflows/lint.yml runs it twice: once with --strict (advisory, warnings
+# count) and once without (blocking, errors only). Which level a rule sits at is
+# therefore the whole design of that gate, so each choice is written down here.
+#
+# ERROR = blocking. The set below is exactly the rules verified to produce zero
+# findings across every file in scope on 2026-08-30 (.github/**, .gitlab-ci.yml,
+# lefthook.yml): no trailing whitespace, every file newline-terminated, no tabs, no
+# run of blank lines longer than one. A parse error is always an error and cannot be
+# demoted — that is the single most valuable check here, because a workflow that does
+# not parse is a gate that silently does not run.
+#
+# WARNING = advisory, surfaced by the --strict pass. These are the rules whose current
+# state was NOT verified, or whose fix is a reformatting decision that does not belong
+# in the change that introduces the linter. Promote one by deleting its `level:
+# warning` below, once the advisory pass is clean for it.
+extends: default
+
+rules:
+  # --- advisory ---------------------------------------------------------------
+  # 80 columns is not this project's convention: .gitlab-ci.yml carries long
+  # `curl`/`podman exec` lines that would be worse split, and .editorconfig sets no
+  # limit for YAML. 120 is a readability nudge, not a rule to fail a build on.
+  line-length:
+    max: 120
+    level: warning
+  # Indentation style across the tree was not audited before this gate landed;
+  # reindenting .gitlab-ci.yml inside a CI change would bury the change.
+  indentation:
+    level: warning
+  # Spacing rules. Same reason: unverified, and purely cosmetic.
+  braces:
+    level: warning
+  brackets:
+    level: warning
+  colons:
+    level: warning
+  commas:
+    level: warning
+  hyphens:
+    level: warning
+  # `on:` — the required key of every GitHub Actions workflow — is a YAML 1.1 truthy
+  # value, so this rule fires on every workflow file by construction. It stays a
+  # warning permanently unless it is narrowed with check-keys: false.
+  truthy:
+    level: warning
+  # Three more rules are advisory without appearing here, because `warning` is already
+  # their level in yamllint's own default config and restating it would be noise:
+  # document-start (no workflow in .github starts with `---`, and GitHub does not want
+  # one), comments (`# vX.Y.Z` after a pinned action SHA is one space, not two —
+  # changing that would obscure the pin) and comments-indentation. Between them they are
+  # most of what the --strict pass prints; none of them can fail the blocking pass.
+
+  # --- blocking ---------------------------------------------------------------
+  # Everything not listed above keeps its `default` level, which for these is error:
+  #   key-duplicates             two values for one key; the second silently wins
+  #   trailing-spaces            verified zero in scope
+  #   new-line-at-end-of-file    verified present in scope
+  #   new-lines                  LF only; a CRLF file breaks the shell steps that read it
+  #   empty-lines                verified max one consecutive blank line in scope
+  #   anchors                    an undefined or duplicated anchor is a real defect
