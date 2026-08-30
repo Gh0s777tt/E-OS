@@ -72,7 +72,7 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (12 kontroli)
+bash scripts/ci-integrity.sh                    # bramka integralności (11 kontroli)
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=26 drift=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
