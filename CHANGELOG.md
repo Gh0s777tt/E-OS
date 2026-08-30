@@ -60,6 +60,8 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 - **U-204** — ROADMAP-v2` rozszerzone o rdzeń samego systemu E-OS ([`a3af5c2a6`](https://gitlab.com/e-os/e-os/-/commit/a3af5c2a6), `docs(roadmap): extend ROADMAP-v2 with the E-OS system core itself (U-204)`)
 - **U-214** — Porządki na dysku ([`1dd003b6e`](https://gitlab.com/e-os/e-os/-/commit/1dd003b6e), `chore(disk): reclaim 121 GB, and record the cleanup rule the measurement forced `)
 - **U-223** — V2-MS13`/`V2-MS14`/`V2-MS15 ([`990247ca5`](https://gitlab.com/e-os/e-os/-/commit/990247ca5), `docs: record U-223 -- V2-MS13/14/15 landed, and the frozen-serial defect found w`)
+- **U-225** — Testowanie wielostopniowe i pokrycie mierzone na bieżąco wpisane do kontraktu: `CLAUDE.md` §5.9 (osiem poziomów, z tabelą sześciu przypadków z tej sesji, gdzie jeden kierunek testowania świecił na zielono przy zepsutej rzeczy) i §5.10 (pokrycie przy każdym przebiegu `verify.sh`, podłoga 38 % na kodzie własnym, doradczo na vendorowanym); §6 rozszerzone o cztery pozycje kontrolne ([`fdb1ad91b`](https://gitlab.com/e-os/e-os/-/commit/fdb1ad91b), `docs(claude): testowanie wielostopniowe i pokrycie mierzone na bieżąco`)
+- **U-227** — `ROADMAP.md` i `ROADMAP-v2.md` scalone w **jedną** roadmapę po angielsku, 1861 linii: jeden rejestr przedmiotowy jako źródło statusu, widok czasowy wyprowadzony z niego, jedna legenda zamiast trzech alfabetów. 236 z 237 identyfikatorów obecnych (brakujący `V2-Nx` to wzorzec rodziny); kolizje `R-70x`/`R-80x` rozstrzygnięte w Aneksie B, wycofane identyfikatory wypisane w Aneksie C z powodem. `ROADMAP-v2.md` zastąpiony wskaźnikiem — **nie skasowany**, pełny tekst pod `git show 87e8194b1:ROADMAP-v2.md` (zweryfikowane: 122 262 bajty, zgodne z Aneksem C.2) ([`85acaffef`](https://gitlab.com/e-os/e-os/-/commit/85acaffef), `docs(roadmap): scal ROADMAP i ROADMAP-v2 w jedną roadmapę po angielsku`)
 
 ### Fixed
 
@@ -82,6 +84,7 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 - **U-200** — Publikacja przygotowana ([`6330140b0`](https://gitlab.com/e-os/e-os/-/commit/6330140b0), `fix(publish): one variable name, a stale comment, and a README for the artefact `)
 - **U-219** — Poprawka bezpieczeństwa w jądrze: `Iopl` wymaga teraz roota ([`6799db569`](https://gitlab.com/e-os/e-os/-/commit/6799db569), `fix(kernel): bump to the Iopl privilege fix; raw port I/O now requires root (U-2`)
 - **U-224** — Klucz `R-702` istnieje ([`51cac0382`](https://gitlab.com/e-os/e-os/-/commit/51cac0382), `fix(build): rebuild the host tools, stop exporting empty artifacts, and correct `)
+- **U-226** — Zapis stanu łańcucha weryfikacji był nieprawdziwy w **obu** dokumentach: roadmapa twierdziła `verify.sh: 15 PASS`, `CLAUDE.md` §13.1 `12 PASS · 3 SKIPPED`; pomiar dał 13 PASS · 2 SKIPPED i kod 2. Po doinstalowaniu `cargo-llvm-cov` i `cargo-deny`: **15 PASS · 0 FAIL · 0 SKIPPED**. Drugie znalezisko: `CLAUDE.md` i `verify.sh:109` mówiły, że bramki `scripts/eos-check-tar-pins.py` „w drzewie nie ma" — bramka jest. Przeszła kontrolę mutacyjną dwustopniowo, bo pierwsza mutacja (`recipes/libs/atk`) trafiła **obok domknięcia obrazu** i dała exit 0 ([`cd323056a`](https://gitlab.com/e-os/e-os/-/commit/cd323056a), `docs(verify): popraw zapis stanu łańcucha -- bramka tar-pins istnieje`)
 
 ### Security
 
