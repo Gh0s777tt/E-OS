@@ -129,9 +129,11 @@ and hardening goals.
   mass-storage support.
 - 🔑 **Post-quantum-ready signing** — a tool that signs the package repo manifest
   with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature at publish time.
-  *Verification is implemented on both ends but has no key between them:* `pkg-lib`
-  checks the signature, and once a key is pinned in the image a bad index is fatal —
-  but `keys/eos-repo-sign.pub.toml` does not exist yet (`R-702`).
+  *Verification is implemented on both ends and the key exists:* `pkg-lib` checks the
+  signature, `keys/eos-repo-sign.pub.toml` is tracked (4075 B, added 2026-08-28) and is
+  pinned into the image at `/etc/pkg/eos-repo-sign.pub.toml`, so a bad index is fatal.
+  What is still missing is the published x86_64 repository the key would sign for
+  (`R-701`, finding `C-4`).
 
 **Since then — the `U-081`–`U-114` wave** (all verified on-device under QEMU)
 
@@ -141,8 +143,11 @@ and hardening goals.
   through a privileged `eos-netcfg` shim — never running the GUI as root).
 - 📝 **eos-notes** — a Slint + SQLite (WAL) notes app, and **eos-ui**, the shared
   Slint-on-Orbital backend crate every E-OS GUI app builds on.
-- 🛡️ **eos-guard** (filesystem-integrity monitor) and 📈 **eos-sysmon** (system
-  monitor), both native Crimson apps.
+- 🛡️ **Filesystem-integrity and system monitoring** — shipped as tabs inside
+  **eos-control**, not as separate apps. `recipes/gui/eos-guard` and
+  `recipes/gui/eos-sysmon` exist, but neither is packaged into the image: `U-095`
+  consolidated both into the control center (`config/x86_64/eos.toml:22-23`). A booted
+  E-OS has the functionality and does not have two extra binaries.
 - 🌍 **NetSurf built from source as a PIE** — real web browsing on E-OS.
 - 🧭 **Graphical OOBE** — first-boot password enrolment in the crimson greeter,
   plus a system tray, toast notifications, a screenshot tool and launcher search.
