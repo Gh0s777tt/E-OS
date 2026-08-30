@@ -1,3 +1,6 @@
+<!-- SYNC: v0.2.0 · Unreleased U-224 · 2026-08-30 — keep this file in step with CHANGELOG.md and ROADMAP.md.
+     NOTE: ci-integrity.sh check 3 verifies that this marker EXISTS, not that its value is current.
+     Keeping it accurate is a human obligation until that gate is tightened (see ROADMAP, P0). -->
 # E-OS
 
 A hardened downstream distribution of [Redox OS](https://www.redox-os.org) — a Unix-like operating
