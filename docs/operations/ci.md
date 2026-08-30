@@ -19,7 +19,7 @@ which is the whole reason the second pipeline is a remediation rather than a dup
 account: a minimal `on: push` workflow with no branch filter, pushed directly to
 github.com on a fresh branch, produced no workflow run at all — not queued, not failed.
 Real workflows last ran here on 2026-06-16. See
-[docs/security/github-configuration.md](security/github-configuration.md) §2.
+[docs/security/github-configuration.md](../security/github-configuration.md) §2.
 
 ## Two tiers
 

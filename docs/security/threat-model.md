@@ -10,7 +10,7 @@ owner: Gh0s777tt
 > Status: **v3 (alpha)** · revised 2026-08-30 · applies to E-OS `0.2.x`. E-OS is a
 > downstream of [Redox OS](https://www.redox-os.org); this model builds on Redox's
 > microkernel and capability design. Companion docs: [Hardening Guide](hardening.md) ·
-> [Disk Encryption](encryption.md) · [Security Policy](../SECURITY.md).
+> [Disk Encryption](../guides/encryption.md) · [Security Policy](../../SECURITY.md).
 
 This document states **what E-OS protects, from whom, and how** — and, just as
 importantly, what it does **not** yet protect. It is a living document; pre-1.0
