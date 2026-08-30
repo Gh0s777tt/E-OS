@@ -607,7 +607,7 @@ git show fix/p0-audit-findings:docs/audit/00-inventory-2026-08-30.md
 ---
 
 **Odnośniki:** [`repos.toml`](../../repos.toml) · [`CLAUDE.md` §11](../../CLAUDE.md) ·
-[forki i komponenty vendorowane](../forks.md) · [komponenty ekosystemu](../ecosystem.md) ·
-[ADR-0001 — GitLab źródłem prawdy](../adr/0001-gitlab-jako-zrodlo-prawdy.md) ·
-[ADR-0002 — budowanie z forków, nie z binarek upstreamu](../adr/0002-budowanie-z-forkow-nie-z-binarek-upstreamu.md) ·
-[CI/CD](../ci.md) · [znane problemy](../known-issues.md)
+[forki i komponenty vendorowane](../architecture/forks.md) · [komponenty ekosystemu](../architecture/ecosystem.md) ·
+[ADR-0001 — GitLab źródłem prawdy](../adr/0001-gitlab-as-source-of-truth.md) ·
+[ADR-0002 — budowanie z forków, nie z binarek upstreamu](../adr/0002-build-from-forks-not-upstream-binaries.md) ·
+[CI/CD](../operations/ci.md) · [znane problemy](known-issues.md)
