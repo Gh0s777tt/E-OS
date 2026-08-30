@@ -41,7 +41,7 @@ printf '%s\n' "$files" | while IFS= read -r f; do
 done
 
 podman run --rm -v eos-work:/work -v "$STAGE:/stage:ro" \
-  ${APPLY:+--env APPLY=1} "$IMAGE" bash -lc '
+  ${APPLY:+--env APPLY=1} --env IMAGE="$IMAGE" "$IMAGE" bash -lc '
 cd /work/redox || { echo "brak /work/redox w wolumenie"; exit 1; }
 diff_n=0; miss_n=0
 while IFS= read -r f; do
@@ -50,10 +50,58 @@ while IFS= read -r f; do
 done < <(cd /stage && find . -type f | sed "s|^\./||")
 echo "drzewo budowania: $diff_n różnych, $miss_n brakujących"
 if [ -n "${APPLY:-}" ]; then
+  # Count failures instead of trusting cp: an unreported copy failure is worse than the drift
+  # this script exists to remove, because it leaves the tree looking synced. The count crosses
+  # out of the subshell through a file, since the pipeline body runs in its own process.
+  fail_f=$(mktemp); : > "$fail_f"
   (cd /stage && find . -type f -print0 | while IFS= read -r -d "" f; do
-     f="${f#./}"; mkdir -p "$(dirname "/work/redox/$f")"; cp -p "/stage/$f" "/work/redox/$f"
+     f="${f#./}"
+     # Only touch what actually differs: copying all 3700 files every run is slow and, worse,
+     # rewrites mtimes the build depends on.
+     cmp -s "/stage/$f" "/work/redox/$f" 2>/dev/null && continue
+     mkdir -p "$(dirname "/work/redox/$f")"
+     if cp -p "/stage/$f" "/work/redox/$f" 2>&1; then
+       # `cp -p` carries the host mtime across, which is routinely OLDER than the build outputs
+       # already sitting in the tree -- cargo and make compare mtimes, so a file whose content
+       # changed can be treated as up to date and never rebuilt. That is how a synced tree still
+       # builds the previous source. Stamp it now instead.
+       touch "/work/redox/$f"
+     else
+       echo "$f" >> "$fail_f"
+     fi
    done)
-  echo "zastosowano: drzewo budowania odpowiada repozytorium (poza .config i artefaktami)"
+  # wc, not grep -c: grep exits 1 on no match, and `|| echo 0` then appends a second zero.
+  fail_n=$(wc -l < "$fail_f" | tr -d " ")
+  if [ "$fail_n" -gt 0 ]; then
+    echo "NIE zastosowano w całości: $fail_n plików nie udało się skopiować:"
+    sed "s/^/  /" "$fail_f"
+    # "Permission denied" on a file root cannot even open is not a permission bit -- it is an
+    # SELinux MCS label. A container started with `:Z` relabels what it touches with its own
+    # private categories, and every later container is then denied. Say so, because the bare
+    # errno sends you looking at chmod and ownership, which are fine.
+    while IFS= read -r f; do
+      [ -e "/work/redox/$f" ] || continue
+      lbl=$(ls -Z "/work/redox/$f" 2>/dev/null | awk "{print \$1}")
+      case "$lbl" in
+        *:c*) echo "  ^ $f ma prywatną etykietę SELinux ($lbl) — powstał w kontenerze z ':Z'."
+              echo "    napraw: podman run --rm --security-opt label=disable -v eos-work:/work \\"
+              echo "              $IMAGE rm -f /work/redox/$f" ;;
+      esac
+    done < "$fail_f"
+    rm -f "$fail_f"
+    exit 1
+  fi
+  rm -f "$fail_f"
+  # Verify rather than announce: re-compare every staged file against the tree we just wrote.
+  left=0
+  while IFS= read -r f; do
+    cmp -s "/stage/$f" "/work/redox/$f" || { left=$((left+1)); echo "  NADAL RÓŻNI: $f"; }
+  done < <(cd /stage && find . -type f | sed "s|^\./||")
+  if [ "$left" -gt 0 ]; then
+    echo "NIE zastosowano w całości: $left plików nadal się różni"
+    exit 1
+  fi
+  echo "zastosowano i zweryfikowano: drzewo budowania odpowiada repozytorium (poza .config i artefaktami)"
 else
   [ "$diff_n" -gt 0 ] || [ "$miss_n" -gt 0 ] && echo "uruchom z --apply, żeby wyrównać"
 fi

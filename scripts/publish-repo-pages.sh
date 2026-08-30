@@ -12,7 +12,7 @@
 #   https://gh0s777tt.github.io/eos-pkg-<arch>/pkg/id_ed25519.pub.toml
 #
 # Auth: uses your ambient git credentials (gh auth, credential helper or SSH).
-# Override the push remote with EOS_PKG_REMOTE. See docs/packages.md.
+# Override the push remote with EOS_PKG_REMOTE. See docs/reference/packages.md.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -101,7 +101,7 @@ sign_manifest() {
         # freeze, roll back or substitute packages (R-703). Dev flows that
         # genuinely want it must say so explicitly.
         if [ "${EOS_ALLOW_UNSIGNED:-0}" = "1" ]; then
-            echo "WARNING: EOS_ALLOW_UNSIGNED=1 — repo.toml published UNSIGNED (no PQ manifest signature; see docs/security.md and R-703)." >&2
+            echo "WARNING: EOS_ALLOW_UNSIGNED=1 — repo.toml published UNSIGNED (no PQ manifest signature; see docs/security/index.md and R-703)." >&2
             return 0
         fi
         echo "error: EOS_REPO_SIGN_KEY unset — refusing to publish an UNSIGNED repo.toml to public hosting." >&2

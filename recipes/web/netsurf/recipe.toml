@@ -42,7 +42,7 @@ rsync -av --delete "${COOKBOOK_SOURCE}/" ./
 # false, so the buffer is never remapped out from under nsfb->ptr and the page
 # renders. Trade-off: the netsurf window is fixed-size for now; proper resize
 # needs libnsfb to re-fetch the pointer after each remap (see
-# docs/design-netsurf-pie.md). Two call sites (sdl_initialise, sdl_set_geometry).
+# docs/architecture/netsurf-pie.md). Two call sites (sdl_initialise, sdl_set_geometry).
 sed -i 's/SDL_SWSURFACE | SDL_RESIZABLE/SDL_SWSURFACE/g' libnsfb/src/surface/sdl.c
 
 # --- E-OS: default homepage = the local welcome page -------------------------
@@ -75,7 +75,7 @@ export CC="${CC} ${CPPFLAGS}"
 # $@/$pie/$REALCC literal in the wrapper (expanded at wrapper run-time), so the
 # recipe needs no backslashes and stays a plain TOML triple-quoted string. Drop
 # this and the from-source build silently reproduces the upstream non-PIE
-# prebuilt that crashes on boot. See docs/design-netsurf-pie.md for the full why.
+# prebuilt that crashes on boot. See docs/architecture/netsurf-pie.md for the full why.
 export REALCC="${CC}"
 mkdir -p "${PWD}/.pie"
 cat > "${PWD}/.pie/cc" <<'PIEWRAP'

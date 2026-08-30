@@ -1,98 +1,128 @@
-# 🔐 Security Policy
+---
+title: Security policy
+status: current
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
 
-E-OS takes security seriously — it's an operating system. Thank you for helping
-keep it and its users safe.
+# Security policy
 
-## 📦 Supported versions
+## Reporting a vulnerability
 
-| Version | Supported |
-|---------|:---------:|
-| `0.1.x` (Genesis) | ✅ |
-| `main` (rolling) | ✅ latest fixes |
-| `lts/0.1` (LTS line) | ✅ extended-support backports |
-| `eos-base` (checkpoint) | ✅ |
-| Legacy 2019 mirror (`master`, `0.4.1`) | ❌ archived, unsupported |
+**Do not open a public issue for a security bug.**
 
-Because E-OS is **pre-1.0 (alpha)**, `main` carries the latest security fixes; the
-**`lts/0.1`** branch tracks the 0.1 “Genesis” line and receives security
-**backports** for an extended window, so a deployment can pin to a stable line
-instead of rolling `main`.
+Two private channels, both real and monitored:
 
-## 🚨 Reporting a vulnerability
+1. **GitHub Security Advisories** — <https://github.com/Gh0s777tt/E-OS/security/advisories/new>
+   (*Security → Report a vulnerability*). Preferred: it gives a private thread and a CVE path.
+2. **Email** — `dzierzawskii98.dam@gmail.com`
 
-**Please do _not_ open a public issue, PR, or discussion for security bugs.**
+> **PGP.** No PGP key is published for this project today. Do not encrypt to a key you find
+> elsewhere claiming to be ours. Publishing one is on the roadmap; until then, use GitHub Security
+> Advisories, which is end-to-end private without needing one.
 
-Report privately via one of:
+### What to include
 
-1. **GitHub Security Advisories** — *Security → Report a vulnerability*
-   (preferred): <https://github.com/Gh0s777tt/E-OS/security/advisories/new>
-2. **Email** the maintainer: `dzierzawskii98.dam@gmail.com`
-   (subject prefix `[E-OS SECURITY]`; PGP key on request).
+The affected component and version, what an attacker gains, and the smallest reproduction you have.
+A boot-log excerpt or a `pkg` transcript is more useful than a description.
 
-Please include: affected component/commit, impact, reproduction steps, and any
-PoC. We aim to:
+## Response commitments
+
+Stated as targets, not as a contract — this is a **single-maintainer project** and that is relevant
+information for anyone deciding how to disclose.
 
 | Stage | Target |
-|-------|--------|
-| Acknowledge report | ≤ 72 h |
-| Initial assessment | ≤ 7 days |
-| Fix / mitigation plan | ≤ 30 days (severity-dependent) |
-| Coordinated disclosure | by mutual agreement |
+|---|---|
+| Acknowledgement of receipt | 72 hours |
+| Initial assessment with a severity | 7 days |
+| Fix or documented mitigation, CRITICAL/HIGH | 30 days |
+| Fix or documented mitigation, MEDIUM/LOW | 90 days |
+| Public disclosure | coordinated, by default 90 days after the report or on fix release, whichever is first |
 
-We support **coordinated disclosure** and will credit reporters (opt-in).
+If a deadline will be missed you will be told before it passes, with the reason.
 
-## 🎯 Scope
+## Supported versions
 
-**In scope:** the E-OS kernel, relibc, RedoxFS, drivers, build/cookbook tooling,
-release artifacts, and this repository's CI/CD.
+| Version | Status | Security fixes |
+|---|---|---|
+| `main` (unreleased) | active development | yes |
+| `v0.2.0` | current tag, 2026-08-22 | yes |
+| `lts/0.1` | long-term branch | yes, until superseded |
+| `v0.1.0` | superseded | no |
+| pre-`v0.1.0` | inherited Redox history | no — report upstream |
 
-**Upstream:** vulnerabilities inherited from **Redox OS** or third-party crates
-should also be reported to the relevant upstream. We will help coordinate.
+**A caveat that must be stated plainly:** the x86_64 image currently ships with **no active package
+source** — both entries in `/etc/pkg.d/` are commented out. A fix released today cannot reach an
+installed x86_64 system through the update mechanism. Tracked as `C-4`; see
+[`ROADMAP.md`](ROADMAP.md) `S-10`.
 
-**Out of scope:** issues only affecting the archived 2019 mirror; volumetric DoS;
-social engineering; findings without a security impact.
+## Scope
 
-## 🧭 Threat model, hardening & encryption
+### In scope
 
-E-OS's OS-level security posture is documented in:
+- The E-OS kernel, bootloader, `relibc`, `redoxfs` and the drivers, as shipped in E-OS images
+- The package chain: `pkg`, `pkgar`, index signing and verification, key pinning
+- The boot chain: Secure Boot signing, SBAT, kernel and initfs verification
+- The E-OS applications: `eos-control`, `eos-notes`, `eos-ui`, `eos-netcfg`, `eos-power`, `eos-notifyd`
+- The build and publication tooling in this repository
+- Privilege boundaries, including `/etc/login_schemes.toml`
 
-- **[Threat model](docs/threat-model.md)** — assets, trust boundaries, adversaries,
-  and the mitigations the microkernel + capability-scheme design provides (with
-  honest non-goals for a pre-1.0 system).
-- **[Hardening guide](docs/hardening.md)** — a practical, impact-ordered checklist
-  (change default credentials, encrypt the disk, minimize packages, verify downloads).
-- **[Disk encryption](docs/encryption.md)** — RedoxFS **AES-XTS-128** full-disk
-  encryption: installing, building and booting an encrypted E-OS root.
+### Out of scope
 
-## 🛡️ How we harden this repository
+- **Upstream Redox defects** that E-OS merely inherits — report them to
+  <https://gitlab.redox-os.org/redox-os>. If E-OS's configuration makes an upstream bug reachable
+  when it otherwise would not be, that **is** in scope.
+- **Third-party ports** (NetSurf, OpenSSL, `git`, `vim`, the COSMIC applications) — report upstream.
+  Their presence in an outdated version in our image **is** in scope: see `C-8`, `git 2.13.1`.
+- Findings that require physical access plus an unlocked, unencrypted disk, when full-disk
+  encryption was available and not enabled.
+- Denial of service by resource exhaustion from an already-privileged local account.
+- Missing features that are documented as absent — no firewall, no sandbox, no audit log. These are
+  **known gaps with roadmap entries**, not vulnerabilities. Reporting them is welcome as a design
+  discussion, not as an advisory.
 
-CI runs on **GitLab** (GitHub Actions is disabled account-wide, so it is *not* used).
+CI is defined in **two** places, and neither is currently doing its job unaided.
+**GitLab** (`.gitlab-ci.yml`) is the authoritative pipeline, but every job there has
+failed in ~0 s with `ci_quota_exceeded` since 2026-08-28. **GitHub Actions**
+(`.github/workflows/`) was added as the remediation — a public repository has no minute
+cap — but Actions do not execute on this account today: a minimal `on: push` workflow
+pushed straight to github.com produces no run at all. Turning that back on is step 0 of
+[docs/security/github-configuration.md](docs/security/github-configuration.md).
+Until one of the two is running, treat every gate below as *written, not enforced*.
 
-- 🔑 **gitleaks** scans the **whole history** on GitLab CI (`secret-scan`), and
-  **cargo-deny** checks RustSec advisories / licenses / sources on every merge
-  request. GitHub secret-scanning alerts may be enabled as a mirror-side notice.
-- 🤖 **Renovate** (GitLab, replaced Dependabot) keeps dependencies patched;
-  optional GitLab SAST/Dependency-Scanning templates (see [docs/ci.md](docs/ci.md)).
-- 👮 **Branch protection** on the default branch; **CODEOWNERS** review required.
-- ✍️ **Signed commits** encouraged. Releases publish **SHA256SUMS** + a CycloneDX
-  **SBOM**; the checksums are **minisign-signed** by `scripts/make-release.sh` (the
-  key is user-held, off-repo). The package `repo.toml` manifest is **signed at
-  publish time** with a hybrid **ed25519 + ML-DSA-65** signature
-  (`tools/eos-repo-sign`; since `U-120` an unsigned publish is a hard failure
-  unless `EOS_ALLOW_UNSIGNED=1` is given explicitly).
-  ⚠️ **The client half is built but has no trust anchor.** `pkg-lib` *does*
-  verify the manifest — `manifest_sig::verify_manifest_ed25519`, called from
-  `verify_repo_manifest`, with tamper / wrong-key / malformed-signature tests
-  (`eos-pkgutils@14505ecd`, the pinned rev). It is inert for exactly one reason:
-  **no public key is pinned in any image**, because `keys/eos-repo-sign.pub.toml`
-  has never been generated. With no key the client prints a loud warning and
-  proceeds (per-package pkgar ed25519 stays enforced); **the moment a key is
-  pinned, a missing or invalid `repo.toml.sig` becomes a hard error.** So until
-  `R-702` bakes the key in, treat the *index* as unauthenticated on the client —
-  but the missing piece is one file, not a subsystem.
-- ⚖️ **AGPL-3.0** — modifications, including networked use, must be shared.
+## Known gaps
 
-> **Zaktualizowane (`U-201`).** Klucz podpisujący repozytorium **istnieje od `U-196`**: połowa publiczna to `keys/eos-repo-sign.pub.toml`, przypięta w `config/{aarch64,x86_64}/eos.toml` i **zmierzona w działającym obrazie** pod `/etc/pkg/eos-repo-sign.pub.toml` (4075 B, bajt w bajt, `U-197`). Sekret jest poza repozytorium, na dysku wewnętrznym, z trybem `0600`. Zdanie powyżej opisuje stan sprzed tej zmiany.
+Published deliberately. A security policy that hides the gaps is worth less than none.
 
+| Gap | Finding | Status |
+|---|---|---|
+| 30 of 65 image packages are upstream binaries whose signing key is fetched from the serving host | `C-1` | open |
+| `mpc`, a compiler dependency, is fetched with no hash from a substituted mirror | `C-1b` | open |
+| Boot verification is fail-open at build time when no key is present | `C-2` | open |
+| `rustls-webpki 0.103.4` with six advisories ships inside `pkg` | `C-3` | open |
+| No active update channel on x86_64 | `C-4` | open |
+| No application sandbox — the browser holds the same schemes as the shell | `C-5` | open |
+| No persistent audit log | `C-9` | open |
+| No packet filtering, with `sshd` present | `C-10` | open |
 
-See [docs/security.md](docs/security.md) for the contributor security guide.
+Full evidence: [`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md).
+
+## Hall of fame
+
+No externally reported vulnerabilities to date. Researchers who report a valid issue will be
+credited here by the name they choose, or anonymously on request. Credit is given for
+**valid reports**, including ones we decide not to fix — the report is the contribution.
+
+## Cryptography in use
+
+| Purpose | Algorithm |
+|---|---|
+| Password hashing | argon2id (`m=19456, t=2, p=1`) |
+| Package index signature | ed25519 **and** ML-DSA-65 (FIPS 204), hybrid |
+| Per-package signature | ed25519 (pkgar) |
+| Boot verification | ed25519 over SHA-512(role ‖ len_le ‖ data) |
+| Release checksums | minisign |
+| Full-disk encryption | AES-XTS |
+| Content integrity | blake3 |
+
+No MD5, SHA-1, RC4 or DES is used in any security role.

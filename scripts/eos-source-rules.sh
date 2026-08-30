@@ -12,12 +12,18 @@
 #
 # The overrides were added by hand over time, so recipes added later were simply missed.
 # The measured consequence: `pkg-lib`'s manifest-signature verification -- R-703's client
-# half, which docs/security.md calls implemented -- is **not in the image at all**, because
+# half, which docs/security/index.md calls implemented -- is **not in the image at all**, because
 # `pkgutils` was downloaded from upstream. `pins --strict` stayed green throughout: the pin
 # was real, its relationship to the artefact was not.
 #
 # This script derives the list from the tree rather than restating it: any recipe whose
-# recipe.toml points at github.com/Gh0s777tt/eos-* is E-OS-owned and must be built.
+# recipe.toml points at an E-OS fork is E-OS-owned and must be built.
+#
+# Both hosts are matched deliberately. GitLab is the source of truth (ADR-0001) and recipes now
+# fetch from it, but the GitHub mirror URL stayed valid for a long time and may reappear in a
+# rebase or an older branch. Matching only one host would silently stop detecting forks the day
+# they were repointed -- which is exactly what happened when the recipes moved to GitLab and this
+# check went from a verdict to an instrument failure.
 #
 #   scripts/eos-source-rules.sh              # report what is missing (default)
 #   scripts/eos-source-rules.sh --apply      # set fsrule = "source" for them
@@ -32,7 +38,7 @@ LOCK="cookbook.lock"
 [ -d recipes ] || { echo "source-rules: no recipes/ here — run this in the build tree"; exit 1; }
 
 # Every recipe whose source is an E-OS fork.
-owned=$(grep -rl "Gh0s777tt/eos-" recipes/*/*/recipe.toml 2>/dev/null \
+owned=$(grep -rlE "gitlab\.com/e-os/eos-|Gh0s777tt/eos-" recipes/*/*/recipe.toml 2>/dev/null \
         | while IFS= read -r f; do basename "$(dirname "$f")"; done | sort -u)
 [ -n "$owned" ] || { echo "source-rules: found no E-OS-forked recipes — that is itself wrong"; exit 1; }
 

@@ -1,6 +1,6 @@
 [source]
 # E-OS vendored mirror of redox-os/liborbital (edit freely; sync via scripts/sync-forks.sh).
-git = "https://github.com/Gh0s777tt/eos-liborbital.git"
+git = "https://gitlab.com/e-os/eos-liborbital.git"
 branch = "master"
 rev = "76ba2e79ac16fbd7a37ef622108e6c60f10cebe2"
 

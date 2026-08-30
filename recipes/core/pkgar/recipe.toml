@@ -1,6 +1,6 @@
 [source]
 # E-OS vendored mirror of redox-os/pkgar (edit freely; sync via scripts/sync-forks.sh).
-git = "https://github.com/Gh0s777tt/eos-pkgar.git"
+git = "https://gitlab.com/e-os/eos-pkgar.git"
 branch = "master"
 rev = "78e644ad5fa8d5eddfc15fed71ea3e93fea71b5e"
 

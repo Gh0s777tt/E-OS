@@ -1,0 +1,158 @@
+# OpenSSF Scorecard — supply-chain posture, scored weekly and published.
+#
+# Why this one lives on GitHub and not in .gitlab-ci.yml: Scorecard reads the GitHub API
+# (workflow definitions, branch settings, release assets, review history) and publishes to
+# the OpenSSF public dataset, which is keyed on a GitHub repository. There is nothing to
+# point it at on GitLab. It is also the only gate in this suite whose product is the badge:
+# an outside reader gets a number without having to take the README's word for anything.
+#
+# C-7: every GitLab gate on the shared-runner LIGHT tier has been failing in 0 s with
+# `ci_quota_exceeded` since 2026-08-28 (docs/ci.md, "CI minutes (free tier)"; the
+# self-hosted `eos-heavy` tier spends no shared minutes and is not affected). Actions on
+# a public repo has no minute cap, so this suite is the remediation for that light tier.
+#
+# It is the remediation only once a runner is actually reached, and that has NOT been
+# observed. `.github/dependabot.yml:2` still records "GitHub Actions is disabled
+# account-wide (ROADMAP R-004)", and a minimal `on: push` workflow pushed straight to
+# github.com produced no run at all — not queued, not failed. `_canary.yml` in this
+# directory is the measurement: if the canary has not run, this file has not run either
+# and C-7 is still open. The only verification behind this file today is actionlint
+# 1.7.12, exit 0. Nothing here has been seen green on a runner; do not write that it has.
+#
+# Badge — paste into README.md once the first run on `main` has published results:
+#   [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Gh0s777tt/E-OS/badge)](https://scorecard.dev/viewer/?uri=github.com/Gh0s777tt/E-OS)
+# The badge is served from the published dataset, not from this workflow's status, so it
+# stays blank until a run on the DEFAULT branch has completed with `publish_results: true`.
+#
+# ─────────────────────────────────────────────────────────────────────────────────────
+# READ THIS BEFORE TREATING A LOW SCORE AS A REGRESSION.
+#
+# github.com/Gh0s777tt/E-OS is a push-mirror; gitlab.com/e-os/e-os is the source of truth
+# and carries every gate. Scorecard can only see the mirror, so a group of its checks are
+# measuring the mirroring arrangement rather than this project's controls. These score low
+# BY CONSTRUCTION, and no change to this repository will lift them:
+#
+#   Branch-Protection  Reads GitHub's protected-branch settings. The protection meant to
+#                      govern `main` is a GitLab one — docs/ci.md §4 "Protect `main`":
+#                      allowed to push = no one, merge only via MR, pipelines must succeed,
+#                      one approval. Read that as the specification, not as a measurement:
+#                      §4 sits under "What you must set up (one-time, in the GitLab UI)",
+#                      and C-6 below is the evidence it has not been holding. Worse, the
+#                      check needs a classic PAT with admin scope
+#                      to read anything at all. We deliberately do not provision one: a
+#                      long-lived admin token parked in secrets to raise a score is a worse
+#                      trade than the score, and the brief for this suite is OIDC-only.
+#   Code-Review        Wants review evidence on the commits it can see. Commits reach the
+#                      mirror by push, never through a GitHub PR, so there is nothing to
+#                      find. Do NOT read this one as purely cosmetic: C-6 is real — every
+#                      commit in this project's history went straight to `main` (see the
+#                      R-F12 note on `docs-currency` in .gitlab-ci.yml). Fixing C-6 means
+#                      reviewing on GitLab, which Scorecard still will not see. Fix C-6
+#                      because it is C-6, not to move this number.
+#   CI-Tests           Looks for check runs on merged PRs. The mirror has no PRs. The gates
+#                      that actually govern this project are `integrity`, `rust-checks`,
+#                      `shell-lint` and `coverage` in .gitlab-ci.yml — every one of them on
+#                      the quota-dead light tier per C-7 above — plus the workflows in this
+#                      directory, which have not been observed to execute either.
+#   Signed-Releases    Looks for signed GitHub Releases. Releases are cut on GitLab by the
+#                      `semantic-release` job (@semantic-release/gitlab) in .gitlab-ci.yml,
+#                      so the mirror has no releases to inspect.
+#   Packaging          Looks for a workflow that publishes a package. The OS image needs
+#                      podman and a 37 GB build cache and cannot be built on a GitHub
+#                      runner at all — that is `build-image`, `tags: [eos-heavy]`.
+#   Contributors       Wants contributors from two or more organisations. Single-maintainer
+#                      project; that is C-18, tracked as a break-glass/bus-factor item, and
+#                      not something any CI change can answer.
+#
+# What IS worth acting on in this report: Token-Permissions, Pinned-Dependencies,
+# Dangerous-Workflow, Vulnerabilities and SAST all describe files in THIS repository. A
+# drop in any of those is a genuine regression in something we control — treat it as one.
+name: scorecard
+
+on:
+  schedule:
+    # Weekly. Off the hour and off Monday to avoid the scheduler's busiest slots, which is
+    # when GitHub silently drops scheduled runs on a queue-heavy public runner pool.
+    - cron: "31 6 * * 2"
+  push:
+    branches: ["main"]
+
+# `publish_results` requires a run on the default branch, so `main` is the only push
+# trigger. Deliberately NOT wired to `branch_protection_rule`, which the upstream sample
+# workflow suggests: that event fires when GitHub's own protection rules change, and the
+# protection that governs this project lives in GitLab (see the Branch-Protection note
+# above). It would fire on nothing here, or on an edit to a setting that is not the gate.
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: scorecard analysis
+    runs-on: ubuntu-latest
+    # A fork inherits this file. `publish_results` would then fail (the OIDC identity does
+    # not match the repository the dataset is keyed on), and a fork's score is not this
+    # project's badge either way. Scoped to the canonical mirror.
+    if: github.repository == 'Gh0s777tt/E-OS'
+    timeout-minutes: 20
+    permissions:
+      # Scoped to this job, never at the top level: `id-token: write` mints an OIDC token
+      # that the OpenSSF publishing endpoint trusts as proof of repository identity. Any
+      # other job in this file granted it could speak for this repository.
+      id-token: write
+      # SARIF into the Security tab.
+      security-events: write
+      # Lets Scorecard list this repository's workflow RUNS through the Actions API; the
+      # SAST check looks for CodeQL runs that way. Token-Permissions and Dangerous-Workflow
+      # do NOT need it — those parse the workflow FILES, which `contents: read` covers.
+      actions: read
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # Audit, not block. Scorecard talks to the GitHub API, the OpenSSF publishing
+          # endpoint and (for some checks) deps.dev; that egress set moves with the action's
+          # own version, so a block list here would turn an upstream change into a red gate
+          # that says nothing about this repository. Audit records the destinations so a
+          # block list can be written from measurement rather than from guesswork.
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Upstream Scorecard's own workflow specifies this, and the reason is local: a
+          # persisted token sits in .git/config where every later step in this job — and
+          # every action those steps pull in — can read it. Nothing here needs to push.
+          persist-credentials: false
+
+      - name: run scorecard
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          # This is what makes the badge resolve: results are pushed to the OpenSSF public
+          # dataset, authenticated by the OIDC token from `id-token: write` above. It also
+          # means the score is public the moment it changes — which is the point.
+          publish_results: true
+          # `repo_token:` is deliberately absent. It is only needed to feed the
+          # Branch-Protection check a classic admin-scoped PAT; see the header.
+
+      # The SARIF is the evidence behind the score. Keep it retrievable for the two weeks
+      # in which somebody might ask why a number moved, then let it expire.
+      - name: upload sarif artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scorecard-results
+          path: results.sarif
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: upload sarif to code scanning
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: results.sarif

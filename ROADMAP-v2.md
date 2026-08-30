@@ -31,7 +31,7 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 
 > **Zasada nadrzędna:** *najpierw zmierz na metalu, potem planuj.* Nic w repozytorium nigdy nie
 > działało na fizycznym sprzęcie — każdy zielony ptaszek to QEMU. Etap 0 z
-> [`plan-do-sprzetu.md`](docs/plan-do-sprzetu.md) jest przed wszystkim innym w tym dokumencie.
+> [`plan-do-sprzetu.md`](docs/archive/hardware-plan.md) jest przed wszystkim innym w tym dokumencie.
 
 ---
 
@@ -63,7 +63,7 @@ Każda pozycja jest klasyfikowana w trzech wymiarach naraz, bo mylenie ich to ź
 | **Demon aktualizacji `eos-update`** | `R-705` demon, `R-706` transakcja+rollback, `R-704` anti-rollback, `R-707` apply-on-reboot | 🖥️ Mac | 🔴 |
 | **Reprodukowalny pipeline wydań** | tag → obraz → wydanie (`R-303`); **bajtowa** reprodukowalność niezweryfikowana | 🐧 CI + 🔑 | 🟡 |
 | **Podpisany bootloader / Secure Boot** | ✅ udowodnione kluczem operatora (§2.1), a od `U-212` bootloader **weryfikuje też jądro i initfs** — nietknięty obraz bootuje, jeden zmieniony bajt jest odrzucony | 🖥️ Mac · 🔑 | ✅ |
-| **Measured boot / TPM 2.0** | `R-913` — nie istnieje; piąta warstwa zaufania z `docs/tokeny.md` wciąż pusta | ⚙️ | 🔴 |
+| **Measured boot / TPM 2.0** | `R-913` — nie istnieje; piąta warstwa zaufania z `docs/reference/keys-and-tokens.md` wciąż pusta | ⚙️ | 🔴 |
 
 ### 1.3 Znana niestabilność, powiedziana wprost
 - **`R-F23`** — E-OS wywraca się pod akceleracją `hvf` na Apple Silicon pod obciążeniem
@@ -116,7 +116,7 @@ na sierpień 2026.
 | **Mechanizm unieważniania** | *„strong revocation mechanism for everything the shim loads, directly and subsequently"* — hasze starych binarek do DBX | L |
 | **Reprodukowalność bajtowa** | twardy próg: *„nobody will trust and sign a binary that is not reproducible"*. U nas `R-303` mówi wprost, że znaczniki czasu obrazu wciąż się różnią, a `recipe.toml:54` robi **niehermetyczny `apt-get install sbsigntool`** w czasie budowania | M |
 | **Bramka Secure Boot w CI** | żaden job w `.gitlab-ci.yml` nie woła `eos-secureboot-proof.sh` — dowód istnieje tylko na laptopie opiekuna | M |
-| **Trzy dokumenty kłamią** | `docs/threat-model.md:79`, `docs/hardening.md:168` i `docs/plan-do-sprzetu.md:39-41` wciąż twierdzą, że nic nie podpisuje bootloadera. Recenzent czyta dokumenty bezpieczeństwa — sprzeczność z kodem to sygnał ostrzegawczy o dojrzałości procesu | XS |
+| **Trzy dokumenty kłamią** | `docs/security/threat-model.md:79`, `docs/security/hardening.md:168` i `docs/archive/hardware-plan.md:39-41` wciąż twierdzą, że nic nie podpisuje bootloadera. Recenzent czyta dokumenty bezpieczeństwa — sprzeczność z kodem to sygnał ostrzegawczy o dojrzałości procesu | XS |
 
 ### 2.3 Czego brakuje **poza techniką** — i to jest prawdziwa blokada
 
@@ -159,7 +159,7 @@ Trzy konsekwencje, które trzeba wypowiedzieć razem:
 przejścia recenzji, gdy wszystko się ma: **od ~5,5 tygodnia do ~7 miesięcy** (273 zgłoszenia
 z etykietą „accepted", 42 otwarte), wymagane **trzy niezależne recenzje, w tym jedna akredytowana**.
 
-Dlatego rekomendacja jest dwutorowa i **nie unieważnia** [`ADR-0005`](docs/adr/0005-secure-boot-bez-microsoftu.md):
+Dlatego rekomendacja jest dwutorowa i **nie unieważnia** [`ADR-0005`](docs/adr/0005-secure-boot-without-microsoft.md):
 
 - **Tor A (obowiązujący, działa dziś):** własny klucz + zaufanie kontrolowane przez właściciela.
   To jest **gotowe i udowodnione** (§2.1). Na aarch64 i na własnym sprzęcie daje instalację bez
@@ -169,7 +169,7 @@ Dlatego rekomendacja jest dwutorowa i **nie unieważnia** [`ADR-0005`](docs/adr/
   SBAT, weryfikacja podpisu w bootloaderze, klucz na tokenie, reprodukowalność, bramka w CI,
   naprawa trzech kłamiących dokumentów. Każda z nich podnosi bezpieczeństwo E-OS **teraz**.
 
-To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsoftu.md).
+To jest zapisane jako [`ADR-0006`](docs/adr/0006-path-to-microsoft-verification.md).
 
 ### 2.6 Zadania (`V2-MS`)
 
@@ -177,7 +177,7 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 |---|---|---|---|---|
 | **V2-MS01** 🖥️ | **Sekcja `.sbat`** w obu bootloaderach UEFI | ✅ **ZROBIONE** (`U-218`): 158 B, `eos-bootloader,1,E-OS,…`, dokładana **przed** podpisem (Authenticode pokrywa całą binarkę); oba podpisy nadal ważne, BIOS nietknięty. Daje własną ścieżkę unieważniania wersji zamiast czekania na DBX | 🖥️ Mac | ✅ |
 | **V2-MS02** 🖥️ | **Bootloader weryfikuje jądro i initfs** podpisem, nie bajtami magicznymi | ✅ **ZROBIONE i udowodnione** (`U-212`): nietknięty obraz bootuje, jedna zmiana bajtu w jądrze → **odmowa**. Zakres celowo wąski — patrz §11 | 🖥️ Mac · 🔑 | ✅ |
-| **V2-MS03** 🖥️ | **Naprawić trzy dokumenty**: `threat-model.md`, `hardening.md`, `plan-do-sprzetu.md` | ✅ **ZROBIONE** (`U-211`) — twierdziły, że nikt nie podpisuje bootloadera; nieprawda od `U-207`. Przy okazji `U-216` poprawił `docs/tokeny.md`, który mylił się w dwóch punktach o warstwie 2 | 🖥️ Mac | ✅ |
+| **V2-MS03** 🖥️ | **Naprawić trzy dokumenty**: `threat-model.md`, `hardening.md`, `plan-do-sprzetu.md` | ✅ **ZROBIONE** (`U-211`) — twierdziły, że nikt nie podpisuje bootloadera; nieprawda od `U-207`. Przy okazji `U-216` poprawił `docs/reference/keys-and-tokens.md`, który mylił się w dwóch punktach o warstwie 2 | 🖥️ Mac | ✅ |
 | **V2-MS04** 🖥️ | **Bramka Secure Boot w CI** — wpiąć `eos-secureboot-proof.sh` do `.gitlab-ci.yml` | dowód przestaje zależeć od jednego laptopa | 🐧 CI | 🔴 |
 | **V2-MS05** 🖥️ | **Hermetyczne podpisywanie** — `sbsigntool` z obrazu bazowego zamiast `apt-get` w czasie `cook` | ✅ **ZROBIONE** (`U-218`): wersja narzędzia podpisującego łańcuch rozruchu jest teraz częścią przypiętego opisu builda, a krok nie wymaga sieci | 🖥️ Mac | ✅ |
 | **V2-MS06** 🔑 | **Klucz na tokenie sprzętowym** (PKCS#11, YubiKey/Nitrokey) zamiast pliku bez hasła | klucz podpisujący rozruch leży dziś jako zwykły plik | 🔑 operator | 🔴 |
@@ -188,7 +188,7 @@ To jest zapisane jako [`ADR-0006`](docs/adr/0006-sciezka-do-weryfikacji-microsof
 | **V2-MS11** 🖥️ | **Chainload przez shim** + protokół weryfikacji (dopiero po V2-MS10) | ostatni krok toru B; bez V2-MS10 bezcelowy | 🖥️ Mac | 💡 |
 | **V2-MS13** 🖥️ | **Egzekwować blake3 z podpisanego manifestu przy instalacji** — dziś `PkgarBackend::install()` sprawdza pakiet **wyłącznie** kluczem pobranym z tego samego hosta; w całym `pkg-lib` są **dwa** porównania blake3 i **żadne nie jest kontrolą integralności** (`library.rs:144`, `package_state.rs:278` — oba decydują „czy aktualizować") | **To jest prawdziwa dziura, nie V2-MS12.** Kto przejmie host pakietów, zostawia oryginalne `repo.toml`+`.sig` (zweryfikują się), podmienia `id_ed25519.pub.toml` na swój i przepodpisuje pakiety — klient instaluje dowolny kod, a przypięty klucz hybrydowy **niczego nie zatrzymuje**. Działa **dziś na aarch64**, bo źródło jest aktywne. Dopiero ta zmiana sprawia, że warstwa 3 chroni treść, a nie samą listę nazw | 🖥️ Mac | ✅ |
 | **V2-MS14** 🖥️ | **`pkg install <nazwa>` w ogóle nie weryfikuje manifestu** — robi to tylko `update` i `-a` (`pkg-cli/src/main.rs:187-191` → `process_packages()` woła `get_all_package_names()` wyłącznie przy `all == true`) | najczęstsza operacja użytkownika omija jedyną działającą weryfikację | 🖥️ Mac | ✅ |
-| **V2-MS12** 🔑 | **Klucz podpisujący pakiety** — cookbook **generuje go sam**, jest przechowywany **jawnym tekstem** (`skey` = 128 znaków hex; `docs/tokeny.md` twierdził inaczej), a bramka z `U-213` wykrywa jego utratę i rozjazd | 🟡 **Kopia zapasowa ISTNIEJE i jest zweryfikowana** (`U-216`): `~/.eos-keys/eos-pkg-signing.secret.toml`, suma zgodna co do bajtu, na **innym nośniku** niż oryginał. Zostaje: (a) trzecia kopia **poza tym Makiem** — dziś obie leżą na jednym komputerze, (b) uczynienie go kluczem operatora, ale **po `V2-MS13`**, bo sama rotacja nie zamyka dziury i kosztuje republikację 642 MB | 🔑 operator | 🟡 **[P2]** |
+| **V2-MS12** 🔑 | **Klucz podpisujący pakiety** — cookbook **generuje go sam**, jest przechowywany **jawnym tekstem** (`skey` = 128 znaków hex; `docs/reference/keys-and-tokens.md` twierdził inaczej), a bramka z `U-213` wykrywa jego utratę i rozjazd | 🟡 **Kopia zapasowa ISTNIEJE i jest zweryfikowana** (`U-216`): `~/.eos-keys/eos-pkg-signing.secret.toml`, suma zgodna co do bajtu, na **innym nośniku** niż oryginał. Zostaje: (a) trzecia kopia **poza tym Makiem** — dziś obie leżą na jednym komputerze, (b) uczynienie go kluczem operatora, ale **po `V2-MS13`**, bo sama rotacja nie zamyka dziury i kosztuje republikację 642 MB | 🔑 operator | 🟡 **[P2]** |
 | **V2-MS15** 🖥️ | **Brak ochrony przed rollback/freeze, wbrew publicznej deklaracji** — `repo.toml` ma tylko `build_id`, zero znacznika czasu, licznika i wygaśnięcia; host może w nieskończoność serwować starą, **poprawnie podpisaną** parę indeks+pakiety | README publikowany przez `publish-repo-pages.sh` obiecuje ochronę przed *freeze* i *rollback*, której **nie ma** — a to tekst kierowany na zewnątrz | 🖥️ Mac | ✅ |
 
 ## 3. Sterowniki — co mamy, czego brakuje, co zbudować
@@ -237,7 +237,7 @@ warunkowe kopiowanie `pcid.d` po architekturze.
 | poz. | co | co odblokowuje | gdzie | stan |
 |---|---|---|---|---|
 | **V2-N01** | **Magistrala I2C + I2C-HID** (`R-916`) | **touchpady laptopów**, czujniki, Type-C PD — dziś **nie istnieje żadna** | ⚙️ realny sprzęt | 🔴 blokada T3 |
-| **V2-N02** | **TPM 2.0 (TIS/CRB) + measured boot** (`R-913`) — **piąta, wciąż pusta warstwa zaufania** z `docs/tokeny.md` | measured boot, sealing kluczy; `swtpm` w QEMU pozwala **wstępnie** zbudować na Macu | 🖥️ Mac (swtpm) → ⚙️ PCR na sprzęcie | 🔴 |
+| **V2-N02** | **TPM 2.0 (TIS/CRB) + measured boot** (`R-913`) — **piąta, wciąż pusta warstwa zaufania** z `docs/reference/keys-and-tokens.md` | measured boot, sealing kluczy; `swtpm` w QEMU pozwala **wstępnie** zbudować na Macu | 🖥️ Mac (swtpm) → ⚙️ PCR na sprzęcie | 🔴 |
 | **V2-N03** | **Podpisany bootloader / Secure Boot** (`R-F27`) — ✅ **ZROBIONE** (`U-206`–`U-210`) | podpis w recepturze; live ISO **oraz** system zainstalowany bootują pod Secure Boot kluczem operatora (`CN=E-OS Secure Boot`, do 2036), odrzucane z obcym. Dalsze kroki: §2.6 | 🖥️ Mac · 🔑 | ✅ |
 
 ---

@@ -2,7 +2,7 @@
 # E-OS R-402a: aarch64 static-TLS layout / TLSDESC / TPOFF fix (thread-exit crashes in any
 # thread-spawning program, displaced .tdata initializers, broken dlopen TLS). Rebased onto
 # current redox-os/relibc mainline (July). Upstream: https://gitlab.redox-os.org/redox-os/relibc.git
-git = "https://github.com/Gh0s777tt/eos-relibc.git"
+git = "https://gitlab.com/e-os/eos-relibc.git"
 branch = "eos-july"
 rev = "c9345130e21ea18ad22052bcfcd97ee2197b370c"
 

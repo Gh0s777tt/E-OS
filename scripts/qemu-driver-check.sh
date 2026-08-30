@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # qemu-driver-check.sh — boot a built E-OS image under QEMU with a range of
 # device models and report which drivers bind. Regenerates the data behind
-# docs/hardware-matrix.md.
+# docs/reference/hardware-matrix.md.
 #
 #   Usage: scripts/qemu-driver-check.sh [x86_64|aarch64]
 #

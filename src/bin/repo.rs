@@ -1942,7 +1942,18 @@ fn perform_search(app: &mut TuiApp) {
         Some(i) => Some(i),
         None => search_results.first().cloned().map(|s| (s, 0)),
     };
-    app.search_results = Some(search_results);
+    // A search that matched nothing must leave `search_results` as None, not `Some(vec![])`.
+    // Six sites index this vector — :1700, :1742, :1972, :2002, :2019 — and one of them computes
+    // `search_results.len() - 1` on a usize, so an empty vector gives an out-of-bounds panic in five
+    // places and an underflow panic in the sixth. Every one of those sites is guarded by
+    // `if let Some(..)`, so storing None makes all of them unreachable rather than patching each.
+    // Reachable by the keystroke path the TUI itself advertises: a failed recipe, Tab to [Inspect],
+    // Enter, a query with no match — which killed the TUI mid-build.
+    app.search_results = if search_results.is_empty() {
+        None
+    } else {
+        Some(search_results)
+    };
     app.auto_scroll = false;
     if let Some((first_index, search_i)) = first_index {
         app.log_scroll = first_index.saturating_sub(10);
@@ -2237,3 +2248,45 @@ macro_rules! bail_options_err {
 }
 
 use bail_options_err;
+
+#[cfg(test)]
+mod search_tests {
+    use super::*;
+
+    /// A query that matches nothing must not leave an empty vector in `search_results`.
+    ///
+    /// The negative case is the whole point: five call sites index that vector and a sixth computes
+    /// `len() - 1` on a `usize`, so `Some(vec![])` is a panic waiting for the next redraw. Asserting
+    /// only the matching case would pass just as happily against the broken code.
+    #[test]
+    fn a_search_with_no_match_stores_none_not_an_empty_vec() {
+        let mut app = TuiApp::new(Vec::new());
+        app.search_query = "a string that appears in no log".to_string();
+        perform_search(&mut app);
+        assert!(
+            app.search_results.is_none(),
+            "empty results must be None; Some(vec![]) panics on the next draw"
+        );
+    }
+
+    /// An empty query returns early and must not disturb existing state.
+    #[test]
+    fn an_empty_query_leaves_the_state_alone() {
+        let mut app = TuiApp::new(Vec::new());
+        app.search_query = String::new();
+        perform_search(&mut app);
+        assert!(app.search_results.is_none());
+        assert_eq!(app.search_idx, 0);
+    }
+
+    /// `search_idx` must never point past the end of whatever is stored.
+    #[test]
+    fn search_idx_is_never_out_of_range_for_the_stored_results() {
+        let mut app = TuiApp::new(Vec::new());
+        app.search_query = "no match".to_string();
+        perform_search(&mut app);
+        if let Some(results) = app.search_results.as_ref() {
+            assert!(app.search_idx < results.len());
+        }
+    }
+}

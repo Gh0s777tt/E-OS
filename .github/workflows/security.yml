@@ -1,0 +1,852 @@
+# ══════════════════════════════════════════════════════════════════════════════════════
+# E-OS security suite — SAST, secret scanning, SCA, container and IaC scanning.
+#
+# WHY THIS LIVES ON GITHUB, given that .gitlab-ci.yml is the source of truth:
+# C-7 — every GitLab gate has been failing in 0 s with `ci_quota_exceeded` since
+# 2026-08-28 (docs/ci.md, "CI minutes (free tier)"). Actions on a public repo has no
+# minute cap, so on the push-mirror these jobs run when the GitLab light tier cannot.
+#
+# It is also not a duplicate of anything. C-15: there is no SAST in this project at all.
+# docs/ci.md, "Optional: GitLab security templates", lists GitLab's SAST /
+# Secret-Detection / Dependency-Scanning templates as things you *could* include, with
+# the minute budget given as the reason not to — and they were never included. On the
+# supply-chain side the only check that runs in CI is `cargo-deny` inside .gitlab-ci.yml's
+# `rust-checks`, reading the RustSec advisory-db; `cargo-audit` exists only in
+# scripts/local-scan.sh, which runs from a launchd timer on the maintainer's machine, and
+# CLAUDE.md §19 records it as deliberately omitted from CI as redundant with cargo-deny.
+# C-13 is precisely that a second database sees what the first did not: Dependabot
+# reported 0 while osv-scanner found real advisories. That is why `osv-scanner` BLOCKS.
+#
+# A gate that reports a broken instrument the same way it reports a broken tree is the
+# U-177 defect (CLAUDE.md §13). Where a step here can fail for either reason it says
+# which, and uses ci-integrity.sh's `FAIL (instrument):` prefix for the first.
+#
+# BEFORE TRUSTING ANY OF THIS: several files in this tree still assert that Actions cannot
+# run at all — .gitlab-ci.yml:2, SECURITY.md:69, docs/MAINTENANCE.md:17, docs/ecosystem.md:96
+# and keys/README.md:85, all citing "GitHub Actions is disabled account-wide (ROADMAP R-004)".
+# Those notes predate this suite. .github/dependabot.yml is NOT one of them any more — it was
+# corrected when the workflows came back, and docs/security/github-configuration.md §2, which
+# lists it as one of four files still asserting Actions is off, is the stale copy.
+#
+# None of those sentences is the measurement, and neither is this file. The measurement that
+# exists, taken 2026-08-30: a minimal `on: push` workflow with no branch filter, pushed
+# straight to github.com on a fresh branch, produced NO workflow run at all — not queued, not
+# failed. The repo-level API reports Actions enabled, so whatever blocks it sits above the
+# repository. Until a run appears in the Actions tab, EVERY gate described below is a gate on
+# paper: C-7 stays open and .gitlab-ci.yml is still the only thing that has ever gated this
+# tree. Re-take that measurement with a throwaway push-triggered workflow rather than by
+# reading this comment; there is deliberately no permanent canary file here to rot.
+#
+# ── WHAT BLOCKS AND WHAT DOES NOT ─────────────────────────────────────────────────────
+#   BLOCKING   osv-scanner (C-13) · gitleaks · dependency-review (PRs only) ·
+#              the workflow-pinning check · the containerfile-coverage assertion ·
+#              semgrep at ERROR — but read the MEASURED SCOPE note on that job before
+#              counting it: with today's rule packs the only files inside a rule that
+#              can fire are scripts/*.py
+#   ADVISORY   trivy fs · grype fs · base-image scan · trivy config · semgrep below
+#              ERROR · CodeQL (Actions cannot make CodeQL alerts block — see that job)
+#
+# Advisory here does NOT mean decorative. Every advisory job uploads SARIF, so its
+# findings land in the Security tab and a regression is visible in the alert list. It
+# means the exit status is not this repository's to act on (a Debian CVE, an upstream
+# advisory) or the tool is a second opinion on something another job already gates.
+#
+# This project has already learned what a check that can only pass is worth (U-140), so
+# every `|| true` in this file is accounted for here rather than left for a reader to
+# find. There are exactly four, none of them on a verdict:
+#   * container-scan's FROM discovery — on the DISCOVERY, so the explicit empty-list guard
+#     below it prints the instrument message instead of `set -e` killing the step mutely.
+#   * iac-scan's coverage assertion — on `grep -c`, which exits 1 when it counts zero.
+#     It still prints `0`, and the next line turns 0 into `exit 1`. Verified by running
+#     that block against a missing, a malformed and an empty trivy-config.json, and
+#     against a tree with no containerfiles at all: all four reach `FAIL (instrument)`
+#     and exit 1.
+#   * the workflow-hardening check's two greps (unpinned refs, pull_request_target) —
+#     `grep` exits 1 when it matches NOTHING, and matching nothing is the PASS case for
+#     both. Without `|| true` a clean tree would kill the step under `set -e`. The verdict
+#     is the `[ -n "$…" ]` test on the captured output, not the exit status.
+# No `continue-on-error` sits on a blocking gate. The one that appears (osv-scanner)
+# exists so a LATER step can make the failure decision, and that step is present and does
+# fail the job.
+#
+# ── OWNED vs VENDORED ─────────────────────────────────────────────────────────────────
+# The scope split below mirrors .gitlab-ci.yml deliberately. `rust-checks` there runs
+# fmt + `clippy -D warnings` + full `cargo-deny check` against tools/eos-repo-sign, but
+# only `cargo test` + `cargo-deny check advisories` against the ROOT manifest, because
+# the root crate is the vendored `redox_cookbook` (src/) and gating style on somebody
+# else's tree means carrying that divergence forever. `shell-lint` draws the same line by
+# scoping shellcheck to scripts/ and leaving build.sh, the root *_bootstrap.sh and
+# recipes/wip/ out. Semgrep's blocking tier follows that line. CodeQL deliberately does
+# not — see the note on that job.
+# ══════════════════════════════════════════════════════════════════════════════════════
+name: security
+
+on:
+  push:
+    branches: ["main"]
+  # Present for when C-6 is fixed. Today every commit in this project's history went
+  # straight to `main`, and commits reach this mirror by push from GitLab rather than
+  # through a GitHub PR — so on the current process the `push` trigger is the one that
+  # actually fires, and `dependency-review` (which needs a base/head pair) is near-dormant.
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Weekly, off the hour for the reason given on scorecard.yml's cron, and on a
+    # different day so the two suites do not queue against each other.
+    - cron: "23 5 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  # Superseded PR pushes are cancelled; runs on `main` and scheduled runs are not. A
+  # cancelled run uploads no SARIF, and half of these jobs exist to keep the Security tab
+  # honest — losing an upload because a later push arrived would silently age the alerts.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Two tools in this file have no SHA-pinned action available, so they run from their
+  # official container images in `run:` steps. These are TAG pins, not digest pins, and
+  # that is the one unpinned input in this workflow. A version tag invented here that did
+  # not exist would be a permanently red gate, and no digest for either image exists in
+  # this project's pin table, so a floating tag is the honest state. To close it: pull the
+  # image once, take `podman inspect --format '{{index .RepoDigests 0}}'`, and pin
+  # `image@sha256:…` here — the same download-verify discipline .gitlab-ci.yml applies to
+  # the cargo-deny and mdBook release assets (U-118).
+  SEMGREP_IMAGE: "docker.io/semgrep/semgrep:latest"
+  # ghcr rather than Docker Hub: hosted runners share a Docker Hub pull quota by IP, and
+  # a rate-limited pull is an outage in a security gate.
+  TRIVY_IMAGE: "ghcr.io/aquasecurity/trivy:latest"
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # CodeQL — half of the C-15 remediation (semgrep is the other half; they disagree often
+  # enough that running both is not redundant).
+  # ────────────────────────────────────────────────────────────────────────────────────
+  codeql:
+    name: codeql (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      # Escalated on THIS job only, never at the top level. `security-events: write` is
+      # what lets a job write to the Security tab; `actions: read` is what CodeQL uses to
+      # read the workflow run it is attributing results to.
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Rust is what this distribution is written in. `build-mode: none` is not a
+          # shortcut: CodeQL's Rust extractor reads source without compiling, and a
+          # building mode would have to reproduce the toolchain pinned in
+          # rust-toolchain.toml (nightly-2026-05-24) and resolve the root manifest's git
+          # dependencies against gitlab.redox-os.org. That is `ci.yml`'s job, not this
+          # one's; duplicating it here would double the build for no extra coverage.
+          - language: rust
+            build-mode: none
+          # Python is in the matrix because scripts/*.py are not scratch — gen-sbom.py
+          # produces the release SBOM, eos-check-repo-types.py and eos-fork-linkage.py
+          # back the repo-type model, eos-add-sbat.py touches boot payload metadata.
+          # Leaving them out would be C-15 again, one directory smaller.
+          - language: python
+            build-mode: none
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # Audit, not block: CodeQL downloads its bundle and query packs from GitHub and
+          # ghcr, and that destination set moves with the action's version. A block list
+          # written from guesswork turns an upstream change into a red gate that says
+          # nothing about this repository; audit records the destinations so a block list
+          # can later be written from measurement.
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: initialise codeql
+        uses: github/codeql-action/init@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # `security-extended`, not `security-and-quality`. This file is the security
+          # suite; style and maintainability findings belong with the lint gates, and
+          # mixing them here would bury a real alert in a list of naming complaints.
+          queries: security-extended
+
+      # Unlike clippy — which .gitlab-ci.yml deliberately does NOT run over the vendored
+      # root crate — CodeQL is pointed at the whole checkout, src/ included. That is a
+      # considered deviation from the owned/vendored split, not an oversight: an
+      # exploitable bug in the build engine that produces every E-OS image is this
+      # project's problem regardless of who wrote it, and unlike a clippy lint it does not
+      # create upstream divergence to carry — an alert is read, not fixed by reformatting
+      # somebody else's tree.
+      - name: analyse
+        uses: github/codeql-action/analyze@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+      # NOTE ON BLOCKING: this job is green whenever CodeQL itself ran. `analyze` does not
+      # fail on alerts, and there is no input that makes it. Turning CodeQL alerts into a
+      # merge blocker is a repository setting (Settings → Code security → "Require code
+      # scanning results"), not something this file can assert, and on a push-mirror with
+      # no PRs it would gate nothing today anyway. Recorded here so nobody reads a green
+      # codeql job as "no findings" — read the Security tab.
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # semgrep — the other half of C-15. No SHA-pinned semgrep action exists in this
+  # project's pin table, so it runs from its official container image in a `run:` step.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # semgrep pulls its image from Docker Hub and its rule packs from
+          # semgrep.dev; audit records both rather than guessing at a block list.
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # Rule packs: `p/rust` for the language, `p/security-audit` for the cross-language
+      # security rules. `p/secrets` is deliberately absent — gitleaks owns secret
+      # detection in this project and .gitleaks.toml is a single, justified allowlist
+      # (U-120). A second secret scanner means a second allowlist, and two allowlists
+      # drift; the one that drifts is the one that stops catching things.
+      #
+      # `--metrics=off`: a scanner that phones home about the code it scanned is not a
+      # thing to enable by default in a security gate.
+      #
+      # There is NO `|| true` on this step, and that is the point. Semgrep exits 0 when it
+      # finds something unless `--error` is passed, so this pass reports without gating —
+      # a non-zero exit here means semgrep ITSELF failed (bad pack, no network, image
+      # broken), and a broken scanner must fail the job rather than produce an empty SARIF
+      # that reads as "clean".
+      - name: "advisory pass — whole tree, every severity, produces the SARIF"
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/src -w /src "$SEMGREP_IMAGE" \
+            semgrep scan \
+              --metrics=off \
+              --disable-version-check \
+              --config=p/rust \
+              --config=p/security-audit \
+              --sarif --output=semgrep.sarif \
+              src tools scripts
+          test -s semgrep.sarif || {
+            echo "FAIL (instrument): semgrep exited 0 but wrote no report — it scanned"
+            echo "nothing. That is a broken gate, not a clean tree."
+            exit 1
+          }
+
+      # Blocking tier. Scope is tools/ and scripts/ — E-OS-owned code — which is the same
+      # boundary .gitlab-ci.yml's `shell-lint` and `rust-checks` draw. src/ is the vendored
+      # redox_cookbook and is covered by the advisory pass above and by CodeQL; holding
+      # upstream's tree to this project's SAST bar would mean either fixing somebody
+      # else's code or carrying an ignore list forever.
+      #
+      # ERROR blocks, everything below it is advisory. That split is `shell-lint`'s
+      # precedent, where shellcheck errors block and its 18 warnings are printed and
+      # deliberately left for a change that is about the warnings rather than about
+      # introducing the gate.
+      #
+      # MEASURED SCOPE — read this before treating a green run here as a Rust result.
+      # Counted against the live registry on 2026-08-30 (`curl semgrep.dev/api/registry/
+      # rulesets/<pack>`, rules grouped by `severity:` and `languages:`):
+      #   p/rust            11 rules — 6 INFO, 5 WARNING, ZERO at ERROR.
+      #   p/security-audit 225 rules — 48 at ERROR, and their languages are dockerfile 1,
+      #                     c 2, go 2, java 2, javascript 6, typescript 6, python 16,
+      #                     ruby 6, hcl 1, generic 1. No rule in the pack declares rust,
+      #                     and none declares bash.
+      # tools/ is one Rust crate (tools/eos-repo-sign/src/main.rs) and scripts/ is 52 *.sh
+      # plus 6 *.py. So `--severity=ERROR` over `tools scripts` can, today, only ever fire
+      # on the 6 Python files, against those 16 python rules. Over the Rust crate and over
+      # the 52 shell scripts this step CANNOT go red — and a check that can only pass is
+      # not a check (U-140).
+      #
+      # It is kept blocking anyway, for two reasons that are not "it might be useful":
+      # the Python surface it does gate is real and gated by nothing else in this file,
+      # and the step turns red on its own the day either pack gains a Rust or bash rule at
+      # ERROR — which is the behaviour wanted, without an edit here. What it must NOT be
+      # read as is coverage of the owned Rust or the owned shell. Those are gated
+      # elsewhere and that is where a regression will surface: `clippy -D warnings` and
+      # the full `cargo-deny check` on tools/eos-repo-sign in .gitlab-ci.yml `rust-checks`,
+      # `shellcheck -S error scripts/*.sh` in `shell-lint` and in lint.yml, and CodeQL's
+      # rust-security-extended suite in the job above (advisory, alerts only).
+      #
+      # UNMEASURED, separately from the above: no run of this step over this tree exists.
+      # The GitLab pipeline that would have produced a baseline has been quota-dead since
+      # 2026-08-28 (C-7). If the first run is red, the fix is the finding or a justified
+      # `nosemgrep` on the line, not softening this step.
+      - name: "blocking pass — ERROR severity over E-OS-owned code"
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/src -w /src "$SEMGREP_IMAGE" \
+            semgrep scan \
+              --metrics=off \
+              --disable-version-check \
+              --config=p/rust \
+              --config=p/security-audit \
+              --severity=ERROR \
+              --error \
+              tools scripts
+
+      - name: upload sarif to code scanning
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # gitleaks — the mirror of .gitlab-ci.yml's `secret-scan` job.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      # `fetch-depth: 0` for the same reason .gitlab-ci.yml sets `GIT_DEPTH: 0` at the top
+      # of the file: a secret is committed once and removed in the next commit, so a
+      # shallow clone scans the one window in which nothing is there.
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Config: `.gitleaks.toml` at the repo root, the SAME file the GitLab `secret-scan`
+      # job and the lefthook pre-commit hook pick up (both run gitleaks from the repo root,
+      # which loads it by default). There is deliberately no second config here. Its
+      # allowlist is SEVEN path patterns (U-120), each a deliberate blind spot, and they
+      # are justified two different ways — worth knowing before trusting either: the five
+      # path exclusions (licenses/Redox-OS-MIT.txt, build/, prefix/, target/, Cargo.lock)
+      # are compensated for by the weekly guardian grep, which walks those paths itself;
+      # the two keys/*.pub.toml entries are not, and rest instead on the shape of the file
+      # (74 bytes, one `pkey` field, 64 hex characters = a 32-byte ed25519 PUBLIC key,
+      # structurally unable to be a pkgar secret), corroborated by GitHub's own secret
+      # scanning returning empty on them. A GitHub-only copy of this config would be a
+      # second place for that reasoning to rot, and the copy that rots is the one still
+      # being trusted.
+      #
+      # This pins the TOOL by action SHA, where the GitLab job runs the floating
+      # `zricethezav/gitleaks:latest` image — a strict improvement on the same scan.
+      #
+      # GITLEAKS_LICENSE is not set and is not needed: gitleaks-action requires a licence
+      # key for repositories owned by a GitHub *organisation*. Gh0s777tt/E-OS is owned by
+      # a user account. If this repo ever moves under an org, this job stops working and
+      # that is the reason.
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
+
+      # GitHub's own secret scanning and push protection are NOT configured from a
+      # workflow — they are repository settings (Settings → Code security → Secret
+      # protection), free on public repos, and push protection is the only control in this
+      # file's subject area that rejects a secret BEFORE it reaches the remote. Writing a
+      # step here that pretended to do it would be a step that scans nothing. Enable it in
+      # the UI on Gh0s777tt/E-OS; gitleaks above stays either way, because it reads a
+      # config this project maintains and GitHub's scanner does not.
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # dependency-review — PR-only by construction: it diffs the dependency graph between
+  # base and head, and there is no base/head pair on a push or a schedule.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  dependency-review:
+    name: dependency review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # Reads GitHub's dependency graph, which is exactly the source C-13 says reported 0
+      # while osv-scanner found real advisories. So this job is NOT the C-13 remediation
+      # and must not be mistaken for it: it is a diff gate that answers "does THIS change
+      # add a dependency with a known advisory", which is a different and much narrower
+      # question than "is the tree clean". osv-scanner below answers the second one.
+      #
+      # No licence policy here on purpose. Licence rules live in deny.toml and are
+      # enforced by `cargo-deny check` in .gitlab-ci.yml's `rust-checks`; a second
+      # allow-list in this file would drift from the first.
+      #
+      # No `comment-summary-in-pr`: it would need `pull-requests: write`, and a write
+      # scope bought for a bot comment when the failed check already says the same thing
+      # is a bad trade.
+      - name: dependency review
+        uses: actions/dependency-review-action@da24556b548a50705dd671f47852072ea4c105d9 # v4.7.1
+        with:
+          # `low`, not `moderate`: a change that introduces a dependency with any known
+          # advisory should be argued for in the review, not merged and triaged later.
+          fail-on-severity: low
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # osv-scanner — THE C-13 REMEDIATION. THIS JOB BLOCKS. Do not soften it.
+  #
+  # C-13: Dependabot reported 0 advisories for this repository while osv-scanner found
+  # real ones. OSV aggregates RustSec with the GitHub advisory database and others, so it
+  # is the tool that saw what the graph did not. Making it advisory would restore exactly
+  # the state the finding describes: a supply-chain answer of "0" that nobody has to act
+  # on.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  osv-scanner:
+    name: osv-scanner (blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # osv-scanner queries api.osv.dev; audit records it rather than guessing.
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # Scope: the two directories that hold the only two TRACKED Cargo.lock files —
+      # ./Cargo.lock (vendored redox_cookbook, the build engine) and
+      # tools/eos-repo-sign/Cargo.lock (E-OS-owned). "Tracked" is the load-bearing word: a
+      # working tree also grows build/hostbuild-eos-control/Cargo.lock, which is under the
+      # gitignored /build/ (CLAUDE.md §5 — build/ is an artefact) and so is absent from
+      # every checkout this job ever sees. It is out of scope because it does not exist
+      # here, not because anyone decided to skip it. Both tracked locks are named because
+      # BOTH matter:
+      # .gitlab-ci.yml already gates the owned crate hard, and R-F15 is the note recording
+      # that the vendored tree's dependencies had never been audited at all until U-159.
+      #
+      # Not `--recursive`: recursion would walk upstream/ (patch trees prepared for
+      # upstream Redox) and recipes/ (third-party ports), and an advisory in somebody
+      # else's source tree is not a fact about what this repository ships. Naming the two
+      # directories also means this step goes red if a lockfile moves, instead of quietly
+      # scanning less.
+      #
+      # `continue-on-error` here is NOT a softened gate — it exists so the SARIF gets
+      # uploaded before the job dies. The blocking decision is the third step below, which
+      # reads this step's pre-continue-on-error `outcome` and exits 1. It also fails
+      # closed: an infrastructural failure (osv.dev unreachable) is an `outcome` of
+      # failure and fails the job, because a supply-chain gate that could not run has not
+      # passed.
+      - name: osv-scanner
+        id: osv
+        continue-on-error: true
+        uses: google/osv-scanner-action/osv-scanner-action@e92b5d07338d4f0ba0981dffed17c48976ca4730 # v2.2.3
+        with:
+          scan-args: |-
+            --format=sarif
+            --output=osv-results.sarif
+            ./
+            ./tools/eos-repo-sign/
+
+      - name: upload sarif to code scanning
+        if: always() && hashFiles('osv-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: osv-results.sarif
+          category: osv-scanner
+
+      # U-177 (CLAUDE.md §13): a gate that reports a broken instrument in the same words as
+      # a broken tree gets the opposite reaction from the reader. The two are separated
+      # here by the SARIF: osv-scanner writes it before exiting non-zero on findings, so
+      # "non-zero AND no report" is the tool failing, and "non-zero AND a report" is the
+      # tree. Both still fail the job — a supply-chain gate that could not run has not
+      # passed — but they say different things.
+      - name: fail the build on any osv finding
+        if: steps.osv.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          if [ ! -s osv-results.sarif ]; then
+            echo "FAIL (instrument): osv-scanner produced no report, so it did not run to"
+            echo "completion. This says nothing about the dependency tree. Check the step"
+            echo "log above: reachability of api.osv.dev, the action reference, and whether"
+            echo "./Cargo.lock and ./tools/eos-repo-sign/Cargo.lock are still where this"
+            echo "job names them."
+            exit 1
+          fi
+          echo "FAIL: osv-scanner reported vulnerabilities in a scanned lockfile."
+          echo "This gate is C-13 and is intentionally blocking — see the header of this job."
+          echo "Fix: bump the dependency, or record a justified ignore with the reasoning"
+          echo "written down next to it. Do not make this step advisory; an advisory"
+          echo "osv-scanner reproduces the exact state C-13 describes."
+          exit 1
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # SCA second opinions over the checked-out tree. Advisory, and deliberately so: three
+  # tools racing to block on the same two lockfiles with three different databases means
+  # the first one to add an entry stops all work in the repository, and the argument then
+  # happens under time pressure. osv-scanner above is the one that blocks; these two exist
+  # so a finding that OSV does not carry is still visible in the Security tab.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  sca-filesystem:
+    name: sca (trivy + grype)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # trivy fetches its vulnerability DB from ghcr; grype fetches its DB from
+          # anchore's endpoint. Audit records both.
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # `--exit-code 0` is written out rather than left to the default so that this
+      # reading as advisory is visibly a decision. `--scanners vuln` only: trivy's secret
+      # scanner would be a second secret scanner with its own rules, and that is the
+      # gitleaks/.gitleaks.toml argument again.
+      - name: trivy filesystem scan
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD":/src -w /src "$TRIVY_IMAGE" \
+            fs \
+              --quiet \
+              --scanners vuln \
+              --exit-code 0 \
+              --format sarif \
+              --output trivy-fs.sarif \
+              .
+          test -s trivy-fs.sarif || {
+            echo "FAIL (instrument): trivy exited 0 but wrote no report."
+            exit 1
+          }
+
+      - name: upload trivy sarif
+        if: always() && hashFiles('trivy-fs.sarif') != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      # grype comes from a SHA-pinned action, so unlike trivy it needs no container-image
+      # tag pin. `fail-build: false` is the advisory decision above, and it is the input
+      # that does the deciding: in this action's action.yml `severity-cutoff` (default
+      # `medium`) is the FAILURE threshold, not a report filter, so `medium` here names
+      # the severity this job would block at if it blocked — which it does not.
+      - name: grype filesystem scan
+        id: grype
+        uses: anchore/scan-action@f6601287cdb1efc985d6b765bbf99cb4c0ac29d8 # v7.0.0
+        with:
+          path: "."
+          fail-build: false
+          severity-cutoff: medium
+          output-format: sarif
+
+      - name: upload grype sarif
+        if: always() && steps.grype.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype-fs
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # Container scanning. What is scanned is the BASE IMAGE each podman/*containerfile
+  # pulls FROM, not a built image.
+  #
+  # Why not build them: these are upstream Redox's containerfiles, kept under upstream's
+  # naming, and two of the three add nothing but `apt-get install` from the suite the base
+  # already ships (redox-base: debian:trixie; redox-toolchain: `-t oldstable-backports` off
+  # debian:oldstable-backports). Building those on a hosted runner would spend the run
+  # rediscovering the same Debian CVEs this scan finds directly.
+  #
+  # The third is the exception and is the honest gap in this job. redox-gdb-containerfile
+  # has a second layer — `RUN pip3 install gdbgui --break-system-packages`, an UNPINNED
+  # PyPI install (line 11 of that file) — and a base-image scan sees none of it. Nothing
+  # else in this repository covers it either: it is not a Debian package, so trivy's image
+  # scan of debian:stable-backports cannot reach it, and it is not a lockfile, so
+  # osv-scanner has nothing to read. Stated as a gap, not delegated.
+  #
+  # NOT the gap, corrected here because the obvious guess is wrong: podman/rustinstall.sh
+  # is not part of any image build. Its own header says "This must be run outside podman
+  # build", and it is invoked into an ALREADY-BUILT, running container — mk/podman.mk:82
+  # (`$(PODMAN_RUN) bash -e podman/rustinstall.sh`) and scripts/eos-container-setup.sh:131
+  # (`podman exec`). A built-image scan of these containerfiles would therefore not cover
+  # it either, and every binary it fetches is SHA256-pinned in the script (U-118). What is
+  # true about it: it is linted by nothing, because `shell-lint` in .gitlab-ci.yml and the
+  # shellcheck job in lint.yml both scope to scripts/*.sh.
+  # (Separately: the OS image itself cannot be built on a GitHub runner at all — it needs
+  # podman and a 37 GB cache, which is `build-image`, `tags: [eos-heavy]`.)
+  #
+  # Advisory, for the same reason .gitlab-ci.yml's `rebase-check` is: an unpatched CVE in
+  # debian:trixie is not this project's defect and no change here fixes it, but we want to
+  # learn about it now rather than when it ships. The thing that would make this blockable
+  # is digest-pinning the FROM lines in the containerfiles — then a CVE would map to a
+  # specific artefact this repository chose, and a red gate would name an action. That is
+  # a change to the containerfiles and out of scope for this file.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  container-scan:
+    name: container base images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # The `exit 1` on an empty base list is the point of the step. These files are named
+      # `*containerfile` with no `Dockerfile` anywhere in the tree, so anything that
+      # discovers them by convention discovers nothing and reports success; a scan that
+      # found no FROM lines has not passed, it has not run.
+      - name: scan the base image of every containerfile
+        run: |
+          set -euo pipefail
+          mkdir -p trivy-image-sarif .trivycache
+          # A `while read` loop rather than `mapfile`: this runner has bash 5, but the
+          # machine this project is developed on ships /bin/bash 3.2 (CLAUDE.md §9), and a
+          # block that cannot be pasted into the maintainer's shell to debug a red run is
+          # worth less than the two lines it saves. Same reasoning as ci-integrity.sh
+          # check 5, which bans bash-4 syntax from scripts/.
+          # The `|| true` is on the DISCOVERY, so that the explicit guard below prints the
+          # instrument message instead of `set -e` killing the step with no explanation.
+          # It is not on the scan.
+          bases=$(
+            grep -hE '^[[:space:]]*FROM[[:space:]]+' podman/*containerfile \
+              | awk '{print $2}' | sort -u
+          ) || true
+          if [ -z "$bases" ]; then
+            echo "FAIL (instrument): no FROM line found in podman/*containerfile."
+            echo "This scan would have covered nothing and reported success."
+            exit 1
+          fi
+          echo "bases to scan:"
+          echo "$bases"
+          i=0
+          # Unquoted on purpose: image references contain no whitespace, and this is the
+          # word-splitting the loop wants.
+          for base in $bases; do
+            i=$((i + 1))
+            echo "--- $base ---"
+            docker run --rm \
+              -v "$PWD/trivy-image-sarif":/out \
+              -v "$PWD/.trivycache":/root/.cache/trivy \
+              "$TRIVY_IMAGE" \
+              image \
+                --quiet \
+                --scanners vuln \
+                --exit-code 0 \
+                --format sarif \
+                --output "/out/base-${i}.sarif" \
+                "$base"
+          done
+          ls -l trivy-image-sarif
+
+      - name: upload base-image sarif
+        if: always() && hashFiles('trivy-image-sarif/*.sarif') != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: trivy-image-sarif
+          category: trivy-base-images
+
+  # ────────────────────────────────────────────────────────────────────────────────────
+  # IaC scanning, scoped to the infrastructure this project actually has.
+  #
+  # WHAT IS NOT HERE, and why there is no step for it: this repository has no Terraform
+  # (no *.tf), no Kubernetes manifests, no Helm chart (no Chart.yaml), no CloudFormation
+  # and no docker-compose file. Verified against the tree, not assumed. Adding tfsec /
+  # checkov / a Kubernetes policy scanner would add a step that scans zero files and
+  # reports success forever, which is the shape of gate this project has already decided
+  # is worth nothing. E-OS's "infrastructure as code" is three containerfiles and the
+  # workflows in this directory, and those are what this job scans.
+  # ────────────────────────────────────────────────────────────────────────────────────
+  iac-scan:
+    name: iac (containerfiles + workflows)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # `--file-patterns` is load-bearing. Trivy recognises Dockerfiles by filename
+      # convention (`Dockerfile`, `Containerfile`, `*.Dockerfile`); these are
+      # `redox-base-containerfile`, `redox-gdb-containerfile` and
+      # `redox-toolchain-containerfile`, which match none of those. Without the pattern
+      # this step scans nothing and passes — so the step after it asserts that the report
+      # actually names a containerfile, and fails if it names none.
+      - name: trivy config over the containerfiles
+        run: |
+          set -euo pipefail
+          mkdir -p .trivycache
+          docker run --rm \
+            -v "$PWD":/src -w /src \
+            -v "$PWD/.trivycache":/root/.cache/trivy \
+            "$TRIVY_IMAGE" \
+            config \
+              --quiet \
+              --exit-code 0 \
+              --file-patterns "dockerfile:.*containerfile$" \
+              --format json \
+              --output trivy-config.json \
+              podman/
+          docker run --rm \
+            -v "$PWD":/src -w /src \
+            -v "$PWD/.trivycache":/root/.cache/trivy \
+            "$TRIVY_IMAGE" \
+            config \
+              --quiet \
+              --exit-code 0 \
+              --file-patterns "dockerfile:.*containerfile$" \
+              --format sarif \
+              --output trivy-config.sarif \
+              podman/
+
+      - name: assert the containerfiles were actually parsed
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          # A glob into an array rather than `ls | wc -l`: when the glob stops matching,
+          # `ls` dies under `set -e` with a message about `ls`, which reads as a runner
+          # fault rather than as "the files this job exists to scan are gone". The array
+          # makes that case reachable, so the guard below can name it. (It also drops
+          # SC2012, the one lint actionlint reported on this file — a workflow whose own
+          # last step audits workflow hygiene should not be the one carrying it.)
+          cfs=(podman/*containerfile)
+          expected=${#cfs[@]}
+          if [ "$expected" -eq 0 ]; then
+            echo "FAIL (instrument): no podman/*containerfile exists to have been parsed."
+            echo "The scan in the previous step covered nothing and reported success."
+            exit 1
+          fi
+          covered=$(jq -r '[.Results[]?.Target] | unique | .[]?' trivy-config.json \
+            | grep -c 'containerfile' || true)
+          echo "trivy config covered ${covered} of ${expected} containerfile(s)"
+          if [ "$covered" -eq 0 ]; then
+            echo "FAIL (instrument): trivy config parsed NONE of podman/*containerfile."
+            echo "The --file-patterns regex in the previous step no longer matches these"
+            echo "filenames, so that scan reported success over an empty set. This says"
+            echo "nothing about the containerfiles — it says the scanner did not read them."
+            exit 1
+          fi
+          if [ "$covered" -lt "$expected" ]; then
+            echo "advisory: some containerfiles were not parsed — check the names above"
+          fi
+
+      - name: upload trivy config sarif
+        if: always() && hashFiles('trivy-config.sarif') != ''
+        uses: github/codeql-action/upload-sarif@192325c86100d080feab897ff886c34abd4c83a3 # v3.30.3
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+      # The workflows in this directory are infrastructure too, and they are the part with
+      # a token attached. This is a BLOCKING check, written inline rather than delegated:
+      # actionlint and zizmor are the tools that would do this properly, and neither is in
+      # this project's resolved-SHA pin table — adding an unpinned action to enforce
+      # pinning would be self-defeating. What it therefore does NOT check, deliberately:
+      # per-job `timeout-minutes`, over-broad job-level permissions, script injection
+      # through `${{ }}` inside `run:`, and `persist-credentials`. Those need a YAML parse.
+      # If actionlint or zizmor gets a pinned SHA, replace this step with it rather than
+      # growing it.
+      - name: workflow hardening check
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(.github/workflows/*.yml .github/workflows/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "no workflow files found — this check would be scanning nothing"
+            exit 1
+          fi
+          echo "checking ${#files[@]} workflow file(s): ${files[*]}"
+          fail=0
+
+          # 1. Every third-party `uses:` must be pinned to a full 40-char commit SHA.
+          #    A tag or branch ref is a mutable pointer to code that runs with this
+          #    repository's token. Local `./…` actions are exempt: they are this repo.
+          unpinned=$(grep -nE '^[[:space:]]*(-[[:space:]]+)?uses:' "${files[@]}" \
+            | grep -vE 'uses:[[:space:]]*\./' \
+            | grep -vE 'uses:[[:space:]]*[^@[:space:]]+@[0-9a-f]{40}([[:space:]]|$)' || true)
+          if [ -n "$unpinned" ]; then
+            echo "FAIL: action reference not pinned to a 40-char commit SHA:"
+            echo "$unpinned"
+            fail=1
+          fi
+
+          # 2. Every workflow must declare a top-level `permissions:` block. Without one
+          #    the job inherits the repository default, which on many repositories is
+          #    still read/write for every scope.
+          for f in "${files[@]}"; do
+            if ! grep -qE '^permissions:' "$f"; then
+              echo "FAIL: $f has no top-level permissions: block"
+              fail=1
+            fi
+          done
+
+          # 3. `pull_request_target` runs with a writable token in the context of the base
+          #    repository. Combined with a checkout of the head ref it hands that token to
+          #    unreviewed code. Banned outright here rather than conditionally, because
+          #    the safe uses of it are rare and this project has none.
+          pr_target=$(grep -nE '^[[:space:]]*pull_request_target[[:space:]]*:' "${files[@]}" || true)
+          if [ -n "$pr_target" ]; then
+            echo "FAIL: pull_request_target is used:"
+            echo "$pr_target"
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "workflow hardening check failed — see the failures above"
+            exit 1
+          fi
+          echo "workflow hardening check: OK"

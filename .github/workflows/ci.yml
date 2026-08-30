@@ -1,0 +1,331 @@
+# E-OS host-tooling CI. Build, test and measure the two Rust manifests, and run the
+# project's own integrity gates.
+#
+# WHY THIS FILE EXISTS AT ALL. GitLab (gitlab.com/e-os/e-os) is the source of truth and
+# .gitlab-ci.yml is the real pipeline; GitHub is a push-mirror of every branch. Since
+# 2026-08-28 every GitLab job on the shared-runner LIGHT tier has failed in ~0 s with
+# `ci_quota_exceeded` (finding C-7), so `rust-checks`, `coverage` and `integrity` have not
+# measured anything for days while still appearing in the pipeline list. (The HEAVY tier is
+# not exempt, it is just dead differently: `build-image` and `build-image-x86_64` are
+# `when: manual` with no `eos-heavy` runner attached, so they sit unpicked — U-152.)
+# GitHub Actions on a public repo has no minute cap, which is the entire reason this is a
+# remediation and not a duplicate of .gitlab-ci.yml. When the GitLab budget resets, both
+# run; that is redundancy, not waste.
+#
+# WHAT THIS FILE DOES NOT DO: build an OS image. That path needs podman, a ~37 GB
+# incremental build/prefix cache and a 6 h timeout (.gitlab-ci.yml `build-image` /
+# `build-image-x86_64`, tags: [eos-heavy], plus scripts/ci-boot-smoke.sh for the QEMU boot
+# check). A hosted GitHub runner has none of those; a from-scratch image build there would
+# either time out or, worse, be trimmed until it "passed" without booting anything. Image
+# verification stays on the self-hosted eos-heavy runner. This workflow covers the host
+# tooling only, and says so rather than letting a green tick imply more.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Escalate per job, never here. Nothing below writes to the repo: the coverage report is an
+# artifact, not a commit, and not a status check written back through the API.
+permissions:
+  contents: read
+
+concurrency:
+  # Superseded PR runs are cancelled; pushes to main are not. A main run corresponds to code
+  # that is already published and mirrored, so its result is the record of that commit —
+  # cancelling it would leave the commit unmeasured, which is finding C-6's failure mode.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # ─────────────────────────  the project's own gates  ─────────────────────────
+  # These are the checks that actually encode E-OS invariants, and they are CALLED, not
+  # reimplemented in YAML: a second copy of the rules in a workflow file is a copy that
+  # drifts, and the local pre-push hook (scripts/hooks/pre-push) runs the same script, so
+  # a developer's red is CI's red. Mirrors .gitlab-ci.yml `integrity`.
+  #
+  # One OS only. These are properties of the tree — line endings, recipe pinning, doc/manifest
+  # agreement — not of the distribution running the check, so a second leg would re-measure
+  # an identical answer and teach nobody anything.
+  gates:
+    name: integrity gates
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # audit, not block. A block policy needs an allowlist derived from an audited run,
+          # and an allowlist guessed in advance is either wrong (red CI on a legitimate host)
+          # or wide enough to be decorative. Audit first, then tighten from the evidence.
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # scripts/ci-integrity.sh only reads the work tree (`git grep` over tracked files);
+          # it never contacts a remote, so the job's token has no business staying on disk.
+          persist-credentials: false
+
+      - name: scripts/ci-integrity.sh
+        run: bash scripts/ci-integrity.sh
+
+      # DELIBERATELY ABSENT: a tarball-pin gate. The hardening brief for this workflow asks
+      # for `scripts/eos-check-tar-pins.py`; no such file exists in this tree — not on disk
+      # and not in .git/index. What the tree does carry is references without an
+      # implementation: `scripts/verify.sh` runs it as the second half of its `gates` stage
+      # and returns CANNOT (77, "the gate is unwritten, not passing") when the file is
+      # missing, and .github/workflows/lint.yml lists it among the gates it deliberately
+      # leaves to another workflow. A step here invoking it would be red on every run, and a
+      # step that skips when the file is missing is the `|| true` gitleaks hook of U-140
+      # wearing a different coat: green because nothing was measured. Neither is a gate, so
+      # neither is here.
+      #
+      # The two pin gates that DO exist are not substitutes, and are left out for their own
+      # reasons: `scripts/eos-repos.sh pins --strict` (.gitlab-ci.yml `pin-check`) compares
+      # recipe git REVISIONS against 26 fork tips over the network — one `git ls-remote` per
+      # fork, no clones, but 26 round trips to github.com and an answer about revisions
+      # rather than tarballs — and `scripts/eos-fork-linkage.py` needs `recipes/*/*/source`,
+      # which is untracked and only exists inside the build container (CLAUDE.md §9). Write
+      # the tarball checker and this job is where it goes.
+
+  # ──────────────────────────  build + test the two manifests  ─────────────────────────
+  rust:
+    name: ${{ matrix.crate.slug }} · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      # A failure in the vendored tree must not hide a failure in E-OS-owned code, and vice
+      # versa; the whole point of the split below is that the two answers mean different things.
+      fail-fast: false
+      matrix:
+        # NO Rust-version axis. rust-toolchain.toml pins nightly-2026-05-24 with
+        # components rust-src/rustfmt/clippy. A version matrix would have to either override
+        # that pin (testing a toolchain nothing builds with) or be ignored by it (four legs
+        # compiling the identical toolchain). The pin is the decision; CI's job is to obey it.
+        #
+        # NO macOS or Windows leg. What ships is built inside the Linux podman container
+        # `eosbuild` — .gitlab-ci.yml `build-image` pipes `git archive` into `podman exec tar`
+        # and runs `make` in there — so Linux is the only platform any artefact comes from.
+        # The self-hosted runner happens to be a Mac, but it only drives `podman machine`;
+        # nothing is compiled natively on macOS anywhere in this project. A green macOS or
+        # Windows leg would advertise portability that no other gate exercises, and a claim
+        # we do not test is worse than an absent claim. The two Ubuntu legs are here for a
+        # reason we can actually name: they differ in glibc and system toolchain, which is
+        # what breaks host tools built from a nightly pin.
+        os: [ubuntu-24.04, ubuntu-22.04]
+        crate:
+          # E-OS-owned. Full strictness: fmt, clippy -D warnings, build, test.
+          - slug: eos-repo-sign
+            dir: tools/eos-repo-sign
+            lint: true
+            serial_tests: false
+          # Vendored upstream `redox_cookbook`. Tests only — see the comment on the lint steps.
+          #
+          # test_args serialises this suite, and that is not a preference.
+          # cook::cook_build::tests::file_system_loop_no_infinite_loop reads the global config
+          # (src/config.rs:209), which only some tests initialise and which is per-thread. Run in
+          # parallel it is a coin flip — 1 failure in 3 runs when this was measured. It is
+          # pre-existing and has nothing to do with this branch: on a clean origin/main worktree,
+          # `cargo test --manifest-path Cargo.toml file_system_loop` fails EVERY time with
+          # "Configuration is not initialized". Serialising makes the gate deterministic. It does
+          # not fix the test, which is filed separately — but a gate that is a coin flip is worse
+          # than no gate, because it teaches people to re-run until green.
+          - slug: redox-cookbook
+            dir: .
+            lint: false
+            serial_tests: true
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          # The root manifest resolves four git dependencies on top of crates.io —
+          # pkgar/installer/redoxer at gitlab.redox-os.org, the eos-pkgutils fork at
+          # github.com — while tools/eos-repo-sign is crates.io only. Either way the egress
+          # is real, so it is audited rather than pretended absent.
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # rust-toolchain.toml is installed by rustup itself, deliberately NOT by
+      # dtolnay/rust-toolchain: that action exports RUSTUP_TOOLCHAIN, and RUSTUP_TOOLCHAIN
+      # takes precedence over a toolchain file — so the action would silently replace the
+      # pin with whatever the workflow named, and nothing in the log would say so. Bare
+      # `rustup toolchain install` reads channel, components and profile out of the file,
+      # which keeps exactly one source of truth for the toolchain.
+      - name: Install the toolchain named by rust-toolchain.toml
+        run: |
+          set -euo pipefail
+          rustup toolchain install
+          # Instruments before results (scripts/ci-integrity.sh §0): prove which toolchain is
+          # active before believing anything compiled under it. Exits non-zero if none is.
+          rustup show active-toolchain
+
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          workspaces: ${{ matrix.crate.dir }}
+          key: ${{ matrix.crate.slug }}
+
+      # ── the strictness asymmetry ────────────────────────────────────────────────────
+      # fmt and clippy run for tools/eos-repo-sign ONLY. The repo-root manifest is the
+      # vendored upstream redox_cookbook (CLAUDE.md §11 type B): holding somebody else's
+      # code to our formatting and lint bar means either rewriting it — and then carrying
+      # that divergence through every upstream sync forever — or drowning the gate in
+      # allow attributes until it stops meaning anything. Same call .gitlab-ci.yml
+      # `rust-checks` makes (R-F15), and the same one that keeps ci-integrity.sh check 4
+      # (SAFETY: notes on unsafe) out of src/. This is a considered asymmetry, not a gap.
+      - name: cargo fmt --check
+        if: matrix.crate.lint
+        working-directory: ${{ matrix.crate.dir }}
+        run: cargo fmt -- --check
+
+      - name: cargo clippy -D warnings
+        if: matrix.crate.lint
+        working-directory: ${{ matrix.crate.dir }}
+        run: cargo clippy --locked -- -D warnings
+
+      # Tests run for BOTH. Until U-159 the vendored cookbook's unit tests had never
+      # executed in CI even though it is the engine that builds every image — untested
+      # upstream code that we ship is still code we ship.
+      #
+      # --locked on both, for two different reasons — the manifests are not symmetric here
+      # either. The ROOT manifest pulls three git dependencies by BRANCH (pkgar, installer
+      # and redoxer carry no `rev`), so their heads move under it: --locked means the build
+      # resolves to the reviewed revisions or fails loudly, and without it a moved upstream
+      # branch is silently absorbed and Cargo.lock becomes decoration. tools/eos-repo-sign
+      # has NO git dependencies at all — 56 crates.io packages, zero git sources in its
+      # Cargo.lock — so there --locked buys reproducibility rather than pin enforcement: a
+      # semver-compatible bump cannot enter unreviewed. Both are a tightening beyond
+      # .gitlab-ci.yml `rust-checks`, which runs bare `cargo test`; a lock that has drifted
+      # turns red here first, which is the point.
+      - name: cargo build
+        working-directory: ${{ matrix.crate.dir }}
+        run: cargo build --locked
+
+      - name: cargo test
+        working-directory: ${{ matrix.crate.dir }}
+        env:
+          # Through env, never interpolated into the command line. A branch rather than an
+          # argument string, so nothing here depends on word splitting.
+          SERIAL: ${{ matrix.crate.serial_tests }}
+        run: |
+          set -euo pipefail
+          if [ "${SERIAL}" = "true" ]; then
+            cargo test --locked -- --test-threads=1
+          else
+            cargo test --locked
+          fi
+
+  # ────────────────────────────────  coverage  ────────────────────────────────
+  # Gated on E-OS-OWNED code only. Baseline measured in U-168:
+  #   tools/eos-repo-sign   38.84 % lines
+  #   redox_cookbook (root)  2.92 % lines
+  # The floor below sits just under the measured value: it is a REGRESSION detector, not a
+  # certificate that 38 % is good. .gitlab-ci.yml records that it was verified to be able to
+  # fail (at --fail-under-lines 60 the job exits non-zero) — a floor nobody has seen go red
+  # is an assumption, not a gate.
+  #
+  # One OS. Line coverage is a property of the code and the test suite; running it on two
+  # distributions produces the same percentage twice and doubles the wall clock.
+  coverage:
+    name: coverage · ${{ matrix.crate.slug }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        crate:
+          - slug: eos-repo-sign
+            dir: tools/eos-repo-sign
+            gate: true
+            min_lines: "38"
+          - slug: redox-cookbook
+            dir: .
+            gate: false
+            min_lines: ""
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install the toolchain named by rust-toolchain.toml
+        run: |
+          set -euo pipefail
+          rustup toolchain install
+          rustup show active-toolchain
+
+      - name: Add llvm-tools-preview
+        # Not in rust-toolchain.toml's component list, because it is needed by this job and
+        # by nothing else in the project — adding it there would slow every developer's
+        # toolchain install for a CI-only need.
+        run: rustup component add llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          workspaces: ${{ matrix.crate.dir }}
+          key: coverage-${{ matrix.crate.slug }}
+
+      # A SHA-pinned action that ships a prebuilt binary, so no curl+sha256 dance is needed
+      # here. The hand-rolled download-verify-extract in .gitlab-ci.yml (cargo-deny, mdBook)
+      # exists because GitLab has no equivalent — the discipline is "never pipe a tarball
+      # into tar", not "always write the curl by hand". `cargo install` is avoided for the
+      # opposite reason: it recompiles the tool from unpinned sources on every single run.
+      - uses: taiki-e/install-action@efd8b64311f7a0a9b888ed13d0df78ec9184c163 # v2.62.11
+        with:
+          tool: cargo-llvm-cov
+
+      - name: Run tests under instrumentation
+        working-directory: ${{ matrix.crate.dir }}
+        run: cargo llvm-cov --no-report --locked
+
+      - name: Render lcov
+        working-directory: ${{ matrix.crate.dir }}
+        env:
+          OUT: ${{ matrix.crate.slug }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${GITHUB_WORKSPACE}/coverage"
+          cargo llvm-cov report --lcov --output-path "${GITHUB_WORKSPACE}/coverage/${OUT}.lcov"
+
+      # Advisory for the vendored tree: reported, never gated. Holding upstream's build
+      # engine to an E-OS coverage bar would mean writing tests for somebody else's code and
+      # carrying the divergence forever (R-F15). There is deliberately no `|| true` on this
+      # line even so — a report that cannot be produced at all is a broken INSTRUMENT, not a
+      # low number, and ci-integrity.sh's whole §0 exists because those two reds demand
+      # opposite responses. Advisory means "no floor", not "cannot fail".
+      - name: Coverage summary
+        working-directory: ${{ matrix.crate.dir }}
+        run: cargo llvm-cov report --summary-only
+
+      - name: Coverage floor (E-OS-owned code)
+        if: matrix.crate.gate
+        working-directory: ${{ matrix.crate.dir }}
+        env:
+          MIN_LINES: ${{ matrix.crate.min_lines }}
+        run: cargo llvm-cov report --summary-only --fail-under-lines "${MIN_LINES}"
+
+      # Artifact, not Codecov. This project has no Codecov (or Coveralls) token and no
+      # account behind one, so an upload step would be a step that either fails on every
+      # fork PR or silently no-ops — a decorative gate, which is the exact thing U-140
+      # taught this repo to stop shipping. The lcov is downloadable from the run, and
+      # `genhtml` turns it into the same report locally. Wiring a real coverage service is
+      # an operator action (a secret + an account), not something CI can fake.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        # Upload even when the floor failed: the report is most useful in exactly the run
+        # that went red, and this is a report, not a pass/fail signal.
+        if: always()
+        with:
+          name: coverage-${{ matrix.crate.slug }}
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 30

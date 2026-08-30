@@ -1,0 +1,298 @@
+# Documentation: build the mdBook site, the rustdoc for the E-OS-owned crate and the
+# docs PDF; publish the site to GitHub Pages.
+#
+# WHY THIS EXISTS NEXT TO .gitlab-ci.yml
+# GitLab is the source of truth and its `pages` job publishes the same book to
+# https://e-os.gitlab.io/e-os/ (docs/ci.md). Since 2026-08-28 every GitLab job has
+# failed in 0 s with `ci_quota_exceeded` (audit C-7), so nothing has rebuilt that site
+# since. GitHub Actions has no minute cap on a public repo, so this is the remediation
+# for that outage — not a second docs pipeline invented for its own sake.
+#
+# WHAT IS MIRRORED, AND WHAT IS NOT
+#   * `book`    <- GitLab `pages`:    same mdBook 0.4.40 + mdbook-mermaid 0.14.0, the same
+#                                     SHA256-pinned release assets, the same
+#                                     `mdbook-mermaid install .` + `mdbook build -d public`.
+#   * `rustdoc` <- GitLab `rustdoc`:  `cargo doc --no-deps` for tools/eos-repo-sign only,
+#                                     published as a downloadable artifact and NOT folded
+#                                     into the site. That split is upstream's decision
+#                                     ("wiring the two together is a docs task"), and
+#                                     porting the pipeline is not the place to overturn it.
+#   * `pdf`     <- GitLab `docs-pdf`: same scripts/docs-pdf.sh, which pins the same mdBook
+#                                     and mdbook-mermaid versions so the PDF matches the
+#                                     published site.
+# The GitLab `pages` job is `allow_failure: true`; that is NOT carried over. Its reasons
+# were GitLab-specific — the `docs` stage sits before `build`, so a hard failure skipped
+# the heavy `build-image` OS/boot-smoke job, and shared-runner minutes were the scarce
+# resource. Neither applies to a standalone workflow on an unmetered runner, and a docs
+# build that cannot fail would not catch the broken book it exists to catch.
+name: docs
+
+# No path filter, deliberately. A path-filtered workflow that is also a required status
+# check either leaves the PR pending forever or is indistinguishable from a pass,
+# depending on how branch protection is set up; the book builds in about a minute and
+# costs nothing here. `pull_request` (never `pull_request_target`) because the build
+# checks out PR head code and must do so with a read-only token.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.ref }}
+  # Superseded PR pushes are cancelled; runs on the default branch are not, because
+  # cancelling one mid-way can leave the Pages deployment half-done.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Single source for the docs toolchain pins. These must be bumped in lockstep with the
+# `pages` job in .gitlab-ci.yml and with scripts/docs-pdf.sh, which pins the same two
+# versions so the PDF and the site are rendered by the same binaries.
+# U-118 discipline: download -> verify -> extract, never pipe a tarball into tar. Bump
+# procedure is the one in .gitlab-ci.yml: new version -> `curl -sfL <url> | sha256sum`
+# -> update both halves here.
+env:
+  MDBOOK_VER: "0.4.40"
+  MERMAID_VER: "0.14.0"
+  MDBOOK_SHA256: "9ef07fd288ba58ff3b99d1c94e6d414d431c9a61fdb20348e5beb74b823d546b"
+  MERMAID_SHA256: "37364965fb190cf9929d93c930c6b6c69b2fed05f7658ea2d312882ed59c645e"
+
+jobs:
+  # Builds the site on every push and every pull request. On a PR it stops here: the
+  # artifact is packaged (so the packaging step is exercised too) but never deployed.
+  book:
+    name: mdBook site
+    # x86_64 is load-bearing, and NOT because the checksum would catch a mismatch: the
+    # URLs below name the x86_64-unknown-linux-gnu assets literally, so on an arm64
+    # runner the download and the `sha256sum -c` both still pass and `mdbook` dies with
+    # "cannot execute binary file" three steps later. Moving to ubuntu-*-arm means new
+    # URLs and two new SHA256 pins, not a new `runs-on` label.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          # Nothing here talks back to git; leaving the token in .git/config would hand
+          # it to every subsequent step, including the book build.
+          persist-credentials: false
+
+      - name: Install mdBook and mdbook-mermaid (download, verify, extract)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/docs-tools"
+          cd "$RUNNER_TEMP/docs-tools"
+          curl -fsSL -o mdbook.tar.gz \
+            "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VER}/mdbook-v${MDBOOK_VER}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${MDBOOK_SHA256}  mdbook.tar.gz" | sha256sum -c -
+          tar xzf mdbook.tar.gz
+          curl -fsSL -o mdbook-mermaid.tar.gz \
+            "https://github.com/badboy/mdbook-mermaid/releases/download/v${MERMAID_VER}/mdbook-mermaid-v${MERMAID_VER}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${MERMAID_SHA256}  mdbook-mermaid.tar.gz" | sha256sum -c -
+          tar xzf mdbook-mermaid.tar.gz
+          echo "$RUNNER_TEMP/docs-tools" >> "$GITHUB_PATH"
+
+      - name: Build the book
+        run: |
+          set -euo pipefail
+          # book.toml already lists additional-js = mermaid.min.js + mermaid-init.js and
+          # neither file is tracked in the tree; `install` is what puts them in the book
+          # root. mdBook copies every additional-js entry into the site and aborts when
+          # one is missing, so skipping this does not degrade to unstyled diagrams --
+          # the build fails outright, which is the failure mode you want.
+          mdbook-mermaid install .
+          mdbook build -d public
+
+      - name: Package the site for Pages
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: public
+
+  # Deploy is the only job that escalates, and it does so on the default branch only.
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: [book]
+    # `github.event.repository.default_branch` rather than a literal, so a future rename
+    # cannot leave this quietly deploying a branch that is no longer the trunk.
+    #
+    # workflow_dispatch is in this gate deliberately. The site has not rebuilt since the
+    # GitLab quota died (C-7), so the first use of this file is a maintainer running it
+    # by hand; a dispatch that rebuilt the book and then silently declined to publish it
+    # would be the least useful behaviour available. Dispatch needs repo write access, so
+    # it is not a path for untrusted code, and the branch guard still holds either way:
+    # dispatching from a feature branch builds the book and deploys nothing.
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Per-job permissions REPLACE the top-level set. `contents` is not restored here on
+    # purpose: this job checks nothing out, it only takes the artifact `book` already
+    # produced and hands it to the Pages service.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Never cancel a deployment in flight — a cancelled one can leave the live site on a
+    # partially uploaded artifact. Queue instead.
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      # Runs here rather than in `book` because this is the only job holding `pages`
+      # scope. The build does not need its `base_path` output: mdBook emits relative
+      # asset paths (that is why scripts/docs-pdf.sh can print the built site straight
+      # from a file:// URL), so the book works unchanged under a project-pages subpath.
+      - name: Configure Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+  # API docs for tools/eos-repo-sign — the E-OS-owned crate. The vendored redox_cookbook
+  # at the repo root is not documented here, the same asymmetry .gitlab-ci.yml applies to
+  # fmt/clippy: it is upstream's code and holding it to an E-OS bar means carrying the
+  # divergence forever.
+  rustdoc:
+    name: rustdoc (tools/eos-repo-sign)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Mirrors `allow_failure: true` on the GitLab `rustdoc` job. This is advisory by
+    # inheritance, not by argument: upstream never wrote down why, and a port is the
+    # wrong change in which to start failing builds on it.
+    #
+    # Making it blocking is TWO edits, not one: drop this line AND set
+    # RUSTDOCFLAGS: "-D warnings" on the `cargo doc` step. A broken intra-doc link is a
+    # rustdoc *warning*, so `cargo doc` exits 0 on it; removing continue-on-error on its
+    # own buys a job that still cannot go red for the thing it was tightened to catch --
+    # a decorative gate in the exact sense U-140 named.
+    continue-on-error: true
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      # No toolchain action and no version named in this file: rust-toolchain.toml pins
+      # nightly-2026-05-24 (profile minimal, rust-src/rustfmt/clippy) and the rustup
+      # proxies install exactly that on first use. Naming the channel here as well would
+      # create a second copy of the pin, free to drift from the one that governs every
+      # other build.
+      - name: Resolve the pinned toolchain
+        run: |
+          set -euo pipefail
+          rustup show active-toolchain
+
+      - name: Cache cargo artifacts
+        uses: Swatinem/rust-cache@98c8021b550208e191a6a3145459bfc9fb29c4c0 # v2.8.0
+        with:
+          workspaces: tools/eos-repo-sign
+
+      - name: cargo doc
+        run: |
+          set -euo pipefail
+          cargo doc --no-deps --manifest-path tools/eos-repo-sign/Cargo.toml
+
+      - name: Upload the API docs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rustdoc-eos-repo-sign
+          path: tools/eos-repo-sign/target/doc/
+          if-no-files-found: error
+          # `expire_in: 30 days` on the GitLab job.
+          retention-days: 30
+
+  # The single-file PDF of the book, rendered by scripts/docs-pdf.sh (mdBook print.html
+  # through headless Chromium — no mdbook-PDF plugin).
+  #
+  # On GitLab this is `docs-pdf`, tagged `eos-heavy`. The U-152 note there records that
+  # no self-hosted runner is attached to the project, which is why the tag path is
+  # `when: manual`: an automatic job would sit PENDING forever. The practical effect is
+  # that nothing produces eos-docs.pdf today. A GitHub-hosted runner costs nothing on a
+  # public repo, so here it runs for real -- on the ASSUMPTION that the ubuntu-latest
+  # image ships google-chrome or chromium. That was not verifiable from this tree, so the
+  # render step asserts it rather than trusting it: if the assumption is wrong, this is
+  # the job that goes red, and it says why in one line.
+  #
+  # Not run on pull requests: `book` already fails the PR if the book is broken, and the
+  # PDF is rendered from that same `mdbook build` — a second render adds a browser and
+  # ~a minute per PR to re-test what `book` just tested. It also does not gate `deploy`;
+  # a Chromium hiccup should be visible as a red job, not hold back the site. That is the
+  # honest version of GitLab's `needs: []` + `allow_failure`, without pretending the
+  # exit status does not matter.
+  pdf:
+    name: Docs PDF
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit
+
+      - name: Check out
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install mdBook and mdbook-mermaid (download, verify, extract)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/docs-tools"
+          cd "$RUNNER_TEMP/docs-tools"
+          curl -fsSL -o mdbook.tar.gz \
+            "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VER}/mdbook-v${MDBOOK_VER}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${MDBOOK_SHA256}  mdbook.tar.gz" | sha256sum -c -
+          tar xzf mdbook.tar.gz
+          curl -fsSL -o mdbook-mermaid.tar.gz \
+            "https://github.com/badboy/mdbook-mermaid/releases/download/v${MERMAID_VER}/mdbook-mermaid-v${MERMAID_VER}-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${MERMAID_SHA256}  mdbook-mermaid.tar.gz" | sha256sum -c -
+          tar xzf mdbook-mermaid.tar.gz
+          # Putting these on PATH is load-bearing: docs-pdf.sh falls back to
+          # `cargo install mdbook` when it finds none, which would render the PDF with an
+          # unverified binary built from crates.io instead of the SHA256-pinned release.
+          echo "$RUNNER_TEMP/docs-tools" >> "$GITHUB_PATH"
+
+      - name: Render the PDF
+        run: |
+          set -euo pipefail
+          # docs-pdf.sh's own browser fallback is `apt-get install chromium`, which needs
+          # a root shell it does not have on a hosted runner; fail here with a readable
+          # message instead of an apt permission error 40 lines into the script.
+          if ! command -v google-chrome >/dev/null \
+            && ! command -v chromium >/dev/null \
+            && ! command -v chromium-browser >/dev/null; then
+            echo "no headless browser on this runner — docs-pdf.sh cannot print the PDF" >&2
+            exit 1
+          fi
+          bash scripts/docs-pdf.sh public/eos-docs.pdf
+
+      - name: Upload the PDF
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: eos-docs-pdf
+          path: public/eos-docs.pdf
+          if-no-files-found: error
+          # `expire_in: 1 month` on the GitLab job.
+          retention-days: 30

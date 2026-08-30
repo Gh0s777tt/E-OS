@@ -1,76 +1,72 @@
 # Summary
 
-[Introduction](getting-started.md)
-[Ecosystem components](ecosystem.md)
+[Introduction](getting-started/index.md)
+[Ecosystem components](architecture/ecosystem.md)
 
 # Using E-OS
 
-- [A visual tour (screenshots)](screenshots.md)
-- [Install](install.md)
-- [Packages](packages.md)
-- [Forks & vendored components](forks.md)
-- [Architecture](architecture.md)
-  - [Diagrams & specifications](architecture/README.md)
-    - [Repository topology](architecture/topologia-repozytoriow.md)
-    - [Build path](architecture/sciezka-budowania.md)
-    - [Installer specification](architecture/installer.md)
-    - [System updates specification](architecture/system-updates.md)
-- [Hardware support](hardware-matrix.md)
-- [Hardware bring-up (aarch64)](hardware-bringup.md)
-- [Known issues](known-issues.md)
-- [FAQ](faq.md)
+- [A visual tour (screenshots)](guides/screenshots.md)
+- [Install](getting-started/install.md)
+- [Packages](reference/packages.md)
+- [Forks & vendored components](architecture/forks.md)
+- [Architecture](architecture/overview.md)
+  - [Diagrams](architecture/README.md)
+    - [Repository topology](architecture/repository-topology.md)
+    - [Build path](architecture/build-path.md)
+- [Hardware support](reference/hardware-matrix.md)
+- [Hardware bring-up (aarch64)](guides/hardware-bringup.md)
+- [Known issues](reference/known-issues.md)
+- [FAQ](getting-started/faq.md)
 
 # Building
 
-- [Build from source](building.md)
-- [Troubleshooting](build-troubleshooting.md)
-- [Creating an E-OS app](creating-an-eos-app.md)
-- [CI/CD & automation](ci.md)
-- [Tokeny — wszystko za jednym posiedzeniem](tokeny.md)
-- [Droga z QEMU na prawdziwy komputer](plan-do-sprzetu.md)
-- [Maintenance & operations](MAINTENANCE.md)
+- [Build from source](getting-started/building.md)
+- [Troubleshooting](getting-started/build-troubleshooting.md)
+- [Creating an E-OS app](guides/creating-an-eos-app.md)
+- [CI/CD & automation](operations/ci.md)
+- [Tokeny — wszystko za jednym posiedzeniem](reference/keys-and-tokens.md)
+- [Droga z QEMU na prawdziwy komputer](archive/hardware-plan.md)
+- [Maintenance & operations](operations/maintenance.md)
 
 # Stability
 
-- [Stability policy](stability.md)
+- [Stability policy](reference/stability.md)
 
 # Security
 
-- [Security guide](security.md)
-- [Threat model](threat-model.md)
+- [Security guide](security/index.md)
+- [Threat model](security/threat-model.md)
 - [Decision records (ADR)](adr/README.md)
-  - [Template](adr/0000-szablon.md)
-  - [ADR-0001 GitLab as source of truth](adr/0001-gitlab-jako-zrodlo-prawdy.md)
-  - [ADR-0002 Build forks from source](adr/0002-budowanie-z-forkow-nie-z-binarek-upstreamu.md)
-  - [ADR-0003 Vendored code stays upstream-shaped](adr/0003-vendorowany-kod-zostaje-na-formie-upstreamu.md)
-  - [ADR-0004 Hybrid manifest signature](adr/0004-hybrydowy-podpis-manifestu.md)
-  - [ADR-0005 Secure Boot bez Microsoftu](adr/0005-secure-boot-bez-microsoftu.md)
-  - [ADR-0006 Ścieżka do weryfikacji Microsoftu](adr/0006-sciezka-do-weryfikacji-microsoftu.md)
-- [Hardening guide](hardening.md)
-- [Disk encryption](encryption.md)
+  - [Template](adr/0000-template.md)
+  - [ADR-0001 GitLab as source of truth](adr/0001-gitlab-as-source-of-truth.md)
+  - [ADR-0002 Build forks from source](adr/0002-build-from-forks-not-upstream-binaries.md)
+  - [ADR-0003 Vendored code stays upstream-shaped](adr/0003-vendored-code-keeps-upstream-form.md)
+  - [ADR-0004 Hybrid manifest signature](adr/0004-hybrid-manifest-signature.md)
+  - [ADR-0005 Secure Boot bez Microsoftu](adr/0005-secure-boot-without-microsoft.md)
+  - [ADR-0006 Ścieżka do weryfikacji Microsoftu](adr/0006-path-to-microsoft-verification.md)
+- [Hardening guide](security/hardening.md)
+- [Disk encryption](guides/encryption.md)
 
 # Design & proposals
 
-- [Desktop environment — Crimson](design-desktop-environment.md)
-- [xhcid non-blocking transfers](design-xhcid-nonblocking-transfers.md)
-- [NetSurf: PIE + host-toolchain (R-D06)](design-netsurf-pie.md)
-- [eos-power: privileged reboot/shutdown (R-D11)](design-eos-power.md)
-- [eos-control: Network settings pane (R-902)](design-eos-control-network.md)
-- [Kreator instalacji — UX i specyfikacja techniczna](architecture/installer-wizard.md)
-- [Model danych profili instalatora](architecture/installer-profiles.md)
-- [Update system](update-system-design.md)
-- [Driver manager](driver-manager-design.md)
-- [Feature proposals](feature-proposals.md)
-- [ACPI-off removal plan](acpi-off-removal-plan.md)
+- [Desktop environment — Crimson](architecture/desktop-environment.md)
+- [xhcid non-blocking transfers](architecture/xhcid-nonblocking-transfers.md)
+- [NetSurf: PIE + host-toolchain (R-D06)](architecture/netsurf-pie.md)
+- [eos-power: privileged reboot/shutdown (R-D11)](architecture/eos-power.md)
+- [eos-control: Network settings pane (R-902)](architecture/eos-control-network.md)
+- [Update system](architecture/update-system.md)
+- [Driver manager](architecture/driver-manager.md)
+- [Feature proposals](archive/feature-proposals.md)
+- [ACPI-off removal plan](archive/acpi-off-removal-plan.md)
 
 # Roadmap & status
 
-- [The plan — editions, compartmentalisation, order](plan.md)
+- [The plan — editions, compartmentalisation, order](archive/plan.md)
 
-- [Hardware capabilities roadmap](hardware-capabilities-roadmap.md)
-- [Connectivity roadmap](roadmap-connectivity.md)
-- [Reality ledger — done vs claimed](reality-ledger.md)
-- [Upstream reuse analysis](upstream-reuse-analysis.md)
+- [Hardware capabilities roadmap](archive/hardware-capabilities-roadmap.md)
+- [Connectivity roadmap](archive/roadmap-connectivity.md)
+- [Reality ledger — done vs claimed](archive/reality-ledger.md)
+- [Upstream reuse analysis](archive/upstream-reuse-analysis.md)
 
 # Audits
 
@@ -79,5 +75,5 @@
 
 # Upstream (Redox OS)
 
-- [Redox README](REDOX-README.md)
-- [Redox contributing](REDOX-CONTRIBUTING.md)
+- [Redox README](reference/upstream-redox-readme.md)
+- [Redox contributing](reference/upstream-redox-contributing.md)

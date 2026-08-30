@@ -715,7 +715,7 @@ pub fn build_remote(
     logger: &PtyOut,
 ) -> Result<BuildResult> {
     let source_toml = target_dir.join("source.toml");
-    let source_pubkey = "build/remotes/pub_key_static.redox-os.org.toml";
+    let source_pubkey = crate::REMOTE_PKG_PUBKEY_CACHE;
     let auto_deps_path = target_dir.join("auto_deps.toml");
 
     let packages = recipe.get_packages_list();

@@ -8,7 +8,7 @@ use std::{
 
 use crate::cook::fs;
 use pkg::{
-    PackageName, RemotePackage, RepoManager, Repository,
+    PackageName, RemotePackage, RepoManager, RepoPublicKeyFile, Repository,
     callback::{Callback, PlainCallback, SilentCallback},
     net_backend::{CurlBackend, DownloadBackend},
 };
@@ -35,6 +35,67 @@ fn load_cached_repo(path: &Path) -> Option<Repository> {
     Repository::from_toml(&toml_str).ok()
 }
 
+/// Path of the pinned copy of upstream's package-signing key, relative to the repository root.
+const UPSTREAM_PUBKEY_PIN: &str = "keys/upstream-redox-pkg.pub.toml";
+
+/// Install the pinned upstream package-signing key, replacing trust-on-first-use.
+///
+/// WHY THIS EXISTS. `RepoManager::sync_keys()` downloads the signing key from the same host that
+/// serves the packages and caches it at `build/remotes/pub_key_<host>.toml`. Nothing compared that
+/// key with anything. 30 of the 65 packages in a shipped image are prebuilt binaries fetched from
+/// that host, so whoever controlled it supplied both the packages and the key that "verified" them.
+///
+/// TWO THINGS ARE NEEDED, not one. Setting `remote.pubkey` makes `sync_keys()` skip the download
+/// (`repo_manager.rs:313` short-circuits on `pubkey.is_some()`), but the in-memory value is not what
+/// guards extraction: `cook/cook_build.rs:718` hardcodes the *file* path and hands it to
+/// `pkgar::extract` at line 748. So the pinned bytes are also written to that file, unconditionally
+/// on every run — which is what stops a cache poisoned by an earlier build from surviving.
+///
+/// ON BOOTSTRAP, HONESTLY. A pin cannot prove the key was ever the right one; it can only stop it
+/// changing unnoticed. This value was corroborated from four independent witnesses before it was
+/// committed — the live host, this tree's pre-existing cache, and archived snapshots from 2023 and
+/// 2024, all byte-identical. That is evidence, not proof, and `keys/README.md` says so.
+fn pin_upstream_key(repo: &mut RepoManager, repo_path: &Path) {
+    let pin = RepoPublicKeyFile::open(UPSTREAM_PUBKEY_PIN).unwrap_or_else(|err| {
+        panic!(
+            "{UPSTREAM_PUBKEY_PIN}: cannot read the pinned upstream package key ({err}).\n\
+             Refusing to fall back on a key downloaded from the host that serves the packages.\n\
+             If upstream rotated its key, verify the new value from more than one source and \
+             update the pin in its own commit."
+        )
+    });
+
+    // std::fs here, not crate::cook::fs: the local module has create_dir (single level) but the
+    // remotes directory may not have a parent yet on a clean tree.
+    if let Err(err) = std::fs::create_dir_all(repo_path) {
+        panic!(
+            "{}: cannot create the remotes directory ({err})",
+            repo_path.display()
+        );
+    }
+
+    for (_, remote) in repo.remote_map.iter_mut() {
+        // The file is the gate, not the struct. Derive its name the way pkg-lib does
+        // (`pub_key_<remote name>.toml`) rather than repeating a literal that would silently stop
+        // matching if the remote ever moved; `REMOTE_PKG_PUBKEY_CACHE` is checked against this in
+        // the tests below.
+        let cached = repo_path.join(pubkey_cache_name(&remote.name));
+        if let Err(err) = RepoPublicKeyFile::new(pin.pkey).save(&cached) {
+            panic!("{}: cannot write the pinned upstream key ({err})", cached.display());
+        }
+
+        // And the struct, so sync_keys() never reaches for the network.
+        if remote.pubkey.is_none() {
+            remote.pubkey = Some(pin.pkey);
+        }
+    }
+}
+
+/// File name pkg-lib caches a remote's signing key under, kept identical to `repo_manager.rs`.
+fn pubkey_cache_name(remote_name: &str) -> String {
+    format!("pub_key_{remote_name}.toml")
+}
+
 fn init_binary_repo() -> (RepoManager, Repository) {
     let callback = Rc::new(RefCell::new(SilentCallback::new()));
     let download_backend = CurlBackend::new().expect("Curl not found");
@@ -43,8 +104,9 @@ fn init_binary_repo() -> (RepoManager, Repository) {
     repo.add_remote(crate::REMOTE_PKG_SOURCE, target)
         .expect("Unable to add remote");
 
-    let repo_path = PathBuf::from("build/remotes");
+    let repo_path = PathBuf::from(crate::REMOTE_PKG_DIR);
     repo.set_download_path(repo_path.clone());
+    pin_upstream_key(&mut repo, &repo_path);
     repo.sync_keys().expect("Unable to sync keys");
 
     let repo_toml = load_cached_repo(&repo_path.join(format!("{target}_repo.toml")))
@@ -216,5 +278,88 @@ impl Callback for PlainPtyCallback {
     fn install_extract(&mut self, remote_pkg: &RemotePackage) {
         let _ = writeln!(&self.pty, "Extracting {}...", remote_pkg.package.name);
         self.flush();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Build a manager carrying the real upstream remote, with no network traffic: `add_remote`
+    /// only parses the URL.
+    fn manager() -> RepoManager {
+        let callback = Rc::new(RefCell::new(SilentCallback::new()));
+        let backend = CurlBackend::new().expect("curl not found");
+        let mut repo = RepoManager::new(callback, Box::new(backend));
+        repo.add_remote(crate::REMOTE_PKG_SOURCE, "x86_64-unknown-redox")
+            .expect("add_remote");
+        repo
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(name);
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create scratch dir");
+        dir
+    }
+
+    /// The pin is only worth anything if it lands on the file `cook_build` actually reads. That
+    /// path is a constant, while the written one is derived from the remote host, so a change to
+    /// `REMOTE_PKG_SOURCE` that left the constant behind would quietly restore the download-and-
+    /// trust behaviour this whole function exists to remove. Fail here instead.
+    #[test]
+    fn pinned_file_is_the_one_cook_build_reads() {
+        let repo = manager();
+        let host = repo
+            .remote_map
+            .values()
+            .next()
+            .expect("one remote")
+            .name
+            .clone();
+        let derived = Path::new(crate::REMOTE_PKG_DIR).join(pubkey_cache_name(&host));
+        assert_eq!(
+            derived,
+            Path::new(crate::REMOTE_PKG_PUBKEY_CACHE),
+            "the pinned key is written to {derived:?} but cook_build reads \
+             {:?}; update REMOTE_PKG_PUBKEY_CACHE to follow REMOTE_PKG_SOURCE",
+            crate::REMOTE_PKG_PUBKEY_CACHE
+        );
+    }
+
+    /// The regression that matters: an earlier build (or anyone with write access to the build
+    /// tree) leaves a hostile key in the cache. Pinning must overwrite it every run, not skip the
+    /// write because a file is already there.
+    #[test]
+    fn pin_overwrites_a_poisoned_cache() {
+        let dir = scratch("eos_test_pin_overwrites_a_poisoned_cache");
+        let mut repo = manager();
+        let cached = dir.join(pubkey_cache_name("static.redox-os.org"));
+        std::fs::write(&cached, format!("pkey = \"{}\"\n", "de".repeat(32))).expect("poison");
+
+        pin_upstream_key(&mut repo, &dir);
+
+        let expect = RepoPublicKeyFile::open(UPSTREAM_PUBKEY_PIN).expect("read pin");
+        let got = RepoPublicKeyFile::open(&cached).expect("read cache");
+        assert_eq!(got.pkey, expect.pkey, "the poisoned key survived pinning");
+    }
+
+    /// Writing the file is half of it; without this the manager still downloads a key over the
+    /// network and overwrites what we just wrote.
+    #[test]
+    fn pin_sets_the_key_on_every_remote() {
+        let dir = scratch("eos_test_pin_sets_the_key_on_every_remote");
+        let mut repo = manager();
+        assert!(
+            repo.remote_map.values().all(|r| r.pubkey.is_none()),
+            "precondition: a fresh manager holds no key"
+        );
+
+        pin_upstream_key(&mut repo, &dir);
+
+        assert!(
+            repo.remote_map.values().all(|r| r.pubkey.is_some()),
+            "a remote was left without a key, so sync_keys() would still fetch one"
+        );
     }
 }
