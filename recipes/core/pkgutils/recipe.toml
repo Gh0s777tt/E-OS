@@ -4,7 +4,7 @@ git = "https://gitlab.com/e-os/eos-pkgutils.git"
 # U-081 (R-703): the eos branch carries client-side repo.toml manifest signature
 # verification (a6c705b) + its regression test (5643d21).
 branch = "eos"
-rev = "e28063ee2f6ffee19322dedaf2d0e4ab737feb75"
+rev = "ec08f22aa63d2e96e8f8100afd91b6d94172e943"
 
 [build]
 template = "cargo"
