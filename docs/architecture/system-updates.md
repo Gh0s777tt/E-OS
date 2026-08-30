@@ -13,7 +13,7 @@
   `ADR-0007` (bootloader i nośnik instalacyjny — cytuje §1.4, §4.3, §4.6, §5.2, §5.5),
   `ADR-0004` (hybrydowy podpis manifestu), `ADR-0005` (Secure Boot bez Microsoftu),
   `ADR-0006` (ścieżka do weryfikacji Microsoftu — SBAT, §5.5), `docs/encryption.md`,
-  `ROADMAP-v2.md` §9.4/§9.5 (kamienie M5–M8 odpowiadają etapom E0–E8 z §9),
+  `ROADMAP.md` §6.2, §5.3 (kamienie M5–M8 odpowiadają etapom E0–E8 z §9),
   `docs/update-system-design.md` (starszy, angielski projekt tej samej warstwy — patrz §11.2,
   jego numeracja `R-70x` **koliduje** z `ROADMAP.md`).
 - **Numeracja sekcji tego pliku jest stabilna.** `ADR-0007`, `ADR-0008` i `ADR-0009` cytują
@@ -60,7 +60,7 @@ linuksowego na systemie, który nie ma ani jednego z tych klocków.
 | Odzyskiwanie po zaniku zasilania w trakcie commitu | **DO ZBUDOWANIA** | dziś **nie istnieje**: stan transakcji żyje wyłącznie w pamięci procesu, baza pakietów zapisywana jest nieatomowo (§4.1, §8.5). To jest `R-706`. |
 | Wycofanie jednym poleceniem (warstwa plikowa) | **DO ZBUDOWANIA** | kopie zamienianych plików + odwrócenie delty w `packages.toml` pod tym samym dziennikiem (§4.5). Nośnika brak, ale i nowego podsystemu nie trzeba. |
 | Kontrole zdrowia po aktualizacji | **DO ZBUDOWANIA** | jedyny istniejący dziś odpowiednik to `scripts/ci-boot-smoke.sh`, i robi **mniej**, niż zwykle się o nim mówi — patrz §4.4. |
-| Powiadomienie o dostępnej aktualizacji | **częściowo JEST** | `eos-notifyd` działa (toast przez odpytywany plik, `R-D03` 🟡); brak schematu `notify:`, kolejki, ikon i akcji. Panel ma gdzie mieszkać: `R-D01` **zbudowany i działa**, 9 paneli (`ROADMAP-v2.md:478`). §8.1. |
+| Powiadomienie o dostępnej aktualizacji | **częściowo JEST** | `eos-notifyd` działa (toast przez odpytywany plik, `R-D03` 🟡); brak schematu `notify:`, kolejki, ikon i akcji. Panel ma gdzie mieszkać: `R-D01` **zbudowany i działa**, 9 paneli (`ROADMAP.md`). §8.1. |
 | Zaplanowane instalacje / okna serwisowe | **DO ZBUDOWANIA, ale trwale kalekie** | wymagają zaufanego czasu, którego nie ma: brak klienta NTP i synchronizacji RTC (`docs/reality-ledger.md:127`, `:144`). §8.3. |
 | Aktualizacje awaryjne (`severity = "critical"`) | **DO ZBUDOWANIA** | wyłącznie polityka nad istniejącą weryfikacją; nie dodaje ani nie omija żadnej kontroli z §3.6. §7.3. |
 | Wymuszenie polityki, której użytkownik nie zmieni | **NIEREALNE DZIŚ** | brak piaskownicy i MAC-a (`C-5`, `R-1010`); root zmienia każdy plik konfiguracji. §7.4. |
@@ -232,8 +232,8 @@ Uzasadnienie wobec systemu plików i bootloadera **tego** projektu:
 `R-710` warto rozciąć na `R-710a` (różnicowe, `[P2·M]`, nie potrzebuje `R-707`) i `R-710b`
 (sloty A/B, `[P3·XL]`, potrzebuje `R-707` **i** `R-609`).
 
-**Stan tej propozycji: przyjęta.** `ROADMAP-v2.md:977` zapisuje rozcięcie jako wiążące,
-z adnotacją, że pochodzi z tej sekcji, a `ROADMAP-v2.md:930` (kamień M8) wiąże `R-710a`,
+**Stan tej propozycji: przyjęta.** `ROADMAP.md` zapisuje rozcięcie jako wiążące,
+z adnotacją, że pochodzi z tej sekcji, a `ROADMAP.md` (kamień M8) wiąże `R-710a`,
 `R-710b` i `R-609` w jeden etap. Piszę to tutaj, żeby nikt nie potraktował §1.5 jako otwartego
 wniosku i nie zgłosił go drugi raz pod inną nazwą.
 
@@ -362,7 +362,7 @@ warunkiem poprawności.
 - `--limit-rate` z konfiguracji (`/etc/eos-update.toml`), domyślnie bez limitu.
 - `--max-time`, `--connect-timeout` — obowiązkowo, żeby martwe lustro nie wieszało demona.
 - Okno pobierania (np. 01:00–05:00) — **zależy od zaufanego czasu, którego nie ma** (§8.3).
-  Co gorsza, **w `ROADMAP-v2.md` nie ma ani jednej pozycji na źródło czasu** (sprawdzone:
+  Co gorsza, **w `ROADMAP.md` nie ma ani jednej pozycji na źródło czasu** (sprawdzone:
   zero trafień na „NTP"/„RTC"), więc to nie jest zależność czekająca w kolejce, tylko luka
   poza planem. Dopóki tak jest, okna są „najlepszym staraniem" i **tak muszą być nazwane
   w UI** — a domyślny harmonogram liczy się od rozruchu, nie od zegara ściennego (§8.3).
@@ -379,7 +379,7 @@ zmierzony w kodzie:
 | Warstwa | Mechanizm | Dowód | Znacznik |
 |---|---|---|---|
 | Indeks repozytorium | `repo.toml.sig`, hybryda ed25519 + ML-DSA-65 | `ADR-0004`, `tools/eos-repo-sign` | **JEST** |
-| Weryfikacja indeksu na urządzeniu | `verify_repo_manifest` → `manifest_sig::verify_manifest_ed25519` | `pkg-lib/src/manifest_sig.rs`, przypięte `eos-pkgutils@14505ecd` (`ROADMAP.md:342`) | **JEST W KODZIE, NIEDOWIEDZIONE NA ŻYWO** — `R-703` stoi na 🟡 (`ROADMAP-v2.md:504`): pełnego fetch+verify nikt jeszcze nie złapał w działaniu, a `U-197` mówi wprost, że ścieżki `RepoManifestUnsigned`/`RepoManifestSigInvalid` pozostają nieprzebiegnięte. Precedens `U-164` (dokumentacja nazywała to zaimplementowanym, gdy w artefakcie tego nie było) zakazuje tu znacznika **JEST** bez tego zastrzeżenia. |
+| Weryfikacja indeksu na urządzeniu | `verify_repo_manifest` → `manifest_sig::verify_manifest_ed25519` | `pkg-lib/src/manifest_sig.rs`, przypięte `eos-pkgutils@14505ecd` (`ROADMAP.md:342`) | **JEST W KODZIE, NIEDOWIEDZIONE NA ŻYWO** — `R-703` stoi na 🟡 (`ROADMAP.md`): pełnego fetch+verify nikt jeszcze nie złapał w działaniu, a `U-197` mówi wprost, że ścieżki `RepoManifestUnsigned`/`RepoManifestSigInvalid` pozostają nieprzebiegnięte. Precedens `U-164` (dokumentacja nazywała to zaimplementowanym, gdy w artefakcie tego nie było) zakazuje tu znacznika **JEST** bez tego zastrzeżenia. |
 | Klucz przypięty w obrazie | `/etc/pkg/eos-repo-sign.pub.toml`, 4075 B, zmierzone w działającym systemie | `R-702` ✅ (`U-197`, `U-224`) | **JEST** |
 | Przypięcie pakietu do indeksu | `enforce_manifest_blake3()` — odrzuca `.pkgar`, którego hasz nagłówka nie jest tym z podpisanego indeksu | `pkgar_backend/mod.rs:145` (`V2-MS13`) | **JEST** |
 | Ta sama kontrola na ścieżce `install` | `V2-MS14` | `U-223` | **JEST** |
@@ -395,7 +395,7 @@ przemilczenie:**
    — cytat pochodzi z forka `eos-pkgutils` w drzewie budowania, nie z tego repozytorium
    (patrz §11 poz. 11). Niezależne potwierdzenie **w tym drzewie**: `ROADMAP.md:342` wymienia
    *„promote ML-DSA-65 from advisory to required per `R-503`"* jako pozycję **pozostałą**, a
-   `ROADMAP-v2.md:935` liczy `R-503` wśród warunków, których ten dokument nie zamyka.
+   `ROADMAP.md` liczy `R-503` wśród warunków, których ten dokument nie zamyka.
    Hybryda jest dziś hybrydą **po stronie wydawcy**. Odporność postkwantowa istnieje w
    artefakcie, nie w kliencie.
 2. **Zapadka antycofkowa leży w zwykłym pliku** — `etc/pkg/repo-state.toml` (`pkg-lib/src/lib.rs:37`),
@@ -1032,7 +1032,7 @@ więc **musi** być podpisane i **nie** korzysta ze zwolnienia. Rozróżnienie: 
 **Znacznik: częściowo JEST.** `R-D03` — `eos-notifyd` z toastem działa, ale jest odpytywanym
 plikiem, bez schematu `notify:`, bez kolejki, bez ikon i akcji. Panel „Ustawienia →
 Aktualizacja" (`R-708`) ma gdzie mieszkać: `R-D01` (natywny panel sterowania E-OS Settings)
-jest **zbudowany i działa**, 9 paneli wyrenderowanych (`ROADMAP-v2.md:478`).
+jest **zbudowany i działa**, 9 paneli wyrenderowanych (`ROADMAP.md`).
 
 Czyli `R-708` nie jest już blokowane brakiem powłoki ustawień — starszy dokument
 (`docs/update-system-design.md` §1.4) twierdzi inaczej i jest w tym punkcie **nieaktualny**.
@@ -1127,7 +1127,7 @@ dowodu w działaniu.
 | **E4 — baza i jądro przy restarcie** | `pending/`, flaga dla bootloadera, licznik prób, automatyczny powrót do `kernel.prev`, atomowa para `kernel`+`kernel.sig` | **`R-707`** | **metal / x86** — bootloader nie jest dowodliwy w pętli GUI pod Mac-QEMU | XL |
 | **E5 — panel i dokumentacja** | „Ustawienia → Aktualizacja" w `R-D01`, powiadomienia, historia i wycofanie z GUI; dokumentacja przepływu i modelu zaufania | **`R-708`**, **`R-712`** | QEMU (render) + metal (pełny przebieg) | L + S |
 | **E6 — rotacja kluczy** | keyring `/etc/pkg/keys.d/` z `not_before`/`not_after`/`revoked`, objęty podpisem indeksu | **`R-711`** | QEMU aarch64 | M |
-| **E7 — różnicowe** | pobieranie zakresami po `Entry.offset`, fallback do pełnego pakietu, bramka czytająca flagę `Packaging` **z nagłówków opublikowanych pakietów** (nie ze zmiennej budowania — §2.3) | **`R-710a`** (rozcięcie `R-710`, §1.5, przyjęte w `ROADMAP-v2.md:977`) | QEMU aarch64 | M |
+| **E7 — różnicowe** | pobieranie zakresami po `Entry.offset`, fallback do pełnego pakietu, bramka czytająca flagę `Packaging` **z nagłówków opublikowanych pakietów** (nie ze zmiennej budowania — §2.3) | **`R-710a`** (rozcięcie `R-710`, §1.5, przyjęte w `ROADMAP.md`) | QEMU aarch64 | M |
 | **E8 — sloty A/B** | drugi root, wybór slotu w bootloaderze, wskaźnik w atrybutach GPT, wycofanie jednym restartem | **`R-710b`** + **`R-609`** (partycjonowanie) | **metal** | XL |
 
 Poza tą ścieżką, ale wymagane, żeby cokolwiek z niej miało sens:
@@ -1245,8 +1245,7 @@ Pozycje oznaczone **[NIEZWERYFIKOWANE]**, z jawnym wskazaniem, co trzeba sprawdz
    `docs/audit/03-security-audit-2026-08-30.md` leży na gałęzi `fix/p0-audit-findings`, a w tym
    drzewie roboczym `docs/audit/` zawiera wyłącznie `AUDIT-2026-07-13.md` i `AUDIT-2026-08-14.md`
    (zakaz poleceń `git`). **Same fakty pod tymi numerami są jednak potwierdzone w drzewie i to
-   trzeba oddzielić od numeracji:** `ROADMAP-v2.md:825`/`:900` (C-4), `:1076` (C-5), `:1079`
-   (C-9), `:1096` (C-11). Gdyby numeracja w audycie okazała się inna, do poprawienia są
+   trzeba oddzielić od numeracji:** `ROADMAP.md` (C-4, C-5, C-9, C-11). Gdyby numeracja w audycie okazała się inna, do poprawienia są
    **etykiety**, nie twierdzenia.
 
 9. **[NIEZWERYFIKOWANE] Czy `eos-notifyd` ma API nadające się do powiadomień o aktualizacji.**
@@ -1282,18 +1281,18 @@ Pozycje oznaczone **[NIEZWERYFIKOWANE]**, z jawnym wskazaniem, co trzeba sprawdz
 
 `docs/update-system-design.md` (angielski, starszy) używa **innego przypisania `R-70x`** niż
 `ROADMAP.md`: w jego tabeli §7 `R-703` to demon, `R-704` to wycofanie, `R-705` to panel GUI,
-`R-708` to A/B. W `ROADMAP.md` i `ROADMAP-v2.md` te same numery znaczą co innego (`R-703`
+`R-708` to A/B. W `ROADMAP.md` te same numery znaczą co innego (`R-703`
 weryfikacja manifestu, `R-704` anti-rollback, `R-708` panel GUI, `R-710` A/B).
 
-Ten dokument trzyma się numeracji **`ROADMAP.md`/`ROADMAP-v2.md`** jako obowiązującej. Starszy
+Ten dokument trzyma się numeracji **`ROADMAP.md`** jako obowiązującej. Starszy
 dokument ma też co najmniej dwa nieaktualne twierdzenia: że nie ma powłoki ustawień (`R-D01`
-jest zbudowane i działa, `ROADMAP-v2.md:478`) i że domyślne źródło wskazuje na
+jest zbudowane i działa, `ROADMAP.md`) i że domyślne źródło wskazuje na
 `static.redox-os.org` (zamknięte w `R-701a`/`U-183`, a od `U-210` aarch64 wskazuje na własne,
 podpisane repo).
 
 **Częściowe rozstrzygnięcie już zapadło i trzeba je tu zacytować, żeby nie zgłosić sprawy
-drugi raz:** `ROADMAP-v2.md:744` zapisuje decyzję, że w przestrzeni `R-7xx` **nie mintuje się
-żadnego nowego identyfikatora** (`R-701`…`R-712` + `R-701a`), a `:977` przyjmuje jako wiążące
+drugi raz:** `ROADMAP.md` zapisuje decyzję, że w przestrzeni `R-7xx` **nie mintuje się
+żadnego nowego identyfikatora** (`R-701`…`R-712` + `R-701a`) i przyjmuje jako wiążące
 rozcięcie `R-710` na `R-710a`/`R-710b`. Ten dokument nie dokłada więc trzeciego znaczenia do
 dwuznacznych numerów.
 

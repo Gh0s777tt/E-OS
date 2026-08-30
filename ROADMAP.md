@@ -8,9 +8,11 @@
 > **This file replaces both predecessors: the time-ordered `ROADMAP.md` and the subject-ordered,
 > Polish-language `ROADMAP-v2.md`.** Each of those two documents declared the *other* retired —
 > a loop that made both unciteable. The loop is closed here: this is the single roadmap and the
-> single place where the status of an identifier is maintained. `ROADMAP-v2.md` is still in the
-> tree, unchanged, pending the review recorded in [Annex C](#annex-c--retired-documents-and-retired-identifiers);
-> its Polish substance is **translated** into this file, not summarised.
+> single place where the status of an identifier is maintained. Its Polish substance is
+> **translated** into this file, not summarised. As of 2026-08-31 `ROADMAP-v2.md` is a short
+> redirect stub pointing here — kept in the tree rather than deleted, because removing a document
+> is the owner's decision ([Annex C](#annex-c--retired-documents-and-retired-identifiers)); its
+> full text remains in git at `87e8194b1`.
 
 This project's own rule applies to its own roadmap: **a control that cannot fail is not a control,
 and a plan that cannot be falsified is not a plan.** Every row below carries evidence — a commit,
@@ -221,7 +223,7 @@ milestones appear as *delivered with evidence* rather than as design rows.
 | `50_eos` wired and active on aarch64, pinned key measured in the running image | `R-701` (half) | `U-210` |
 | M1 installer work merged and pinned: `eos-installer` → `74726c889b`, `eos-pkgutils` → `ec08f22aa6` | `R-611a`, `R-607a`, `R-612a` | 2026-08-30 |
 
-> **Correction carried forward, not quietly dropped.** `ROADMAP-v2.md` §9 opens by stating that
+> **Correction carried forward, not quietly dropped.** `ROADMAP-v2.md` §9 opened by stating that
 > `ROADMAP.md` "counted 143 items: 67 done, 16 in progress, 43 planned, 16 ideas, 1 withdrawn …
 > all 75 unfinished ones are below." Neither number matched the file it described: the predecessor
 > registry held **110** entries, 68 of them unfinished. `ROADMAP.md` had been rebuilt *after* v2
@@ -1721,8 +1723,10 @@ correction to be **visible**, not silent. Instead both gain a header block:
 
 plus the correspondence tables from B.1/B.2. Cost: two headers. Gain: no sentence in the project is
 unreadable. **Status: adopted but NOT implemented.** Verified this session — `grep -rl "ARCHIVAL
-NUMBERING\|NUMERACJA ARCHIWALNA" --include='*.md' .` finds the phrase only in `ROADMAP-v2.md` and
-`docs/adr/0009-system-update-mechanism.md`. **The banner was never added.** Tracked as open scope
+NUMBERING\|NUMERACJA ARCHIWALNA" --include='*.md' .` finds the phrase only in this file and in
+`docs/adr/0009-system-update-mechanism.md` — both of which *describe* the banner rather than carry
+it. **The banner was never added.** (Re-measured 2026-08-31, after `ROADMAP-v2.md` was reduced to a
+redirect stub; the earlier reading named `ROADMAP-v2.md` in place of this file, for the same reason.) Tracked as open scope
 under `R-F05`.
 
 **D3 — free ranges after this decision.** The freedom of each newly minted number was verified with
@@ -1839,7 +1843,7 @@ Listed for approval before any removal — **nothing has been deleted.**
 
 | document | measured size | proposal | reason |
 |---|---|---|---|
-| `ROADMAP-v2.md` | **122,262 bytes** | **merged into this file; leave in place pending review, then archive** | Its content is carried here in English: the shim-review audit (§5.1), the driver inventory (§8.1), the three-host split (§4), `eos-guard` and `eos-notes` (§7.3, §7.4), the standards analysis (§12), the anti-promises (§14) and the whole §12 installer programme (§3.4, §6). **The predecessor's own row for this file was wrong twice** — it recorded the size as 57 kB and proposed archiving the file whose §12 the project was actively working from. Both errors are corrected here rather than repeated |
+| `ROADMAP-v2.md` | **122,262 bytes**, now a **26-line redirect stub** | **merged into this file 2026-08-31; stub kept in the tree, deletion still needs the owner** | Its content is carried here in English: the shim-review audit (§5.1), the driver inventory (§8.1), the three-host split (§4), `eos-guard` and `eos-notes` (§7.3, §7.4), the standards analysis (§12), the anti-promises (§14) and the whole §12 installer programme (§3.4, §6). **The predecessor's own row for this file was wrong twice** — it recorded the size as 57 kB and proposed archiving the file whose §12 the project was actively working from. Both errors are corrected here rather than repeated. **The full text was not deleted** — it is in git at `87e8194b1`, and every reference to it in the tree now points here, except the dated records in `docs/audit/` and the historical `U-203`/`U-204`/`U-211` entries in `CHANGELOG.md`, which describe commits that really did act on that file |
 | `docs/architecture/overview.md` | 3.9 kB | **merge into `ARCHITECTURE.md`** | Two architecture documents with overlapping scope, mutually cross-linked, with no statement of which is the entry point. Audit `00 §6.4` |
 | `EOS_BUILD_STATE.md` | 3.3 kB | **archive** | A checkpoint record from 2026-06-06, superseded by the audit reports |
 | `docs/archive/plan.md`, `docs/archive/hardware-plan.md` | — | **review, do not archive yet** | `plan.md` is still cited by §16 as the argument behind the item list, and `hardware-plan.md` §0.5 holds the symptom form M1 task 11 depends on |
@@ -1850,7 +1854,8 @@ Listed for approval before any removal — **nothing has been deleted.**
 > 2026-08-29 (`U-211`). `ROADMAP.md` was then rebuilt and acquired content v2 never had, while its
 > header still described it as an archive — so each file claimed the other was retired. **This
 > rebuild ends that:** `ROADMAP.md` is the single live roadmap, under its conventional name, and
-> `ROADMAP-v2.md` is superseded by it.
+> `ROADMAP-v2.md` is a redirect stub pointing at it. There is one roadmap, and one status per
+> identifier.
 
 ---
 

@@ -84,7 +84,7 @@ jest upstreamowy, uruchamiany na **hoście linuksowym**, i — jak stwierdza
 **Trzy poprawki do rejestru, zgodnie z `CLAUDE.md` §4.5.** Nie „później" — tu, w dokumencie,
 który je zauważył.
 
-1. **Rewizja bootloadera.** `ROADMAP-v2.md:90` (§2.1) cytuje rev `b249982f`. Receptura mówi
+1. **Rewizja bootloadera.** `ROADMAP.md` (§5.1) cytuje rev `b249982f`. Receptura mówi
    `87b214b5b481be7f7049fbb07cf927961b00da5b` (`recipe.toml:6`), i to samo mówi
    `repos.toml:43`. `b249982f` to rev **zamknięcia `R-F10`** (`ROADMAP.md:280`, `U-156`) —
    czyli roadmapa cytuje stan sprzed późniejszych podbić i jest **nieaktualna**. O ile
@@ -93,7 +93,7 @@ który je zauważył.
 2. **`0x2f600` to 194 048 B, nie 193 536 B.** `installer.md` §5.2 i `ADR-0008` D5 podają
    `0x2f600 = 193 536 B`; 193 536 to `0x2F400`. Liczba wchodzi do rachunku ESP-u w obu
    dokumentach, więc błąd nie jest kosmetyczny. Ten ADR używa **194 048 B**.
-3. **`ROADMAP-v2.md:93` wskazuje `recipe.toml:52-65` jako miejsce podpisu.** Podpis jest
+3. **`ROADMAP.md` wskazuje `recipe.toml:52-65` jako miejsce podpisu.** Podpis jest
    w `:89-114` (`sbsign` w `:108`); `:52-65` to budowanie bootloadera UEFI i komentarz o SBAT.
 
 **Częściowa odpowiedź na otwarte pytanie z `installer.md` §3.3 — i granica tej odpowiedzi.**
@@ -136,7 +136,7 @@ albo wycofanie skryptu wraz z `R-609`. **Znacznik: DO ZBUDOWANIA** (jedna zmiana
 
 Ten ADR ich nie zmienia i nie powtarza. Jedyne, co dokłada: **shim nie wraca tylnymi drzwiami
 jako „ale GRUB byłby łatwiejszy do podpisania przez Microsoft"** — byłby, i to jest prawda
-(recenzenci deklarują kompetencje wyłącznie w GRUB2 i systemd-boocie, `ROADMAP-v2` §2.3), ale
+(recenzenci deklarują kompetencje wyłącznie w GRUB2 i systemd-boocie, `ROADMAP.md` §5.1), ale
 korzyść jest warunkowa wobec `V2-MS10`, które **nie jest decyzją techniczną**.
 
 ### D4 — Menu wyboru systemów rozwiązuje firmware, nie bootloader
@@ -150,7 +150,7 @@ Dual-boot obsługujemy dwiema drogami, w tej kolejności:
    To **nie jest nowy projekt** — `installer.md` §7.5 opisuje dokładnie tę pracę, z tym samym
    znacznikiem warunkowym i tym samym pytaniem otwartym. Ten ADR ją potwierdza jako drogę
    pierwszą, nie zakłada dla niej nowej pozycji i nie ma dla niej pozycji `R-*` (sprawdzone:
-   w `ROADMAP.md` i `ROADMAP-v2.md` nie ma pozycji o NVRAM/`efivars`) — jeśli ma powstać,
+   w `ROADMAP.md` nie ma pozycji o NVRAM/`efivars`) — jeśli ma powstać,
    należy do `R-609`.
 2. **Menu rozruchowe firmware'u** (F12 / F8 / Esc — zależnie od producenta) jako droga
    gwarantowana, bez żadnej zależności od nas. Nośnik ma wieźć listę klawiszy w
@@ -339,7 +339,7 @@ brakującego pliku. To jest różnica między kontrolą a dekoracją (`CLAUDE.md
   `redoxfs` i `redoxfs-mkfs`, nic więcej. To cytat za `installer.md` §8.1, nie odczyt:
   w **tym** drzewie `build/fstools/` w ogóle nie ma (`build/` zawiera trzy pozycje, patrz
   *Czego nie udało się zweryfikować* pkt 8). **Znacznik: NOWY PODSYSTEM**, i **pozycja już
-  istnieje: `R-615`** (`ROADMAP-v2.md:887,950`, `[P2·XL·🖥️]`, 🔴). Nie zakładam dla tego
+  istnieje: `R-615`** (`ROADMAP.md`, `[P2·XL·🖥️]`, 🔴). Nie zakładam dla tego
   niczego nowego — przy okazji: `installer.md` §8.1 nadal twierdzi *„nie znalazłem dla niej
   pozycji `R-*`"*, co po powstaniu `R-615` jest **nieaktualne** i wymaga poprawki.
 - **memtest i inne cudze binarki EFI na nośniku: odrzucone.** Memtest86+ to obcy obraz EFI.
@@ -545,7 +545,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | klucz prywatny do podpisu wydania | **brak** — `R-F26`/`U-191` | połowy prywatnej `DCEC85BA6057ED4A` nikt nie posiada; poza zakresem tego ADR-a, ale unieważnia D10 do czasu rotacji |
 | sprawdzenie nośnika po zapisie (SHA-256 + podpis) | **DO ZBUDOWANIA** | D11; `installer.md` §8.4 |
 | tryb ratunkowy na tym samym nośniku | **DO ZBUDOWANIA** | D11; `installer.md` §8.1 |
-| `fsck` dla RedoxFS (warunek sensownego trybu ratunkowego) | **NOWY PODSYSTEM** | pozycja **`R-615`** istnieje (`ROADMAP-v2.md:887,950`) — nie zakładam nowej |
+| `fsck` dla RedoxFS (warunek sensownego trybu ratunkowego) | **NOWY PODSYSTEM** | pozycja **`R-615`** istnieje (`ROADMAP.md`) — nie zakładam nowej |
 | memtest / cudze binarki EFI na nośniku | **odrzucone** | D11 — niepodpisany obcy kod albo podpisanie cudzej binarki naszym kluczem |
 | bramka Secure Boot w CI | **DO ZBUDOWANIA** | `V2-MS04`, dziś 🔴 |
 | bramka „niepodpisany / bez klucza weryfikacji" **na artefakcie** | **DO ZBUDOWANIA** | D8, rozszerzenie `V2-MS04` |
@@ -620,7 +620,7 @@ Ta sekcja nie jest zastrzeżeniem prawnym. Jest listą zdań, których po przyj�
    z „firmware nie widzi nośnika" na pierwszym miejscu.
 8. **Nie sięga dalej niż maszyna budująca.** Klucz Secure Boota leży jako **zwykły plik** bez
    hasła w `build/sb-signing/` (`V2-MS06` 🔴), klucz podpisujący pakiety jawnym tekstem, a obie
-   jego kopie na jednym komputerze (`V2-MS12`, znalezisko `C-11`, `ROADMAP-v2.md:1094-1096`).
+   jego kopie na jednym komputerze (`V2-MS12`, znalezisko `C-11`, `ROADMAP.md`).
    Kto przejmie tę maszynę, podpisze wszystko poprawnie.
 9. **Nie czyni Secure Boota automatycznym.** Firmware ufa **kluczom**, nie systemom. Na obcym
    x86_64 właściciel musi wnieść klucz albo wyłączyć Secure Boot — trzeciej drogi nie ma
@@ -662,17 +662,17 @@ odpowiadać tym ADR-em, a nie „nie da się".
    **zainstalowany** działa dalej (jego klucz wciąż jest w `db`), ale **nowy nośnik podpisany
    nowym kluczem nie wystartuje** na maszynie, która wniosła stary. Procedurę trzeba napisać
    **zanim** rotacja nastąpi. Powiązane: `V2-MS06` (klucz na tokenie).
-7. **Trzy poprawki w rejestrze** (sekcja *Kontekst*): rev bootloadera w `ROADMAP-v2.md:90`,
-   zakres linii podpisu w `ROADMAP-v2.md:93`, oraz **`0x2f600 = 194 048 B`** w `installer.md`
+7. **Trzy poprawki w rejestrze** (sekcja *Kontekst*): rev bootloadera w `ROADMAP.md`,
+   zakres linii podpisu w `ROADMAP.md`, oraz **`0x2f600 = 194 048 B`** w `installer.md`
    §5.2 i `ADR-0008` D5 (dziś obie mówią 193 536 B, czyli `0x2F400`).
 8. **Dowód Secure Boota na aarch64** — dziś `eos-secureboot-proof.sh` jest x86_64-only,
    a aarch64 jest architekturą, na której projekt realnie pracuje. Naturalne miejsce:
    `V2-MS04`, razem z bramką z D8.
-9. **Zawężenie twierdzenia o SBAT** w `ROADMAP-v2.md:178` (`V2-MS01`) i `system-updates.md`
+9. **Zawężenie twierdzenia o SBAT** w `ROADMAP.md` (`V2-MS01`) i `system-updates.md`
    §5.5 — oba mówią „własna ścieżka unieważniania"; zmierzona jest wyłącznie **obecność
    sekcji**. Poprawić na twierdzenie zakresowe albo dołożyć przypadek testowy (D9).
 10. **`installer.md` §8.1 twierdzi, że dla `fsck` nie ma pozycji `R-*`** — jest: `R-615`
-    (`ROADMAP-v2.md:887,950`). Zdanie stało się nieaktualne po jej założeniu.
+    (`ROADMAP.md`). Zdanie stało się nieaktualne po jej założeniu.
 11. **`mk/disk.mk` nadal podaje `--write-bootloader=…`** (`disk.mk:32`), mimo że ESP powstaje z
    `bootloader.pkgar` (`U-207`). Flaga jest dziś nieszkodliwa, ale myląca — czytelnik zakłada,
    że to ona decyduje o tym, co uruchamia firmware. Do usunięcia albo do opatrzenia komentarzem.
@@ -705,7 +705,7 @@ Lista jest częścią dokumentu, nie przypisem.
 7. **Żadne znalezisko `C-*` nie jest w tym dokumencie cytowane z pierwszej ręki.**
    `docs/audit/03-security-audit-2026-08-30.md` leży na gałęzi `fix/p0-audit-findings`,
    a polecenia `git` były w tym zadaniu zabronione. Jedyne `C-*`, które tu pada — `C-11` —
-   cytuję za `ROADMAP-v2.md:1094-1096`, czyli z drzewa, nie z briefu.
+   cytuję za `ROADMAP.md`, czyli z drzewa, nie z briefu.
 8. **Rozmiary artefaktów.** `bootloader-live.efi` = 232 504 B oraz hybrydowość obu obrazów
    (`0` kod x86, `512` `EFI PART`, `0x8001` `CD001`) pochodzą z **drzewa budowania**
    w wolumenie `eos-work`. W tym repozytorium `build/` zawiera wyłącznie `container.tag`,
@@ -716,7 +716,7 @@ Lista jest częścią dokumentu, nie przypisem.
    nie jest dowodem, że instalator do niej pisze.
 10. **Czy ESP zapisany przez instalatora przechodzi na firmware producenta** — nie da się tego
     rozstrzygnąć pod QEMU z definicji (`installer.md` §9.3 pkt 1). Wymaga jednej fizycznej
-    maszyny (`M1` w `ROADMAP-v2.md:809`).
+    maszyny (`M1` w `ROADMAP.md`).
 11. **Czy cokolwiek egzekwuje SBAT bez shima** (D9). Zmierzone jest wyłącznie to, że sekcja
     `.sbat` istnieje i nie psuje podpisu — nigdy to, że jakikolwiek firmware ją czyta i na jej
     podstawie odmawia rozruchu. To jest różnica między „mamy własną ścieżkę unieważniania"

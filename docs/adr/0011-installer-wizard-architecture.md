@@ -13,7 +13,7 @@
   `recipes/groups/desktop/recipe.toml:13` · `docs/known-issues.md:388` · `docs/install.md:28` ·
   `scripts/install-smoke-drive.py:8,169-180,199-200` · `scripts/ci-install-smoke.sh:23,32` ·
   `scripts/ci-integrity.sh:113` · `scripts/eos-rebase-check.sh:22-29` ·
-  `.gitlab-ci.yml:66-76` · `ROADMAP-v2.md:72,481,894-904,914-921,951-952,970-981` ·
+  `.gitlab-ci.yml:66-76` · `ROADMAP.md` §6.3–§6.4 ·
   `CLAUDE.md` §11 typ C, §13 · pozycje `R-601`/`R-601d`/`R-601e`, `R-603a`–`R-603e`,
   `R-604a`–`R-604d`, `R-605`, `R-606`, `R-607a`/`R-607b`, `R-608a`, `R-609a`–`R-609d`,
   `R-610`, `R-612a`/`R-612c`, `R-615`, `R-711`, `R-815`, `R-902`, `R-904`, `R-1010`,
@@ -47,7 +47,7 @@ Podział na silnik i frontendy **istnieje i jest zbudowany**. Nie projektujemy g
 | Frontend graficzny: **osobna skrzynka w podkatalogu `gui/`**, `redox_installer_gui`, z `redox_installer = { path = ".." }` | **[z briefu]**; potwierdzone w tym drzewie: `recipes/gui/installer-gui/recipe.toml` ma `same_as = "../../core/installer"` i `COOKBOOK_CARGO_PATH="gui" cookbook_cargo` — GUI jest budowane **z tego samego źródła**, z podkatalogu |
 | GUI nie używa Slinta, iced ani egui — rysuje na prymitywach Redoksa | **[z briefu]**; zależności: `pkgar`, `pkgar-core`, `pkgar-keys`, `redox_syscall`, `libredox`, `toml` |
 | Skrzynka ma **feature'y** rozdzielające warianty budowania **narzędzi hosta**: `INSTALLER_FEATURES=--no-default-features --features installer` | `mk/config.mk:185`, użyte w `mk/fstools.mk:24` — ale **wyłącznie wewnątrz `ifeq ($(FSTOOLS_NO_MOUNT),1)`**, a domyślnie `FSTOOLS_NO_MOUNT?=0` (`mk/config.mk:53`), więc w zwykłym budowaniu `INSTALLER_FEATURES` jest **puste** (`mk/config.mk:176`). **Co ten feature naprawdę gatuje — [NIEZWERYFIKOWANE]:** `Cargo.toml` skrzynki nie ma w tym drzewie, a nazwa nie jest dowodem. Wiersz nie niesie tezy o rozdziale silnik/frontend |
-| Instalacja end-to-end **udowodniona 3× z rzędu** tym silnikiem — **pod QEMU/TCG, na aarch64, ścieżką TUI** | `R-601` (`U-176`). Zakres, bo bez niego to twierdzenie jest szersze niż pomiar (`CLAUDE.md` §2 reguła 2): `ROADMAP-v2.md:72` — *„udowodnione wyłącznie pod QEMU/TCG"*, na fizycznym firmware nie; `scripts/ci-install-smoke.sh:32` — *„only aarch64 is wired up"*; `ROADMAP-v2.md:481` — `R-601` udowodnił **ścieżkę TUI, nie GUI** |
+| Instalacja end-to-end **udowodniona 3× z rzędu** tym silnikiem — **pod QEMU/TCG, na aarch64, ścieżką TUI** | `R-601` (`U-176`). Zakres, bo bez niego to twierdzenie jest szersze niż pomiar (`CLAUDE.md` §2 reguła 2): `ROADMAP.md` — *„udowodnione wyłącznie pod QEMU/TCG"*, na fizycznym firmware nie; `scripts/ci-install-smoke.sh:32` — *„only aarch64 is wired up"*; `ROADMAP.md` — `R-601` udowodnił **ścieżkę TUI, nie GUI** |
 
 Trzy frontendy nad jedną biblioteką. **Budowanie nowego silnika oznaczałoby wyrzucenie jedynego
 dowodu instalacji, jaki projekt ma.**
@@ -208,12 +208,12 @@ a przy okazji ułatwia upstreamowi jego własne TODO 1 (*„Linux: Implement dis
 `installer_tui.rs:15` **[z briefu]**), bo dziś ta funkcja jest na Linuksie pusta i siedzi
 w binarce, a nie w bibliotece.
 
-> **To ma już numer i nie wolno mu nadać drugiego: `R-603a`** (`ROADMAP-v2.md:894`, słowo w słowo:
+> **To ma już numer i nie wolno mu nadać drugiego: `R-603a`** (`ROADMAP.md`, słowo w słowo:
 > *„Przeniesienie logiki wyboru dysku z frontendu do biblioteki. Dziś `installer_tui` ma własne
 > `disk_paths()` i `choose_disk()`…"*), mapowane tak samo przez
 > [`installer-wizard.md`](../architecture/installer-wizard.md) §15 poz. 1c. Odczyt **rzeczywistego
-> rozmiaru bloku** to `R-607a` (`ROADMAP-v2.md:973`), a **identyfikacja dysku** na ekranie —
-> `R-604a` (`:970`). Pełne przypięcie: sekcja *Przypięcie do roadmapy* niżej.
+> rozmiaru bloku** to `R-607a` (`ROADMAP.md`), a **identyfikacja dysku** na ekranie —
+> `R-604a`. Pełne przypięcie: sekcja *Przypięcie do roadmapy* niżej.
 
 ### D2 — Rdzeń i frontendy nie mieszkają w forku
 
@@ -276,7 +276,7 @@ ta sama praca co `R-1010` / krok 10 `docs/plan.md` (za [`installer-profiles.md`]
 
 ### D5 — Parytet jest bramką, nie deklaracją
 
-**Ta bramka ma już pozycję w rejestrze: `R-601d`** (`ROADMAP-v2.md:902` — *„Bramka parytetu
+**Ta bramka ma już pozycję w rejestrze: `R-601d`** (`ROADMAP.md` — *„Bramka parytetu
 GUI ↔ TUI: oba frontendy muszą pokrywać ten sam zbiór stanów"*, `[P2·S·🖥️]`), tak samo nazwana
 przez [`installer-wizard.md`](../architecture/installer-wizard.md) §2.3 i §15 poz. 1b.
 Pierwsza wersja tej decyzji opisywała bramkę bez numeru i przypinała ją wyłącznie do `R-D08` —
@@ -539,7 +539,7 @@ Pierwsze pole dodane przez kreator do `Config` może istnieć po jednej stronie 
 drugiej — dokładnie jak opisuje komentarz `Cargo.toml:41-45` dla `redox-pkg`.
 
 **Nie dotyczy x86_64.** Cały dowód instalacji jest aarch64 i wyłącznie pod QEMU/TCG
-(`scripts/ci-install-smoke.sh:32`, `ROADMAP-v2.md:72`). Twierdzenia tego ADR-a o zachowaniu
+(`scripts/ci-install-smoke.sh:32`, `ROADMAP.md`). Twierdzenia tego ADR-a o zachowaniu
 silnika na metalu nie mają pokrycia w żadnym przebiegu.
 
 **Nie wprowadza — i nie udaje, że wprowadza — ani jednego klocka z linuksowego słownika
@@ -596,13 +596,13 @@ partycji ([`ADR-0008`](0008-filesystem-and-partition-layout.md)), stosu szyfrowa
 | Reguła typu C dla forka jest wykrywana, nie egzekwowana — `rebase-check` ma `allow_failure: true` i chodzi tylko z harmonogramu | przy pierwszej łatce D2 wysłanej do forka: albo bramka przestaje być doradcza, albo ADR przestaje się na nią powoływać. Dziś obowiązuje to drugie (Kontekst §4) |
 | Dwie ścieżki instalacji przez jedno wydanie (dowiązanie z D9) | usunąć po przepięciu harnessu i 3× PASS |
 | `eos-setup-apply` jest granicą uprawnień bez piaskownicy pod spodem | po `R-1010` (włączenie `contain`) |
-| Brak katalogu i18n — **żadnej infrastruktury**, `eos-control` ma napisy w kodzie (`U-126`) | **`R-D13`** — pozycja **już założona** w rejestrze (`ROADMAP-v2.md:917`, `:952`). Pierwsza wersja tego wiersza mówiła *„pozycji w roadmapie nie ma; do założenia przy zatwierdzaniu"* — **to było nieprawdą wobec drzewa** i groziło drugą nazwą dla jednej pracy; `installer-profiles.md:776` mówi wprost: *„Cytuj `R-D13`, nie zakładaj drugiej pozycji"* |
+| Brak katalogu i18n — **żadnej infrastruktury**, `eos-control` ma napisy w kodzie (`U-126`) | **`R-D13`** — pozycja **już założona** w rejestrze (`ROADMAP.md`). Pierwsza wersja tego wiersza mówiła *„pozycji w roadmapie nie ma; do założenia przy zatwierdzaniu"* — **to było nieprawdą wobec drzewa** i groziło drugą nazwą dla jednej pracy; `installer-profiles.md:776` mówi wprost: *„Cytuj `R-D13`, nie zakładaj drugiej pozycji"* |
 
 ### Przypięcie do roadmapy — bez nowych identyfikatorów
 
 **Poprawka wobec pierwszej wersji tej sekcji, i jest to najcięższa usterka, jaką ten dokument
 miał.** Tabela poniżej przypinała decyzje do pozycji **nadrzędnych** (`R-603`, `R-604`, `R-607`,
-`R-608`), podczas gdy `ROADMAP-v2.md` §12.5–12.7 rozpisał je już na **sub-identyfikatory**, a
+`R-608`), podczas gdy `ROADMAP.md` §6.2 i §6.4 rozpisały je już na **sub-identyfikatory**, a
 [`installer-wizard.md`](../architecture/installer-wizard.md) §15 zrobił dokładnie to mapowanie
 sekcja → pozycja *„żeby nikt nie nadał tej samej pracy drugiej nazwy"*. Przypięcie do numeru
 nadrzędnego nie jest niewinnym uproszczeniem: pozostawia otwartą furtkę, żeby ta sama praca
@@ -611,30 +611,30 @@ z rejestrem, co do numeru.
 
 | Decyzja | Pozycja | Relacja |
 |---|---|---|
-| D1 — wyniesienie `disk_paths()`/`choose_disk()` do biblioteki | **`R-603a`** (`ROADMAP-v2.md:894`) | **ta sama praca**, nie „rozszerzenie `R-604`" jak stało tu wcześniej |
-| D1 — identyfikacja dysku na ekranie (model, seria, wymienność) | **`R-604a`** (`:970`), degradacja bez `R-815` opisana w `ROADMAP-v2.md:906-908` | **ta sama praca** |
-| D1 — odczyt rzeczywistego rozmiaru bloku | **`R-607a`** (`:973`; `R-607b` = macierz na metalu) | **ta sama praca**, warunek wstępny reguł odmowy `R-604c` |
-| D1 — reguła graniczna dla maszyny stanów S0–S10 | **`R-603b`** (`:895`) | **ta sama praca** |
-| D3 + D5 — warunek wstępny: przepływ GUI od końca do końca | `R-D08` (`:901`) | **warunek wstępny**, nie sama bramka |
-| D5 — **bramka parytetu GUI ↔ TUI** | **`R-601d`** (`:902`) | **ta sama praca.** Wcześniej ta decyzja nie wskazywała żadnej pozycji — patrz D5 |
-| D5 — brakujące przypadki harnessu (FDE, przerwanie, 4Kn, dwa dyski, BIOS) | `R-601e` (`:903`) | **sąsiedztwo** — ten ADR ich nie projektuje |
-| D7 — model danych profili i funkcji, resolver | **`R-603c`** (`:896`); dziedziczenie z blokadami `R-603c+` (`:914`) | **ta sama praca** |
-| D7 — konta, hostname, strefa, układ klawiatury jako dane | **`R-603d`** (`:897`) | **ta sama praca**, sformalizowana |
-| D7 — tożsamość per-maszyna | `R-606` (`:899`) | **ta sama praca** |
-| D7 — generowanie dokumentacji z tych samych danych | **`R-608a`** (`:916`) | **ta sama praca**. `R-608` (nadrzędne) zostaje przy *„popraw `docs/install.md`"* |
-| D7 — walidator z rozróżnieniem `bad` / `cannot` | `R-609a` (`:915`) | **ta sama praca** |
-| D7 — semantyka profili Gamer / Business / Ghost | `R-609c` (`:920`) | **ta sama praca** |
-| D8 — sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **`R-609b`** (`:918`) | **ta sama praca** |
-| D8 — ścieżka online z podpisanego repo | `R-605` (`:900`) | **ta sama praca** (`C-4` na x86_64) |
-| D8 — weryfikacja podpisu profilu na urządzeniu | `R-603e` (`:898`), wymaga `R-711` | **ta sama praca** |
+| D1 — wyniesienie `disk_paths()`/`choose_disk()` do biblioteki | **`R-603a`** (`ROADMAP.md`) | **ta sama praca**, nie „rozszerzenie `R-604`" jak stało tu wcześniej |
+| D1 — identyfikacja dysku na ekranie (model, seria, wymienność) | **`R-604a`**, degradacja bez `R-815` opisana w `ROADMAP.md` | **ta sama praca** |
+| D1 — odczyt rzeczywistego rozmiaru bloku | **`R-607a`** (`R-607b` = macierz na metalu) | **ta sama praca**, warunek wstępny reguł odmowy `R-604c` |
+| D1 — reguła graniczna dla maszyny stanów S0–S10 | **`R-603b`** | **ta sama praca** |
+| D3 + D5 — warunek wstępny: przepływ GUI od końca do końca | `R-D08` | **warunek wstępny**, nie sama bramka |
+| D5 — **bramka parytetu GUI ↔ TUI** | **`R-601d`** | **ta sama praca.** Wcześniej ta decyzja nie wskazywała żadnej pozycji — patrz D5 |
+| D5 — brakujące przypadki harnessu (FDE, przerwanie, 4Kn, dwa dyski, BIOS) | `R-601e` | **sąsiedztwo** — ten ADR ich nie projektuje |
+| D7 — model danych profili i funkcji, resolver | **`R-603c`**; dziedziczenie z blokadami `R-603c+` | **ta sama praca** |
+| D7 — konta, hostname, strefa, układ klawiatury jako dane | **`R-603d`** | **ta sama praca**, sformalizowana |
+| D7 — tożsamość per-maszyna | `R-606` | **ta sama praca** |
+| D7 — generowanie dokumentacji z tych samych danych | **`R-608a`** | **ta sama praca**. `R-608` (nadrzędne) zostaje przy *„popraw `docs/install.md`"* |
+| D7 — walidator z rozróżnieniem `bad` / `cannot` | `R-609a` | **ta sama praca** |
+| D7 — semantyka profili Gamer / Business / Ghost | `R-609c` | **ta sama praca** |
+| D8 — sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **`R-609b`** | **ta sama praca** |
+| D8 — ścieżka online z podpisanego repo | `R-605` | **ta sama praca** (`C-4` na x86_64) |
+| D8 — weryfikacja podpisu profilu na urządzeniu | `R-603e`, wymaga `R-711` | **ta sama praca** |
 | D2, dług `Cargo.toml:47` | `R-610` | **sąsiedztwo, nie tożsamość** — `R-610` mówi o zależnościach wewnątrz instalatora |
-| D1 — pole `mode` w S4 (tryby partycjonowania) | `R-609` 💡 / `R-609d` (`:921`) | **nie objęte**, format ma zostawić miejsce |
+| D1 — pole `mode` w S4 (tryby partycjonowania) | `R-609` 💡 / `R-609d` | **nie objęte**, format ma zostawić miejsce |
 | D9 — migracja nazwy binarki | `R-601` (✅ co do dowodu `U-176`) | **rozszerzenie** — harness musi objąć nową nazwę i przejść 3× |
 | D6 — wzorzec shima | `R-902` | **precedens**, zweryfikowany na urządzeniu (`U-112`/`U-113`) |
-| D6 — piaskownica pod shimem | `R-1010` (`:981`) | **zależność**, poza zakresem |
-| Zapora jako funkcja profilu | `R-904` (`:979`) | **poza zakresem**, reprezentowana w danych jako brak |
-| Katalog łańcuchów i18n | **`R-D13`** (`:917`, `:952`) | **ta sama praca** — pozycja **już istnieje** |
-| Kanał komend administracyjnych do dysków (SMART, IDENTIFY, rozmiar bloku, secure erase) | **`R-815`** (`:904`, `:951`) | **ta sama praca** — pozycja **już istnieje** |
+| D6 — piaskownica pod shimem | `R-1010` | **zależność**, poza zakresem |
+| Zapora jako funkcja profilu | `R-904` | **poza zakresem**, reprezentowana w danych jako brak |
+| Katalog łańcuchów i18n | **`R-D13`** | **ta sama praca** — pozycja **już istnieje** |
+| Kanał komend administracyjnych do dysków (SMART, IDENTIFY, rozmiar bloku, secure erase) | **`R-815`** | **ta sama praca** — pozycja **już istnieje** |
 
 **Ten ADR nie tworzy nowych identyfikatorów `R-*` i nie ma już czego zakładać.**
 Pierwsza wersja tego akapitu twierdziła, że *„dwa braki nie mają dziś pozycji"* — katalog i18n
@@ -643,10 +643,10 @@ zatwierdzaniu"*. **To twierdzenie było nieprawdziwe wobec drzewa** i jest tu sk
 bo czytelnik, który się na nim oparł, założyłby dwie zbędne pozycje:
 
 - **i18n → `R-D13`**, rodzina `R-Dxx`, bo brak dotyczy całej powłoki, nie instalatora
-  (`ROADMAP-v2.md:917`, `:952`).
+  (`ROADMAP.md`).
 - **kanał komend do dysków → `R-815`**, rodzina `R-8xx`, bo dotyka `nvmed`/`ahcid`; numer
   wybrany dlatego, że `R-812`–`R-814` rezerwuje `docs/driver-manager-design.md`
-  (`ROADMAP-v2.md:904`, `:951`).
+  (`ROADMAP.md`).
 
 `installer-wizard.md` §15 zamyka to zdaniem, które obowiązuje też tutaj: **„Żadnej z tych dwóch
 nie wolno zakładać ponownie."**
@@ -655,28 +655,28 @@ nie wolno zakładać ponownie."**
 
 | Zdolność | Znacznik | Dowód / zakres |
 |---|---|---|
-| Silnik instalacji jako biblioteka | **JEST** | `redox_installer`, `src/lib.rs` **[z briefu]**; `R-601` PASS 3× — **aarch64, QEMU/TCG, ścieżka TUI** (`ci-install-smoke.sh:32`, `ROADMAP-v2.md:72,481`). Numeru wersji forka **nie da się w tym drzewie potwierdzić** — patrz Kontekst §1 |
+| Silnik instalacji jako biblioteka | **JEST** | `redox_installer`, `src/lib.rs` **[z briefu]**; `R-601` PASS 3× — **aarch64, QEMU/TCG, ścieżka TUI** (`ci-install-smoke.sh:32`, `ROADMAP.md`). Numeru wersji forka **nie da się w tym drzewie potwierdzić** — patrz Kontekst §1 |
 | Dwa frontendy nad tą biblioteką | **JEST** | `installer_tui` **[z briefu]**; `gui/` jako osobna skrzynka — `recipes/gui/installer-gui/recipe.toml` (`same_as` + `COOKBOOK_CARGO_PATH="gui"`), potwierdzone też przez `U-132` (*„a separate package, not a workspace member"*) |
 | Rozdział silnik/frontend **po feature'ach skrzynki** | **[NIEZWERYFIKOWANE]** | wiersz wcześniej miał tu **JEST** na podstawie `mk/config.mk:185`. To nie wystarcza: `INSTALLER_FEATURES` jest ustawiane tylko pod `FSTOOLS_NO_MOUNT=1`, a domyślnie `?=0` (`mk/config.mk:53,176`), i nic w tym drzewie nie mówi, co feature `installer` gatuje. Sprawdzić: `Cargo.toml` w `recipes/core/installer/source` |
-| Wyliczanie dysków w **silniku**, nie we frontendzie | **DO ZBUDOWANIA** (`L`) | dziś `disk_paths()`/`choose_disk()` w binarce TUI **[z briefu]**; pozycja **`R-603a`** (`ROADMAP-v2.md:894`, `[P1·L·🖥️]`), identyfikacja dysku na ekranie — `R-604a` |
+| Wyliczanie dysków w **silniku**, nie we frontendzie | **DO ZBUDOWANIA** (`L`) | dziś `disk_paths()`/`choose_disk()` w binarce TUI **[z briefu]**; pozycja **`R-603a`** (`ROADMAP.md`, `[P1·L·🖥️]`), identyfikacja dysku na ekranie — `R-604a` |
 | Rdzeń kreatora `eos-setup-core` (maszyna stanów, walidacja, resolver) | **DO ZBUDOWANIA** (`L`) | nowy komponent typu A; pozycje `R-603b` (maszyna stanów) + `R-603c` (model danych i resolver) |
 | Przebudowa frontendów na dwie binarki nad rdzeniem | **DO ZBUDOWANIA** (`L`) | obie binarki istnieją dziś w innej postaci; podział `gui/` jako osobna skrzynka **JEST** |
 | Protokół `Screen`/`Diagnostics`/`Event`/`Progress` + `--record`/`--replay` | **DO ZBUDOWANIA** (`M`) | warunek bramki parytetu `R-601d` |
-| Bramka parytetu GUI ↔ TUI w CI | **DO ZBUDOWANIA** (`S`) | pozycja **`R-601d`** (`ROADMAP-v2.md:902`); wymaga `R-D08` jako warunku wstępnego |
+| Bramka parytetu GUI ↔ TUI w CI | **DO ZBUDOWANIA** (`S`) | pozycja **`R-601d`** (`ROADMAP.md`); wymaga `R-D08` jako warunku wstępnego |
 | Uprzywilejowany pomocnik `eos-setup-apply` | **DO ZBUDOWANIA** (`M`) | wzorzec `eos-netcfg`/`eos-power` — **JEST** (`R-902`, `U-112`/`U-113`) |
 | Realna piaskownica dla frontendu i importu profili | **NOWY PODSYSTEM** | `contain` zakomentowany (`config/server.toml:14`), znalezisko `C-5` **[za briefem]**, `R-1010` / krok 10 `docs/plan.md:139` |
 | Format profilu w TOML-u | **JEST** | `config/base.toml`, `config/x86_64/eos.toml` |
 | Dziedziczenie i nadpisywanie profili | **JEST** | `include` — cztery skoki: `config/x86_64/eos.toml:7` → `desktop.toml:3` → `desktop-minimal.toml:3` / `server.toml:3` → `minimal.toml:3` → `base.toml` |
-| Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/known-issues.md:388`, `U-078`); pozycja `R-603c+` (`ROADMAP-v2.md:914`) |
+| Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/known-issues.md:388`, `U-078`); pozycja `R-603c+` (`ROADMAP.md`) |
 | Warstwa metadanych funkcji (opis, skutki, `stage`, zagrożenie, koszt) | **DO ZBUDOWANIA** (`L`) | nie istnieje; pozycja `R-603c`, walidator `R-609a` |
-| Semantyka profili Gamer / Business / Ghost | **DO ZBUDOWANIA** (`M`) | brak takich plików w `config/`; pozycja `R-609c` (`ROADMAP-v2.md:920`) — z ostrzeżeniem stamtąd, że część treści tych profili to **NOWY PODSYSTEM** (Tor, VPN, zapora, dziennik audytu) albo **NIEREALNE DZIŚ** (tryb amnezyjny, domena/LDAP/MDM) |
-| Generowanie dokumentacji z tych samych danych | **DO ZBUDOWANIA** (`S`) | pozycja **`R-608a`** (`ROADMAP-v2.md:916`); `R-608` nadrzędne zostaje przy *„popraw `docs/install.md`"* |
-| Katalog łańcuchów i18n | **NOWY PODSYSTEM** (`M`) | brak jakiejkolwiek infrastruktury; `eos-control` ma napisy w kodzie, a wcześniejsze twierdzenie o bramce i18n było zmyślone (`U-126`). Pozycja **istnieje**: `R-D13` (`ROADMAP-v2.md:917`, `:952`) |
+| Semantyka profili Gamer / Business / Ghost | **DO ZBUDOWANIA** (`M`) | brak takich plików w `config/`; pozycja `R-609c` (`ROADMAP.md`) — z ostrzeżeniem stamtąd, że część treści tych profili to **NOWY PODSYSTEM** (Tor, VPN, zapora, dziennik audytu) albo **NIEREALNE DZIŚ** (tryb amnezyjny, domena/LDAP/MDM) |
+| Generowanie dokumentacji z tych samych danych | **DO ZBUDOWANIA** (`S`) | pozycja **`R-608a`** (`ROADMAP.md`); `R-608` nadrzędne zostaje przy *„popraw `docs/install.md`"* |
+| Katalog łańcuchów i18n | **NOWY PODSYSTEM** (`M`) | brak jakiejkolwiek infrastruktury; `eos-control` ma napisy w kodzie, a wcześniejsze twierdzenie o bramce i18n było zmyślone (`U-126`). Pozycja **istnieje**: `R-D13` (`ROADMAP.md`) |
 | Instalacja nienadzorowana z pliku | **JEST** | `--config=file.toml`, `general.skip_partitions` **[z briefu]**; potwierdzenie od strony użytkownika: `docs/install.md` §3 |
-| Sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **DO ZBUDOWANIA** (`M`) | D8; pozycja **`R-609b`** (`ROADMAP-v2.md:918`) |
-| Model i numer seryjny dysku w identyfikatorze celu | **NOWY PODSYSTEM** (`L`) | brak kanału komend administracyjnych — pozycja **istnieje**: `R-815` (`ROADMAP-v2.md:904`, `:951`, `[P2·L·⚙️]`). Do czasu jego powstania identyfikatorem jest ścieżka schematu + rozmiar, i to **musi być napisane na ekranie**, a nie odkryte przy zgłoszeniu (`ROADMAP-v2.md:906-908`). Czy sterowniki wystawiają dziś jakikolwiek taki kanał — **[NIEZWERYFIKOWANE]** (A5) |
+| Sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **DO ZBUDOWANIA** (`M`) | D8; pozycja **`R-609b`** (`ROADMAP.md`) |
+| Model i numer seryjny dysku w identyfikatorze celu | **NOWY PODSYSTEM** (`L`) | brak kanału komend administracyjnych — pozycja **istnieje**: `R-815` (`ROADMAP.md`, `[P2·L·⚙️]`). Do czasu jego powstania identyfikatorem jest ścieżka schematu + rozmiar, i to **musi być napisane na ekranie**, a nie odkryte przy zgłoszeniu (`ROADMAP.md`). Czy sterowniki wystawiają dziś jakikolwiek taki kanał — **[NIEZWERYFIKOWANE]** (A5) |
 | Skrypty `%pre`/`%post` w pliku odpowiedzi | **odrzucone** | D8, wariant 11 |
-| Podpisany profil weryfikowany **na urządzeniu** | **DO ZBUDOWANIA** (`M`) | podpis hostowy **JEST** (`tools/eos-repo-sign`, ADR-0004); klient weryfikuje manifest, nie profile. Pozycja `R-603e` (`ROADMAP-v2.md:898`), wymaga `R-711` |
+| Podpisany profil weryfikowany **na urządzeniu** | **DO ZBUDOWANIA** (`M`) | podpis hostowy **JEST** (`tools/eos-repo-sign`, ADR-0004); klient weryfikuje manifest, nie profile. Pozycja `R-603e` (`ROADMAP.md`), wymaga `R-711` |
 | Keyring i unieważnianie kluczy profili | **NOWY PODSYSTEM** | ta sama praca co `R-711`; bez niej podpis profilu jest **nieodwoływalny** |
 | Trwały dziennik audytu instalacji | **NOWY PODSYSTEM** | znalezisko `C-9` **[za briefem]**; `/etc/eos/install-answers.toml` go **nie zastępuje** — patrz *Czego ta architektura NIE robi* |
 | Wiązanie profilu z TPM2 / measured boot | **NIEREALNE DZIŚ** | `R-913` / `V2-N02`; brak TPM w obrazie, non-goal w ADR-0005, rozliczone w ADR-0010 §3.4 |

@@ -59,7 +59,7 @@ cp "$REPO"/repo.toml "$REPO"/*.pkgar "$stage/pkg/$TARGET/"
   echo "/etc/pkg/eos-repo-sign.pub.toml inside the image, so a missing or invalid index"
   echo "signature is a **fatal** error on the paths that check it, not a warning."
   echo
-  echo "Read the limits honestly, because they are real (ROADMAP-v2 V2-MS13/14/15):"
+  echo "Read the limits honestly, because they are real (ROADMAP.md V2-MS13/14/15):"
   echo "* The index hashes are **not yet enforced against the bytes that get installed**, so a"
   echo "  host able to serve its own id_ed25519.pub.toml can still substitute package content."
   echo "* \`pkg install <name>\` does not check the index at all today -- only \`update\` and \`-a\` do."

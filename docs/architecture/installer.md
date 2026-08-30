@@ -34,7 +34,7 @@ Druga połowa była błędna i miała koszt: kazała oznaczać jako niesprawdzal
 sprawdzone. `make` buduje z **osobnego klonu w `/work/redox`** (`CLAUDE.md` §20.1), gdzie
 `recipes/*/source` jest rozwinięte — i stamtąd pochodzą cytaty ze źródła w tym dokumencie oraz
 w `ADR-0007`…`ADR-0011`. Oznaczam je **[ze źródła]**. Cytat z rejestru (`ROADMAP.md`,
-`ROADMAP-v2.md`, `CHANGELOG.md`, harness) zostaje bez znacznika — to domyślne źródło.
+`ROADMAP.md`, `CHANGELOG.md`, harness) zostaje bez znacznika — to domyślne źródło.
 **[zmierzone]** oznacza pomiar wykonany na zbudowanym artefakcie z `~/eos-artifacts/`; komenda
 jest podana przy każdym takim twierdzeniu, żeby dało się je obalić.
 
@@ -55,7 +55,7 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 | ścieżka szybka (kopia blokowa z RAM) | `try_fast_install()`, `installer.rs:765`; naprawiona w `U-176` (`eos-installer c8d32ad`) |
 | front-end tekstowy | **binarka** `redox_installer_tui` — **ta nazwa**, nie `installer_tui` (`scripts/ci-install-smoke.sh:23`); **plik źródłowy** to `src/bin/installer_tui.rs` [ze źródła]. Mylenie binarki z plikiem źródłowym kosztowało już jeden przebieg harnessu — dlatego oba są wypisane |
 | front-end graficzny | `recipes/gui/installer-gui`, manifest `redox-installer-gui`, `binary=/usr/bin/redox_installer_gui`, `author=Jeremy Soller` (upstream) |
-| silnik jest biblioteką, frontendy są trzy | `src/lib.rs` + `src/bin/installer.rs` (CLI budowania) + `src/bin/installer_tui.rs` (TUI); GUI to osobny crate w `gui/` z `redox_installer = { path = ".." }`, rysujący na natywnych prymitywach Redoksa — **bez Slinta/iced/egui** [ze źródła]. Granica silnik/frontend dziś **przecieka**: `installer_tui` ma własne `disk_paths()` i `choose_disk()` → `ROADMAP-v2` §12.5 `R-603a` |
+| silnik jest biblioteką, frontendy są trzy | `src/lib.rs` + `src/bin/installer.rs` (CLI budowania) + `src/bin/installer_tui.rs` (TUI); GUI to osobny crate w `gui/` z `redox_installer = { path = ".." }`, rysujący na natywnych prymitywach Redoksa — **bez Slinta/iced/egui** [ze źródła]. Granica silnik/frontend dziś **przecieka**: `installer_tui` ma własne `disk_paths()` i `choose_disk()` → `ROADMAP.md` §6.4 `R-603a` |
 | artefakty budowania | `mk/disk.mk`: `harddrive.img` (cel w `:3`), `redox-live.iso` (`:20`), `filesystem.img` (`:37`) |
 | **oba obrazy są hybrydami MBR + GPT + ISO 9660** | **[zmierzone]** na `~/eos-artifacts/eos-x86_64-live.iso` i `…-harddrive.img`: kod x86 pod offsetem 0, `EFI PART` pod 512, `CD001` pod 0x8001, deskryptor El Torito pod 0x8800; `file` → `ISO 9660 CD-ROM filesystem data (DOS/MBR boot sector) 'Redox OS' (bootable)`. Szczegóły i to, czego z tego **nie** wynika — §1.2 pkt 13 |
 | układ partycji, jaki instalator tworzy dziś | **[zmierzone]** (`python3`, odczyt nagłówka GPT z LBA 1 i tablicy z LBA 2): **dokładnie trzy** partycje — `BIOS` 1 MiB (LBA 34–2047, typ `21686148-6449-6E6F-744E-656564454649`), `EFI` **1 MiB** (LBA 2048–4095), `REDOX` 1397 MiB (typ `0fc63daf-8483-4772-8e79-3d69d8477de4`, czyli *Linux filesystem data*). Zgadza się z odczytem `installer.rs:565-660` cytowanym w `system-updates.md` §1.4 |
@@ -204,7 +204,7 @@ skoro obraz jest hybrydowy; **nikt tego nie sprawdził**, więc do czasu przebie
 i `ARCHS=(i686 x86_64)` — `R-F28`. Zbuduje i skopiuje cudze obrazy.
 
 **15. Zero pomiarów ze sprzętu.** `docs/plan-do-sprzetu.md`: *„Nic w tym repozytorium nigdy nie
-działało na fizycznym sprzęcie — każda weryfikacja to QEMU"*. `ROADMAP-v2.md` §1.3 powtarza:
+działało na fizycznym sprzęcie — każda weryfikacja to QEMU"*. `ROADMAP.md` §14.1 powtarza:
 *„`R-601` udowodnione wyłącznie pod QEMU/TCG"*.
 
 **16. Braki systemowe, które ograniczają nośnik instalacyjny.** Brak Wi-Fi, brak zapory (`C-10`),
@@ -229,7 +229,7 @@ wznawialności, identyfikacji dysku, tożsamości maszyny ani jednego uruchomien
 
 **Jeden artefakt nośnika na architekturę:** `eos-<wersja>-<arch>-installer.img` — obraz hybrydowy
 (MBR + GPT + atrapa ISO 9660), zapisywany przez `dd`. To jest pozycja **`R-611a`**
-(`ROADMAP-v2` §12.4) — nie zakładam dla niej nowej nazwy.
+(`ROADMAP.md` §6.3) — nie zakładam dla niej nowej nazwy.
 
 **Uzasadnienie poprawione po pomiarze z §1.2 pkt 13.** Pierwsza wersja uzasadniała zmianę nazwy
 tym, że „plik nie jest ISO". To było fałszywe. Powód, który zostaje i wystarcza: rozszerzenie
@@ -293,7 +293,7 @@ Projekt ma **pięć warstw kluczy** (`docs/reference/keys-and-tokens.md` §6a). 
 
 **Decyzja:** nośnik instalacyjny wchodzi do **warstwy 4**, czyli do istniejącego
 `scripts/make-release.sh`, przez rozszerzenie jego pętli o drugi artefakt na architekturę.
-**Nie tworzymy drugiego mechanizmu podpisu.** To jest pozycja **`R-611b`** (`ROADMAP-v2` §12.4).
+**Nie tworzymy drugiego mechanizmu podpisu.** To jest pozycja **`R-611b`** (`ROADMAP.md` §6.3).
 Konkretna zmiana:
 
 ```
@@ -318,7 +318,7 @@ kończy skrypt kodem ≠ 0 z nazwą brakującego pliku, tak samo jak dziś dla `
 
 **Znacznik: DO ZBUDOWANIA**, rozszerzenie `R-601` i zadania `build-image`. W rejestrze rozpisane
 jako **`R-601a`** (budowanie i eksport nośnika), **`R-601b`** (harness startuje **z nośnika** i
-jest wpięty w CI) i **`R-601c`** (ten sam harness na x86_64) — `ROADMAP-v2` §12.4. Nie zakładam
+jest wpięty w CI) i **`R-601c`** (ten sam harness na x86_64) — `ROADMAP.md` §6.3. Nie zakładam
 dla tego nowej pozycji.
 
 Do `.gitlab-ci.yml`, zadanie `build-image` (runner `eos-heavy`), po `make CI=1 all`:
@@ -548,7 +548,7 @@ Ograniczenia, które nośnik odziedziczy i o których musi mówić prawdę:
 | `pcid` skanuje tylko bus 0, 0x80 i mostki — brak wielosegmentowego ECAM/MCFG | `R-809` |
 | urządzenia platformowe ACPI/DT są **enumerowane, ale nigdy nie wiązane** | `R-808` |
 | `hwd` uruchamia `acpid` tylko na backendzie ACPI — na aarch64/DT nie startuje | `R-811` |
-| katalog jest wewnętrznie niespójny: `ac97d`, `vboxd`, initfs `ahcid`/`ided` wskazują na binaria **nieobecne** na aarch64 | `R-803`, `ROADMAP-v2` §3.2 |
+| katalog jest wewnętrznie niespójny: `ac97d`, `vboxd`, initfs `ahcid`/`ided` wskazują na binaria **nieobecne** na aarch64 | `R-803`, `ROADMAP.md` §8.2 |
 | brak trwałej listy „urządzenie jest, sterownika brak" | `R-807` |
 
 **Decyzja S1 — instalator wypisuje inwentarz przed instalacją.** Ekran „Ten komputer" z listą:
@@ -598,7 +598,7 @@ sieci po instalacji, i instalator ma to powiedzieć **przed** instalacją, nie p
 Stan faktyczny jest ubogi i lepiej to napisać, niż udawać:
 
 - Nie ma czytnika ekranu, syntezy mowy ani interfejsu Braille'a. **NOWY PODSYSTEM** (wymaga
-  najpierw działającego wyjścia audio — `ihdad` ma timeout RIRB w QEMU, `ROADMAP-v2` §3.1).
+  najpierw działającego wyjścia audio — `ihdad` ma timeout RIRB w QEMU, `ROADMAP.md` §8.1).
 - Nie ma trybu wysokiego kontrastu ani skalowania interfejsu jako opcji instalatora.
   **DO ZBUDOWANIA** — Orbital renderuje programowo, więc to praca w warstwie interfejsu.
 - Pełna obsługa klawiaturą w `installer-gui`: **`[NIEZWERYFIKOWANE]`** — sprawdzić w
@@ -772,7 +772,7 @@ do `R-913` / `V2-N02`. Format nagłówka RedoxFS jest **bliżej LUKS-a**, niż w
 | zamówione | stan |
 |---|---|
 | **LVM** | **NIEREALNE DZIŚ** — nie ma warstwy device-mapper ani niczego, co by nią było |
-| **RAID programowy** | `raid1d` **JEST** w obrazie — autorski komponent E-OS, nie upstream, z trybem zdegradowanym i resyncem (`ROADMAP-v2` §3.1). **Ale instalator nie umie na niego instalować** → **DO ZBUDOWANIA** |
+| **RAID programowy** | `raid1d` **JEST** w obrazie — autorski komponent E-OS, nie upstream, z trybem zdegradowanym i resyncem (`ROADMAP.md` §8.1). **Ale instalator nie umie na niego instalować** → **DO ZBUDOWANIA** |
 | RAID 0/5/10 z parzystością | **DO ZBUDOWANIA** — `V2-D04` / `R-912`, dwa dyski w QEMU wystarczą do testu |
 
 Uwaga historyczna, bo oszczędza czyjś tydzień: teoria, że `raid1d` „trzyma" dysk docelowy
@@ -810,7 +810,7 @@ Rozszerzenie, nie duplikat. `R-604` żąda: model i rozmiar dysku, wykrycie istn
 partycji/innych systemów, oraz **wpisanie nazwy urządzenia** jako potwierdzenia. Dokładam trzy
 rzeczy, których tam nie ma — w rejestrze rozpisane jako `R-604a` (identyfikacja dysku
 i potwierdzenie przez przepisanie ścieżki), `R-604b` (ekran różnicowy) i `R-604c` (odmowa
-niebezpiecznych celów), `ROADMAP-v2` §12.4–§12.5:
+niebezpiecznych celów), `ROADMAP.md` §6.3, §6.4:
 
 **Zastrzeżenie do „modelu i numeru seryjnego", którego `R-604` nie stawia, a które trzeba
 postawić:** dziś nie ma czym ich odczytać. `disk_paths()` zwraca **wyłącznie ścieżkę
@@ -854,11 +854,11 @@ Dla każdej fazy piszę, jak wygląda jej porażka i co ją wywołuje.
 **To jest odwrócenie dzisiejszej kolejności** i jest to zmiana o najlepszym stosunku wartości do
 kosztu w całym dokumencie: przenosi ryzyko z *„komputer nie startuje"* do *„instalacja się nie
 udała, spróbuj jeszcze raz"*. W rejestrze: **`R-612a`** (odwrócenie kolejności, `[P0·S·🖥️]`),
-**`R-612b`** (faza weryfikacji), **`R-613`** (suma na ścieżce blokowej) — `ROADMAP-v2` §12.4–§12.5.
+**`R-612b`** (faza weryfikacji), **`R-613`** (suma na ścieżce blokowej) — `ROADMAP.md` §6.3, §6.4.
 
 ### 6.3 Dziennik instalacji
 
-**Znacznik: DO ZBUDOWANIA** — pozycja **`R-612c`** (`ROADMAP-v2` §12.5).
+**Znacznik: DO ZBUDOWANIA** — pozycja **`R-612c`** (`ROADMAP.md` §6.4).
 
 - Lokalizacja: `EFI/EOS/install-journal.toml` na ESP dysku docelowego. Wybór ESP jest celowy —
   to jedyna partycja, którą **da się odczytać z zewnątrz** (FAT czyta każdy system), zanim
@@ -895,7 +895,7 @@ całego skopiowanego obszaru, porównana z sumą obrazu wyliczoną przy budowani
 w warstwie 4. Bez tego szybka ścieżka jest szybka **i nieweryfikowana**, a wybieramy ją
 domyślnie, bo różnica to 6 minut wobec 6,8 godziny.
 
-To jest pozycja **`R-613`** (`ROADMAP-v2` §12.5, `[P0·M·🖥️]`) — nie zakładam dla niej nowej nazwy.
+To jest pozycja **`R-613`** (`ROADMAP.md` §6.4, `[P0·M·🖥️]`) — nie zakładam dla niej nowej nazwy.
 
 **Jak ta weryfikacja zawodzi.** Suma liczona **z tego samego bufora w RAM**, z którego szedł
 zapis, nie wykrywa niczego — potwierdzi tylko, że pamięć jest sama sobie równa. Kontrola ma
@@ -1046,7 +1046,7 @@ codziennego użytku to nie jest pozycja opcjonalna.
 
 **Aktualizacja:** pierwsza wersja tej sekcji stwierdzała, że nie ma dla tego pozycji `R-*`
 i że jest to luka także w roadmapie. Luka **została zamknięta w reakcji na ten dokument** —
-pozycja to **`R-615`** (`ROADMAP-v2` §12.5, **NOWY PODSYSTEM**, `[P2·XL·🖥️]`). Zdanie zostaje
+pozycja to **`R-615`** (`ROADMAP.md` §6.4, **NOWY PODSYSTEM**, `[P2·XL·🖥️]`). Zdanie zostaje
 tu widoczne razem z poprawką, bo pokazuje, skąd wzięła się pozycja. Cytując ją, **nie zakładaj
 drugiej nazwy dla tej samej pracy.**
 
@@ -1078,7 +1078,7 @@ osobne `/home` jako domyślne przy dyskach ≥ 256 GiB, a nie chować to w trybi
 
 ### 8.4 Sprawdzenie nośnika
 
-**DO ZBUDOWANIA** — pozycja **`R-614a`** (`ROADMAP-v2` §12.5). Pozycja menu licząca sumę SHA-256
+**DO ZBUDOWANIA** — pozycja **`R-614a`** (`ROADMAP.md` §6.4). Pozycja menu licząca sumę SHA-256
 nośnika i porównująca ją z `SHA256SUMS` wiezionym na tym samym nośniku, którego podpis minisign
 weryfikujemy kluczem `keys/eos-release.pub`. Zamienia zgłoszenie *„instalator się wywala"*
 w *„nośnik jest uszkodzony"* — czyli w informację.
@@ -1113,7 +1113,7 @@ z `redox-live.iso`, `EOS_SMOKE_MEM=4096`, emulacja TCG.
 Braki, które proponuję domknąć **pod tym samym identyfikatorem** — w rejestrze rozpisane jako
 `R-601a` (nośnik w CI), `R-601b` (harness z nośnika), `R-601c` (x86_64), `R-601d` (parytet
 GUI↔TUI) i `R-601e` (brakujące przypadki: FDE, przerwanie, dwa dyski, 4Kn, BIOS),
-`ROADMAP-v2` §12.4–§12.5:
+`ROADMAP.md` §6.3, §6.4:
 
 | brak | dowód | koszt |
 |---|---|---|
@@ -1143,7 +1143,7 @@ na prawdziwym firmware i jest `[P2·M·metal]`. Poniżej jej proponowana treść
 |---|---|---|---|
 | 1 | firmware | UEFI + Secure Boot **wł.** z wgranym certyfikatem; UEFI + SB **wył.**; legacy BIOS | trzy różne ścieżki kodu i trzy różne klasy awarii |
 | 2 | producent firmware | AMI, Insyde, Phoenix | interpretacje UEFI różnią się właśnie tu |
-| 3 | dysk docelowy | NVMe (`nvmed`), SATA/AHCI (`ahcid`), USB (`usbscsid`) | `ahcid`/`ided` **nie istnieją na aarch64** (`ROADMAP-v2` §3.2) |
+| 3 | dysk docelowy | NVMe (`nvmed`), SATA/AHCI (`ahcid`), USB (`usbscsid`) | `ahcid`/`ided` **nie istnieją na aarch64** (`ROADMAP.md` §8.2) |
 | 4 | rozmiar sektora | 512e, **4Kn** | `R-607` — dziś zawsze raportowane 512 |
 | 5 | CPU | Intel, AMD | ścieżki ACPI i mikrokod różnią się |
 | 6 | GPU | Intel iGPU, AMD, NVIDIA | oczekiwany wynik: **wszystkie przez firmware framebuffer** (`vesad`/GOP); brak modesettingu |
@@ -1287,7 +1287,7 @@ Jeden znacznik na wiersz. Bez znacznika dokument byłby niekompletny.
 | harness instalacji w QEMU | **JEST** | `R-601`, PASS 3× (`U-176`) |
 | panel sieciowy w instalatorze | **JEST** | `R-902`, `U-132` |
 | wymuszenie zmiany hasła przy pierwszym logowaniu | **JEST** | `R-602`, `U-076`/`U-077`/`U-079` |
-| `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP-v2` §3.1; instalacja na niego — nie |
+| `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP.md` §8.1; instalacja na niego — nie |
 | nośnik instalacyjny w wydaniu (suma + podpis) | **DO ZBUDOWANIA** | rozszerzyć `make-release.sh` (§2.4) |
 | nośnik instalacyjny budowany i testowany w CI | **DO ZBUDOWANIA** | `grep` → 0 trafień; rozszerzenie `R-601` (§2.5) |
 | hybrydowe ISO (MBR + GPT + ISO 9660 + El Torito) | **JEST** | **[zmierzone]** §1.2 pkt 13; **korekta** — pierwsza wersja tabeli mówiła „DO ZBUDOWANIA, `xorriso`" i była błędna |
@@ -1361,7 +1361,7 @@ Lista jest częścią dokumentu, nie przypisem do niego.
 6. **Czy `installer-gui` da się obsłużyć wyłącznie klawiaturą** (§4.5).
 7. **Czy w drzewie są tablice układów klawiatury** (§4.6) — sprawdzić `eos-orbital`, `eos-orbdata`.
 8. **Czy da się zaktualizować mikrokod CPU** (§4.3) — sprawdzić `eos-kernel`, `src/arch/x86_64`.
-9. **Liczba sterowników.** Brief podaje 16; tabela `ROADMAP-v2` §3.1 wymienia więcej nazw, część
+9. **Liczba sterowników.** Brief podaje 16; tabela `ROADMAP.md` §8.1 wymienia więcej nazw, część
    warunkowo po architekturze i część wskazującą na nieobecne binaria (`R-803`). Nie
    przeliczałem tego w `base.pkgar` i nie podaję liczby.
 10. ~~**Rozmiar ESP tworzonego dziś przez instalator.**~~ **Rozstrzygnięte pomiarem:** ESP ma
@@ -1455,7 +1455,7 @@ budującej, i nie ma żadnego przebiegu na prawdziwym sprzęcie za sobą.
 - Mechanizm aktualizacji: [`ADR-0009`](../adr/0009-system-update-mechanism.md)
 - Stos szyfrowania (**koryguje §5.4**): [`ADR-0010`](../adr/0010-encryption-stack.md)
 - Architektura kreatora: [`ADR-0011`](../adr/0011-installer-wizard-architecture.md)
-- Pozycje roadmapy dla wszystkiego, co ten dokument proponuje: `ROADMAP-v2.md` §12.4 (M1) i
+- Pozycje roadmapy dla wszystkiego, co ten dokument proponuje: `ROADMAP.md` §6.3 (M1) i
   §12.5 (M2–M8) — `R-601a`…`R-601e`, `R-604a`…`R-604d`, `R-607a`/`R-607b`, `R-611a`…`R-611d`,
   `R-612a`…`R-612d`, `R-613`, `R-614a`…`R-614c`, `R-615`
 - Podpis manifestu: [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md)

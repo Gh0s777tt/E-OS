@@ -6,7 +6,7 @@
   `docs/architecture/system-updates.md` §1.1–§1.5, §3.2, §4.1–§4.3, §6.3, §8.5;
   `docs/architecture/installer.md` §5.2, §5.3, §7.3; `recipes/core/kernel/recipe.toml:14`,
   `:19-24`; `recipes/core/base/recipe.toml:26-27`; `mk/ci.mk:7`; `config/x86_64/ci.toml:215`;
-  `scripts/ci-integrity.sh`; `ROADMAP-v2.md` §3.1, §9.4, §9.5, §12.1, §12.5–§12.8;
+  `scripts/ci-integrity.sh`; `ROADMAP.md` §8.1, §6.2, §5.3, Annex B, §6.4, §6.5;
   `ADR-0008` §D4
 - **Zakres:** wybór mechanizmu aktualizacji systemu E-OS, wymuszona kolejność prac i klasy
   aktywacji pakietów.
@@ -48,7 +48,7 @@ dziennika i bez siatki bezpieczeństwa**. Pięć faktów, każdy sprawdzalny, wy
 2. **Baza pakietów zapisywana jest nieatomowo** — `std::fs::write` bez `tmp`+`rename`+`fsync`
    (`pkg-lib` `src/package_state.rs:95`). Przerwanie zostawia `/etc/pkg/packages.toml` obcięty
    albo pusty, czyli system, który **nie wie, co ma zainstalowane**. To jest gorsze od przerwanej
-   pętli rename, bo niszczy metadane, a nie zawartość. Opis `R-706` w `ROADMAP-v2.md` §9.5 tego
+   pętli rename, bo niszczy metadane, a nie zawartość. Opis `R-706` w `ROADMAP.md` §5.3 tego
    nie wymienia; §12.5 (kamień M5) **już tak** — „atomowy zapis `packages.toml`/`repo-state.toml`"
    jest tam wpisany jako `R-706` (część).
 3. **Jądro i initfs podmieniają się w locie.** Leżą pod `/usr/lib/boot/` w tym samym RedoxFS-ie,
@@ -89,7 +89,7 @@ nieprawda i akurat na tym, co jest, stoi decyzja D1.
 |---|---|---|
 | Podpis per pakiet | **JEST** | pkgar: ed25519 nad nagłówkiem + blake3 każdego wpisu (`pkgar-core` `Header::new` → `crypto_sign_open`; `system-updates.md` §0, §3.1) |
 | Podpisane metadane repozytorium | **JEST**, z zastrzeżeniem | `repo.toml.sig`, hybryda ed25519 + ML-DSA-65 (`ADR-0004`, `tools/eos-repo-sign`). Na urządzeniu weryfikowana jest **tylko połowa ed25519** (`system-updates.md` §3.1) |
-| Przypięcie hasza pakietu do podpisanego indeksu | **JEST** | `V2-MS13`/`V2-MS14` (`U-223`), egzekwowane **na bajtach** na każdej ścieżce włącznie z `install` (`ROADMAP-v2.md:62`, `:189`) |
+| Przypięcie hasza pakietu do podpisanego indeksu | **JEST** | `V2-MS13`/`V2-MS14` (`U-223`), egzekwowane **na bajtach** na każdej ścieżce włącznie z `install` (`ROADMAP.md`) |
 | Ochrona przed cofnięciem **indeksu** | **JEST**, ale zapis zapadki jest „best effort" | `V2-MS15`: `Repository::serial` + `Repository::expires`, zapadka w `check_manifest_freshness()`. Patrz §Kontekst p. 5 — zapis idzie przez `let _ = fs::write` |
 | Weryfikacja jądra i initfs przez bootloader | **JEST** | `V2-MS02`, udowodnione z kontrolą negatywną (`U-212`): `recipes/core/kernel/recipe.toml:19-24`, `recipes/core/base/recipe.toml:26-27` |
 | Aktualizacja aplikacji bez restartu | **JEST** | `pkg` to robi dziś; problem jest nie w podmianie, tylko w braku transakcji (§Kontekst p. 1) |
@@ -104,7 +104,7 @@ nieprawda i akurat na tym, co jest, stoi decyzja D1.
 | Ochrona przed cofnięciem **pakietu** | **DO ZBUDOWANIA** | `R-704`; `package_serial` per pakiet w podpisanym indeksie — bez nowego klucza i bez nowego kanału zaufania |
 | Aktualizacje różnicowe | **DO ZBUDOWANIA** | pkgar w E-OS jest `Packaging::Uncompressed` i ma tablicę wpisów z `offset`+`size`+`blake3`, więc jest adresowalny zakresami HTTP bez nowego formatu delty (`system-updates.md` §2.3). **Warunkowo** — patrz §Jak ta decyzja zawodzi p. 4 |
 | Kontrola pasma i wznawialne pobieranie | **DO ZBUDOWANIA** | pobieranie to `curl -sSL` jako proces potomny, bez `--limit-rate` i bez `-C -` (`system-updates.md` §0, §2.5). Dwie flagi, nie architektura |
-| Rotacja i unieważnianie kluczy na urządzeniu | **DO ZBUDOWANIA** | `R-711`: pkgar wiąże pakiet z **dokładnie jednym** kluczem w nagłówku, bez keyringu i bez listy unieważnień (`ROADMAP-v2.md:511`) |
+| Rotacja i unieważnianie kluczy na urządzeniu | **DO ZBUDOWANIA** | `R-711`: pkgar wiąże pakiet z **dokładnie jednym** kluczem w nagłówku, bez keyringu i bez listy unieważnień (`ROADMAP.md`) |
 | Kanały stable / testing / edge | **DO ZBUDOWANIA** | gałąź `lts/0.1` istnieje (`R-1002`), reszta to konfiguracja `/etc/pkg.d/` (`system-updates.md` §7.1) |
 | Lustra offline | **DO ZBUDOWANIA** | `pkg-lib` obsługuje już źródło lokalne (ścieżka bez zdalnych repozytoriów, `V2-MS14`) |
 | Wdrożenia etapowe (procent populacji) | **DO ZBUDOWANIA**, dziś zablokowane | wymaga tożsamości per maszyna, której nie ma: hostname to `eos` dla **każdej** instalacji — `R-606` |
@@ -144,14 +144,14 @@ należy zrewidować nowym ADR-em, a nie doklejką do tego.
 **D3. Sloty A/B pozostają celem, ale jako `R-710b`, po `R-707`.** A/B nie jest zmianą w systemie
 aktualizacji — jest **zmianą w układzie partycji**, czyli w instalatorze. Maszyna zainstalowana
 dziś nigdy nie dostanie slotów bez przepartycjonowania. Sprzężenie `R-710b` ↔ `R-609`
-**jest już w rejestrze i nie odkrywam go tutaj**: `ROADMAP-v2.md` §12.3 (M8 wymaga M2 i M4
+**jest już w rejestrze i nie odkrywam go tutaj**: `ROADMAP.md` §3.4 (M8 wymaga M2 i M4
 przez `R-609`), §12.7 (*„`R-609` staje się warunkiem `R-710b`"*) i graf w §12.8
 (`R-609 partycjonowanie ────→ E8 R-710b`). Ten ADR to sprzężenie potwierdza i czyni z niego
 warunek D1, nic więcej.
 
 **D4. Rozcięcie `R-710` na `R-710a`/`R-710b` jest przyjęte — ale nie jest ustanowione tutaj.**
 Zaproponował je `docs/architecture/system-updates.md` §1.5, a wiążącym uczyniła je już
-`ROADMAP-v2.md` §12.1 D4 (*„Adoptuję to rozcięcie jako wiążące"*), z zapisem w §12.6 i §12.7.
+`ROADMAP.md` Annex B D4 (*„Adoptuję to rozcięcie jako wiążące"*), z zapisem w §6.2.
 Ten ADR go używa w niezmienionym kształcie: `R-710a` — aktualizacje różnicowe, `[P2·M]`,
 **nie potrzebuje ani slotów, ani `R-707`**; `R-710b` — sloty A/B, `[P3·XL]`, potrzebuje `R-707`
 **i** `R-609`. To jest podpodział istniejącej pozycji, nie nowa nazwa dla tej samej pracy —
@@ -195,7 +195,7 @@ nadzorcę z D6. Kolizja numeracji jest realna: `docs/update-system-design.md` (s
 w rejestrze znaczy „**anti**-rollback"; znaczenia niemal przeciwne.
 
 **Ale rozstrzygnięcie już zapadło i ten ADR je przyjmuje, a nie otwiera na nowo.**
-`ROADMAP-v2.md` §12.1 ustala: (D1) wiążąca jest numeracja `ROADMAP.md`/`ROADMAP-v2.md` jako
+`ROADMAP.md` Annex B ustala: (D1) wiążąca jest numeracja `ROADMAP.md` jako
 rejestru projektu; (D2) starszych dokumentów **nie przenumerowujemy** — dostają nagłówek
 „NUMERACJA ARCHIWALNA" z tabelą odpowiedników, bo przepisanie identyfikatorów zerwałoby
 odsyłacze z `CHANGELOG.md`; (D4) w rodzinie `R-7xx` nie powstaje ani jeden nowy numer.
@@ -258,7 +258,7 @@ kryptograficznego poza weryfikacją podpisu**, i dokładnie o tyle są słabsze 
 
 **Żywe łatanie jądra.** Odrzucone: koszt porównywalny z resztą tej warstwy, przy powierzchni
 problemu **mniejszej niż na Linuksie**, bo sterowniki E-OS-a żyją w przestrzeni użytkownika
-i są zwykłymi pakietami — `ROADMAP-v2.md` §3.1 wylicza **16 kategorii** sterowników w obrazie
+i są zwykłymi pakietami — `ROADMAP.md` §8.1 wylicza **16 kategorii** sterowników w obrazie
 (binarek jest więcej, bo część kategorii ma po kilka). Właściwą inwestycją jest nadzorca zdolny
 zrestartować sterownik — i należy ona do toru `R-8xx`, nie `R-7xx`. Ten ADR numeru nie zakłada
 (D8); najbliższa istniejąca pozycja, `R-805`, dotyczy **wiązania urządzeń**, a nie cyklu życia
@@ -309,7 +309,7 @@ ma. Każda pozycja jest konsekwencją decyzji, nie brakiem do nadrobienia w tym 
 - **Nie daje aktualizacji na x86_64.** Nie ma tam aktywnego kanału (`C-4`, `R-701`). Dokument
   opisuje mechanizm dla obu architektur; jedna z nich nie ma dziś czego pobierać.
 - **Nie naprawia systemu plików uszkodzonego przez zanik zasilania.** Dziennik zna zamiar
-  transakcji, nie stan RedoxFS-a. `fsck` dla RedoxFS-a nie istnieje — `ROADMAP-v2.md` §12.6
+  transakcji, nie stan RedoxFS-a. `fsck` dla RedoxFS-a nie istnieje — `ROADMAP.md` §6.2
   zakłada na to osobną pozycję `R-615` (**NOWY PODSYSTEM**).
 - **Nie weryfikuje, że pobrany kod robi to, co mówi źródło.** Weryfikuje, że bajty zgadzają się
   z podpisanym indeksem. Powtarzalne budowanie, które dopiero łączy jedno z drugim, **nie jest
@@ -415,9 +415,9 @@ Sprawdzone w drzewie 2026-08-30, bez poleceń `git` (w tym zadaniu zabronione).
   samo, jak zakładał D2 — root to RedoxFS, brak migawek i subwoluminów, rezerwa pod slot B.
   Różnica, którą trzeba było naprawić: `ADR-0008` §D4 stawia próg rezerwy na **128 GiB**
   i ogon **24 GiB**, a nie 256 GiB — patrz D9. Poprawka jest widoczna, nie cicha
-  (`CLAUDE.md` §2 reguła 4). Ta sama uwaga dotyczy `ROADMAP-v2.md` §12.1 D6,
+  (`CLAUDE.md` §2 reguła 4). Ta sama uwaga dotyczy `ROADMAP.md` Annex B D6,
   która wciąż mówi „`docs/adr/` kończy się dziś na `ADR-0006`" i przypisuje `ADR-0008` inną
-  treść („kolejność transakcji instalacji"). **To jest do poprawienia w `ROADMAP-v2.md`**, nie tutaj.
+  treść („kolejność transakcji instalacji"). **To jest do poprawienia w `ROADMAP.md`**, nie tutaj.
 - **[NIEZWERYFIKOWANE] Wszystkie cytaty `plik:linia` z wnętrza forków.** `recipes/core/pkgar/`,
   `recipes/core/pkgutils/`, `recipes/core/installer/`, `recipes/core/redoxfs/`
   i `recipes/core/bootloader/` zawierają **wyłącznie** `recipe.toml` (sprawdzone: żaden katalog
@@ -443,8 +443,8 @@ Sprawdzone w drzewie 2026-08-30, bez poleceń `git` (w tym zadaniu zabronione).
 - **[NIEZWERYFIKOWANE] Treść znaleziska `C-4`** (i `C-11`, użytego w §„Przed czym nie chroni").
   `docs/audit/` zawiera tylko `AUDIT-2026-07-13.md` i `AUDIT-2026-08-14.md`;
   `03-security-audit-2026-08-30.md` leży na gałęzi `fix/p0-audit-findings`, której nie czytałem.
-  **Substancja `C-4` jest jednak potwierdzona w drzewie**: `ROADMAP-v2.md:502` (`R-701` 🟡 —
-  `50_eos` aktywne tylko na aarch64), `:933` i `:1024`. Za briefem idzie sam **numer**, nie fakt.
+  **Substancja `C-4` jest jednak potwierdzona w drzewie**: `ROADMAP.md` (`R-701` 🟡 —
+  `50_eos` aktywne tylko na aarch64). Za briefem idzie sam **numer**, nie fakt.
 
 ## Powiązania
 
@@ -459,5 +459,5 @@ Sprawdzone w drzewie 2026-08-30, bez poleceń `git` (w tym zadaniu zabronione).
   „brak niepilnowanego restartu"
 - [`docs/architecture/system-updates.md`](../architecture/system-updates.md) — pełny projekt
   warstwy; ten ADR rozstrzyga z niego wyłącznie wybór mechanizmu i kolejność
-- [`ROADMAP-v2.md`](../../ROADMAP-v2.md) §9.5, §12.1, §12.3, §12.5–§12.8 — rejestr pozycji
+- [`ROADMAP.md`](../../ROADMAP.md) §5.3, §3.4, §6.2, §6.4, §6.5, Annex B — rejestr pozycji
   `R-7xx`, rozstrzygnięcie kolizji numeracji i graf zależności

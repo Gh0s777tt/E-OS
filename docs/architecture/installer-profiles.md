@@ -17,7 +17,7 @@
   (tożsamość per-maszyna), `R-608` (dokumentacja zgodna z GUI), `R-609` (partycjonowanie ręczne),
   `R-610` (zależności builda instalatora na źródła E-OS), **`R-D13`** (katalog łańcuchów i18n —
   założona w rejestrze na wniosek §9 tego dokumentu). Rejestr rozpisał ten dokument na
-  `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP-v2.md` §12.5 („M4") i §12.7.
+  `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP.md` §6.2 i §6.4 („M4").
 - **Powiązane:** [`docs/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/install.md`](../getting-started/install.md) ·
   [`docs/encryption.md`](../guides/encryption.md) · [`docs/hardening.md`](../security/hardening.md) ·
   [`docs/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
@@ -81,7 +81,7 @@ Klasyfikacja samego materiału tego dokumentu jest w §8.
 > (dodatkowo `--skip-partition`, odpowiednik `general.skip_partitions`, pomija zapis tablic GPT).
 > Dowód jest w drzewie i nie wymaga źródeł instalatora: `mk/disk.mk` woła
 > `$(INSTALLER) $(INSTALLER_OPTS) -c $(FILESYSTEM_CONFIG) $@.partial`, a cel `redox-live.iso`
-> dokłada `--write-bootloader="$(BUILD)/bootloader-live.efi" --live`. `ROADMAP-v2.md` (`R-609b`)
+> dokłada `--write-bootloader="$(BUILD)/bootloader-live.efi" --live`. `ROADMAP.md` (`R-609b`)
 > używa już formy poprawnej. Pierwsza wersja tego dokumentu powieliła błąd z `install.md`
 > w trzech miejscach — czyli **ten sam rozjazd, który `R-608` ma zamknąć** (§7.2), tyle że
 > dokumentacja pomyliła się tu nie o funkcję, lecz o wiersz poleceń.
@@ -252,7 +252,7 @@ to jest celowe: zdolność, której nikt nie umie zmierzyć, byłaby warunkiem z
 
 **Stan faktyczny, bez upiększeń:** infrastruktury i18n w projekcie **nie ma**. `docs/plan.md` §2.1
 wymienia „katalog łańcuchów i18n" wśród braków, które w chwili pisania planu nie miały pozycji
-roadmapy; rejestr założył ją **później** jako `R-D13` (`ROADMAP-v2.md:917`, **NOWY PODSYSTEM**).
+roadmapy; rejestr założył ją **później** jako `R-D13` (`ROADMAP.md`, **NOWY PODSYSTEM**).
 `eos-control` ma polskie napisy **zaszyte w kodzie** (`settings.rs`), a dokumentacja jest po
 angielsku. Wcześniejsze
 twierdzenie, jakoby `CLAUDE.md` narzucał bramkę parzystości kluczy i18n, było **zmyślone** i
@@ -773,7 +773,7 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | 10 | Generowanie dokumentacji z tego samego źródła | **DO ZBUDOWANIA** | mdBook + `docs/SUMMARY.md` są; brakuje generatora. Rozszerzenie `R-608`. **S** |
 | 11 | Tryb nienadzorowany z pliku odpowiedzi | **DO ZBUDOWANIA** | Połowa **JEST**: `redox_installer <diskpath.img> --config=plik.toml` to już instalacja nienadzorowana sterowana plikiem. Brakuje resolvera, **zapisania pliku odpowiedzi przez kreator**, wczytania go przez TUI/GUI i reguły OOBE z `docs/plan.md` §2.3 (`R-602`, `R-603`). Ta sama praca co `R-609b` |
 | 12a | Łańcuchy w samym pliku profilu/funkcji (`[…text.<lang>]`, §3.4) | **DO ZBUDOWANIA** | Schemat działa bez katalogu zewnętrznego: `en` obowiązkowy (V-16), reszta opcjonalna, awaria wyszukania degraduje do widocznego identyfikatora z `⚠`. **S** |
-| 12b | Katalog łańcuchów i18n (zewnętrzny) + bramka parytetu kluczy | **NOWY PODSYSTEM** — poz. **`R-D13`** | **Nie istnieje żadna infrastruktura i18n.** `eos-control` ma napisy zaszyte w kodzie (`settings.rs`); wcześniejsze twierdzenie o bramce i18n w `CLAUDE.md` było zmyślone (`U-126`). Rejestr **założył już na to pozycję**: `ROADMAP-v2.md:917` i `:952` → `R-D13`, rodzina `R-Dxx`, bo brak dotyczy całej powłoki. **Cytuj `R-D13`, nie zakładaj drugiej pozycji** |
+| 12b | Katalog łańcuchów i18n (zewnętrzny) + bramka parytetu kluczy | **NOWY PODSYSTEM** — poz. **`R-D13`** | **Nie istnieje żadna infrastruktura i18n.** `eos-control` ma napisy zaszyte w kodzie (`settings.rs`); wcześniejsze twierdzenie o bramce i18n w `CLAUDE.md` było zmyślone (`U-126`). Rejestr **założył już na to pozycję**: `ROADMAP.md` → `R-D13`, rodzina `R-Dxx`, bo brak dotyczy całej powłoki. **Cytuj `R-D13`, nie zakładaj drugiej pozycji** |
 | 13 | Funkcja: szyfrowanie dysku (`disk.encrypt`) | **JEST** | RedoxFS AES-XTS-128, `[general] encrypt_disk`, zweryfikowane end-to-end 2026-07-11 na obu architekturach |
 | 13a | KDF woluminu: **Argon2id** | **JEST** | `src/key.rs` → `argon2::Algorithm::Argon2id`, `argon2::Version::V0x13`, wyjście 16 B, zależność `argon2 = "0.4"`; `docs/encryption.md` mówi to samo od strony użytkownika. **Jedyna pozycja ze słownika z §0, która istnieje.** Źródło w drzewie budowania (§11) |
 | 13b | Konfigurowalne parametry Argon2 (`m`, `t`, `p`) jako `[select.params]` | **DO ZBUDOWANIA** | `ParamsBuilder::new()` ustawia dziś **wyłącznie** `output_len`, więc parametry są domyślne i niekonfigurowalne. Zakres: zmiana w `key.rs` **plus** zapisanie parametrów w slocie, żeby odblokowanie wiedziało, czym wyprowadzać. Bez tej drugiej połowy podniesienie parametrów zamyka użytkownikowi dysk. **M** |
@@ -804,11 +804,11 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 > o stanie obecnym, nie propozycje, i oba pochodzą ze źródła RedoxFS w drzewie budowania (§11).
 
 > **Kolizja znaczników z sąsiednimi dokumentami — nazwana, nie zamieciona.**
-> `installer-wizard.md` §14 i `ROADMAP-v2.md` (`R-609c`) niosą dla profilu Ghost inne wartości
+> `installer-wizard.md` §14 i `ROADMAP.md` (`R-609c`) niosą dla profilu Ghost inne wartości
 > niż poz. 21 i 23 wyżej: *„Ghost — Tor: **NOWY PODSYSTEM**"* oraz *„Ghost — tryb amnezyjny /
 > anonimowość systemowa: **NIEREALNE DZIŚ**"*. Różnica jest w **zakresie**, nie w faktach, i póki
 > trzy dokumenty nie użyją jednej nazwy dla jednej zdolności, każde zdanie o Ghoście jest
-> dwuznaczne — ten sam rodzaj wady co kolizja `R-70x` opisana w `ROADMAP-v2.md` §12.1.
+> dwuznaczne — ten sam rodzaj wady co kolizja `R-70x` opisana w `ROADMAP.md` Annex B.
 >
 > - `net.tor` **w tym schemacie** znaczy *cały ruch przez Tor* — gwarancja, która wymaga zapory,
 >   a zapory nie ma (`R-904`, `C-10`); stąd **NIEREALNE DZIŚ** i `docs/plan.md` §3.2:
@@ -843,17 +843,17 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | `R-913` | **granica** | wiązanie z TPM poza zasięgiem; §6.7 |
 | `R-D08` | **ryzyko** | pełny przepływ live → greeter → `installer-gui` → instalacja nigdy nie był przejechany od końca do końca |
 | `R-D13` | **ta sama praca** | katalog łańcuchów i18n + bramka parytetu kluczy. §3.4 opisuje, co robimy **do czasu**, gdy powstanie: łańcuchy w pliku i degradacja do widocznego identyfikatora, nigdy do pustki |
-| `R-603c`, `R-608a`, `R-609a`, `R-609b`, `R-604d` | **rozpisanie w rejestrze** | `ROADMAP-v2.md` §12.5 („M4") i §12.7 rozpisały ten dokument na pozycje: dziedziczenie z blokadami, dokumentacja generowana, walidator, plik odpowiedzi, potwierdzenie per osłabienie. To jest **treść** tych pozycji, nie nowa praca — nie zakładaj równoległych numerów |
+| `R-603c`, `R-608a`, `R-609a`, `R-609b`, `R-604d` | **rozpisanie w rejestrze** | `ROADMAP.md` §6.2 i §6.4 („M4") rozpisały ten dokument na pozycje: dziedziczenie z blokadami, dokumentacja generowana, walidator, plik odpowiedzi, potwierdzenie per osłabienie. To jest **treść** tych pozycji, nie nowa praca — nie zakładaj równoległych numerów |
 
 Nowych identyfikatorów **nie proponujemy**. Jedyny brak, który pierwsza wersja tego dokumentu
 zgłosiła jako niemający pozycji — **katalog łańcuchów i18n** — został w międzyczasie założony
-w rejestrze jako **`R-D13`** (`ROADMAP-v2.md:917` i `:952`; rodzina `R-Dxx`, bo brak dotyczy całej
+w rejestrze jako **`R-D13`** (`ROADMAP.md`; rodzina `R-Dxx`, bo brak dotyczy całej
 powłoki, nie samego instalatora, i pozycja cytuje ten dokument z nazwiska). Zdanie *„roadmapa go
 nie ma"* było prawdziwe w chwili pisania i **jest już nieaktualne**; zostało zastąpione
 odsyłaczem, dokładnie po to, żeby nikt nie założył drugiej pozycji na tę samą pracę.
 `docs/plan.md` §2.1 nadal wymienia ten brak po stronie produktu.
 
-Rejestr prowadzi swoją stronę tego przypięcia w `ROADMAP-v2.md` §12.7. Gdy te dwie tabele się
+Rejestr prowadzi swoją stronę tego przypięcia w `ROADMAP.md` §6.2. Gdy te dwie tabele się
 rozjadą, **wiążąca jest roadmapa** — ona jest rejestrem projektu, ten plik jest specyfikacją.
 
 ---
@@ -913,7 +913,7 @@ Zgodnie z `CLAUDE.md` §2 regułą 3 — wymienione w tym samym oddechu co reszt
   (pierwsza wersja podała 1–10 i proponowała numer już zajęty). `CLAUDE.md:39` mówi o ośmiu —
   nieaktualny jest opis, nie skrypt. Rozjazd nie jest przedmiotem tego dokumentu, ale wpływa
   na numer nowej kontroli (§4.3).
-- **Znaczników z `installer-wizard.md` §14 i `ROADMAP-v2.md` `R-609c` nie uzgodniono** — kolizja
+- **Znaczników z `installer-wizard.md` §14 i `ROADMAP.md` `R-609c` nie uzgodniono** — kolizja
   zakresów dla `net.tor` i `sys.amnesia` jest opisana pod tabelą §8, ale nierozstrzygnięta.
 - **Nic z tego nie zostało uruchomione.** Przykłady w `examples/profiles/` sprawdzono wyłącznie
   parserem `tomllib` — parsują się. To dowodzi składni, **nie** zgodności ze schematem, bo

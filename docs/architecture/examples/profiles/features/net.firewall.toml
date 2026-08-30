@@ -14,7 +14,7 @@ arch     = ["x86_64", "aarch64"]
 
 stage    = "NOWY PODSYSTEM"
 evidence = """
-Nie istnieje żaden filtr pakietów. ROADMAP-v2 §9.7 `R-904`: „netstack wystawia
+Nie istnieje żaden filtr pakietów. ROADMAP.md §8.4 `R-904`: „netstack wystawia
 `ip`/`udp`/`tcp`/`raw` (raw włączony) z ZEROWYM filtrowaniem; dotkliwa luka jak na system
 security-first". Znalezisko audytu C-10 (brak zapory).
 Co trzeba ZBUDOWAĆ, a czego Redox nie ma: warstwa filtrująca wewnątrz procesu netstacka

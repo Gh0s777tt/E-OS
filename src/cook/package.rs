@@ -69,7 +69,7 @@ pub fn package(
                  break clients that already trust the recorded key (pkgar has no revocation).\n\
                  Restore build/id_ed25519.toml from the operator's off-repo copy, or -- if the \
                  key is genuinely gone -- delete keys/eos-pkg-signing.pub.toml deliberately, \
-                 rebuild, and re-publish (see ROADMAP-v2 V2-MS12).",
+                 rebuild, and re-publish (see ROADMAP.md V2-MS12).",
                 hex_pkey(&expected)
             )));
         }
