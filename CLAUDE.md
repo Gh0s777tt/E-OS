@@ -274,7 +274,9 @@ Trzy reguły, bez wyjątków:
    wtedy wiadomo, że kod się *wykonał*, nie że jest *sprawdzony*. Pokrycie mówi, czego
    **na pewno nie sprawdzono**; nie mówi, co sprawdzono dobrze.
 
-Bieżący stan, zmierzony: `tools/eos-repo-sign` — **41,06 % linii**, próg 38. Vendorowany
+Bieżący stan, zmierzony 2026-08-31 (`cargo llvm-cov --summary-only`): `tools/eos-repo-sign`
+— **41,06 % linii** (263 linie, 155 niepokrytych), **38,12 % regionów**, **33,96 % funkcji**;
+próg 38. Vendorowany
 cookbook — 9 testów, bez progu.
 
 ---
@@ -516,16 +518,31 @@ oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porów
 zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
 baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
 
-**Zmierzone 2026-08-30 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
+**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
 
 | przebieg | wynik | kod |
 |---|---|---|
-| `--fast` | 10 PASS · 0 FAIL · 1 `SKIPPED (could not run)` · 4 `SKIPPED (--fast)` | **2** |
-| pełny | 12 PASS · 0 FAIL · 3 `SKIPPED (could not run)` · 0 `SKIPPED (--fast)` | **2** |
-| `--fast --allow-missing` | to samo, ale brak pomiaru jest świadomy | **0** |
+| pełny, **przed** doinstalowaniem narzędzi | 13 PASS · 0 FAIL · 2 `SKIPPED (could not run)` | **2** |
+| pełny, **po** `cargo install cargo-llvm-cov cargo-deny` | **15 PASS · 0 FAIL · 0 SKIPPED** | **0** |
 
-Trzy `SKIPPED (could not run)` w pełnym przebiegu to `tar-pins` (bramki nie ma — niżej),
-`coverage` i `cargo-deny` (na tym hoście nie ma `cargo-llvm-cov` ani `cargo-deny`).
+Ta para wierszy jest tu celowo — pokazuje **kierunek**, nie samą liczbę (§5.10 reguła 2).
+Dwa `SKIPPED (could not run)` w pierwszym przebiegu to `coverage` i `cargo-deny`; obu
+narzędzi po prostu nie było na hoście, i dlatego skrypt kończył się kodem **2**
+(nie 1 — bramka nie znalazła wady, tylko nie mogła się wykonać).
+
+**Poprawka wobec zapisu z 2026-08-30 (§2 reguła 4).** Poprzednia wersja tej tabeli mówiła
+o **trzech** pominiętych etapach, w tym `tar-pins` „bramki nie ma". Bramka **jest** —
+`scripts/eos-check-tar-pins.py` powstał 2026-08-30 wieczorem, a ten akapit i tekst pomocy
+`verify.sh` nie zostały wtedy zaktualizowane. To ten sam koszt odkładania, o którym mówi
+§5.8, popełniony w dokumencie, który tego zakazuje.
+
+Bramka `tar-pins` przeszła **kontrolę mutacyjną** (§5.9 poziom 2), i to dwustopniową, bo
+pierwsze podejście było fałszywe: usunięcie `blake3` z `recipes/libs/atk` dało wyłącznie
+`advisory` i **exit 0** — `atk` nie leży w domknięciu obrazu, więc mutacja nie dotknęła
+ścieżki blokującej. Dopiero usunięcie `blake3` z `recipes/terminal/bash` (jedna z **15**
+receptur w domknięciu, które pinują tarball) dało **exit 1** z nazwą receptury; po
+przywróceniu — exit 0 i czyste drzewo. Mutacja, która trafia obok, wygląda dokładnie jak
+bramka, która nie działa; różnicę widać tylko wtedy, gdy się ją sprawdzi.
 
 Kontrola negatywna (`§4.1`), dwie, obie zmierzone, nie założone: po podmianie etapu
 `hadolint` na plik z błędnie sformułowaną instrukcją przebieg daje `hadolint FAIL` i
@@ -542,9 +559,10 @@ suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnoś
 `hadolint`, bo `lint.yml` `containerfiles` **blokuje** na `podman/*containerfile`, a
 `verify.sh` twierdził wcześniej, że żadne zadanie w tym drzewie hadolinta nie uruchamia.
 
-Ten jeden pominięty etap to `scripts/eos-check-tar-pins.py` — bramka, której łańcuch wymaga,
-a której **w drzewie nie ma**. To jest stan uczciwy, nie usterka skryptu: łańcuch pozostaje
-niekompletny, dopóki ktoś tej bramki nie napisze. Nie zamykaj tego przez `--allow-missing`.
+Łańcuch jest dziś **kompletny na tym hoście** — ale zieleń 15/15 kupiona jest tym, że ktoś
+doinstalował dwa narzędzia. Na czystej maszynie ten sam commit da 13 PASS i kod 2, i to jest
+zachowanie **poprawne**: brak skanera daje ten sam wynik co skaner wyłączony, więc skrypt
+odmawia nazwania tego zielonym. Nie zamykaj tego przez `--allow-missing`.
 
 **Znana flaga w vendorowanym manifeście — zmierzona, nie wywnioskowana.**
 `cook::cook_build::tests::file_system_loop_no_infinite_loop` pada na
