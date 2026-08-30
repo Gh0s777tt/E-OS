@@ -53,7 +53,7 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 - **U-182** — R-F19` domknięte ([`b378df96a`](https://gitlab.com/e-os/e-os/-/commit/b378df96a), `docs(roadmap): close R-F19 -- the entry had been contradicting itself (U-182)`)
 - **U-183** — R-701a` zweryfikowane w obrazie i zamienione w bramkę ([`9b78e3b06`](https://gitlab.com/e-os/e-os/-/commit/9b78e3b06), `ci(gates): keep the upstream package source disabled -- check 9 (U-183)`)
 - **U-186** — Audyt wszystkich drzew: 80 nieaktualnych migawek, zero utraconej pracy, i reguły w `CLAUDE.md` §20, żeby to się nie powtarzało ([`1522bf6bf`](https://gitlab.com/e-os/e-os/-/commit/1522bf6bf), `docs(hygiene): audit every tree, archive 80 stale snapshots, add CLAUDE.md 20 (U`)
-- **U-190** — docs/reference/keys-and-tokens.md ([`1a8abddb8`](https://gitlab.com/e-os/e-os/-/commit/1a8abddb8), `docs: one place for every token, starting with the one that needs none (U-190)`)
+- **U-190** — docs/tokeny.md ([`1a8abddb8`](https://gitlab.com/e-os/e-os/-/commit/1a8abddb8), `docs: one place for every token, starting with the one that needs none (U-190)`)
 - **U-201** — Audyt 143 twierdzeń o stanie projektu: 75 prawdziwych, 34 częściowo, 32 fałszywe ([`a7945205e`](https://gitlab.com/e-os/e-os/-/commit/a7945205e), `docs(audit): 143 claims checked -- 32 false; two hardware blockers were on no li`)
 - **U-202** — docs/plan-do-sprzetu.md ([`c0abcc1c6`](https://gitlab.com/e-os/e-os/-/commit/c0abcc1c6), `docs(plan): the road from QEMU to a physical PC, ordered by what unblocks what (`)
 - **U-203** — ROADMAP-v2.md` + strona ([`b0b6805fa`](https://gitlab.com/e-os/e-os/-/commit/b0b6805fa), `docs(roadmap): ROADMAP-v2 -- second-generation plan grounded in measurement (U-2`)
