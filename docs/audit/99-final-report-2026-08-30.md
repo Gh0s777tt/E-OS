@@ -145,7 +145,7 @@ W forkach kolejność jest dowolna, bo MR-y nie zachodzą na siebie; sensownie:
 | **Topics / description / pinned repos** | to zmiana konfiguracji 30 repozytoriów widoczna publicznie; wymaga decyzji, jak produkt ma być pozycjonowany, a nie mojego domysłu |
 | **Weryfikacja `R-607a` na dysku 4Kn** | urządzenia pętlowe niedostępne w kontenerze (brak `modprobe`, brak `/dev/loopN`); wymaga QEMU z `logical_block_size=4096` albo metalu |
 | **Zadanie 11 z M1 — pierwszy przebieg na metalu** | wymaga fizycznego peceta. Jedyne zadanie M1, które rozstrzyga o kryterium akceptacji |
-| **G-17 — jedna wersja produktu** | trzy pliki podają trzy różne wersje. `EOS_VERSION` w `mk/config.mk` rządzi **wyłącznie nazwą pliku**; uzgodnienie `/etc/os-release` to osobna decyzja |
+| **G-17 — jedna wersja produktu** | obraz mówi `0.1.0`, tag mówi `v0.2.0`. `EOS_VERSION` w `mk/config.mk` rządzi **wyłącznie nazwą pliku**; uzgodnienie `/etc/os-release` to osobna decyzja |
 | **`ring` i `number_prefix`** | `ring` bierzemy z forka Redoksa, którego najnowsza gałąź to `redox-0.17.8` — nie ma dokąd podbić. `number_prefix` jest nieutrzymywany i nie ma wersji naprawionej |
 
 ---
@@ -166,10 +166,31 @@ W forkach kolejność jest dowolna, bo MR-y nie zachodzą na siebie; sensownie:
 | Pokrycie `tools/eos-repo-sign` | 41,06 % linii | 41,06 % | niezmienione, ale **objęte bramką** `--fail-under-lines 38` |
 | Testy w produkcie | 18 | 28 | +3 `fetch_repo`, +3 `block_size`, +4 katalog pobierania |
 | Workflow'y CI | 0 | 8 (w MR !4) | żaden się nie wykonuje |
-| `.git` | 1,0 GB | 1,0 GB | urósł z powrotem po klonach i worktree; wymaga `git gc` |
+| `.git` | 1,0 GB | **135 MB** | `git gc --prune=now` plus usunięcie 51 sidecarów AppleDouble z `.git/objects/pack`, które git próbował czytać jako indeksy paczek; `git fsck` czysty |
 
 **Metryki, których nie podaję, bo nie da się ich zmierzyć:** wynik Scorecard, czas przebiegu
 CI, pokrycie dokumentacji w sensie automatycznym. Każda wymagałaby działającego CI.
+
+---
+
+## 4a. Dwie rzeczy znalezione już po napisaniu tego raportu
+
+**Sam popełniłem dryf, który tropię u innych.** Oznaczyłem zadania 1, 7 i 8 kamienia M1
+jako ✅ w `ROADMAP-v2.md`. Audyt dryfu (sekcja A.5) wykazał, że to nieprawda: `R-607a`
+i `R-612a` żyją w **niescalonych** MR-ach forka `eos-installer`, a
+`recipes/core/installer/recipe.toml:5` oraz `repos.toml:116` nadal przypinają
+`rev = c8d32ad39e…`, czyli commit sprzed tych poprawek. `R-611a` żyje na niescalonej
+gałęzi repozytorium głównego. Wszystkie trzy zmienione na 🚧 z wypisaniem, czego brakuje
+do ✅. **Pozycja oznaczona jako zrobiona, która nie jest, jest najgorszym rodzajem dryfu** —
+czytelnik przestaje ją sprawdzać.
+
+**Temat repozytorium przeczył zamkniętej pozycji roadmapy.** GitHub miał wśród tematów
+`cosmic-desktop`, podczas gdy `R-D12` (✅) brzmi *„Stop calling the session «the COSMIC
+desktop»"* — E-OS dostarcza trzy aplikacje COSMIC na serwerze `orbital`, nie pulpit COSMIC.
+Temat usunięty, listy tematów wyrównane między GitHubem a GitLabem. Zweryfikowane:
+`cosmic-desktop` nie występuje już w `gh api repos/Gh0s777tt/E-OS/topics`.
+Temat `wsl2` **zostawiony** — jest trafny, `docs/getting-started.md:12` wymienia
+Windows 11 + WSL2 jako wspierany host budowania.
 
 ---
 
@@ -203,7 +224,7 @@ CI, pokrycie dokumentacji w sensie automatycznym. Każda wymagałaby działając
    rozstrzyga, czy pendrive instaluje E-OS.
 6. **Rozstrzygnąć kolizje numeracji `R-70x` i `R-80x`** (dwa dokumenty projektowe używają
    tych samych identyfikatorów na inną pracę; przy `R-704` znaczenia są niemal przeciwne).
-7. **Uzgodnić wersję produktu** (`G-17`): trzy pliki, trzy różne wartości, tag v0.2.0.
+7. **Uzgodnić wersję produktu** (`G-17`): obraz raportuje `0.1.0` (`config/{x86_64,aarch64}/eos.toml`), a ostatni tag to `v0.2.0`. `config/base.toml:104` z `0.9.0` **nie należy do tej listy** — to wersja upstreamowego Redoksa pod `NAME="Redox OS"`, poprawnie podana w konfiguracji bazowej, którą konfiguracja E-OS nadpisuje. Wcześniejsza wersja tego raportu liczyła ją jako trzecią sprzeczną wartość i było to błędne.
 8. **Opublikować repozytorium pakietów x86_64** (`C-4`) — bez niego system nie ma jak
    dostać poprawek, a cała warstwa podpisów jest gotowa i nieużywana.
 9. **Naprawić niestabilny test** `file_system_loop_no_infinite_loop` (`C-23`) zamiast

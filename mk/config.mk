@@ -175,11 +175,15 @@ MOUNT_DIR=$(BUILD)/filesystem
 ## clone that `make` runs in carries its own tags — and an artefact whose NAME depends on
 ## clone state is the opposite of a reproducible build.
 ##
-## This disagrees with three other places, which is finding G-17 and is NOT fixed here:
-##   config/base.toml:104          VERSION_ID="0.9.0"
-##   config/x86_64/eos.toml:99     VERSION_ID="0.1.0"
+## This disagrees with the image, which is finding G-17 and is NOT fixed here:
+##   config/x86_64/eos.toml:99     VERSION_ID="0.1.0"   <- what a booted E-OS reports
 ##   config/aarch64/eos.toml:97    VERSION_ID="0.1.0"
-##   git tag (source of truth)     v0.2.0   <- this is what a user downloads, so this wins
+##   git tag (source of truth)     v0.2.0               <- what a user downloads
+##
+## NOT on that list, though an earlier version of this comment wrongly put it there:
+## config/base.toml:104 says VERSION_ID="0.9.0" under NAME="Redox OS". That is UPSTREAM
+## Redox's version, correctly stated, in the base config the E-OS config overrides. It is
+## not a fourth opinion about what version E-OS is.
 ## Reconciling them means deciding which one /etc/os-release should carry; that is its own
 ## change. Until then this variable governs the FILENAME only, and says so.
 EOS_VERSION?=0.2.0
