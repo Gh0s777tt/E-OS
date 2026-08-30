@@ -50,8 +50,8 @@ case "$ARCH" in
     echo "(qemu exited $?)"
     ;;
   aarch64)
-    IMG="build/aarch64/eos/redox-live.iso"
-    [ -f "$IMG" ] || { echo "no aarch64 live ISO — run: make ARCH=aarch64 CONFIG_NAME=eos build/aarch64/eos/redox-live.iso"; exit 1; }
+    IMG="$(make -s print-installer-medium ARCH=aarch64 CONFIG_NAME=eos PODMAN_BUILD=0)"
+    [ -f "$IMG" ] || { echo "no aarch64 installer medium — run: make ARCH=aarch64 CONFIG_NAME=eos live  # build/aarch64/eos/redox-live.iso"; exit 1; }
     echo "Booting $IMG (virt/TCG, -cpu cortex-a72, headless, ~520s)..."
     timeout 520 qemu-system-aarch64 -machine virt -cpu cortex-a72 -smp 1 -m 2048 \
       -bios /usr/share/AAVMF/AAVMF_CODE.fd -nographic -vga none \

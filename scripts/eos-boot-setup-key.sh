@@ -36,7 +36,7 @@ force_recook(){
     # measured, after a fork bump, as a build that never fetched the new revision and produced
     # an image from the previous code without one word of warning. The images are file targets
     # for the same reason, so they go too.
-    rm -f build/*/*/repo.tag build/*/*/harddrive.img build/*/*/redox-live.iso' 2>/dev/null || true
+    rm -f build/*/*/repo.tag build/*/*/harddrive.img build/*/*/eos-*-installer.img' 2>/dev/null || true
   echo "bootloader, kernel and base invalidated; repo.tag and images removed -- the next build re-cooks"
 }
 

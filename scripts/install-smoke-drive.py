@@ -139,7 +139,7 @@ class Console:
 
         `toggle_live` presses `l` first. It TOGGLES; it does not enable. Measured from the
         menu text itself, which states the action available rather than the current state:
-        booting redox-live.iso shows "Press l to disable live mode" (live is already ON),
+        booting the installer medium shows "Press l to disable live mode" (live is already ON),
         while harddrive.img shows "Press l to enable live mode" (live is OFF). Pressing `l`
         on the ISO therefore turns live mode OFF, and that run could not even log in --
         which is exactly what happened the first time I assumed the key would enable it.

@@ -25,11 +25,21 @@ inbox(){ podman run --rm -v "$VOL":/work localhost/redox-base:latest bash -lc "$
 echo "==> sync this repo into the build volume (the build tree is separate, see CLAUDE.md 20.1)"
 scripts/eos-sync-buildtree.sh --apply >/dev/null
 
+# Ask the build for the medium's filename instead of repeating the pattern here (R-611a).
+# The rename that introduced it touched 13 places in Makefile/mk and ~17 more in scripts,
+# redox.ipxe and docs; a second copy of the pattern would guarantee a third rename misses one.
+MEDIUM_NAME="$(inbox "cd /work/redox && make -s print-installer-medium ARCH=$ARCH CONFIG_NAME=eos PODMAN_BUILD=0" 2>/dev/null | tr -d '\r' | xargs -r basename)"
+if [ -z "$MEDIUM_NAME" ]; then
+  echo "!! could not read the installer-medium name from the build (make print-installer-medium)" >&2
+  exit 1
+fi
+echo "==> installation medium for this build: $MEDIUM_NAME"
+
 # `make all` is happy to say "Nothing to be done" and leave images from an EARLIER build in
 # place -- which once exported images carrying a throwaway Secure Boot signature minutes after
 # the operator's real key had been installed (U-210). An exported image is only trustworthy if
 # THIS run produced it, so stamp the images before the build and compare after.
-before="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/redox-live.iso 2>/dev/null | tr '\n' ' '" || true)"
+before="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/$MEDIUM_NAME 2>/dev/null | tr '\n' ' '" || true)"
 key_present="$(inbox 'test -f /work/redox/build/sb-signing/mok.crt && echo yes || echo no')"
 
 # Nothing in mk/*.mk builds the host tools: REPO_BIN is just a path to ./target/release/repo,
@@ -59,9 +69,9 @@ serial="$(git rev-list --count HEAD 2>/dev/null || true)"
 podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-limit=-1 \
   -v "$VOL":/work -v eos-root:/root --env PODMAN_BUILD=0 \
   --env EOS_REPO_SERIAL="$serial" localhost/redox-base:latest \
-  bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/redox-live.iso 2>&1 | tail -3"
+  bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/$MEDIUM_NAME 2>&1 | tail -3"
 
-after="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/redox-live.iso 2>/dev/null | tr '\n' ' '" || true)"
+after="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/$MEDIUM_NAME 2>/dev/null | tr '\n' ' '" || true)"
 if [ "$before" = "$after" ] && [ -n "$before" ]; then
   echo "!! make produced NOTHING: the images in the build tree are unchanged by this run."
   if [ "$key_present" = yes ]; then
@@ -100,8 +110,13 @@ echo "==> export image + live ISO"
 # not asked for. An artifact nobody can tell is broken is worse than one that is missing: check
 # the source first, stage through .partial, keep nothing empty, and fail loudly.
 export_rc=0
-for f in harddrive.img redox-live.iso; do
-  o="$OUT/eos-$ARCH-${f/redox-live.iso/live.iso}"
+for f in harddrive.img "$MEDIUM_NAME"; do
+  # The medium is already named eos-<ver>-<arch>-installer.img, so it is exported under its
+  # own name; only harddrive.img still needs the eos-<arch>- prefix bolted on.
+  case "$f" in
+    harddrive.img) o="$OUT/eos-$ARCH-$f" ;;
+    *)             o="$OUT/$f" ;;
+  esac
   if ! inbox "test -s $BUILD/$f" >/dev/null 2>&1; then
     echo "!! $f was not produced by this build -- NOT exporting $(basename "$o")"
     rm -f "$o"

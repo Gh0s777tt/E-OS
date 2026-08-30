@@ -4,8 +4,24 @@ fstools: $(FSTOOLS_TAG) $(FSTOOLS)
 
 GOING_TO_PODMAN_AGAIN?=0
 
+# The host tools are built from RECIPE sources, but $(FSTOOLS) is a DIRECTORY target whose
+# only prerequisites were order-only. Make therefore treats it as up to date the moment the
+# directory exists, so an edit to recipes/core/installer/source never rebuilt the binary that
+# writes every image.
+#
+# Measured, not assumed: after editing installer.rs, `make build/fstools.tag` printed
+# "'build/fstools.tag' is up to date", the follow-up build compiled only redox_cookbook, and
+# build/fstools/bin/redox_installer kept its Jul 5 timestamp. Every "verified" installer change
+# since then would have been verified against a stale binary.
+#
+# The sources are fetched, not tracked, so on a host that has never fetched them this expands
+# to nothing and the behaviour is exactly what it was. Inside the build container -- the only
+# place `make` actually runs -- it is the real dependency list.
+FSTOOLS_RECIPE_SRC := $(shell find recipes/core/installer/source recipes/core/redoxfs/source \
+    \( -name '*.rs' -o -name 'Cargo.toml' -o -name 'Cargo.lock' \) 2>/dev/null)
+
 # These tools run inside Podman if it is used, or on the host if Podman is not used
-$(FSTOOLS): | prefix $(CONTAINER_TAG) $(FSTOOLS_TAG)
+$(FSTOOLS): $(FSTOOLS_RECIPE_SRC) | prefix $(CONTAINER_TAG) $(FSTOOLS_TAG)
 ifeq ($(PODMAN_BUILD),1)
 ifeq ($(FSTOOLS_IN_PODMAN),1)
 	$(PODMAN_RUN) make $@

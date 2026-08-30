@@ -168,6 +168,35 @@ else
 endif
 BUILD=build/$(ARCH)/$(CONFIG_NAME)
 MOUNT_DIR=$(BUILD)/filesystem
+
+## Product version, and the single place it is written down for the build (R-611a).
+##
+## NOT derived from git. `git describe` in the build tree returns `roadmap-u066` — the
+## clone that `make` runs in carries its own tags — and an artefact whose NAME depends on
+## clone state is the opposite of a reproducible build.
+##
+## This disagrees with the image, which is finding G-17 and is NOT fixed here:
+##   config/x86_64/eos.toml:99     VERSION_ID="0.1.0"   <- what a booted E-OS reports
+##   config/aarch64/eos.toml:97    VERSION_ID="0.1.0"
+##   git tag (source of truth)     v0.2.0               <- what a user downloads
+##
+## NOT on that list, though an earlier version of this comment wrongly put it there:
+## config/base.toml:104 says VERSION_ID="0.9.0" under NAME="Redox OS". That is UPSTREAM
+## Redox's version, correctly stated, in the base config the E-OS config overrides. It is
+## not a fourth opinion about what version E-OS is.
+## Reconciling them means deciding which one /etc/os-release should carry; that is its own
+## change. Until then this variable governs the FILENAME only, and says so.
+EOS_VERSION?=0.2.0
+
+## The installation medium. Named, not `redox-live.iso`.
+##
+## The file genuinely is ISO 9660 (CD001 at 0x8001) with a hybrid MBR+GPT, so the old name
+## was not a lie about the format. It was a lie about the USE: `.iso` tells a user to burn
+## a disc, and E-OS has no optical-drive driver, so that disc cannot boot. The name also
+## said nothing about whose system it is, which version, or that it installs anything.
+## `.img` + `dd` is what the documented procedure actually is (docs/install.md).
+INSTALLER_MEDIUM_NAME=eos-$(EOS_VERSION)-$(ARCH)-installer.img
+INSTALLER_MEDIUM=$(BUILD)/$(INSTALLER_MEDIUM_NAME)
 FSTOOLS=build/fstools
 INSTALLER=$(FSTOOLS)/bin/redox_installer
 REDOXFS=$(FSTOOLS)/bin/redoxfs

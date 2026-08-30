@@ -17,7 +17,7 @@ else
 	mv $@.partial $@
 endif
 
-$(BUILD)/redox-live.iso: $(FSTOOLS) $(REPO_TAG) redox.ipxe
+$(INSTALLER_MEDIUM): $(FSTOOLS) $(REPO_TAG) redox.ipxe
 ifeq ($(FSTOOLS_IN_PODMAN),1)
 	$(PODMAN_RUN) make $@
 else
@@ -31,7 +31,11 @@ else
 	truncate -s "$$FILESYSTEM_SIZE"m $@.partial
 	umask 002 && $(INSTALLER) $(INSTALLER_OPTS) -c $(FILESYSTEM_CONFIG) --write-bootloader="$(BUILD)/bootloader-live.efi" --live $@.partial
 	mv $@.partial $@
-	cp redox.ipxe $(BUILD)/redox.ipxe
+	# redox.ipxe is a template: the medium carries the version in its name, and a static
+	# file cannot interpolate it. Substituting here keeps network boot working after R-611a
+	# instead of serving a filename that no longer exists.
+	sed "s/@INSTALLER_MEDIUM_NAME@/$(INSTALLER_MEDIUM_NAME)/" redox.ipxe > $(BUILD)/redox.ipxe
+	grep -q "$(INSTALLER_MEDIUM_NAME)" $(BUILD)/redox.ipxe
 endif
 
 $(BUILD)/filesystem.img: $(FSTOOLS) $(REPO_TAG)
@@ -84,9 +88,9 @@ ifeq ($(FSTOOLS_IN_PODMAN),1)
 	$(PODMAN_RUN) make $@
 else
 	@mkdir -p $(MOUNT_DIR)
-	$(REDOXFS) $(BUILD)/redox-live.iso $(MOUNT_DIR)
+	$(REDOXFS) $(INSTALLER_MEDIUM) $(MOUNT_DIR)
 	@sleep 2
-	@echo "\033[1;36;49mredox-live.iso mounted ($$(pgrep redoxfs))\033[0m"
+	@echo "\033[1;36;49m$(INSTALLER_MEDIUM_NAME) mounted ($$(pgrep redoxfs))\033[0m"
 endif
 
 unmount: FORCE

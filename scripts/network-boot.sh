@@ -9,7 +9,9 @@ set -ex
 trap 'kill -HUP 0' EXIT
 
 eval $(make setenv)
-make "${BUILD}/redox-live.iso"
+# Name comes from the build, not from a second copy of the pattern (R-611a).
+MEDIUM="$(make -s print-installer-medium)"
+make "${MEDIUM}"
 
 echo "Allowing packet forwarding"
 echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward

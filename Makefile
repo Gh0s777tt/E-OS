@@ -7,25 +7,33 @@ include mk/depends.mk
 
 all: $(BUILD)/harddrive.img
 
+## One place scripts ask for the medium's path, so a future rename stays a one-line change.
+## Without this every script would carry its own copy of the filename pattern, and the
+## last rename showed what that costs: 13 references in Makefile/mk plus another ~17 in
+## scripts, redox.ipxe and docs.
+.PHONY: print-installer-medium
+print-installer-medium:
+	@echo $(INSTALLER_MEDIUM)
+
 live:
 	-$(FUMOUNT) $(BUILD)/filesystem/ || true
 	-$(FUMOUNT) /tmp/redox_installer/ || true
-	rm -f $(BUILD)/redox-live.iso
-	$(MAKE) $(BUILD)/redox-live.iso
+	rm -f $(INSTALLER_MEDIUM)
+	$(MAKE) $(INSTALLER_MEDIUM)
 
-popsicle: $(BUILD)/redox-live.iso
-	popsicle-gtk $(BUILD)/redox-live.iso
+popsicle: $(INSTALLER_MEDIUM)
+	popsicle-gtk $(INSTALLER_MEDIUM)
 
 image:
 	-$(FUMOUNT) $(BUILD)/filesystem/ || true
 	-$(FUMOUNT) /tmp/redox_installer/ || true
-	rm -f $(BUILD)/harddrive.img $(BUILD)/redox-live.iso
+	rm -f $(BUILD)/harddrive.img $(INSTALLER_MEDIUM)
 	$(MAKE) all
 
 rebuild:
 	-$(FUMOUNT) $(BUILD)/filesystem/ || true
 	-$(FUMOUNT) /tmp/redox_installer/ || true
-	rm -rf $(BUILD)/repo.tag $(BUILD)/harddrive.img $(BUILD)/redox-live.iso
+	rm -rf $(BUILD)/repo.tag $(BUILD)/harddrive.img $(INSTALLER_MEDIUM)
 	$(MAKE) all
 
 # To tell that it's not safe
