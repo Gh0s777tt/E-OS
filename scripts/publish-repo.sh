@@ -28,9 +28,11 @@ cp "$REPO"/*.pkgar "$stage"/
 
 # R-703: sign the repo.toml manifest (hybrid ed25519+ML-DSA-65). Secret key is
 # user-held via $EOS_REPO_SIGN_KEY (never in the repo). pkg-lib verifies this
-# signature against an in-image-pinned public key; no such key is committed yet
-# (R-702), so the client currently warns and proceeds. U-120: unsigned packaging is opt-in
-# (EOS_ALLOW_UNSIGNED=1), not the default — see publish-repo-pages.sh.
+# signature against an in-image-pinned public key, and that key IS now shipped:
+# config/{x86_64,aarch64}/eos.toml write it to /etc/pkg/eos-repo-sign.pub.toml, so the
+# client fails closed rather than warning and proceeding (R-702 closed in U-224).
+# U-120: unsigned packaging is opt-in (EOS_ALLOW_UNSIGNED=1), not the default -- see
+# publish-repo-pages.sh.
 if [ -n "${EOS_REPO_SIGN_KEY:-}" ]; then
     SIGN_BIN="${EOS_REPO_SIGN_BIN:-$ROOT/tools/eos-repo-sign/target/release/eos-repo-sign}"
     [ -x "$SIGN_BIN" ] || SIGN_BIN="$(command -v eos-repo-sign 2>/dev/null || true)"

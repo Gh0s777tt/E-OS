@@ -709,12 +709,6 @@ za martwe i uruchamiałem kolejne, spowalniając te działające. Używaj `pgrep
 
 ## 21. Sprzątanie — kasuje się **plik**, nigdy **katalog**
 
-Ten rozdział powstał z prośby o porządek („kasować niepotrzebne pliki, stare buildy, żeby nie
-zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-214`). Pomiar pokazał
-trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
-rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
-klucz istniejący w **jednej kopii bez backupu**.
-
 ### 21.1 Najpierw zmierz, **który** dysk boli — prawie nigdy ten, na który patrzysz
 
 Zmierzone 2026-08-29, przed sprzątaniem: dysk **zewnętrzny** (drzewo projektu) miał
@@ -838,6 +832,40 @@ pokaż listę z rozmiarami i **poczekaj na odpowiedź** — nawet gdy jesteś pe
 `_archiwum-migawek` (51 GB) pewność była uzasadniona co do 16 713 z 16 715 plików; te dwa
 pozostałe nie istniały nigdzie w gicie, bo publikacja orphan-commitem zniszczyła historię forka.
 Kasowanie „całości, bo wszystko odtwarzalne" straciłoby je bezpowrotnie.
+
+### 21.6 Trzy pułapki, które udają sukces
+
+Wszystkie trzy zmierzone tego samego dnia (`U-224`), wszystkie kończyły się **zielonym buildem**:
+
+1. **`make` NIE buduje narzędzi hosta.** `REPO_BIN` w `mk/config.mk` to zwykła ścieżka do
+   `./target/release/repo`; make używa tego, co tam leży. Zmiana w `src/bin/repo_builder.rs`
+   nie działa, dopóki ktoś ręcznie nie zbuduje binarki — build przechodzi, indeks wygląda
+   poprawnie, a nowe pole **po prostu go nie ma**. `eos-build.sh` buduje je teraz zawsze.
+2. **`cmd | tail` w kontenerze oddaje status `tail`, nie `cmd`.** `set -euo pipefail` w skrypcie
+   zewnętrznym **nie obowiązuje** wewnątrz `bash -lc` — `cargo: command not found` przewinęło
+   się bez zatrzymania czegokolwiek. Trzeba `set -o pipefail` po stronie kontenera.
+3. **Przekierowanie tworzy plik zanim polecenie ruszy.** `podman run ... cat brak > plik`
+   zostawia **plik zerowy**, który wygląda jak artefakt do wydania. Etapuj przez `.partial`
+   i nie zostawiaj pustych.
+
+Wspólny mianownik: **kontrola, która potrafi tylko przejść, nie jest kontrolą.** Po każdej
+zmianie sprawdzaj sam artefakt (`strings` na binarce, `grep` na wygenerowanym pliku), a nie to,
+że polecenie zwróciło zero.
+
+### 21.7 Wolumen EOS-Podman: nie montuj przez `-mountpoint`
+
+Nieudane `hdiutil attach -mountpoint /Volumes/EOS-Podman` **zostawia pusty katalog**, który
+blokuje każdą kolejną próbę montowania — objaw wygląda wtedy jak uszkodzenie APFS
+(„niemontowalny system plików", `mount_apfs: Input/output error`, `fsck` melduje zły
+superblok). Katalogu nie usuniesz bez roota, bo `/Volumes` należy do roota. **Lekarstwo:**
+`hdiutil detach /dev/diskN -force`, potem `hdiutil attach` **bez** `-mountpoint`. Uwaga: odczyt
+surowych urządzeń (`dd if=/dev/rdiskN`) wymaga roota, więc „błąd 5" z `fsck_apfs` uruchomionego
+jako użytkownik **nie jest dowodem uszkodzenia** — nie diagnozuj na tej podstawie.
+Ten rozdział powstał z prośby o porządek („kasować niepotrzebne pliki, stare buildy, żeby nie
+zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-214`). Pomiar pokazał
+trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
+rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
+klucz istniejący w **jednej kopii bez backupu**.
 
 ## 19. TODO — czego naprawdę brakuje
 

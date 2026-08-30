@@ -500,7 +500,7 @@ Mapowanie znaczników: 🚧 → 🟡, ⏳ → 🔴, 💡 → 💡, ❌ → ❌.
 | poz. | co | stan |
 |---|---|---|
 | `R-701` | własne źródło aktualizacji — **publikacja ✅ (`U-209`), `50_eos` aktywne na aarch64 (`U-210`)**; zostaje x86_64 | 🟡 |
-| `R-702` | przypiąć klucz publiczny repo, zabić TOFU — ścieżka instalacji istnieje (`U-135`) | 🟡 |
+| `R-702` | przypiąć klucz publiczny repo, zabić TOFU — klucz **wpięty w oba obrazy** (`/etc/pkg/eos-repo-sign.pub.toml`), połowa tajna u operatora, para **zweryfikowana podpisem próbnym** (`U-224`) | ✅ |
 | `R-703` | **weryfikacja podpisanego manifestu u klienta** — połowa wydawcy gotowa; pełny fetch+verify niezłapany na żywo | 🟡 |
 | `R-704` | anti-rollback / świeżość + przypinanie haszy — dziś **poprawnie podpisany STARSZY pkgar wciąż się instaluje** | 🔴 |
 | `R-705` | demon `eos-update` + cienkie CLI (check→resolve→verify→download→stage→apply) | 🔴 |
@@ -610,11 +610,18 @@ eos-notes: V2-NT01 Markdown → V2-NT02 szyfrowanie → NT03 organizacja → NT0
   napastnikiem w sieci, nie przed lokalnym. Źródło bez zdalnych repozytoriów jest z egzekwowania
   indeksu **świadomie zwolnione** — w trakcie budowania obrazu `redox_installer` ma już wpisany
   przypięty klucz, a `repo.toml.sig` jeszcze nie istnieje; bez tego wyjątku **każdy build by padał**.
-- **Publikacja repozytorium pakietów pozostaje zablokowana na `R-702`** — nie z powodu kodu.
-  Połowa prywatna klucza podpisującego indeks **nie istnieje** (`keys/eos-repo-sign.pub.toml` to
-  sama połowa publiczna), a wygenerowanie klucza jest **działaniem człowieka** i świadomie nie jest
-  zautomatyzowane. Zdalne repozytorium (`gh0s777tt.github.io/eos-pkg-x86_64`) **nie serwuje dziś
-  żadnego indeksu** — samo README — więc nie ma czego cofać ani zamrażać, dopóki klucz nie powstanie.
+- **Publikacja repozytorium NIE jest zablokowana na kluczu — wcześniejszy zapis był błędny (`U-224`).**
+  Połowa tajna **istnieje** w magazynie operatora poza repozytorium, a nie w `keys/`, gdzie jej
+  szukałem; para została **zweryfikowana podpisem próbnym**: ed25519 i ML-DSA-65 obie przechodzą
+  wobec połowy publicznej z repozytorium, a po zmianie jednego bajtu obie odmawiają (kod wyjścia 1).
+  Klucz publiczny jest **wpięty w oba obrazy** jako `/etc/pkg/eos-repo-sign.pub.toml`, a wartości
+  w `config/x86_64` i `config/aarch64` zgadzają się z `keys/eos-repo-sign.pub.toml` co do znaku.
+  `publish-repo.sh` **zawodzi bezpiecznie**: bez `EOS_REPO_SIGN_KEY` odmawia spakowania
+  niepodpisanego indeksu, a obejście wymaga jawnego `EOS_ALLOW_UNSIGNED=1`.
+- **Czego naprawdę brakuje do publikacji:** zbudowanych pakietów. Zdalne
+  `gh0s777tt.github.io/eos-pkg-x86_64` serwuje dziś **samo README** (Pages włączone, każda ścieżka
+  daje 404), a lokalna kopia repozytorium przepadła przy porządkach `U-214` — więc **nie ma dziś
+  czego cofać ani zamrażać**, a ochrona z `V2-MS15` zacznie działać z pierwszym prawdziwym wydaniem.
 - **Weryfikacja jądra i initfs istnieje (`V2-MS02`), ale NIE znaczy „zweryfikowany łańcuch rozruchu".**
   `initfs` niesie wyłącznie sterowniki dyskowe; `xhcid`, `e1000d`, `usbhidd`, `usbscsid`, `ihdad`,
   `rtl8168d` i dziesięć innych ładuje się z **niepodpisanego** roota po jego zamontowaniu, przez
