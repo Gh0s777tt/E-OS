@@ -387,3 +387,35 @@ i atomowa zamiana. Cztery testy regresji, każdy sprawdzony mutacją.
 `/tmp/pkg_download` wcześniej — odmowa jest właściwą stroną awarii, ale docelowo
 domyślna ścieżka nie powinna leżeć w katalogu zapisywalnym dla wszystkich. To
 decyzja o zachowaniu produktu, nie element poprawki bezpieczeństwa.
+
+### C-23 — MEDIUM — test w vendorowanym cookbooku przechodzi zależnie od kolejności
+
+**Znalezione:** 2026-08-30, przy budowaniu `scripts/verify.sh` (gałąź
+`chore/security-hardening`).
+
+`cook::cook_build::tests::file_system_loop_no_infinite_loop` czyta globalną
+konfigurację (`src/config.rs:209`), którą inicjuje tylko część testów, a która jest
+**per-wątek**. Uruchomiony równolegle wynik jest rzutem monetą — przy pomiarze 1 porażka
+na 3 przebiegi.
+
+**Dowód, deterministyczny.** Na czystym worktree z `origin/main`:
+
+```
+$ cargo test --locked --manifest-path Cargo.toml file_system_loop
+thread '...file_system_loop_no_infinite_loop' panicked at src/config.rs:209:25:
+Configuration is not initialized
+test result: FAILED. 0 passed; 1 failed; 8 filtered out
+```
+
+Ten sam zestaw z `--test-threads=1` przechodzi w komplecie. Wada jest więc wcześniejsza
+i niezwiązana z żadną zmianą w gałęzi, w której ją znaleziono.
+
+**Dlaczego to ma znaczenie.** `.gitlab-ci.yml` `rust-checks` uruchamia `cargo test`
+równolegle. Bramka, która czasem świeci na czerwono bez powodu, uczy ludzi ponawiać
+przebieg aż zzielenieje — a to jest dokładnie mechanizm C-6 (bramka istnieje i jest
+omijana), tylko od strony psychologicznej, nie konfiguracyjnej.
+
+**Obejście, nie naprawa.** `ci.yml` i `scripts/verify.sh` uruchamiają vendorowany zestaw
+z `--test-threads=1`, żeby bramka była deterministyczna. To **nie naprawia testu** —
+naprawa oznacza inicjalizację konfiguracji w samym teście albo uczynienie jej
+niezależną od wątku, i jest zmianą w kodzie upstreamu do zrobienia osobno.
