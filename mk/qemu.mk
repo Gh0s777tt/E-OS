@@ -158,7 +158,7 @@ ifneq ($(QEMU_KERNEL),)
 endif
 
 ifeq ($(live),yes)
-	DISK=$(BUILD)/redox-live.iso
+	DISK=$(INSTALLER_MEDIUM)
 else
 	DISK=$(BUILD)/harddrive.img
 endif

@@ -10,7 +10,7 @@
 # x86_64 runs under TCG on an Apple Silicon runner and was long assumed too slow
 # to gate on. Measured 2026-08-21: a live image reaches `eos login:` in about a
 # minute, so it is worth running — see docs/ci.md. Works for both harddrive.img
-# and the redox-live.iso produced by `make live` (both are raw GPT images).
+# and the eos-<ver>-<arch>-installer.img produced by `make live` (both are raw GPT images).
 set -uo pipefail
 
 IMG="${1:?usage: ci-boot-smoke.sh <image> [timeout] [--arch aarch64|x86_64]}"
