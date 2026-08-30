@@ -1,19 +1,175 @@
 # E-OS code owners — required reviewers for the matched paths.
 # Docs: https://docs.github.com/articles/about-code-owners
+#
+# ── READ THIS BEFORE TRUSTING THIS FILE ──────────────────────────────────────────
+#
+# Every owner below is the same handle. That is not a placeholder, it is finding
+# **C-18**: this project has one maintainer, one account, one set of credentials
+# (docs/security/github-configuration.md §13). A routing table with one destination
+# cannot route. GitHub does not let the author of a pull request approve it, so
+# `require_code_owner_review: true` here would demand an approval from the person who
+# wrote the change — it makes every PR unmergeable except by an admin bypassing the
+# rule, which is worse than no rule. §3.3 of that document therefore sets
+# `required_approving_review_count: 0` and `require_code_owner_review: false`, and
+# `scripts/setup-github-security.sh` derives the second from the first — one line,
+# `[ "$APPROVALS" -ge 1 ] && codeowners="true"`. The day a second maintainer exists,
+# `--approvals 2` turns this file on in the same command; nothing here has to change.
+#
+# Second reason it is currently inert: gitlab.com/e-os/e-os is the source of truth and
+# github.com/Gh0s777tt/E-OS is a push-mirror of every branch (ADR-0001;
+# docs/security/github-configuration.md §0). Code arrives at GitHub because GitLab
+# pushed it, already merged — not through a pull request, which is the only event that
+# fires CODEOWNERS. And Code Owner *approval* on GitLab is Premium-only, so the mirror
+# is not a way around that either.
+#
+# So what is this file for, today?
+#   1. It is the machine-readable answer to "who is on the hook for this path". GitHub
+#      uses it to suggest reviewers on any PR opened here, with or without a rule.
+#   2. It is the list that becomes real the moment C-18 is closed. Writing it now means
+#      the exit criterion is "add a person", not "add a person AND work out the paths".
+#   3. It marks the blast radius: everything below can sign, boot, fetch, publish or
+#      gate. A diff touching one of these paths deserves a second look even when the
+#      only available second look is the author's own, a day later.
+#
+# What is deliberately NOT here: per-path owners that do not exist, and any claim that a
+# match enforces review. Do not invent a handle to make a section look plural.
+#
+# Mechanics: GitHub applies the LAST matching pattern, so the default sits first and
+# specificity increases downward. Since every line resolves to the same handle, order
+# changes nothing today — which is itself a fair summary of the state of this file.
 
-# Default owner for everything
-*                       @Gh0s777tt
+# ── Default ─────────────────────────────────────────────────────────────────────
+*                                  @Gh0s777tt
 
-# Project governance & security — always reviewed by the maintainer
-/LICENSE                @Gh0s777tt
-/NOTICE                 @Gh0s777tt
-/SECURITY.md            @Gh0s777tt
-/CODE_OF_CONDUCT.md     @Gh0s777tt
-/.github/               @Gh0s777tt
-/.gitleaks.toml         @Gh0s777tt
+# ── Crypto and key material ─────────────────────────────────────────────────────
+# keys/ holds PUBLIC trust anchors only; every secret key is user-held and off-repo
+# (keys/README.md), and .gitignore + ci-integrity.sh check 10 exist to keep it that way.
+# A change under here changes what the fleet trusts, which is the one class of change
+# that cannot be rolled back by a later release.
+/keys/                             @Gh0s777tt
+/tools/eos-repo-sign/              @Gh0s777tt
+/scripts/eos-key-bootstrap.sh      @Gh0s777tt
+/scripts/eos-pin-repo-key.sh       @Gh0s777tt
+/.gitleaks.toml                    @Gh0s777tt
 
-# Release-facing docs
-/README.md              @Gh0s777tt
-/CHANGELOG.md           @Gh0s777tt
-/ROADMAP.md             @Gh0s777tt
-/docs/                  @Gh0s777tt
+# ── Boot chain and Secure Boot ──────────────────────────────────────────────────
+# recipes/core/bootloader carries recipe.toml + sbat.csv: the SBAT generation number is
+# the revocation lever, so an edit here is a statement about what firmware will refuse
+# to load. The eos-sb-* / eos-boot-* scripts and eos-add-sbat.py are the tooling that
+# signs and then proves the signature.
+/recipes/core/bootloader/          @Gh0s777tt
+/recipes/core/kernel/              @Gh0s777tt
+/scripts/eos-sb-setup-key.sh       @Gh0s777tt
+/scripts/eos-boot-setup-key.sh     @Gh0s777tt
+/scripts/eos-sign-bootloader.sh    @Gh0s777tt
+/scripts/eos-sign-boot-payload.sh  @Gh0s777tt
+/scripts/eos-secureboot-proof.sh   @Gh0s777tt
+/scripts/eos-boot-verify-proof.sh  @Gh0s777tt
+/scripts/eos-add-sbat.py           @Gh0s777tt
+/scripts/ci-boot-smoke.sh          @Gh0s777tt
+/mk/disk.mk                        @Gh0s777tt
+
+# ── Update path: what an installed system fetches, and who signed it ────────────
+# repo_builder WRITES repo.toml; pkgutils READS it. eos-repo-sign signs it. These are
+# the three ends of the same trust edge, so they move together or they do not move.
+/src/bin/repo.rs                   @Gh0s777tt
+/src/bin/repo_builder.rs           @Gh0s777tt
+/src/staged_pkg.rs                 @Gh0s777tt
+/recipes/core/pkgar/               @Gh0s777tt
+/recipes/core/pkgutils/            @Gh0s777tt
+/scripts/publish-repo.sh           @Gh0s777tt
+/scripts/publish-repo-pages.sh     @Gh0s777tt
+/scripts/make-release.sh           @Gh0s777tt
+/.releaserc.json                   @Gh0s777tt
+/release-please-config.json        @Gh0s777tt
+/.release-please-manifest.json     @Gh0s777tt
+
+# ── Pinning: the files that decide WHICH bytes get built ────────────────────────
+# Source-of-truth pins. cookbook.lock and .config together decide whether a recipe is
+# compiled from the fork or downloaded prebuilt from static.redox-os.org — both were
+# once gitignored, so a fresh clone did not carry them at all; they are tracked as of
+# U-168/U-169. Note what that does NOT establish: the same commit producing the same
+# image bit for bit is still listed unverified in CLAUDE.md, because the comparison has
+# never actually been run. These lines remove an obstacle to reproducibility, not doubt.
+# mk/fetch-sha256.txt pins the prebuilt toolchain archives so the compilers that build
+# the OS do not rest on TLS alone (U-118). pin-allowlist.txt is the only sanctioned way
+# to let a recipe rev sit behind its fork tip, and its steady state is empty.
+#
+# Cargo.toml / Cargo.lock are in this section and not with the Rust sources because of
+# what they pin, not what they are: the root manifest carries six git dependencies, and
+# `redox-pkg`'s rev is the SAME commit as `eos-pkgutils`' `pinned_rev` in repos.toml and
+# as the pin in recipes/core/pkgutils/recipe.toml. Four files, one commit, and no gate
+# compares them — `pin-check` measures repos.toml against the fork tip, not against the
+# manifest. A bump that lands in Cargo.toml alone splits the pin and nothing goes red.
+/Cargo.toml                        @Gh0s777tt
+/Cargo.lock                        @Gh0s777tt
+/repos.toml                        @Gh0s777tt
+/cookbook.lock                     @Gh0s777tt
+/.config                           @Gh0s777tt
+/mk/fetch-sha256.txt               @Gh0s777tt
+/mk/prefix.mk                      @Gh0s777tt
+/scripts/pin-allowlist.txt         @Gh0s777tt
+/scripts/eos-repos.sh              @Gh0s777tt
+/scripts/eos-mirror-drift.sh       @Gh0s777tt
+/src/cook/fetch.rs                 @Gh0s777tt
+/src/cook/fetch_repo.rs            @Gh0s777tt
+
+# ── CI, workflows and the gate configuration ────────────────────────────────────
+# .github/workflows/ pins every third-party action by 40-char SHA; a diff that shortens
+# a pin to a tag is a supply-chain regression that looks like a cleanup. .gitlab-ci.yml
+# is still the source-of-truth pipeline. deny.toml / osv-scanner.toml hold the
+# suppression lists — an added exception is an argument, not a config tweak.
+#
+# ci-integrity.sh is listed, and so are the two files it delegates to: checks 6 and 7 do
+# not reach their own verdict, they run eos-source-rules.sh and eos-check-repo-types.py
+# and read a verdict LINE off each (U-177). Owning the gate but not the instrument leaves
+# the editable half — the half that could be made to always print OK — unowned.
+# .gitattributes is check 8's reference copy; those line endings were changed once and
+# had to be spotted and reverted by hand (U-169). setup-github-security.sh is the odd one
+# out: it is the only file here that writes state living in GitHub's database — rulesets,
+# the Actions allowlist, secret scanning — which is precisely the state that cannot be
+# reviewed as a diff afterwards.
+/.github/                          @Gh0s777tt
+/.github/workflows/                @Gh0s777tt
+/.github/CODEOWNERS                @Gh0s777tt
+/.github/dependabot.yml            @Gh0s777tt
+/.gitlab-ci.yml                    @Gh0s777tt
+/deny.toml                         @Gh0s777tt
+/osv-scanner.toml                  @Gh0s777tt
+/renovate.json                     @Gh0s777tt
+/rust-toolchain.toml               @Gh0s777tt
+/lefthook.yml                      @Gh0s777tt
+/podman/                           @Gh0s777tt
+/scripts/ci-integrity.sh           @Gh0s777tt
+/scripts/check-ci-config.sh        @Gh0s777tt
+/scripts/eos-source-rules.sh       @Gh0s777tt
+/scripts/eos-check-repo-types.py   @Gh0s777tt
+/scripts/setup-github-security.sh  @Gh0s777tt
+/.gitattributes                    @Gh0s777tt
+
+# ── Governance and release-facing docs ──────────────────────────────────────────
+# /docs/ is listed HERE and not at the end of the file on purpose: GitHub applies the
+# last matching pattern, so a broad /docs/ line placed below the security-doc lines
+# would silently swallow them. Broad first, narrow after.
+/LICENSE                           @Gh0s777tt
+/NOTICE                            @Gh0s777tt
+/TRADEMARK.md                      @Gh0s777tt
+/CODE_OF_CONDUCT.md                @Gh0s777tt
+/CONTRIBUTING.md                   @Gh0s777tt
+/README.md                         @Gh0s777tt
+/CHANGELOG.md                      @Gh0s777tt
+/ROADMAP.md                        @Gh0s777tt
+/docs/                             @Gh0s777tt
+
+# ── Security documentation and the audit trail ──────────────────────────────────
+# docs/security/github-configuration.md is the record of settings that live in GitHub's
+# database and cannot be reviewed as a diff; if it drifts from reality it is worse than
+# absent, because it is believed. docs/audit/ is the finding history these paths answer to.
+/SECURITY.md                       @Gh0s777tt
+/docs/security/                    @Gh0s777tt
+/docs/security.md                  @Gh0s777tt
+/docs/threat-model.md              @Gh0s777tt
+/docs/hardening.md                 @Gh0s777tt
+/docs/audit/                       @Gh0s777tt
+/docs/adr/                         @Gh0s777tt
+/sbom/                             @Gh0s777tt

@@ -1,19 +1,164 @@
 version: 2
-# NOTE: GitHub Actions is disabled account-wide (ROADMAP R-004) and the
-# workflows were removed, so the "github-actions" ecosystem was dropped (it only
-# churned PRs against a dead pipeline). Rust dep surfacing stays until Renovate
-# on GitLab replaces Dependabot (ETAP 4 / R-007).
+# Dependabot for the GitHub push-mirror.
+#
+# What changed, and why the previous note here is gone: it said the "github-actions"
+# ecosystem had been dropped because the workflows were removed and it "only churned PRs
+# against a dead pipeline". That reasoning expired with this change —
+# `.github/workflows/` exists again and pins every third-party action to a 40-char commit
+# SHA. A SHA pin never goes stale loudly: it keeps resolving, forever, to a commit that
+# may have had a fix land after it. Something has to say when a pin is behind, and for
+# SHA-pinned actions that something is Dependabot (it rewrites both the SHA and the
+# `# vX.Y.Z` comment). docs/security/github-configuration.md §5 already calls for exactly
+# this restoration once Actions is enabled, and its §2 lists this file as one of the four
+# in the tree still asserting Actions is off. This edit is that correction.
+#
+# Read this before treating any of it as a gate:
+#
+#   * Dependabot here is a NOTIFICATION CHANNEL, not a gate. That is finding **C-13**:
+#     Dependabot reported zero vulnerabilities while `osv-scanner` found real advisories
+#     on the same tree. The gates are `cargo-deny` in the `rust-checks` job of
+#     .gitlab-ci.yml (advisories + licences + bans + sources on tools/eos-repo-sign,
+#     advisories only on the vendored root) and the scanner workflows in
+#     .github/workflows/. A green Dependabot proves nothing.
+#
+#   * gitlab.com/e-os/e-os is the source of truth; this repository is a push-mirror of
+#     every branch. A Dependabot PR opened here cannot be merged into the source of
+#     truth — it is a signal to go make the same bump on GitLab, where Renovate
+#     (renovate.json, `renovate` job in .gitlab-ci.yml) is the nominal updater. Do not
+#     write down that Renovate cannot see .github/workflows/ — it can. Its github-actions
+#     manager keys off the file path, not the forge, the workflow files are in the GitLab
+#     tree as well, and renovate.json restricts no managers, so the two tools overlap
+#     rather than divide the work between them. The reason both are kept is that
+#     Renovate is DORMANT: its job fires only on a scheduled pipeline with
+#     `SCHEDULE_TASK=renovate` AND a `RENOVATE_TOKEN` that has never been set, it carries
+#     `allow_failure: true`, and every GitLab job has been failing in 0 s with
+#     `ci_quota_exceeded` since 2026-08-28 (finding **C-7**). Renovate bumps nothing today.
+#
+#   * As of 2026-08-30 no workflow actually executes here. Measured, not assumed: a
+#     minimal push-triggered workflow pushed straight to github.com produced no run at
+#     all — not queued, not failed — and Dependabot's own dynamic workflow has sat
+#     `queued` since 2026-08-11. That does not contradict §1.1 of
+#     docs/security/github-configuration.md, which records the repository API answering
+#     `enabled: true`; the two readings together are what place the block ABOVE the
+#     repository. So the version-update half of this file may sit idle. It is written for
+#     the state the repo is being moved toward and costs nothing until then. Dependabot
+#     ALERTS are a separate mechanism, measured on in that same §1.1, and do not depend
+#     on Actions running.
+#
+# Ecosystems NOT listed, checked rather than assumed:
+#   * docker — the three container definitions are podman/*containerfile, deliberately not
+#     Dockerfile-named. Dependabot's docker updater discovers `Dockerfile` / `*.Dockerfile`,
+#     so pointing it at /podman would find nothing; listing it would be a decorative entry,
+#     which is the thing this project keeps learning not to write. Those base images stay
+#     under human review via the /podman/ CODEOWNERS entry and hadolint in lint.yml.
+#   * npm / pip / gomod / bundler / terraform / gitsubmodule — no package.json, no
+#     requirements.txt or pyproject.toml (the scripts/*.py files are stdlib-only, with no
+#     dependency manifest), no go.mod, no .gitmodules. Nothing to update.
+#   * The six git dependencies in the root Cargo.toml (pkgar, pkgar-core, pkgar-keys,
+#     redox-pkg, redox_installer, redoxer) are held out by the `ignore:` block on the
+#     first entry below — held out, not assumed out. Dependabot's cargo updater resolves
+#     git sources and will offer to move a pinned `rev` to the branch tip, and here that
+#     is a defect: `redox-pkg`'s rev is the same commit as `eos-pkgutils`' `pinned_rev`
+#     in repos.toml and as the pin in recipes/core/pkgutils/recipe.toml. Four files, one
+#     commit, and nothing compares them — `pin-check` runs
+#     `scripts/eos-repos.sh pins --strict`, which measures repos.toml against the fork
+#     tip and never reads a Cargo manifest. A bump landing in Cargo.toml + Cargo.lock
+#     alone therefore splits the pin and every gate stays green. Fork revs move through
+#     the recipe-pin workflow, in all four files at once, or they do not move.
 updates:
-  # Rust dependencies (root workspace). Grouped to reduce PR noise.
+  # ── Vendored upstream: redox_cookbook at the repo root ────────────────────────────
+  # CLAUDE.md §11 type B — somebody else's code, carried here. Its gate is deliberately
+  # weaker than the E-OS-owned tool's (advisories only, no licence/bans/sources, no
+  # fmt/clippy), and this entry mirrors that asymmetry: minor and patch arrive grouped
+  # as noise-reduction, while a major bump is left as its own PR because on vendored
+  # code a major is a divergence decision, not a version number.
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
-    labels: ["dependencies", "rust"]
+    labels: ["dependencies", "rust", "vendored"]
+    commit-message:
+      prefix: "deps"
+    # See the header: these are pinned by the recipe-pin workflow across four files.
+    # A cargo-only bump is a split pin that no gate in this project catches.
+    ignore:
+      - dependency-name: "pkgar"
+      - dependency-name: "pkgar-core"
+      - dependency-name: "pkgar-keys"
+      - dependency-name: "redox-pkg"
+      - dependency-name: "redox_installer"
+      - dependency-name: "redoxer"
+    groups:
+      cargo-root-minor-patch:
+        update-types: ["minor", "patch"]
+
+  # ── E-OS-owned host tool: tools/eos-repo-sign ─────────────────────────────────────
+  # A SECOND cargo entry is required, not a duplicate: tools/eos-repo-sign/Cargo.toml
+  # declares its own empty `[workspace]`, so it is not a member of the root package and
+  # the "/" entry above does not see it. It is also the crate with the most reason to be
+  # watched — it signs repo.toml with ed25519 + ML-DSA-65, so ed25519-dalek, ml-dsa,
+  # rand_core and signature are the dependency set whose defects are directly the
+  # release trust chain's defects. Its gates are the blocking ones (fmt, clippy
+  # -D warnings, tests, full `cargo-deny check`, coverage floor), which means a
+  # Dependabot PR here is checked far more thoroughly than one against the root.
+  - package-ecosystem: "cargo"
+    directory: "/tools/eos-repo-sign"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "rust", "eos-repo-sign"]
     commit-message:
       prefix: "deps"
     groups:
-      cargo-minor-patch:
+      eos-repo-sign-minor-patch:
         update-types: ["minor", "patch"]
+
+  # ── GitHub Actions ────────────────────────────────────────────────────────────────
+  # Restored by this change (see the header). Two groups, split on blast radius rather
+  # than on version arithmetic:
+  #
+  #   security-actions — harden-runner, CodeQL, gitleaks, the anchore and osv scanners,
+  #     cosign, dependency-review. These ARE the security posture, so a stale pin here is
+  #     not cosmetic: it means the suite is scanning with last quarter's rules. Grouped so
+  #     they land in one reviewable PR instead of eight. Two patterns match nothing in
+  #     .github/workflows/ today — `aquasecurity/trivy-action*` and `actions/attest-*` —
+  #     and are listed ahead of use so that adding either lands it in the right group by
+  #     default. They are inert until then, not a claim that those actions are in use.
+  #     Dependabot assigns a dependency to the FIRST group it matches, which is why this
+  #     block sits above the catch-all.
+  #
+  #   github-actions — everything else: checkout, artifacts, setup-*, rust-cache,
+  #     install-action, stale, release tooling, the markdown/link linters.
+  #
+  # Both groups take major bumps too. For an action pinned by SHA, "major" is a rename of
+  # the tag the comment carries, not a semver contract — refusing majors would just leave
+  # the pin frozen and the comment lying about it. Read the release notes; do not merge
+  # a SHA you have not looked at, and never let a PR here replace a SHA with a tag.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "github-actions", "ci"]
+    commit-message:
+      prefix: "ci"
+    groups:
+      security-actions:
+        patterns:
+          - "step-security/*"
+          - "github/codeql-action*"
+          - "gitleaks/*"
+          - "anchore/*"
+          - "google/osv-scanner-action*"
+          - "aquasecurity/trivy-action*"
+          - "sigstore/*"
+          - "ossf/scorecard-action*"
+          - "actions/attest-*"
+          - "actions/dependency-review-action*"
+      github-actions:
+        patterns:
+          - "*"
