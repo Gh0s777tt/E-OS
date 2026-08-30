@@ -13,7 +13,7 @@
 #
 # NOTE: the six *modified* forks (kernel, base, relibc, userutils, bootloader,
 # orbdata) are NOT pure mirrors — they carry E-OS commits. Updating those means
-# rebasing our commits onto new upstream (see docs/known-issues.md, U-033), not a
+# rebasing our commits onto new upstream (see docs/reference/known-issues.md, U-033), not a
 # fast-forward, so they are intentionally excluded here.
 set -u
 

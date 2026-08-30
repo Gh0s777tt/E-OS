@@ -1,4 +1,4 @@
-#TODO missing script: https://github.com/obhq/obliteration/blob/main/docs/building.md
+#TODO missing script: https://github.com/obhq/obliteration/blob/main/docs/getting-started/building.md
 [source]
 git = "https://github.com/obhq/obliteration"
 shallow_clone = true

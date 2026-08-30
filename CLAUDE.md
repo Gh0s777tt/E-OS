@@ -190,7 +190,7 @@ dotyczącej kluczy i `login_schemes.toml`, oraz forki `eos-bootloader`, `eos-ker
   podpisującego jest **działaniem człowieka** i nie jest automatyzowane.
 - **Bez niezwiązanych zmian w jednym MR.** Jedna zmiana logiczna na MR.
 - **Bez ręcznej edycji plików generowanych.** `Cargo.lock`, `cookbook.lock`, `sbom/*.cdx.json`,
-  `docs/licenses/THIRD_PARTY.md` — **regeneruj**, nie poprawiaj.
+  `docs/reference/third-party-licenses.md` — **regeneruj**, nie poprawiaj.
 - **Bez `--wipe-caches`.**
 - **Bez ręcznej edycji repozytoriów typu B.**
 

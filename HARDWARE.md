@@ -2,8 +2,8 @@
 
 > **This is the upstream Redox OS hardware document**, kept for reference. For
 > **E-OS's own** hardware status and bring-up see
-> [docs/hardware-matrix.md](docs/hardware-matrix.md) and the
-> [hardware capabilities roadmap](docs/hardware-capabilities-roadmap.md).
+> [docs/reference/hardware-matrix.md](docs/reference/hardware-matrix.md) and the
+> [hardware capabilities roadmap](docs/archive/hardware-capabilities-roadmap.md).
 
 This document tracks the current hardware compatibility of Redox OS.
 

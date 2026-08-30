@@ -36,7 +36,7 @@ extra parsing dependencies.
   the first byte (U-119; regression-tested).
 - The publish flow that consumes this tool is `scripts/publish-repo-pages.sh`
   (set `EOS_REPO_SIGN_KEY`); operational details live in
-  [docs/MAINTENANCE.md](../../docs/MAINTENANCE.md).
+  [docs/operations/maintenance.md](../../docs/operations/maintenance.md).
 
 ## Build notes
 

@@ -93,9 +93,9 @@ per the brief.
 | D-3 | 899 `._*` and 6 `.DS_Store` in the working tree | **delete** | ignored, but they pollute every `find` and search | none, not tracked |
 | D-4 | 23 stale branches across 13 forks | **delete** | inherited upstream feature branches, oldest from 2016; 5 of the 28 are already merged | low — they also exist upstream and can be re-fetched |
 | D-5 | `ROADMAP-v2.md` | **archive** | content merged into the rebuilt `ROADMAP.md`; keeping two roadmaps is what produced the divergence the audit found | low — it is in git history regardless |
-| D-6 | `docs/architecture.md` | **archive** after merging any unique content into `ARCHITECTURE.md` | duplicate scope, mutually cross-linked, no stated entry point | low |
+| D-6 | `docs/architecture/overview.md` | **archive** after merging any unique content into `ARCHITECTURE.md` | duplicate scope, mutually cross-linked, no stated entry point | low |
 | D-7 | `EOS_BUILD_STATE.md` | **archive** | a checkpoint record from 2026-06-06, superseded by `docs/audit/` | low |
-| D-8 | `docs/plan.md`, `docs/plan-do-sprzetu.md`, `docs/roadmap-connectivity.md`, `docs/reality-ledger.md` | **review before deciding** — *uncertain* | overlap with the rebuilt roadmap, but may hold hardware detail that is not recorded elsewhere | medium — read them first |
+| D-8 | `docs/archive/plan.md`, `docs/archive/hardware-plan.md`, `docs/archive/roadmap-connectivity.md`, `docs/archive/reality-ledger.md` | **review before deciding** — *uncertain* | overlap with the rebuilt roadmap, but may hold hardware detail that is not recorded elsewhere | medium — read them first |
 | D-9 | `cookbook.lock` entries for `eos-guard` and `eos-sysmon` | **remove the two entries** | they declare `fsrule = "source"` for packages that no longer ship; functions consolidated into `eos-control` | low |
 | D-10 | `recipes/wip/` (2 932 tracked files, 5.8 GB on disk) | **do NOT delete** | inherited upstream work-in-progress ports; deleting is a product decision, not housekeeping | high |
 | D-11 | `config/i586`, `config/riscv64gc` | **do NOT delete** | 20 and 22 references respectively in `build.sh`, `mk/config.mk`, `.cargo/config.toml`; deleting the directories would leave dangling references | high |
@@ -166,7 +166,7 @@ project, rather than inventing a `LICENSE` file upstream never wrote.
 | P-2 | **`eos-ui` consumed at two different revisions** — `eos-control` and `eos-sysmon` pin `9fb3f3e4a`; `eos-guard` and `eos-notes` pin `c53180d40` | 4 type-A repos | — | pin `eos-ui` in `repos.toml` like every other component and have the four applications take the pinned revision. Today the image can carry two copies of the "shared" backend |
 | P-3 | **Shared lint configuration exists but is not shared** — `rustfmt.toml` and `clippy.toml` say "one config, not 24" and live in one repo | 1 of 30 | tiny | publish them from `E-OS` and have each repo reference them, or accept that they apply only here and stop claiming otherwise in the file header |
 | P-4 | **`usr/share/ui/LICENSE` in `eos-orbdata` is byte-identical to that repo's root `LICENSE`** | 1 repo | 1 065 B | upstream's own duplication — **leave it**, it is a type-B mirror |
-| P-5 | **Three architecture documents** (`ARCHITECTURE.md`, `docs/architecture.md`, `docs/architecture/README.md`) | main repo | — | already addressed: the rebuilt `ARCHITECTURE.md` supersedes them; `docs/architecture.md` is on the archive list (D-6) |
+| P-5 | **Three architecture documents** (`ARCHITECTURE.md`, `docs/architecture/overview.md`, `docs/architecture/README.md`) | main repo | — | already addressed: the rebuilt `ARCHITECTURE.md` supersedes them; `docs/architecture/overview.md` is on the archive list (D-6) |
 
 ### Not duplication, despite appearances
 

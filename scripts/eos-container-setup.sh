@@ -8,7 +8,7 @@
 # "no container with name or ID \"eosbuild\" found" and there was no written
 # way back. This script IS that way back, idempotent and safe to re-run.
 #
-# THE SHAPE (why it looks like this — see docs/ci.md + docs/build-troubleshooting.md):
+# THE SHAPE (why it looks like this — see docs/operations/ci.md + docs/getting-started/build-troubleshooting.md):
 #   * The build state lives in two PERSISTENT NAMED VOLUMES, not in the
 #     container's writable layer:
 #         eos-work:/work    the tree at /work/redox (sources + build/ + prefix/)

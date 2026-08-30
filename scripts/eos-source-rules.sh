@@ -12,7 +12,7 @@
 #
 # The overrides were added by hand over time, so recipes added later were simply missed.
 # The measured consequence: `pkg-lib`'s manifest-signature verification -- R-703's client
-# half, which docs/security.md calls implemented -- is **not in the image at all**, because
+# half, which docs/security/index.md calls implemented -- is **not in the image at all**, because
 # `pkgutils` was downloaded from upstream. `pins --strict` stayed green throughout: the pin
 # was real, its relationship to the artefact was not.
 #

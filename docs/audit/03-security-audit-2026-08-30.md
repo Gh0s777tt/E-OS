@@ -1,3 +1,10 @@
+---
+title: Audyt bezpieczeństwa
+status: historical record
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # Audyt bezpieczeństwa
 
 **Data:** 2026-08-30 · **Tryb:** wyłącznie do odczytu · **HEAD:** `51cac0382`

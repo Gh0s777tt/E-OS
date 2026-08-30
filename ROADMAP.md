@@ -315,11 +315,11 @@ Listed for approval before removal — **nothing has been deleted**.
 | Document | Size | Proposal | Reason |
 |---|---|---|---|
 | `ROADMAP-v2.md` | 57 kB | **merge into this file, then archive** | Its content is carried here: `V2-MS*` milestones appear under Delivered and Mid term, the `R-*` registry items that remain open appear as traced entries. Keeping two roadmaps is what created the divergence the audit found |
-| `docs/architecture.md` | 3.9 kB | **merge into `ARCHITECTURE.md`** | Two architecture documents with overlapping scope, mutually cross-linked but with no statement of which is the entry point. Audit `00 §6.4` |
+| `docs/architecture/overview.md` | 3.9 kB | **merge into `ARCHITECTURE.md`** | Two architecture documents with overlapping scope, mutually cross-linked but with no statement of which is the entry point. Audit `00 §6.4` |
 | `EOS_BUILD_STATE.md` | 3.3 kB | **archive** | A checkpoint record from 2026-06-06, superseded by the audit reports |
-| `docs/plan.md`, `docs/plan-do-sprzetu.md` | — | **review** | Overlap with this roadmap; may contain hardware detail worth keeping |
-| `docs/roadmap-connectivity.md` | — | **review** | Predates this roadmap's networking items |
-| `docs/reality-ledger.md` | — | **review** | Superseded in function by `docs/audit/` |
+| `docs/archive/plan.md`, `docs/archive/hardware-plan.md` | — | **review** | Overlap with this roadmap; may contain hardware detail worth keeping |
+| `docs/archive/roadmap-connectivity.md` | — | **review** | Predates this roadmap's networking items |
+| `docs/archive/reality-ledger.md` | — | **review** | Superseded in function by `docs/audit/` |
 
 > `ROADMAP.md` v1 was already archived into `ROADMAP-v2.md` on 2026-08-29 (`U-211`). This rebuild
 > reverses that naming: `ROADMAP.md` is the live roadmap again, under its conventional name.

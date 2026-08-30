@@ -1,14 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 🔐 Security vulnerability (private)
+  - name: Security vulnerability (private)
     url: https://github.com/Gh0s777tt/E-OS/security/advisories/new
-    about: Do NOT file public issues for security bugs. Report privately here.
-  - name: 📖 Documentation
-    url: https://github.com/Gh0s777tt/E-OS/tree/main/docs
-    about: Read the docs (getting-started, building, architecture, security, FAQ).
-  - name: 🗺️ Roadmap
-    url: https://github.com/Gh0s777tt/E-OS/blob/main/ROADMAP.md
-    about: See what's planned before requesting a feature.
-  - name: 🙏 Upstream Redox OS
-    url: https://gitlab.redox-os.org/redox-os/redox
-    about: Issues in inherited components may belong upstream.
+    about: Report privately. Never open a public issue for a security bug.
+  - name: Documentation
+    url: https://e-os.gitlab.io/e-os/
+    about: The handbook — building, installing, architecture, security.
+  - name: Upstream Redox OS
+    url: https://gitlab.redox-os.org/redox-os
+    about: For defects in upstream Redox that E-OS only inherits.

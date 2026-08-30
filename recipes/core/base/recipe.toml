@@ -3,7 +3,7 @@
 # without acpi=off) + virtio-core legacy INTx + dep bumps. Rebased onto current
 # redox-os/base mainline (July). NOTE: the R-402 virtio-rng entropy driver is
 # reverted on this branch (it deadlocked userspace on the July stack; the kernel
-# R-401b jitter entropy still seeds randd) — see docs/known-issues.md.
+# R-401b jitter entropy still seeds randd) — see docs/reference/known-issues.md.
 # Upstream: https://gitlab.redox-os.org/redox-os/base.git
 git = "https://github.com/Gh0s777tt/eos-base.git"
 branch = "eos-july"

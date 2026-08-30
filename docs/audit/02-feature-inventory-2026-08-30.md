@@ -1,3 +1,10 @@
+---
+title: Inwentarz funkcji produktu — co E-OS naprawdę dostarcza
+status: historical record
+last-reviewed: 2026-08-30
+owner: Gh0s777tt
+---
+
 # Inwentarz funkcji produktu — co E-OS naprawdę dostarcza
 
 **Data:** 2026-08-30 · **Tryb:** wyłącznie do odczytu · **Podstawa:** obraz `eos-x86_64-harddrive.img`
