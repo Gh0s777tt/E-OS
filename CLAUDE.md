@@ -202,6 +202,83 @@ która ich dotyczy. Nie w następnej, nie „przy okazji".
 Audyt znalazł w tym repozytorium README twierdzące, że klucz nie istnieje, gdy istniał i był wpięty
 w obraz, oraz wymieniające dwie aplikacje, których w obrazie nie ma. To jest koszt odkładania.
 
+### 5.9 Testowanie wielostopniowe — jeden kierunek to za mało
+
+Jeden test sprawdzający jedną rzecz w jeden sposób daje **jeden** rodzaj pewności i **fałszywe
+poczucie** reszty. Ta sesja dostarczyła na to tyle przykładów, że przestaje to być teorią:
+
+| co pokazało zieleń | czego nie sprawdzało |
+|---|---|
+| `make build/fstools.tag` → „up to date" | binarka instalatora miała datę sprzed **dwóch miesięcy** |
+| `cargo test` → „ok" | test uruchomiono na **starej** kompilacji, bo `cp -p` przeniósł datę pliku |
+| `_ => bail!("block size not supported")` | gałąź **nieosiągalna** — wartość była stałą 512 |
+| `grep BOOTX64` na całym obrazie | trafiał w ciąg **wewnątrz roota**, nie w ESP |
+| `pins --strict` → DRIFT | porównywał z **lustrem GitHuba**, nie z GitLabem |
+| „wszystkie gałęzie scalają się czysto" | lokalny klon miał **nieaktualne referencje** |
+
+Dlatego każda zmiana warta testu jest testowana na **kilku poziomach**, a nie na jednym.
+Nie wszystkie poziomy dotyczą każdej zmiany — ale pominięcie poziomu jest **decyzją do
+uzasadnienia**, nie domyślnym zachowaniem.
+
+**Poziom 1 — kontrakt.** Test jednostkowy na to, co funkcja obiecuje. Wejście, wyjście, błąd.
+
+**Poziom 2 — mutacja.** *Czy ten test w ogóle potrafi zawieść?* Zepsuj celowo to, czego test
+pilnuje, i sprawdź, że pada — **i że pada właśnie ten test, a nie inny**. Test, którego nigdy
+nie widziałeś na czerwono, jest hipotezą, nie kontrolą. Przy `R-607a` mutacja przepuszczająca
+4096 zabiła dokładnie jeden z trzech testów; to jest ten dowód.
+
+**Poziom 3 — ścieżka porażki.** Sprawdź, co się dzieje, gdy jest **źle**: brak pliku, złe hasło,
+przerwane zasilanie, urządzenie zgłaszające bzdurę. Większość defektów tej sesji siedziała
+w ścieżkach, których nikt nie przeszedł, bo wszyscy testowali sukces.
+
+**Poziom 4 — kontrola przeciwna.** Uruchom ten sam pomiar na kodzie **sprzed** zmiany. Jeżeli
+przed i po wygląda tak samo, nie zmierzyłeś swojej zmiany. Przy `R-612a` dopiero to pokazało
+różnicę: stary kod → `FAT12, 1× BOOTX64`, nowy → `brak systemu plików, 0× BOOTX64`.
+
+**Poziom 5 — integracja na prawdziwym poleceniu.** Nie na zastępniku. `make live`, nie „symulacja
+make". Jeżeli produkt buduje się w kontenerze z `--device /dev/fuse`, to test bez tego urządzenia
+mierzy inny system.
+
+**Poziom 6 — artefakt.** Otwórz to, co powstało (§5.3). Sygnatury, rozmiary, zawartość — nie kod
+wyjścia. `file` mówiące „bootable" i `dd` czytające `CD001` z offsetu 0x8001 to dwa różne dowody
+tej samej rzeczy i warto mieć oba.
+
+**Poziom 7 — adwersarz.** Przy zmianach dotyczących uprawnień, kluczy, rozruchu i aktualizacji:
+spróbuj **złamać** gwarancję, nie potwierdzić ją. Zapis dowolnego pliku przez `/tmp/pkg_download`
+został udowodniony podstawieniem dowiązania i zmierzeniem 868 992 bajtów zapisanych jako root —
+żaden test funkcjonalny by tego nie pokazał.
+
+**Poziom 8 — goły sprzęt.** QEMU nie dowodzi, że firmware uruchomi nośnik, że dysk 4Kn zostanie
+poprawnie rozpoznany ani że sterownik zadziała na prawdziwym chipsecie. Co wymaga metalu, jest
+oznaczone ⚙️ w roadmapie i **nie liczy się jako zweryfikowane**, dopóki ktoś tego nie uruchomi.
+
+### 5.10 Pokrycie mierzone na bieżąco, z podłogą, która potrafi zawieść
+
+Pokrycie jest **mierzone przy każdym przebiegu** `scripts/verify.sh`, nie raz na kwartał.
+
+| zakres | reguła |
+|---|---|
+| `tools/eos-repo-sign` — kod własny E-OS | **bramka**: `cargo llvm-cov --fail-under-lines 38` |
+| `Cargo.toml` w korzeniu — vendorowany `redox_cookbook` | **doradczo**: liczba wypisana, bez progu |
+
+Asymetria jest celowa: bramkowanie pokrycia cudzego kodu to relitygowanie drzewa, którego nie
+utrzymujemy (§11, typ B/C).
+
+Trzy reguły, bez wyjątków:
+
+1. **Podłoga nigdy nie spada.** Podniesienie progu jest zwykłym commitem. Obniżenie wymaga
+   zgody właściciela i uzasadnienia w treści commita.
+2. **Liczba bez kierunku jest bezużyteczna.** W opisie zmiany podaje się pokrycie **przed
+   i po**, nie samo „po".
+3. **Wysokie pokrycie nie jest dowodem.** Można mieć 100% linii i zero testów mutacyjnych —
+   wtedy wiadomo, że kod się *wykonał*, nie że jest *sprawdzony*. Pokrycie mówi, czego
+   **na pewno nie sprawdzono**; nie mówi, co sprawdzono dobrze.
+
+Bieżący stan, zmierzony 2026-08-31 (`cargo llvm-cov --summary-only`): `tools/eos-repo-sign`
+— **41,06 % linii** (263 linie, 155 niepokrytych), **38,12 % regionów**, **33,96 % funkcji**;
+próg 38. Vendorowany
+cookbook — 9 testów, bez progu.
+
 ---
 
 ## 6. Definicja ukończenia
@@ -215,6 +292,10 @@ Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
 - [ ] `gitleaks`, `osv-scanner`, `hadolint` bez nowych trafień
 - [ ] **Artefakt sprawdzony** — nie tylko kod wyjścia (§5.3)
 - [ ] Test **negatywny** istnieje dla każdej dodanej kontroli (§5.4)
+- [ ] **Mutacja wykonana** — kontrola widziana na czerwono, i to ta właściwa (§5.9, poziom 2)
+- [ ] **Kontrola przeciwna** — ten sam pomiar na kodzie sprzed zmiany (§5.9, poziom 4)
+- [ ] **Pokrycie przed i po** w opisie zmiany; podłoga nie spadła (§5.10)
+- [ ] Poziomy testowania z §5.9 przejrzane; każdy pominięty **uzasadniony**, nie przemilczany
 - [ ] Prawdziwe wyjście poleceń wklejone do opisu MR
 - [ ] Dokumentacja zaktualizowana w tym samym MR (§5.8)
 - [ ] Przy obszarach z §5.6 — analiza ryzyka i plan wycofania
@@ -437,16 +518,31 @@ oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porów
 zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
 baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
 
-**Zmierzone 2026-08-30 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
+**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
 
 | przebieg | wynik | kod |
 |---|---|---|
-| `--fast` | 10 PASS · 0 FAIL · 1 `SKIPPED (could not run)` · 4 `SKIPPED (--fast)` | **2** |
-| pełny | 12 PASS · 0 FAIL · 3 `SKIPPED (could not run)` · 0 `SKIPPED (--fast)` | **2** |
-| `--fast --allow-missing` | to samo, ale brak pomiaru jest świadomy | **0** |
+| pełny, **przed** doinstalowaniem narzędzi | 13 PASS · 0 FAIL · 2 `SKIPPED (could not run)` | **2** |
+| pełny, **po** `cargo install cargo-llvm-cov cargo-deny` | **15 PASS · 0 FAIL · 0 SKIPPED** | **0** |
 
-Trzy `SKIPPED (could not run)` w pełnym przebiegu to `tar-pins` (bramki nie ma — niżej),
-`coverage` i `cargo-deny` (na tym hoście nie ma `cargo-llvm-cov` ani `cargo-deny`).
+Ta para wierszy jest tu celowo — pokazuje **kierunek**, nie samą liczbę (§5.10 reguła 2).
+Dwa `SKIPPED (could not run)` w pierwszym przebiegu to `coverage` i `cargo-deny`; obu
+narzędzi po prostu nie było na hoście, i dlatego skrypt kończył się kodem **2**
+(nie 1 — bramka nie znalazła wady, tylko nie mogła się wykonać).
+
+**Poprawka wobec zapisu z 2026-08-30 (§2 reguła 4).** Poprzednia wersja tej tabeli mówiła
+o **trzech** pominiętych etapach, w tym `tar-pins` „bramki nie ma". Bramka **jest** —
+`scripts/eos-check-tar-pins.py` powstał 2026-08-30 wieczorem, a ten akapit i tekst pomocy
+`verify.sh` nie zostały wtedy zaktualizowane. To ten sam koszt odkładania, o którym mówi
+§5.8, popełniony w dokumencie, który tego zakazuje.
+
+Bramka `tar-pins` przeszła **kontrolę mutacyjną** (§5.9 poziom 2), i to dwustopniową, bo
+pierwsze podejście było fałszywe: usunięcie `blake3` z `recipes/libs/atk` dało wyłącznie
+`advisory` i **exit 0** — `atk` nie leży w domknięciu obrazu, więc mutacja nie dotknęła
+ścieżki blokującej. Dopiero usunięcie `blake3` z `recipes/terminal/bash` (jedna z **15**
+receptur w domknięciu, które pinują tarball) dało **exit 1** z nazwą receptury; po
+przywróceniu — exit 0 i czyste drzewo. Mutacja, która trafia obok, wygląda dokładnie jak
+bramka, która nie działa; różnicę widać tylko wtedy, gdy się ją sprawdzi.
 
 Kontrola negatywna (`§4.1`), dwie, obie zmierzone, nie założone: po podmianie etapu
 `hadolint` na plik z błędnie sformułowaną instrukcją przebieg daje `hadolint FAIL` i
@@ -463,9 +559,10 @@ suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnoś
 `hadolint`, bo `lint.yml` `containerfiles` **blokuje** na `podman/*containerfile`, a
 `verify.sh` twierdził wcześniej, że żadne zadanie w tym drzewie hadolinta nie uruchamia.
 
-Ten jeden pominięty etap to `scripts/eos-check-tar-pins.py` — bramka, której łańcuch wymaga,
-a której **w drzewie nie ma**. To jest stan uczciwy, nie usterka skryptu: łańcuch pozostaje
-niekompletny, dopóki ktoś tej bramki nie napisze. Nie zamykaj tego przez `--allow-missing`.
+Łańcuch jest dziś **kompletny na tym hoście** — ale zieleń 15/15 kupiona jest tym, że ktoś
+doinstalował dwa narzędzia. Na czystej maszynie ten sam commit da 13 PASS i kod 2, i to jest
+zachowanie **poprawne**: brak skanera daje ten sam wynik co skaner wyłączony, więc skrypt
+odmawia nazwania tego zielonym. Nie zamykaj tego przez `--allow-missing`.
 
 **Znana flaga w vendorowanym manifeście — zmierzona, nie wywnioskowana.**
 `cook::cook_build::tests::file_system_loop_no_infinite_loop` pada na

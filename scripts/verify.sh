@@ -106,7 +106,7 @@ there maps to exactly one row here:
   test         cargo test  --locked                (both manifests)
   coverage     cargo llvm-cov floor                (E-OS-owned crate only)   [slow]
   integrity    scripts/ci-integrity.sh
-  tar-pins     scripts/eos-check-tar-pins.py       (unwritten — see the note below)
+  tar-pins     scripts/eos-check-tar-pins.py       (every tar source in the image closure has a blake3)
   gitleaks     gitleaks detect over the full history
   cargo-deny   advisories/licences/bans/sources                              [slow]
   osv-scanner  both Cargo.lock files                                         [slow]
