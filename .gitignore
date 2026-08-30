@@ -68,3 +68,37 @@ keys/._*
 # Secure Boot signing key placed for the bootloader recipe (V2-N03) — off-repo, never tracked
 build/sb-signing/
 build/boot-signing/
+
+# ── OS and editor cruft ─────────────────────────────────────────────────────
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.sublime-*
+
+# ── Secrets — belt and braces on top of gitleaks and ci-integrity.sh ────────
+# Nothing matching these has ever been committed (gitleaks over 8153 commits,
+# one hit and it was a public key). These patterns exist so a slip is caught by
+# git itself, before any scanner has to notice.
+*.pem
+*.p12
+*.pfx
+*.key
+!keys/*.pub
+!keys/**/*.pub
+id_ed25519
+id_ed25519.toml
+id_rsa
+*.secret.toml
+.env
+.env.*
+!.env.example
+*.kdbx
+credentials.json
