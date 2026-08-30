@@ -81,7 +81,7 @@ uruchamia `mokutil`), albo przez `shim` podpisany przez Microsoft (ich proces pr
 **Co to daje:** instalację bez wchodzenia do BIOS-u. **Bez tego E-OS pozostaje systemem dla
 kogoś, kto umie i chce wyłączyć Secure Boot.**
 **Co wykorzystać:** `shim` z Fedory/Debiana jako wzorzec; klucz podpisujący **nie jest** żadnym z
-istniejących — patrz [`tokeny.md`](../reference/keys-and-tokens.md) §6a, warstwa 5 nie istnieje.
+istniejących — patrz [`keys-and-tokens.md`](../reference/keys-and-tokens.md) §6a, warstwa 5 nie istnieje.
 
 ### 1.2 Naprawa `ventoy.sh` (`R-F28`)  ·  mała praca
 **Co to daje:** powtarzalny nośnik USB zamiast ręcznego `dd`.

@@ -714,10 +714,10 @@ Lista jest częścią decyzji, nie przypisem do niej.
 - Profile i plik odpowiedzi: [`../architecture/installer-profiles.md`](../architecture/installer-profiles.md)
 - Aktualizacje: [`../architecture/system-updates.md`](../architecture/system-updates.md) §1.3–§1.5, §4.6;
   `ADR-0009` (mechanizm aktualizacji)
-- Rozruch i zaufanie: [`0005-secure-boot-bez-microsoftu.md`](0005-secure-boot-bez-microsoftu.md),
-  [`0006-sciezka-do-weryfikacji-microsoftu.md`](0006-sciezka-do-weryfikacji-microsoftu.md)
-- Szyfrowanie: [`0010-stos-szyfrowania.md`](0010-stos-szyfrowania.md) — sloty kluczy, klucz
-  odzyskiwania, `redoxfs-keys`, czyli warunek D6; oraz [`../encryption.md`](../encryption.md)
-- Model zagrożeń: [`../threat-model.md`](../threat-model.md)
+- Rozruch i zaufanie: [`0005-secure-boot-without-microsoft.md`](0005-secure-boot-without-microsoft.md),
+  [`0006-path-to-microsoft-verification.md`](0006-path-to-microsoft-verification.md)
+- Szyfrowanie: [`0010-encryption-stack.md`](0010-encryption-stack.md) — sloty kluczy, klucz
+  odzyskiwania, `redoxfs-keys`, czyli warunek D6; oraz [`../encryption.md`](../guides/encryption.md)
+- Model zagrożeń: [`../threat-model.md`](../security/threat-model.md)
 - Roadmapa: `ROADMAP-v2.md` — `R-604`, `R-607`, `R-609` (`R-609a`–`R-609d`), **`R-615`**,
   `R-707`, `R-710a`/`R-710b`, `R-912`, `R-913`

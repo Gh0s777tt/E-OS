@@ -4,8 +4,8 @@
 - **Zakres:** nośnik USB, który instaluje **trwały system na dysk wewnętrzny**. Nie obraz do
   QEMU, nie sesja live jako cel sam w sobie.
 - **Czego ten dokument NIE rozstrzyga:** strategii Secure Boot (rozstrzygnięta w
-  [`ADR-0005`](../adr/0005-secure-boot-bez-microsoftu.md) i
-  [`ADR-0006`](../adr/0006-sciezka-do-weryfikacji-microsoftu.md)) ani mechaniki aktualizacji
+  [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) i
+  [`ADR-0006`](../adr/0006-path-to-microsoft-verification.md)) ani mechaniki aktualizacji
   (`docs/update-system-design.md`, epik `R-7xx`). Odwołuję się do nich; nie podejmuję ich od nowa.
 - **Czego ten instalator nie robi i przed czym nie chroni: §13.** Przeczytaj tę sekcję, zanim
   zacytujesz którąkolwiek inną — reszta dokumentu opisuje, co ma powstać, a §13 mówi, czego
@@ -282,7 +282,7 @@ pozycję. Napisanie tego wprost w `docs/install.md` jest tańsze niż jedno zgł
 
 ### 2.4 Decyzja B3 — sumy kontrolne i podpisy: wepnij się, nie wymyślaj
 
-Projekt ma **pięć warstw kluczy** (`docs/tokeny.md` §6a). Nośnik instalacyjny dotyka czterech:
+Projekt ma **pięć warstw kluczy** (`docs/reference/keys-and-tokens.md` §6a). Nośnik instalacyjny dotyka czterech:
 
 | warstwa | co podpisuje | dla nośnika znaczy |
 |---|---|---|
@@ -348,7 +348,7 @@ na x86_64. To jest ten sam kształt awarii, tylko już obecny.
 
 Klucz podpisujący pakiety (warstwa 2) **generuje się sam**: `src/cook/package.rs` tworzy nową
 parę, gdy `build/id_ed25519.toml` nie istnieje, a `build/` jest kasowany rutynowo
-(`docs/tokeny.md`, `U-213`). Podpisał już 78 opublikowanych pakietów. Sekret jest zapisany
+(`docs/reference/keys-and-tokens.md`, `U-213`). Podpisał już 78 opublikowanych pakietów. Sekret jest zapisany
 **jawnym tekstem** (`skey` = 128 znaków hex = 64 bajty surowego klucza), chroniony trybem `600`
 i `.gitignore`. Kopia zapasowa istnieje i jest zweryfikowana (`V2-MS12`, `U-216`), ale obie
 kopie leżą na **jednym komputerze**.
@@ -763,7 +763,7 @@ i slotów prowadzi **`ADR-0010`**; ten dokument nie podejmuje go od nowa.
 
 Co z zamówienia **rzeczywiście** zostaje nieosiągalne: **LUKS2, dm-crypt, TPM2, FIDO2 —
 NIEREALNE DZIŚ.** Nie ma warstwy device-mapper, nie ma TPM, nie ma stosu FIDO2. Warstwa 5
-zaufania (measured boot / TPM) jest w `docs/tokeny.md` opisana jako pusta i przypisana
+zaufania (measured boot / TPM) jest w `docs/reference/keys-and-tokens.md` opisana jako pusta i przypisana
 do `R-913` / `V2-N02`. Format nagłówka RedoxFS jest **bliżej LUKS-a**, niż wyglądało — ale
 „bliżej" nie znaczy „zgodny": narzędzia LUKS-a go nie otworzą i nie ma powodu, żeby otwierały.
 
@@ -1446,23 +1446,23 @@ budującej, i nie ma żadnego przebiegu na prawdziwym sprzęcie za sobą.
 
 ## Powiązania
 
-- Rozruch i zaufanie: [`ADR-0005`](../adr/0005-secure-boot-bez-microsoftu.md),
-  [`ADR-0006`](../adr/0006-sciezka-do-weryfikacji-microsoftu.md)
+- Rozruch i zaufanie: [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md),
+  [`ADR-0006`](../adr/0006-path-to-microsoft-verification.md)
 - Bootloader nośnika (rozstrzyga §3.2, §3.3 i spiera się z §5.2 o rozmiar ESP):
-  [`ADR-0007`](../adr/0007-bootloader-i-nosnik-instalacyjny.md)
+  [`ADR-0007`](../adr/0007-bootloader-and-install-medium.md)
 - Układ partycji i system plików (nadrzędny wobec §5.1–§5.3):
-  [`ADR-0008`](../adr/0008-system-plikow-i-uklad-partycji.md)
-- Mechanizm aktualizacji: [`ADR-0009`](../adr/0009-mechanizm-aktualizacji-systemu.md)
-- Stos szyfrowania (**koryguje §5.4**): [`ADR-0010`](../adr/0010-stos-szyfrowania.md)
-- Architektura kreatora: [`ADR-0011`](../adr/0011-architektura-kreatora-instalacji.md)
+  [`ADR-0008`](../adr/0008-filesystem-and-partition-layout.md)
+- Mechanizm aktualizacji: [`ADR-0009`](../adr/0009-system-update-mechanism.md)
+- Stos szyfrowania (**koryguje §5.4**): [`ADR-0010`](../adr/0010-encryption-stack.md)
+- Architektura kreatora: [`ADR-0011`](../adr/0011-installer-wizard-architecture.md)
 - Pozycje roadmapy dla wszystkiego, co ten dokument proponuje: `ROADMAP-v2.md` §12.4 (M1) i
   §12.5 (M2–M8) — `R-601a`…`R-601e`, `R-604a`…`R-604d`, `R-607a`/`R-607b`, `R-611a`…`R-611d`,
   `R-612a`…`R-612d`, `R-613`, `R-614a`…`R-614c`, `R-615`
-- Podpis manifestu: [`ADR-0004`](../adr/0004-hybrydowy-podpis-manifestu.md)
-- Budowanie: [`Ścieżka budowania`](sciezka-budowania.md), [`../building.md`](../building.md)
-- Szyfrowanie: [`../encryption.md`](../encryption.md)
-- Aktualizacje: [`../update-system-design.md`](../update-system-design.md), epik `R-7xx`
-- Droga na sprzęt: [`../plan-do-sprzetu.md`](../plan-do-sprzetu.md),
-  [`../hardware-matrix.md`](../hardware-matrix.md)
-- Klucze: [`../tokeny.md`](../tokeny.md) §6a
-- Model zagrożeń: [`../threat-model.md`](../threat-model.md)
+- Podpis manifestu: [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md)
+- Budowanie: [`Ścieżka budowania`](build-path.md), [`../building.md`](../getting-started/building.md)
+- Szyfrowanie: [`../encryption.md`](../guides/encryption.md)
+- Aktualizacje: [`../update-system-design.md`](update-system.md), epik `R-7xx`
+- Droga na sprzęt: [`../plan-do-sprzetu.md`](../archive/hardware-plan.md),
+  [`../hardware-matrix.md`](../reference/hardware-matrix.md)
+- Klucze: [`../keys-and-tokens.md`](../reference/keys-and-tokens.md) §6a
+- Model zagrożeń: [`../threat-model.md`](../security/threat-model.md)

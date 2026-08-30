@@ -786,11 +786,11 @@ dokumentami przy `ADR-0008` i `ADR-0010`. Stan zmierzony, z tytułów plików:
 
 | numer | plik i faktyczna decyzja |
 |---|---|
-| `ADR-0007` | `0007-bootloader-i-nosnik-instalacyjny.md` — bootloader nośnika instalacyjnego i systemu zainstalowanego |
-| `ADR-0008` | `0008-system-plikow-i-uklad-partycji.md` — system plików korzenia i **układ partycji** (ESP, root, `/home`, swap, rezerwa pod A/B) |
-| `ADR-0009` | `0009-mechanizm-aktualizacji-systemu.md` — transakcja z dziennikiem teraz, sloty A/B potem |
-| `ADR-0010` | `0010-stos-szyfrowania.md` — **stos szyfrowania dysku** (AES-XTS-128, Argon2id, 64 sloty klucza) |
-| `ADR-0011` | `0011-architektura-kreatora-instalacji.md` — jeden silnik, jeden rdzeń, dwa frontendy |
+| `ADR-0007` | `0007-bootloader-and-install-medium.md` — bootloader nośnika instalacyjnego i systemu zainstalowanego |
+| `ADR-0008` | `0008-filesystem-and-partition-layout.md` — system plików korzenia i **układ partycji** (ESP, root, `/home`, swap, rezerwa pod A/B) |
+| `ADR-0009` | `0009-system-update-mechanism.md` — transakcja z dziennikiem teraz, sloty A/B potem |
+| `ADR-0010` | `0010-encryption-stack.md` — **stos szyfrowania dysku** (AES-XTS-128, Argon2id, 64 sloty klucza) |
+| `ADR-0011` | `0011-installer-wizard-architecture.md` — jeden silnik, jeden rdzeń, dwa frontendy |
 
 **Dwie decyzje, na których stoją kamienie milowe, NIE MAJĄ ADR-a** — i to jest brak, nie
 przeoczenie w zapisie:
@@ -1101,7 +1101,7 @@ Przedłużenie §11 na ten obszar. Ta lista jest częścią planu, nie przypisem
   bo lista bez nich niczego nie rozstrzyga: LUKS2 / dm-crypt / LVM / btrfs / ZFS / XFS / ostree /
   systemd-sysupdate / systemd-boot / GRUB2 / shim+MOK — **NIEREALNE DZIŚ** (zależą od ekosystemu
   Linuksa, którego tu nie ma); TPM2 — **NOWY PODSYSTEM** (`R-913`/`V2-N02`, piąta warstwa
-  zaufania z `docs/tokeny.md` wciąż pusta); FIDO2 — **NOWY PODSYSTEM** (wymaga stosu USB HID
+  zaufania z `docs/reference/keys-and-tokens.md` wciąż pusta); FIDO2 — **NOWY PODSYSTEM** (wymaga stosu USB HID
   i CTAP2); żywe łatanie jądra — **NIEREALNE DZIŚ** (`system-updates.md` §6.2: brak `ftrace`,
   modułów ładowalnych i relokacji symboli w locie). FDE to RedoxFS
   **AES-XTS-128** z kluczem z hasła — **bez audytu kryptograficznego osoby trzeciej** i **bez

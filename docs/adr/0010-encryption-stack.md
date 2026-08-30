@@ -382,7 +382,7 @@ klocków (rozwinięcie w `installer-wizard.md` §5.4):
 
 **TPM2** — `R-913` / `V2-N02`: brak sterownika TIS/CRB, brak stosu TSS, brak dziennika zdarzeń
 TCG, brak pomiarów w bootloaderze. Polityka PCR bez pomiarów jest polityką nad pustym zbiorem.
-`ROADMAP-v2.md` §1.2 mówi o piątej warstwie zaufania z `docs/tokeny.md`, że **wciąż jest pusta**
+`ROADMAP-v2.md` §1.2 mówi o piątej warstwie zaufania z `docs/reference/keys-and-tokens.md`, że **wciąż jest pusta**
 (tabela w §6a, wiersz 5: „❌ nie istnieje"). To jest **cały łańcuch**, nie jedna funkcja, i ma
 własną pozycję w rejestrze — nie tworzę dla niej drugiej nazwy.
 
@@ -586,12 +586,12 @@ Ta lista jest częścią dokumentu, nie przypisem do niego.
 
 ## Powiązania
 
-- Szyfrowanie dziś: [`../encryption.md`](../encryption.md)
-- Model zagrożeń: [`../threat-model.md`](../threat-model.md) §3, §6
+- Szyfrowanie dziś: [`../encryption.md`](../guides/encryption.md)
+- Model zagrożeń: [`../threat-model.md`](../security/threat-model.md) §3, §6
 - Ekran szyfrowania w kreatorze: [`installer-wizard.md`](../architecture/installer-wizard.md) §5
 - Nośnik, transakcja, tryb ratunkowy: [`installer.md`](../architecture/installer.md) §5.4, §6, §8
 - Profile i reguła V-17: [`installer-profiles.md`](../architecture/installer-profiles.md)
 - FDE a aktualizacje: [`system-updates.md`](../architecture/system-updates.md) §5.1
-- Rozruch i zaufanie: [`ADR-0005`](0005-secure-boot-bez-microsoftu.md),
-  [`ADR-0006`](0006-sciezka-do-weryfikacji-microsoftu.md)
-- Mapa kluczy (pięć warstw): [`../tokeny.md`](../tokeny.md) §6a
+- Rozruch i zaufanie: [`ADR-0005`](0005-secure-boot-without-microsoft.md),
+  [`ADR-0006`](0006-path-to-microsoft-verification.md)
+- Mapa kluczy (pięć warstw): [`../keys-and-tokens.md`](../reference/keys-and-tokens.md) §6a

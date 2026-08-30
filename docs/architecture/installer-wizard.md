@@ -13,13 +13,13 @@
 - **Dokumenty siostrzane:** [`installer-profiles.md`](installer-profiles.md) — schemat danych
   profili i funkcji; tutaj opisana jest **semantyka i UX**, struktura danych jest tam i nie jest
   tutaj powtarzana. [`installer.md`](installer.md) — nośnik instalacyjny i partycjonowanie
-  (m.in. **swap**, którego ten dokument nie omawia). [`../adr/0010-stos-szyfrowania.md`](../adr/0010-stos-szyfrowania.md)
-  — stos szyfrowania, **rozstrzyga §5**. [`../adr/0011-architektura-kreatora-instalacji.md`](../adr/0011-architektura-kreatora-instalacji.md)
+  (m.in. **swap**, którego ten dokument nie omawia). [`../adr/0010-encryption-stack.md`](../adr/0010-encryption-stack.md)
+  — stos szyfrowania, **rozstrzyga §5**. [`../adr/0011-installer-wizard-architecture.md`](../adr/0011-installer-wizard-architecture.md)
   — architektura silnik/rdzeń/frontendy, **rozstrzyga §2**.
-- **Dokumenty źródłowe:** [`../install.md`](../install.md), [`../encryption.md`](../encryption.md),
-  [`../threat-model.md`](../threat-model.md), [`../hardening.md`](../hardening.md),
-  [`../known-issues.md`](../known-issues.md),
-  [`../adr/0005-secure-boot-bez-microsoftu.md`](../adr/0005-secure-boot-bez-microsoftu.md),
+- **Dokumenty źródłowe:** [`../install.md`](../getting-started/install.md), [`../encryption.md`](../guides/encryption.md),
+  [`../threat-model.md`](../security/threat-model.md), [`../hardening.md`](../security/hardening.md),
+  [`../known-issues.md`](../reference/known-issues.md),
+  [`../adr/0005-secure-boot-without-microsoft.md`](../adr/0005-secure-boot-without-microsoft.md),
   [`../../ROADMAP-v2.md`](../../ROADMAP-v2.md).
 
 **Skąd pochodzą cytaty z wnętrza instalatora i RedoxFS.** W tym drzewie roboczym
@@ -553,7 +553,7 @@ nie należy tego mieszać.
 
 Ekran kreatora **nie pokazuje suwaka parametrów KDF**, dopóki parametry nie trafią do slotu:
 kontrolka, która niczego nie zmienia, jest gorsza niż jej brak. Pełny plan etapowy jest
-w [`ADR-0010`](../adr/0010-stos-szyfrowania.md), nie tutaj.
+w [`ADR-0010`](../adr/0010-encryption-stack.md), nie tutaj.
 
 **d) Koszt złego hasła jest realny i wynika z pętli odblokowania.**
 Odblokowanie **iteruje po wszystkich 64 slotach** (`src/header.rs:121` **[z briefu]**). Poprawne
@@ -646,7 +646,7 @@ uruchomieniem jakiegokolwiek sterownika**. Bootloader musiałby mieć własny st
 implementację CTAP2. `usbhidd` w systemie nic tu nie pomaga — on startuje później.
 
 **TPM2 z polityką PCR — NIEREALNE DZIŚ.** `ROADMAP-v2.md` §1.2 mówi wprost o TPM 2.0
-i measured boot: *„nie istnieje; piąta warstwa zaufania z `docs/tokeny.md` wciąż pusta"*
+i measured boot: *„nie istnieje; piąta warstwa zaufania z `docs/reference/keys-and-tokens.md` wciąż pusta"*
 (`R-913`). Brakuje sterownika TPM, brakuje dziennika zdarzeń TCG, brakuje pomiarów w bootloaderze
 — a polityka PCR bez pomiarów jest polityką nad pustym zbiorem. To jest **cały łańcuch**, nie
 jedna funkcja.

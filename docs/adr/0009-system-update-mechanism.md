@@ -411,7 +411,7 @@ Sprawdzone w drzewie 2026-08-30, bez poleceń `git` (w tym zadaniu zabronione).
 
 - **[ZWERYFIKOWANE — sprostowanie]** Wcześniejsza wersja tej sekcji twierdziła, że `ADR-0008`
   nie istnieje, a `docs/adr/` kończy się na `0006`. **To już nieprawda:** katalog zawiera
-  `0000`–`0011`, a `docs/adr/0008-system-plikow-i-uklad-partycji.md` (37 458 B) rozstrzyga tak
+  `0000`–`0011`, a `docs/adr/0008-filesystem-and-partition-layout.md` (37 458 B) rozstrzyga tak
   samo, jak zakładał D2 — root to RedoxFS, brak migawek i subwoluminów, rezerwa pod slot B.
   Różnica, którą trzeba było naprawić: `ADR-0008` §D4 stawia próg rezerwy na **128 GiB**
   i ogon **24 GiB**, a nie 256 GiB — patrz D9. Poprawka jest widoczna, nie cicha
@@ -448,14 +448,14 @@ Sprawdzone w drzewie 2026-08-30, bez poleceń `git` (w tym zadaniu zabronione).
 
 ## Powiązania
 
-- [`ADR-0004`](0004-hybrydowy-podpis-manifestu.md) — hybrydowy podpis indeksu, warstwa zaufania,
+- [`ADR-0004`](0004-hybrid-manifest-signature.md) — hybrydowy podpis indeksu, warstwa zaufania,
   której ten mechanizm nie zmienia
-- [`ADR-0005`](0005-secure-boot-bez-microsoftu.md) — klucz, którym musi weryfikować się nowy
+- [`ADR-0005`](0005-secure-boot-without-microsoft.md) — klucz, którym musi weryfikować się nowy
   bootloader (D7)
-- [`ADR-0007`](0007-bootloader-i-nosnik-instalacyjny.md) — nośnik i łańcuch podpisu wydania
-- [`ADR-0008`](0008-system-plikow-i-uklad-partycji.md) — **warunek tej decyzji**: brak migawek
+- [`ADR-0007`](0007-bootloader-and-install-medium.md) — nośnik i łańcuch podpisu wydania
+- [`ADR-0008`](0008-filesystem-and-partition-layout.md) — **warunek tej decyzji**: brak migawek
   (D2) i liczby rezerwy pod slot B (D9)
-- [`ADR-0010`](0010-stos-szyfrowania.md) — FDE, brak TPM2/FIDO2, źródło ograniczenia
+- [`ADR-0010`](0010-encryption-stack.md) — FDE, brak TPM2/FIDO2, źródło ograniczenia
   „brak niepilnowanego restartu"
 - [`docs/architecture/system-updates.md`](../architecture/system-updates.md) — pełny projekt
   warstwy; ten ADR rozstrzyga z niego wyłącznie wybór mechanizmu i kolejność

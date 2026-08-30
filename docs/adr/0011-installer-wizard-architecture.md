@@ -484,8 +484,8 @@ maszynie, przy instalacji, z uprawnieniami instalatora.
 ## Czego ta architektura NIE robi i przed czym NIE chroni
 
 Sekcja dopisana przy przeglądzie adwersaryjnym: dokumenty siostrzane mają ją wszystkie
-([`ADR-0007`](0007-bootloader-i-nosnik-instalacyjny.md) §*Czego to NIE robi*,
-[`ADR-0008`](0008-system-plikow-i-uklad-partycji.md), [`ADR-0009`](0009-mechanizm-aktualizacji-systemu.md),
+([`ADR-0007`](0007-bootloader-and-install-medium.md) §*Czego to NIE robi*,
+[`ADR-0008`](0008-filesystem-and-partition-layout.md), [`ADR-0009`](0009-system-update-mechanism.md),
 [`installer-wizard.md`](../architecture/installer-wizard.md) §0.1), a ten ADR miał ją rozsypaną
 po pięciu miejscach — czyli w praktyce nie miał jej wcale. Podział na warstwy jest **decyzją
 o tym, gdzie mieszka kod**. Nie jest mechanizmem bezpieczeństwa i nie wolno go tak czytać.
@@ -548,18 +548,18 @@ systemd-boot, GRUB2, shim+MOK, TPM2, FIDO2, kernel live-patching: **żadnego z n
 nie ma**, ten ADR żadnego nie dodaje i żaden nie jest tu podmieniony po cichu na coś innego.
 Jedyne wystąpienie `systemd-boot`/`grub` w tym dokumencie to **dosłowny cytat TODO upstreamu**
 z `installer_tui.rs:15-17`, a nie plan. Gdzie te rzeczy są rozliczone: układ partycji i systemy
-plików — [`ADR-0008`](0008-system-plikow-i-uklad-partycji.md); szyfrowanie, Argon2id, TPM2/FIDO2 —
-[`ADR-0010`](0010-stos-szyfrowania.md); bootloader i Secure Boot —
-[`ADR-0005`](0005-secure-boot-bez-microsoftu.md), [`ADR-0007`](0007-bootloader-i-nosnik-instalacyjny.md).
+plików — [`ADR-0008`](0008-filesystem-and-partition-layout.md); szyfrowanie, Argon2id, TPM2/FIDO2 —
+[`ADR-0010`](0010-encryption-stack.md); bootloader i Secure Boot —
+[`ADR-0005`](0005-secure-boot-without-microsoft.md), [`ADR-0007`](0007-bootloader-and-install-medium.md).
 
 **Czego ten ADR w ogóle nie rozstrzyga**, żeby nikt nie szukał tu odpowiedzi: treści ekranów
 i przepływu UX ([`installer-wizard.md`](../architecture/installer-wizard.md)), schematu danych
 funkcji i profili ([`installer-profiles.md`](../architecture/installer-profiles.md)), układu
-partycji ([`ADR-0008`](0008-system-plikow-i-uklad-partycji.md)), stosu szyfrowania
-([`ADR-0010`](0010-stos-szyfrowania.md)), nośnika i potoku wydania
-([`ADR-0007`](0007-bootloader-i-nosnik-instalacyjny.md),
+partycji ([`ADR-0008`](0008-filesystem-and-partition-layout.md)), stosu szyfrowania
+([`ADR-0010`](0010-encryption-stack.md)), nośnika i potoku wydania
+([`ADR-0007`](0007-bootloader-and-install-medium.md),
 [`installer.md`](../architecture/installer.md)) oraz mechanizmu aktualizacji
-([`ADR-0009`](0009-mechanizm-aktualizacji-systemu.md)).
+([`ADR-0009`](0009-system-update-mechanism.md)).
 
 ---
 
@@ -730,9 +730,9 @@ tego repozytorium, zawyża rozmiar niepewności i tym samym ją ukrywa.
 - Model danych profili i funkcji: [`installer-profiles.md`](../architecture/installer-profiles.md)
 - Aktualizacje (wspólna semantyka dziennika i wznawiania):
   [`system-updates.md`](../architecture/system-updates.md)
-- Rozruch i zaufanie: [`ADR-0005`](0005-secure-boot-bez-microsoftu.md),
-  [`ADR-0006`](0006-sciezka-do-weryfikacji-microsoftu.md)
-- Podpis manifestu: [`ADR-0004`](0004-hybrydowy-podpis-manifestu.md)
+- Rozruch i zaufanie: [`ADR-0005`](0005-secure-boot-without-microsoft.md),
+  [`ADR-0006`](0006-path-to-microsoft-verification.md)
+- Podpis manifestu: [`ADR-0004`](0004-hybrid-manifest-signature.md)
 - Zakres bramek jakości wobec kodu vendorowanego:
-  [`ADR-0003`](0003-vendorowany-kod-zostaje-na-formie-upstreamu.md)
+  [`ADR-0003`](0003-vendored-code-keeps-upstream-form.md)
 - Typy repozytoriów i definicja ukończenia: `CLAUDE.md` §11, §12

@@ -5,8 +5,8 @@
     już działa i jest dowiedziony** (`U-206`–`U-212`). Nowe są wyłącznie pozycje oznaczone
     **DO ZBUDOWANIA** i **NOWY PODSYSTEM** — i to one są propozycją.
 - **Data:** 2026-08-30
-- **Kontekst:** [`ADR-0005`](0005-secure-boot-bez-microsoftu.md),
-  [`ADR-0006`](0006-sciezka-do-weryfikacji-microsoftu.md), `V2-N03`, `V2-MS01`, `V2-MS02`,
+- **Kontekst:** [`ADR-0005`](0005-secure-boot-without-microsoft.md),
+  [`ADR-0006`](0006-path-to-microsoft-verification.md), `V2-N03`, `V2-MS01`, `V2-MS02`,
   `V2-MS04`, `R-604`, `R-607`, `R-609`, `R-707`, `R-710`
 - **Dowód:** `U-206`, `U-207`, `U-208`, `U-210`, `U-212`, `U-218`;
   `recipes/core/bootloader/recipe.toml:4-6,24-31,34,73,108,113`;
@@ -19,10 +19,10 @@
   ścieżka rozruchu UEFI i BIOS, hybrydowość nośnika, jego sumy i podpisy, oraz bramka
   na artefakcie bootloadera.
 - **Czego ta ADR NIE rozstrzyga:** **rozmiaru ESP i układu partycji** — to jest zakres
-  [`ADR-0008`](0008-system-plikow-i-uklad-partycji.md) D5, patrz D6 niżej; mechaniki
-  aktualizacji i miejsca wskaźnika slotu ([`ADR-0009`](0009-mechanizm-aktualizacji-systemu.md));
-  stosu szyfrowania ([`ADR-0010`](0010-stos-szyfrowania.md)); architektury kreatora
-  ([`ADR-0011`](0011-architektura-kreatora-instalacji.md)); strategii wobec Microsoftu
+  [`ADR-0008`](0008-filesystem-and-partition-layout.md) D5, patrz D6 niżej; mechaniki
+  aktualizacji i miejsca wskaźnika slotu ([`ADR-0009`](0009-system-update-mechanism.md));
+  stosu szyfrowania ([`ADR-0010`](0010-encryption-stack.md)); architektury kreatora
+  ([`ADR-0011`](0011-installer-wizard-architecture.md)); strategii wobec Microsoftu
   (`ADR-0005`, `ADR-0006`).
 
 ## Legenda znaczników
@@ -78,7 +78,7 @@ jest upstreamowy, uruchamiany na **hoście linuksowym**, i — jak stwierdza
 | ESP nośnika składany jest z paczki `bootloader.pkgar` (`fetch_bootloaders` czyta `usr/lib/boot/bootloader-live.efi`), a nie z `--write-bootloader` | `U-207`; `mk/disk.mk` mimo to nadal podaje `--write-bootloader=…` |
 | netboot istnieje: `redox.ipxe` (89 B) chainloaduje `bootloader-live.efi`, obraz live jako `initrd` po HTTP | `redox.ipxe`, `scripts/network-boot.sh` (host linuksowy, `dnsmasq`, `iptables`) |
 | **nośnik instalacyjny nie jest wydawany**: `make-release.sh` pakuje wyłącznie `harddrive.img`, więc `redox-live.iso` nie ma sumy w `SHA256SUMS` ani podpisu minisign | `make-release.sh:20-30,49-51`; `installer.md` §1.2 pkt 1; `CLAUDE.md` §17 („Podpisany obraz ISO — ❌ brak") |
-| podpisywany jest **manifest sum**, nie artefakty: `minisign -Sm SHA256SUMS`, klucz operatora poza repo | `make-release.sh:49-51`; warstwa 4 z `docs/tokeny.md` §6a |
+| podpisywany jest **manifest sum**, nie artefakty: `minisign -Sm SHA256SUMS`, klucz operatora poza repo | `make-release.sh:49-51`; warstwa 4 z `docs/reference/keys-and-tokens.md` §6a |
 | wypalenie nośnika na USB jest **cudzym narzędziem na hoście**: `make popsicle` woła `popsicle-gtk` | `Makefile:16-17` |
 
 **Trzy poprawki do rejestru, zgodnie z `CLAUDE.md` §4.5.** Nie „później" — tu, w dokumencie,
@@ -541,7 +541,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | netboot iPXE | **JEST w drzewie**, `[NIEZWERYFIKOWANE]` w działaniu | `redox.ipxe`, `scripts/network-boot.sh`; rozstrzyga jeden przebieg na hoście linuksowym |
 | wypalenie nośnika na USB z hosta | **JEST**, poza E-OS | `Makefile:16-17` → `popsicle-gtk` (GTK, Linux) |
 | **sumy i podpis nośnika w wydaniu** | **DO ZBUDOWANIA** | D10; dziś `make-release.sh:20-30` pakuje tylko `harddrive.img` — nośnika nie ma w `SHA256SUMS` |
-| podpisany jest **manifest sum**, nie każdy artefakt | **JEST** | `make-release.sh:49-51`, `minisign -Sm SHA256SUMS`; warstwa 4 (`tokeny.md` §6a) |
+| podpisany jest **manifest sum**, nie każdy artefakt | **JEST** | `make-release.sh:49-51`, `minisign -Sm SHA256SUMS`; warstwa 4 (`keys-and-tokens.md` §6a) |
 | klucz prywatny do podpisu wydania | **brak** — `R-F26`/`U-191` | połowy prywatnej `DCEC85BA6057ED4A` nikt nie posiada; poza zakresem tego ADR-a, ale unieważnia D10 do czasu rotacji |
 | sprawdzenie nośnika po zapisie (SHA-256 + podpis) | **DO ZBUDOWANIA** | D11; `installer.md` §8.4 |
 | tryb ratunkowy na tym samym nośniku | **DO ZBUDOWANIA** | D11; `installer.md` §8.1 |
@@ -563,7 +563,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | trwały licznik prób rozruchu zapisywany przez bootloader | **NOWY PODSYSTEM** | `R-707`; bootloader dziś **niczego nie zapisuje** |
 | weryfikacja obrazu live **przed** pivotem (dziś ładowany do RAM nieweryfikowany) | **NOWY PODSYSTEM** | `docs/threat-model.md` |
 | scalony obraz EFI (UKI) | **NOWY PODSYSTEM** | wariant G |
-| measured boot / TPM 2.0 / zapieczętowanie klucza FDE | **NIEREALNE DZIŚ** | `R-913` / `V2-N02`; warstwa 5 pusta (`tokeny.md` §6a) |
+| measured boot / TPM 2.0 / zapieczętowanie klucza FDE | **NIEREALNE DZIŚ** | `R-913` / `V2-N02`; warstwa 5 pusta (`keys-and-tokens.md` §6a) |
 | FIDO2 / token sprzętowy w ścieżce rozruchu | **NIEREALNE DZIŚ** | brak stosu CTAP i brak obsługi FIDO w `usbhidd`; inwentarz obrazu wymienia FIDO2 wśród rzeczy, których nie ma |
 
 ---
@@ -726,14 +726,14 @@ Lista jest częścią dokumentu, nie przypisem.
 
 ## Powiązania
 
-- [`ADR-0005`](0005-secure-boot-bez-microsoftu.md) — własny klucz, zaufanie wnosi właściciel
-- [`ADR-0006`](0006-sciezka-do-weryfikacji-microsoftu.md) — dlaczego shim odpada dziś
-- [`ADR-0004`](0004-hybrydowy-podpis-manifestu.md) — podpis manifestu (warstwa 3)
-- [`ADR-0008`](0008-system-plikow-i-uklad-partycji.md) — **D5 rozstrzyga rozmiar ESP**; ten ADR
+- [`ADR-0005`](0005-secure-boot-without-microsoft.md) — własny klucz, zaufanie wnosi właściciel
+- [`ADR-0006`](0006-path-to-microsoft-verification.md) — dlaczego shim odpada dziś
+- [`ADR-0004`](0004-hybrid-manifest-signature.md) — podpis manifestu (warstwa 3)
+- [`ADR-0008`](0008-filesystem-and-partition-layout.md) — **D5 rozstrzyga rozmiar ESP**; ten ADR
   wnosi do niej wyłącznie budżet bootloadera i argument FAT32 (D6)
 - [`Instalator E-OS na nośniku USB`](../architecture/installer.md) — §1.2 pkt 1 (nośnik poza
   wydaniem), §2.2, §2.4 (decyzja B3), §3.1–§3.4, §5.2, §5.6, §7.3–§7.5, §8.1, §8.4, §9.3
 - [`System aktualizacji`](../architecture/system-updates.md) — §1.4 (układ partycji), §4.3, §4.6, §5.2, §5.5 (SBAT)
 - [`Kreator instalacji`](../architecture/installer-wizard.md) — §5.5 (co realnie chroni FDE)
-- [`../threat-model.md`](../threat-model.md) — granice `V2-MS02`
-- [`../tokeny.md`](../tokeny.md) §6a — pięć warstw kluczy
+- [`../threat-model.md`](../security/threat-model.md) — granice `V2-MS02`
+- [`../keys-and-tokens.md`](../reference/keys-and-tokens.md) §6a — pięć warstw kluczy
