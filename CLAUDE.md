@@ -202,6 +202,81 @@ która ich dotyczy. Nie w następnej, nie „przy okazji".
 Audyt znalazł w tym repozytorium README twierdzące, że klucz nie istnieje, gdy istniał i był wpięty
 w obraz, oraz wymieniające dwie aplikacje, których w obrazie nie ma. To jest koszt odkładania.
 
+### 5.9 Testowanie wielostopniowe — jeden kierunek to za mało
+
+Jeden test sprawdzający jedną rzecz w jeden sposób daje **jeden** rodzaj pewności i **fałszywe
+poczucie** reszty. Ta sesja dostarczyła na to tyle przykładów, że przestaje to być teorią:
+
+| co pokazało zieleń | czego nie sprawdzało |
+|---|---|
+| `make build/fstools.tag` → „up to date" | binarka instalatora miała datę sprzed **dwóch miesięcy** |
+| `cargo test` → „ok" | test uruchomiono na **starej** kompilacji, bo `cp -p` przeniósł datę pliku |
+| `_ => bail!("block size not supported")` | gałąź **nieosiągalna** — wartość była stałą 512 |
+| `grep BOOTX64` na całym obrazie | trafiał w ciąg **wewnątrz roota**, nie w ESP |
+| `pins --strict` → DRIFT | porównywał z **lustrem GitHuba**, nie z GitLabem |
+| „wszystkie gałęzie scalają się czysto" | lokalny klon miał **nieaktualne referencje** |
+
+Dlatego każda zmiana warta testu jest testowana na **kilku poziomach**, a nie na jednym.
+Nie wszystkie poziomy dotyczą każdej zmiany — ale pominięcie poziomu jest **decyzją do
+uzasadnienia**, nie domyślnym zachowaniem.
+
+**Poziom 1 — kontrakt.** Test jednostkowy na to, co funkcja obiecuje. Wejście, wyjście, błąd.
+
+**Poziom 2 — mutacja.** *Czy ten test w ogóle potrafi zawieść?* Zepsuj celowo to, czego test
+pilnuje, i sprawdź, że pada — **i że pada właśnie ten test, a nie inny**. Test, którego nigdy
+nie widziałeś na czerwono, jest hipotezą, nie kontrolą. Przy `R-607a` mutacja przepuszczająca
+4096 zabiła dokładnie jeden z trzech testów; to jest ten dowód.
+
+**Poziom 3 — ścieżka porażki.** Sprawdź, co się dzieje, gdy jest **źle**: brak pliku, złe hasło,
+przerwane zasilanie, urządzenie zgłaszające bzdurę. Większość defektów tej sesji siedziała
+w ścieżkach, których nikt nie przeszedł, bo wszyscy testowali sukces.
+
+**Poziom 4 — kontrola przeciwna.** Uruchom ten sam pomiar na kodzie **sprzed** zmiany. Jeżeli
+przed i po wygląda tak samo, nie zmierzyłeś swojej zmiany. Przy `R-612a` dopiero to pokazało
+różnicę: stary kod → `FAT12, 1× BOOTX64`, nowy → `brak systemu plików, 0× BOOTX64`.
+
+**Poziom 5 — integracja na prawdziwym poleceniu.** Nie na zastępniku. `make live`, nie „symulacja
+make". Jeżeli produkt buduje się w kontenerze z `--device /dev/fuse`, to test bez tego urządzenia
+mierzy inny system.
+
+**Poziom 6 — artefakt.** Otwórz to, co powstało (§5.3). Sygnatury, rozmiary, zawartość — nie kod
+wyjścia. `file` mówiące „bootable" i `dd` czytające `CD001` z offsetu 0x8001 to dwa różne dowody
+tej samej rzeczy i warto mieć oba.
+
+**Poziom 7 — adwersarz.** Przy zmianach dotyczących uprawnień, kluczy, rozruchu i aktualizacji:
+spróbuj **złamać** gwarancję, nie potwierdzić ją. Zapis dowolnego pliku przez `/tmp/pkg_download`
+został udowodniony podstawieniem dowiązania i zmierzeniem 868 992 bajtów zapisanych jako root —
+żaden test funkcjonalny by tego nie pokazał.
+
+**Poziom 8 — goły sprzęt.** QEMU nie dowodzi, że firmware uruchomi nośnik, że dysk 4Kn zostanie
+poprawnie rozpoznany ani że sterownik zadziała na prawdziwym chipsecie. Co wymaga metalu, jest
+oznaczone ⚙️ w roadmapie i **nie liczy się jako zweryfikowane**, dopóki ktoś tego nie uruchomi.
+
+### 5.10 Pokrycie mierzone na bieżąco, z podłogą, która potrafi zawieść
+
+Pokrycie jest **mierzone przy każdym przebiegu** `scripts/verify.sh`, nie raz na kwartał.
+
+| zakres | reguła |
+|---|---|
+| `tools/eos-repo-sign` — kod własny E-OS | **bramka**: `cargo llvm-cov --fail-under-lines 38` |
+| `Cargo.toml` w korzeniu — vendorowany `redox_cookbook` | **doradczo**: liczba wypisana, bez progu |
+
+Asymetria jest celowa: bramkowanie pokrycia cudzego kodu to relitygowanie drzewa, którego nie
+utrzymujemy (§11, typ B/C).
+
+Trzy reguły, bez wyjątków:
+
+1. **Podłoga nigdy nie spada.** Podniesienie progu jest zwykłym commitem. Obniżenie wymaga
+   zgody właściciela i uzasadnienia w treści commita.
+2. **Liczba bez kierunku jest bezużyteczna.** W opisie zmiany podaje się pokrycie **przed
+   i po**, nie samo „po".
+3. **Wysokie pokrycie nie jest dowodem.** Można mieć 100% linii i zero testów mutacyjnych —
+   wtedy wiadomo, że kod się *wykonał*, nie że jest *sprawdzony*. Pokrycie mówi, czego
+   **na pewno nie sprawdzono**; nie mówi, co sprawdzono dobrze.
+
+Bieżący stan, zmierzony: `tools/eos-repo-sign` — **41,06 % linii**, próg 38. Vendorowany
+cookbook — 9 testów, bez progu.
+
 ---
 
 ## 6. Definicja ukończenia
@@ -215,6 +290,10 @@ Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
 - [ ] `gitleaks`, `osv-scanner`, `hadolint` bez nowych trafień
 - [ ] **Artefakt sprawdzony** — nie tylko kod wyjścia (§5.3)
 - [ ] Test **negatywny** istnieje dla każdej dodanej kontroli (§5.4)
+- [ ] **Mutacja wykonana** — kontrola widziana na czerwono, i to ta właściwa (§5.9, poziom 2)
+- [ ] **Kontrola przeciwna** — ten sam pomiar na kodzie sprzed zmiany (§5.9, poziom 4)
+- [ ] **Pokrycie przed i po** w opisie zmiany; podłoga nie spadła (§5.10)
+- [ ] Poziomy testowania z §5.9 przejrzane; każdy pominięty **uzasadniony**, nie przemilczany
 - [ ] Prawdziwe wyjście poleceń wklejone do opisu MR
 - [ ] Dokumentacja zaktualizowana w tym samym MR (§5.8)
 - [ ] Przy obszarach z §5.6 — analiza ryzyka i plan wycofania
