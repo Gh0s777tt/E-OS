@@ -30,8 +30,25 @@ then
         || cp -v "$BOOTPUB" "${COOKBOOK_SOURCE}/src/eos-boot-verify.pub.bin"
     EOS_BOOT_FEATURES="verify-boot"
     echo "V2-MS02: boot-verification key injected -- bootloader WILL verify kernel and initfs"
+elif [ "${EOS_ALLOW_UNVERIFIED_BOOT:-0}" = "1" ]
+then
+    echo "V2-MS02: WARNING -- EOS_ALLOW_UNVERIFIED_BOOT=1"
+    echo "V2-MS02: building a bootloader that will NOT verify the kernel or the initfs."
 else
-    echo "V2-MS02: no boot key at build/boot-signing/ -- bootloader will NOT verify what it loads"
+    # Fail CLOSED. The previous behaviour printed the line below and carried on, producing a
+    # bootloader that verifies nothing -- and scripts/eos-build.sh pipes make through `tail -3`,
+    # so the warning never reached the operator. A machine without the key produced an image
+    # indistinguishable from a verified one, silently.
+    #
+    # The opt-in variable is the pattern this project already uses correctly in
+    # scripts/publish-repo.sh (EOS_ALLOW_UNSIGNED=1): the unsafe path stays available, but it has
+    # to be asked for.
+    echo "V2-MS02: no boot key at ${BOOTPUB}"                                        >&2
+    echo "V2-MS02: refusing to build a bootloader that cannot verify what it loads." >&2
+    echo "  Provide the key:  scripts/eos-boot-setup-key.sh"                         >&2
+    echo "  Or opt in explicitly (development only):"                                >&2
+    echo "      EOS_ALLOW_UNVERIFIED_BOOT=1 make ..."                                >&2
+    exit 1
 fi
 export EOS_BOOT_FEATURES
 
