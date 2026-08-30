@@ -1,407 +1,392 @@
-<!-- ╔══════════════════════════════════════════════════════════════════════╗ -->
-<!-- ║                              E-OS  README                              ║ -->
-<!-- ║                  Theme: deep red (#E50914) on black                    ║ -->
-<!-- ╚══════════════════════════════════════════════════════════════════════╝ -->
-<!-- SYNC: v0.2.0 · Unreleased U-152 · 2026-08-22 — keep this file in step with CHANGELOG.md/ROADMAP.md on every feature. -->
+<!-- SYNC: v0.2.0 · Unreleased U-224 · 2026-08-30 — keep this file in step with CHANGELOG.md and ROADMAP.md.
+     NOTE: ci-integrity.sh check 3 verifies that this marker EXISTS, not that its value is current.
+     Keeping it accurate is a human obligation until that gate is tightened (see ROADMAP, P0). -->
+# E-OS
 
-<a name="top"></a>
+A hardened downstream distribution of [Redox OS](https://www.redox-os.org) — a Unix-like operating
+system with a microkernel written in Rust, packaged with a verified boot chain, a post-quantum
+signed package index, and a curated desktop.
 
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:E50914,100:0B0B0B&height=220&section=header&text=E-OS&fontSize=92&fontColor=ffffff&fontAlignY=36&desc=The%20Rust-native%20operating%20system&descAlignY=58&descSize=20&animation=fadeIn" alt="E-OS" />
-</p>
+[![pipeline](https://gitlab.com/e-os/e-os/badges/main/pipeline.svg)](https://gitlab.com/e-os/e-os/-/pipelines)
+[![coverage](https://gitlab.com/e-os/e-os/badges/main/coverage.svg)](https://gitlab.com/e-os/e-os/-/pipelines)
+[![tag](https://img.shields.io/github/v/tag/Gh0s777tt/E-OS)](https://github.com/Gh0s777tt/E-OS/tags)
+[![license](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
+[![last commit](https://img.shields.io/github/last-commit/Gh0s777tt/E-OS)](https://gitlab.com/e-os/e-os/-/commits/main)
 
-<p align="center">
-  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&pause=900&color=E50914&center=true&vCenter=true&width=720&lines=Forged+in+Rust.+Memory-safe+by+design.;A+microkernel+operating+system+for+2026.;Capability-secure.+Crimson+desktop.;Built+on+Redox+OS.+Licensed+AGPL-3.0." alt="typing tagline" />
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-E50914?style=for-the-badge&labelColor=0B0B0B" alt="License: AGPL-3.0"></a>
-  <img src="https://img.shields.io/badge/Rust-nightly--2026--05--24-E50914?style=for-the-badge&logo=rust&logoColor=white&labelColor=0B0B0B" alt="Rust">
-  <img src="https://img.shields.io/badge/kernel-microkernel-E50914?style=for-the-badge&labelColor=0B0B0B" alt="Microkernel">
-  <img src="https://img.shields.io/badge/arch-x86__64%20%C2%B7%20aarch64-E50914?style=for-the-badge&labelColor=0B0B0B" alt="x86_64 and aarch64">
-  <img src="https://img.shields.io/badge/desktop-Crimson%20DE%20%2B%20COSMIC%20apps-E50914?style=for-the-badge&labelColor=0B0B0B" alt="Crimson DE + COSMIC apps">
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/status-alpha-E50914?style=flat-square&labelColor=0B0B0B" alt="status">
-  <img src="https://img.shields.io/badge/version-0.2.0%20dev-E50914?style=flat-square&labelColor=0B0B0B" alt="version">
-  <img src="https://img.shields.io/badge/desktop-boot%20verified%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="desktop boot verified">
-  <img src="https://img.shields.io/badge/FDE-hardware%20AES%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="hardware AES FDE">
-  <img src="https://img.shields.io/badge/RAID--1-mirror%20%E2%9C%93-E50914?style=flat-square&labelColor=0B0B0B" alt="RAID-1 mirror">
-  <img src="https://img.shields.io/badge/based%20on-Redox%20OS-E50914?style=flat-square&labelColor=0B0B0B" alt="based on Redox">
-</p>
-
-<p align="center">
-  <b>
-  <a href="#-what-is-e-os">What</a> ·
-  <a href="#-quick-start">Quick&nbsp;Start</a> ·
-  <a href="https://e-os.gitlab.io/e-os/">Docs</a> ·
-  <a href="ROADMAP.md">Roadmap</a> ·
-  <a href="CHANGELOG.md">Changelog</a> ·
-  <a href="SECURITY.md">Security</a> ·
-  <a href="CONTRIBUTING.md">Contributing</a>
-  </b>
-</p>
-
-<p align="center">
-  <sub>🦊 <b>Development &amp; CI live on <a href="https://gitlab.com/e-os/e-os">GitLab</a></b> — this GitHub repo is a <b>read-only mirror</b> (GitHub Actions is off account-wide). File issues / merge requests on GitLab.</sub>
-</p>
-
-<p align="center"><img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="" /></p>
+> **On the badges.** The pipeline badge currently reads **failed** and the coverage badge reads
+> **unknown**. Both are accurate: the GitLab CI minute quota was exhausted on 2026-08-28, so no job
+> has executed since — see [`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §2.
+> An OpenSSF Scorecard badge is deliberately absent: the project is not registered with Scorecard,
+> and the badge would render `invalid repo path`. A GitLab release badge is absent for the same
+> reason — it renders `none`, because tags exist but Release objects do not.
 
 ---
 
-## 🖥️ Preview
+## Table of contents
 
-<p align="center">
-  <img src="assets/screenshots/eos-cosmic-desktop.png" alt="The E-OS Crimson desktop: crimson-on-black wallpaper with the E-OS hexagon logo, and a taskbar with the red E launcher" width="82%" />
-  <br/>
-  <sub><b>E-OS 0.1.0 “Genesis”</b> — the Crimson desktop (orbital + <code>eos-orbutils</code>), booted under QEMU/KVM.</sub>
-</p>
-
-<p align="center">
-  <img src="assets/screenshots/eos-login-greeter.png" alt="The E-OS login greeter" width="82%" />
-  <br/>
-  <sub>The red/black <b>E-OS login greeter</b> — wallpaper and launcher icon built from source.</sub>
-</p>
-
-<p align="center">
-  <img src="assets/screenshots/eos-bootloader.png" alt="The red/black E-OS bootloader" width="60%" />
-  <br/>
-  <sub>The red-on-black <b>E-OS bootloader</b> — themed and built from source.</sub>
-</p>
+- [What this repository is](#what-this-repository-is)
+- [The repository graph](#the-repository-graph)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Usage](#usage)
+- [Requirements and supported platforms](#requirements-and-supported-platforms)
+- [Documentation](#documentation)
+- [Project documents](#project-documents)
+- [Architecture](#architecture)
+- [Security](#security)
+- [License, authors, acknowledgements](#license-authors-acknowledgements)
 
 ---
 
-## ⚡ What is E-OS
+## What this repository is
 
-**E-OS** is a modern, memory-safe **operating system written in Rust**. It is a
-**downstream distribution of [Redox OS](https://www.redox-os.org)** — building on
-Redox's proven microkernel foundation while pursuing its own identity, roadmap,
-and hardening goals.
+This repository is the **orchestrator** of the E-OS ecosystem. It contains no operating-system
+source code of its own. What it holds is:
 
-> E-OS is **not** a from-scratch OS, and never claims to be. It stands on the
-> shoulders of Redox OS (MIT) and the Rust ecosystem. Our work is the
-> distribution: curation, hardening, branding, a custom **crimson desktop
-> environment**, storage/crypto/network features, tooling, documentation, and the
-> features on the [roadmap](ROADMAP.md). Credit to upstream is permanent — see
-> [Built on Redox OS](#-built-on-redox-os).
+| Directory | Contents |
+|---|---|
+| `recipes/` | build recipes — which upstream or forked source becomes which package |
+| `config/` | image definitions per architecture and variant (`eos.toml`, `desktop.toml`, …) |
+| `src/` | the vendored upstream `redox_cookbook` build engine (binaries `repo`, `repo_builder`, `cookbook_redoxer`) |
+| `tools/eos-repo-sign` | E-OS-authored: hybrid ed25519 + ML-DSA-65 signing of the package index |
+| `scripts/` | build, signing, publication and verification automation |
+| `mk/`, `Makefile` | the GNU Make build system |
+| `podman/` | container definitions for the hermetic build environment |
+| `docs/` | the documentation set, including audit reports |
 
-### Why E-OS?
+The operating system itself lives in **29 sibling repositories**, pinned by revision in
+[`repos.toml`](repos.toml). Nothing is fetched by a floating branch: every pinned revision is
+verified against the published branch head by `scripts/eos-repos.sh pins --strict`.
+
+### The repository graph
+
+```mermaid
+graph TD
+  EOS["<b>E-OS</b><br/>orchestrator · recipes · config<br/>cookbook · eos-repo-sign"]
+
+  subgraph CORE["Boot and core — forks with E-OS patches"]
+    K[eos-kernel]:::c
+    B[eos-base]:::c
+    BL[eos-bootloader]:::c
+    R[eos-relibc]:::c
+    FS[eos-redoxfs]:::c
+    UU[eos-userutils]:::c
+    IN[eos-installer]:::c
+  end
+
+  subgraph PKG["Package chain"]
+    PU[eos-pkgutils]:::c
+    PA[eos-pkgar]:::c
+    PX[(eos-pkg-x86_64)]:::d
+    PAA[(eos-pkg-aarch64)]:::d
+  end
+
+  subgraph GUI["Graphical stack"]
+    OB[eos-orbital]:::c
+    OU[eos-orbutils]:::c
+    OD[eos-orbdata]:::c
+    OC[eos-orbclient]:::b
+    OT[eos-orbterm]:::b
+    LO[eos-liborbital]:::b
+  end
+
+  subgraph APPS["First-party applications"]
+    UI[eos-ui]:::a
+    CTL[eos-control]:::a
+    NTS[eos-notes]:::a
+    GRD[eos-guard]:::a
+    SYS[eos-sysmon]:::a
+  end
+
+  subgraph MIRR["Read-only vendored mirrors"]
+    M["eos-coreutils · eos-extrautils · eos-ion<br/>eos-netdb · eos-netutils · eos-redox-fatfs<br/>eos-redoxer"]:::b
+  end
+
+  EOS -->|pins + builds from source| CORE
+  EOS -->|pins + builds from source| PKG
+  EOS -->|pins| GUI
+  EOS -->|pins| APPS
+  EOS -->|pins| MIRR
+  EOS -.->|publishes signed index| PX
+  EOS -.->|publishes signed index| PAA
+  CTL --> UI
+  NTS --> UI
+  GRD --> UI
+  SYS --> UI
+
+  classDef a fill:#8b0000,stroke:#e50914,color:#fff
+  classDef b fill:#2b2b2b,stroke:#777,color:#ddd
+  classDef c fill:#4a1010,stroke:#c0392b,color:#fff
+  classDef d fill:#1a1a1a,stroke:#555,color:#aaa
+```
+
+**Repository types**, enforced by `scripts/eos-mirror-drift.sh` and `ci-integrity.sh` check 6:
+
+| Type | Meaning | Count |
+|---|---|---|
+| **A** | E-OS-authored components | 6 |
+| **B** | read-only vendored mirrors of upstream Redox — never hand-edited | 10 |
+| **C** | forks carrying E-OS patches, kept rebasable | 12 |
+| **D** | published package artefacts | 2 |
+
+---
+
+## Features
+
+Everything in the **Shipped** table was verified on 2026-08-30 by mounting the built image
+(`eos-x86_64-harddrive.img`) and reading its contents — not from documentation. Method and evidence:
+[`docs/audit/02-feature-inventory-2026-08-30.md`](docs/audit/02-feature-inventory-2026-08-30.md).
+
+### Shipped
+
+| Area | What is in the image |
+|---|---|
+| **Verified boot chain** | The bootloader authenticates the kernel and initfs with ed25519 over `SHA-512(role ‖ len_le ‖ data)` **before** the magic-byte check and before any byte is used. A missing signature or a zero key refuses to boot. Domain separation means a signed initfs cannot verify as a kernel. |
+| **Post-quantum signed package index** | `repo.toml` is signed with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature. Verified against the live published aarch64 index (79 packages): both halves pass; a single flipped byte makes both refuse. |
+| **Pinned trust anchors in the image** | `/etc/pkg/eos-repo-sign.pub.toml` (index key) and `/etc/pkg/packages.toml` → `[pubkeys.local]` (package key), byte-identical to the committed public halves. |
+| **Package bytes enforced against the signed index** | blake3 from the authenticated manifest is checked against the bytes about to be extracted, on every install path including `pkg install`. Rollback and freeze protection via `serial` and `expires`. |
+| **Secure Boot** | Both UEFI bootloaders carry SBAT and are Authenticode-signed; SBAT is stamped **before** signing, because Authenticode covers the whole file. |
+| **Desktop** | The Crimson desktop on the `orbital` display server: greeter, launcher, taskbar, tray, notifications, screenshot tool. |
+| **Applications** | `cosmic-edit`, `cosmic-files`, `cosmic-term`, NetSurf 3.11 (built from source as PIE), **eos-notes**, **eos-control** (system overview, processes, security, storage, power, sound, live network). |
+| **Shells and tooling** | `ion` (default), `bash`, `nushell`; `vim`, `nano`, `kibi`, `ripgrep`, `git`, `curl`, `wget`, OpenSSH 9.8, OpenSSL 3.5.3. |
+| **Full-disk encryption** | RedoxFS AES-XTS, offered by the installer. Hardware-accelerated on aarch64 via ARMv8 Crypto Extensions, software path on x86_64. |
+| **Forced first-boot password** | Both the text login and the graphical greeter refuse to proceed while the account has no password. |
+| **Per-user kernel-scheme allowlist** | `/etc/login_schemes.toml` grants `root` everything and the unprivileged user an explicit 25-scheme list. Raw IP sockets (`ip`) are **removed** from that list. |
+| **User-space drivers** | 16 drivers as ordinary processes — a driver fault does not take down the kernel. |
+| **RAID-1** | `raid1d`: write-both / read-fallback, degraded boot, resync of a re-added member. |
+| **Password hashing** | argon2id (`m=19456, t=2, p=1`). |
+
+### Planned
+
+| Item | Status | Tracked as |
+|---|---|---|
+| Application sandboxing (per-process scheme sets) | 📋 planned | [ROADMAP](ROADMAP.md) · audit `C-5` |
+| Persistent audit log | 📋 planned | [ROADMAP](ROADMAP.md) · audit `C-9` |
+| Packet filtering / firewall | 📋 planned | [ROADMAP](ROADMAP.md) · audit `C-10` |
+| Published x86_64 package channel | 🚧 in progress | [ROADMAP](ROADMAP.md) · audit `C-4` |
+| Wi-Fi | 📋 planned | [ROADMAP](ROADMAP.md) |
+| Microsoft-signed shim path | 📋 planned | `docs/adr/0006-sciezka-do-weryfikacji-microsoftu.md` |
+
+### Deliberately absent
+
+No antivirus, no VPN/Tor, no backup tool, no SELinux/AppArmor. The access-control model is the
+per-user scheme allowlist above; file integrity monitoring lives inside `eos-control`. These are
+choices, not omissions — the reasoning is in
+[`docs/audit/02-feature-inventory-2026-08-30.md`](docs/audit/02-feature-inventory-2026-08-30.md) §3.
+
+---
+
+## Quick start
+
+Every command below was executed on 2026-08-30 on the reference host (Apple Silicon macOS +
+podman) and its real output is shown.
+
+```bash
+git clone https://gitlab.com/e-os/e-os.git && cd e-os
+```
+
+**Build an x86_64 image.** Use the script, not bare `make`: this project directory lives on exFAT,
+which podman cannot bind-mount, so the build runs inside a podman volume. `make all` from the
+project directory does not work here.
+
+```bash
+bash scripts/eos-build.sh x86_64
+```
+
+Ends with:
+
+```
+==> export image + live ISO
+    /Users/<you>/eos-artifacts/eos-x86_64-harddrive.img (1400 MiB)
+    /Users/<you>/eos-artifacts/eos-x86_64-live.iso (1400 MiB)
+Done.
+```
+
+**Boot the image headlessly and assert it reaches userspace:**
+
+```bash
+bash scripts/ci-boot-smoke.sh ~/eos-artifacts/eos-x86_64-harddrive.img 300 --arch x86_64
+```
+
+Real output:
+
+```
+boot-smoke: x86_64, qemu pid 13690, up to 300s to reach login (TCG: 19s measured)…
+boot-smoke: PASS — reached userspace login
+```
+
+---
+
+## Usage
+
+**Verify every pinned revision against the published branch head:**
+
+```bash
+bash scripts/eos-repos.sh pins --strict
+```
+
+```
+eos-liborbital   | master       | 76ba2e79ac  | 76ba2e79ac  | OK(tip)
+eos-redox-fatfs  | master       | 26caa09089  | 26caa09089  | OK(tip)
+eos-redoxer      | master       | 974c1482c2  | 974c1482c2  | OK(tip)
+---- pins ok=26 drift=0 (non-allowlisted=0) ----
+```
+
+**Run the repository integrity gate** — the same checks CI runs:
+
+```bash
+bash scripts/ci-integrity.sh
+```
+
+```
+ok: README SYNC marker present
+ok: every unsafe in E-OS-owned Rust is justified
+ok: CRLF-pinned files keep their line endings
+ok: no image ships an active unauthenticated package source
+ok: no repo-signing secret material in tracked files
+ok: no fork source vendored into this repo
+integrity: PASS
+```
+
+**Sign and verify a repository index:**
+
+```bash
+tools/eos-repo-sign/target/release/eos-repo-sign sign  <secret.toml> repo.toml
+tools/eos-repo-sign/target/release/eos-repo-sign verify keys/eos-repo-sign.pub.toml repo.toml
+```
+
+```
+ed25519 (classical):  OK
+ml-dsa-65 (PQ):       OK
+VERIFIED: repo.toml
+```
+
+Exit status is `0` on success and `1` on failure; a single flipped byte makes both algorithms
+report `FAIL`.
+
+---
+
+## Requirements and supported platforms
+
+### Build host
 
 | | |
 |---|---|
-| 🦀 **Rust everywhere** | Kernel, drivers, libc (relibc) and userland in a language that eliminates whole classes of memory-safety bugs. |
-| 🧩 **True microkernel** | Drivers, filesystems, the RAID layer and the network stack run in **user space** as isolated processes. A driver crash isn't a kernel panic. |
-| 🔐 **Capability-secure + encrypted** | Everything is a **scheme** (URL-like resource). Least-privilege by construction; optional full-disk encryption with **hardware-accelerated AES**. |
-| 🎨 **Crimson desktop** | A custom **E-OS desktop environment** on the Rust **orbital** display server (`eos-orbutils`) — animated crimson wallpaper, labelled desktop icons, floating launcher — running **COSMIC apps** as clients under a crimson `cosmic-theme`. |
-| 📦 **Reproducible builds** | Containerized (Podman) build system, pinned toolchain; patched recipes pinned to **E-OS source forks**, so a fresh clone reproduces every change. |
+| **Operating system** | macOS (Apple Silicon, the reference host) or Linux |
+| **Container runtime** | podman — the build is hermetic and runs inside `localhost/redox-base:latest` |
+| **Toolchain** | Rust nightly pinned by [`rust-toolchain.toml`](rust-toolchain.toml); installed inside the container |
+| **QEMU** | `qemu-system-x86_64` / `qemu-system-aarch64`, for boot-smoke and local runs |
+| **Disk** | ~90 GB free. A full build tree with caches measures ~70 GB |
+| **Filesystem caveat** | if the checkout is on exFAT, podman cannot bind-mount it; `scripts/eos-build.sh` handles this by building inside a podman volume |
+
+### Build targets
+
+| Target | Status |
+|---|---|
+| `x86_64-unknown-redox` | supported — image and live ISO, boot-verified under QEMU |
+| `aarch64-unknown-redox` | supported — additionally the only architecture with a **published** package channel |
+| `i586`, `riscv64gc` | inherited upstream configuration, **not built by E-OS** |
+
+### Runtime hardware
+
+Verified under QEMU. Hardware coverage is described in [`HARDWARE.md`](HARDWARE.md); the image
+carries 16 user-space drivers: `ac97d`, `e1000d`, `ihdad`, `ihdgd`, `ixgbed`, `rtl8139d`,
+`rtl8168d`, `sb16d`, `usbctl`, `usbhidd`, `usbhubd`, `usbnetd`, `usbscsid`, `vboxd`,
+`virtio-netd`, `xhcid`.
+
+**No Wi-Fi, Bluetooth, NVMe or non-Intel GPU driver ships today.**
 
 ---
 
-## ✨ Highlights
+## Documentation
 
-**Foundation**
+The full documentation set lives in [`docs/`](docs/) and is published as an mdBook at
+<https://e-os.gitlab.io/e-os/>.
 
-- **Microkernel architecture** — minimal trusted computing base; servers in userspace.
-- **`relibc`** — a clean-room C library in Rust (Linux + Redox targets).
-- **RedoxFS** — a modern, copy-on-write, optionally-encrypted filesystem.
-- **Everything-is-a-scheme** — uniform, capability-style resource model.
-- **Crimson desktop** — the E-OS DE on **orbital** (Rust display server + window
-  manager + software compositor), running **COSMIC apps** as clients.
-  *(`cosmic-comp`, the COSMIC compositor, does **not** run on either arch — see
-  [known-issues](docs/known-issues.md).)*
-- **Dual-arch** — builds for **x86_64 and aarch64**, both booting to the desktop
-  under QEMU. ([build state](EOS_BUILD_STATE.md))
+| Area | Entry point |
+|---|---|
+| Getting started | [`docs/getting-started.md`](docs/getting-started.md) |
+| Building | [`docs/building.md`](docs/building.md) · [`docs/build-troubleshooting.md`](docs/build-troubleshooting.md) |
+| Installing | [`docs/install.md`](docs/install.md) |
+| Architecture | [`docs/architecture/`](docs/architecture/) |
+| Security | [`docs/security.md`](docs/security.md) · [`docs/hardening.md`](docs/hardening.md) · [`docs/threat-model.md`](docs/threat-model.md) |
+| Packages | [`docs/packages.md`](docs/packages.md) |
+| Decision records | [`docs/adr/`](docs/adr/) |
+| Audit reports | [`docs/audit/`](docs/audit/) |
 
-**Shipped in the 0.1.0 line** (see [CHANGELOG.md](CHANGELOG.md), verified under QEMU)
+> The GitHub Pages copy of the documentation site is **not maintained** and currently returns 404.
+> GitLab Pages is canonical.
 
-- 🎬 **Animated crimson desktop** — a per-frame smoke-and-sparks wallpaper, a
-  floating launcher, and labelled, double-clickable desktop icons.
-- 🔒 **Full-disk encryption with hardware AES** — RedoxFS AES-XTS that uses the
-  **ARMv8 Crypto Extensions** at runtime (with a clean software fallback), gated
-  by a kernel-exported CPU-feature channel.
-- 🪞 **RAID-1 mirroring** — a userspace `raid1d` block daemon: write-both /
-  read-fallback, degraded boot, **resync/rebuild** of a re-added member, and
-  split-brain safety.
-- 🌐 **USB networking & storage** — a Rust **USB RNDIS** network driver
-  (`usbnetd`; **full duplex** — a complete DHCP handshake, pcap-verified) and USB
-  mass-storage support.
-- 🔑 **Post-quantum-ready signing** — a tool that signs the package repo manifest
-  with a **hybrid ed25519 + ML-DSA-65 (FIPS 204)** signature at publish time.
-  *Verification is implemented on both ends but has no key between them:* `pkg-lib`
-  checks the signature, and once a key is pinned in the image a bad index is fatal —
-  but `keys/eos-repo-sign.pub.toml` does not exist yet (`R-702`).
+## Project documents
 
-**Since then — the `U-081`–`U-114` wave** (all verified on-device under QEMU)
-
-- 🎛️ **eos-control** — a native Crimson **control center**: system overview,
-  processes + capabilities, security, storage, **Power**, **Sound** and a live
-  **Network** pane (read the running `netcfg:` stack, apply a static IPv4 config
-  through a privileged `eos-netcfg` shim — never running the GUI as root).
-- 📝 **eos-notes** — a Slint + SQLite (WAL) notes app, and **eos-ui**, the shared
-  Slint-on-Orbital backend crate every E-OS GUI app builds on.
-- 🛡️ **eos-guard** (filesystem-integrity monitor) and 📈 **eos-sysmon** (system
-  monitor), both native Crimson apps.
-- 🌍 **NetSurf built from source as a PIE** — real web browsing on E-OS.
-- 🧭 **Graphical OOBE** — first-boot password enrolment in the crimson greeter,
-  plus a system tray, toast notifications, a screenshot tool and launcher search.
+| Document | Purpose |
+|---|---|
+| [`ROADMAP.md`](ROADMAP.md) | delivered work, planned work, security roadmap, installer epics |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | environment, branch strategy, commit format, PR checklist, release process |
+| [`SECURITY.md`](SECURITY.md) | supported versions, private reporting, disclosure policy, scope |
+| [`CHANGELOG.md`](CHANGELOG.md) | Keep a Changelog history grouped by release |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | components, boot flow, update flow, trust boundaries |
+| [`CLAUDE.md`](CLAUDE.md) | working agreement and the mandatory verification protocol |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Contributor Covenant 2.1 |
+| [`NOTICE`](NOTICE) · [`TRADEMARK.md`](TRADEMARK.md) | attribution and upstream trademark policy |
 
 ---
 
-## 🧱 Architecture
+## Architecture
+
+E-OS is a Redox downstream: a Rust microkernel with drivers, filesystems, the RAID layer and the
+network stack running in **user space** as ordinary processes. Resources are addressed as
+**schemes** — URL-like namespaces — and access is granted per user by an explicit allowlist.
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#E50914','primaryTextColor':'#ffffff','primaryBorderColor':'#E50914','lineColor':'#E50914','secondaryColor':'#1f1f1f','tertiaryColor':'#0b0b0b','fontFamily':'Fira Code'}}}%%
-flowchart TD
-    subgraph US["User space"]
-        APPS["Applications · COSMIC apps · E-OS DE · CLI"]
-        LIBS["relibc · libstd · ion shell"]
-        SRV["User-space servers<br/>drivers · redoxfs · raid1d · netstack · usbnetd · orbital"]
-    end
-    subgraph KS["Kernel space"]
-        K["E-OS microkernel<br/>scheduling · memory · IPC · schemes"]
-    end
-    HW["Hardware — x86_64 &amp; aarch64 UEFI · NVMe · virtio · e1000 · xHCI · HDA"]
-
-    APPS --> LIBS --> SRV
-    SRV <-->|"syscalls · scheme IPC"| K
-    K --> HW
-
-    classDef red fill:#E50914,stroke:#E50914,color:#fff;
-    classDef dark fill:#1a1a1a,stroke:#E50914,color:#fff;
-    class K red;
-    class APPS,LIBS,SRV,HW dark;
+graph LR
+  FW[UEFI firmware] -->|Authenticode + SBAT| BL[bootloader.efi]
+  BL -->|ed25519 over SHA-512<br/>role ‖ len ‖ data| K[kernel]
+  BL -->|same, distinct role tag| IF[initfs]
+  K --> DRV[user-space drivers]
+  K --> FSD[redoxfs]
+  DRV --> ORB[orbital display server]
+  FSD --> ORB
+  ORB --> APP[applications]
+  style BL fill:#4a1010,stroke:#c0392b,color:#fff
+  style K fill:#8b0000,stroke:#e50914,color:#fff
 ```
 
-Everything a program touches — files, disks, the display, even the RAID mirror —
-is a **scheme**, accessed through a URL-like path (`file:`, `disk.*:`,
-`display:` …). Drivers and services are ordinary user-space processes that
-*provide* schemes, so the kernel stays small and faults stay contained.
+Full description, including the update and data flows: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ---
 
-## 🧰 Tech Stack
+## Security
 
-| Layer | Technology |
-|------|------------|
-| Language | **Rust** (nightly, pinned) + a little assembly |
-| Kernel | Custom **microkernel** (x86_64 + aarch64, UEFI boot) |
-| libc | **relibc** (Rust) |
-| Filesystem | **RedoxFS** (CoW, AES-XTS encryptable, hardware AES on aarch64) |
-| Storage | **RAID-1** mirror daemon (`raid1d`) over any disk schemes |
-| Desktop | **orbital** display server + the **E-OS DE** (`eos-orbutils`: greeter, launcher, wallpaper, desktop icons) with **COSMIC apps** (System76) as clients, crimson-themed |
-| Drivers | user-space: `nvmed`, `virtio-blkd`, `e1000d`, `xhcid`, `usbnetd`, `ihdad`, `ahcid`, … |
-| Build | **Podman** containers · cookbook · `pkgar` packages |
-| Emulation | **QEMU 10+**, OVMF/EDK2 (UEFI), KVM/HVF |
-| CI / Quality | **GitLab CI, two-tier** ([docs/ci.md](docs/ci.md)): light gates on shared runners (`secret-scan` · `integrity` · `pin-check` · `docs-currency` · `rust-checks`/cargo-deny · `pages`) + the heavy **OS image build & boot-smoke** on the self-hosted `eos-heavy` runner · local gitleaks/cargo-audit via `scripts/local-scan.sh` |
+Report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md) for the channels, the supported
+version table, and the disclosure policy. **Please do not open a public issue for a security bug.**
 
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'pie1':'#E50914','pie2':'#b00610','pie3':'#7a0a14','pie4':'#3d3d3d','pie5':'#1a1a1a','pieStrokeColor':'#0b0b0b','pieOuterStrokeColor':'#0b0b0b','pieTitleTextColor':'#E50914','pieSectionTextColor':'#ffffff','fontFamily':'Fira Code'}}}%%
-pie showData title E-OS source composition (approx.)
-    "Rust" : 88
-    "Assembly" : 4
-    "Shell / build" : 5
-    "Config / docs" : 3
-```
+### Threat model in brief
+
+| Adversary | Position |
+|---|---|
+| Network attacker between device and repository | **Addressed** — hybrid signature, image-pinned key, blake3 enforced on package bytes, rollback/freeze counters |
+| Whoever controls `static.redox-os.org` | **Not addressed** — 30 of 65 packages are prebuilt upstream binaries, and their signing key is fetched from that same host |
+| Local unprivileged user | **Partly addressed** — no raw IP sockets; but the boundary is per-account, and there is no application sandbox |
+| Device theft | **Addressed if enabled** — AES-XTS full-disk encryption is offered at install, not default |
+| Build-machine compromise | **Not addressed** — signing keys live on the build host |
+
+The complete model, with evidence for each row, is in
+[`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §1.
 
 ---
 
-## 🚀 Quick Start
+## License, authors, acknowledgements
 
-> **Host:** Linux, **Windows 11 + WSL2 (Ubuntu)**, or **macOS (Apple Silicon)**.
-> Builds run inside rootless **Podman** containers — you do not pollute your host
-> toolchain.
+**License:** [AGPL-3.0-or-later](LICENSE). Files inherited from Redox OS remain under **MIT** —
+see [`NOTICE`](NOTICE) and [`docs/licenses/THIRD_PARTY.md`](docs/licenses/THIRD_PARTY.md).
 
-```bash
-# 1) Get the build system
-git clone https://github.com/Gh0s777tt/E-OS.git eos && cd eos
+**Authors:** Damian (`Gh0s777tt`) and the E-OS contributors.
 
-# 2) Bootstrap deps (Podman build, QEMU full, runtime crun)
-curl -sf https://gitlab.redox-os.org/redox-os/redox/-/raw/master/podman_bootstrap.sh -o podman_bootstrap.sh
-bash -e podman_bootstrap.sh
-source ~/.cargo/env
+**Acknowledgements.** E-OS is a downstream distribution and does not claim to be a from-scratch
+operating system. It stands on **Redox OS**, created by Jeremy Soller and the Redox community, and
+on the Rust ecosystem. Upstream trademark policy is reproduced in [`TRADEMARK.md`](TRADEMARK.md).
+The desktop applications `cosmic-edit`, `cosmic-files` and `cosmic-term` come from System76's
+COSMIC project; the browser is **NetSurf**.
 
-# 3a) Build the full x86_64 desktop image  ── CI=1 is REQUIRED for headless/CI builds *
-make CI=1 all
-
-# 3b) …or the aarch64 E-OS image (crimson desktop + backend features)
-make CI=1 ARCH=aarch64 CONFIG_NAME=eos all
-
-# 4) Boot it
-make qemu                 # x86_64 Crimson desktop (GUI)
-make qemu gpu=no          # headless serial console
-```
-
-> \* **`CI=1` is mandatory when building non-interactively.** The cookbook `repo`
-> tool renders a TUI that panics (`slice index … repo.rs:1693`) when stdout is
-> not a real terminal. `CI=1` disables the TUI and prints plain logs. See
-> [`EOS_BUILD_STATE.md`](EOS_BUILD_STATE.md) and [docs/building.md](docs/building.md).
-
-Output images: `build/x86_64/desktop/harddrive.img` ·
-`build/aarch64/eos/harddrive.img`. First-boot logins: `user` (no password) ·
-`root` / `password` — the **OOBE forces a password change on first login** on
-every path (text, serial and the graphical greeter), so the shipped defaults
-can't reach a shell (`R-602`).
-
-➡️ Full guide: **[docs/getting-started.md](docs/getting-started.md)** ·
-Troubleshooting: **[docs/build-troubleshooting.md](docs/build-troubleshooting.md)** ·
-Hardware roadmap: **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-roadmap.md)**
-
----
-
-## 🗺️ Roadmap
-
-```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#E50914','primaryTextColor':'#fff','primaryBorderColor':'#E50914','lineColor':'#E50914','fontFamily':'Fira Code'},'gantt':{'barHeight':22}}}%%
-gantt
-    dateFormat  YYYY-MM-DD
-    axisFormat  %b '%y
-    section Foundation
-    Verified modern base (v0.1.0 Genesis) :done, m1, 2026-06-06, 2d
-    Repo, brand, docs, security           :done, m2, 2026-06-07, 14d
-    section Identity
-    Boot splash & branding                :done, m3, 2026-06-08, 10d
-    aarch64 boot-to-desktop               :done, m4, 2026-06-08, 20d
-    Crimson desktop environment (DE)      :done, m5, 2026-07-11, 2d
-    section Hardware capabilities
-    RAID-1 mirror (R-501)                 :done, m6, 2026-07-12, 1d
-    Hardware-accelerated FDE (R-502)      :done, m7, 2026-07-12, 1d
-    Hybrid post-quantum signing (R-503)   :done, m8, 2026-07-12, 1d
-    section Frontier
-    Stable desktop · installer · LTS      :active, m9, 2026-07-13, 45d
-```
-
-See the full, numbered plan in **[ROADMAP.md](ROADMAP.md)** and the storage/crypto
-track in **[docs/hardware-capabilities-roadmap.md](docs/hardware-capabilities-roadmap.md)**.
-
----
-
-## 🧩 Core Components
-
-| Component | Role | Origin |
-|-----------|------|--------|
-| `kernel` | The microkernel (+ aarch64 CPU-feature detection) | redox-os/kernel → **eos-kernel** |
-| `relibc` | C library in Rust (+ ld.so hardening/fixes) | redox-os/relibc → **eos-relibc** |
-| `redoxfs` | Filesystem + hardware AES-XTS | redox-os/redoxfs → **eos-redoxfs** |
-| `base` | Drivers & daemons, incl. **`raid1d`** and `usbnetd` | redox-os/base → **eos-base** |
-| `orbutils` | Launcher + **E-OS desktop** (icons, wallpaper) | redox-os/orbutils → **eos-orbutils** |
-| `bootloader` | UEFI/BIOS boot (crimson theme) | redox-os/bootloader → **eos-bootloader** |
-| `cookbook` | Package/recipe build system (vendored in `src/`) | redox-os/cookbook |
-| `orbital` | Display server + window manager + software compositor | redox-os/orbital → **eos-orbital** |
-| `cosmic-*` | Desktop **applications** (edit / files / term) + icon & theme assets — clients of orbital, not a compositor | pop-os/cosmic-* |
-| `eos-control` | Native control center (network, sound, power, storage, security) | **E-OS** |
-| `eos-notes` / `eos-guard` / `eos-sysmon` | Notes · FS-integrity monitor · system monitor | **E-OS** |
-| `eos-ui` | Shared Slint-on-Orbital backend for all E-OS GUI apps | **E-OS** |
-| `tools/eos-repo-sign` | Hybrid PQ package-signing prototype | **E-OS** |
-
----
-
-## 🔐 Security
-
-E-OS is **AGPL-3.0** — strong copyleft. Anyone who runs a modified E-OS,
-**including over a network**, must make their source available. This is a
-deliberate **anti-appropriation** choice.
-
-- 🔒 **Full-disk encryption** — RedoxFS **AES-XTS**, hardware-accelerated (ARMv8
-  Crypto Extensions) with a constant-time software fallback.
-- 🧬 **Post-quantum-ready** — **hybrid ed25519 + ML-DSA-65** signing of the package
-  manifest, enforced at publish time (an unsigned publish hard-fails unless
-  `EOS_ALLOW_UNSIGNED=1`). ⚠️ **One missing key, not a missing subsystem**: `pkg-lib`
-  verifies the manifest (`verify_repo_manifest` → `verify_manifest_ed25519`, with
-  tamper tests), but no public key is pinned in any image (`R-702`), so it warns and
-  proceeds. Until that key exists, treat the package *index* as unauthenticated on
-  the device; per-package pkgar ed25519 is enforced regardless. Migration plan and the exact
-  trust boundary: [SECURITY.md](SECURITY.md), [docs/security.md](docs/security.md).
-- 🔑 **Secret scanning, end to end** — gitleaks runs at three points: a `pre-commit`
-  hook that **fails closed** (`U-140` — it previously ended in `|| true` and blocked
-  nothing), a `secret-scan` CI job over the **full history** (`GIT_DEPTH: 0`), and
-  `scripts/local-scan.sh` on demand; GitHub push protection is on as a backstop.
-- 🤖 **Supply-chain checks in CI** — `cargo-deny` (RustSec advisories, licenses,
-  bans, sources) in `rust-checks`, plus `pin-check` (`eos-repos.sh pins
-  --strict`) so recipes can't silently drift from the pinned fork revisions.
-  Every binary the build fetches is **SHA256-pinned** (`U-118`); the residual
-  gaps are listed under *Supply-chain gates* in
-  [docs/hardening.md](docs/hardening.md).
-- 👮 **Branch protection** — force-push and deletion blocked on GitHub; GitLab `main`
-  restricted to Maintainers. ⚠️ **Review is not enforced**: `CODEOWNERS` exists but is
-  advisory, `only_allow_merge_if_pipeline_succeeds` is off, and the project has had
-  **0 merge requests** — so CI gates report *after* a push rather than blocking it
-  (`R-F12`).
-- ✍️ **Signed commits and tags** — ✅ **live**. Commits are SSH-signed and GitLab
-  reports them *verified*; `v0.2.0` is the first **annotated, signed** tag. The two older
-  tags are *lightweight*, so they could never have carried a signature (`U-152`).
-  ⚠️ Not yet confirmed on the GitHub mirror — if the signing key is not registered there,
-  mirrored commits read *Unverified*. Detail in [CLAUDE.md §10.1](CLAUDE.md); status in
-  [docs/security.md](docs/security.md).
-
-Found a vulnerability? **Do not** open a public issue — read
-**[SECURITY.md](SECURITY.md)** for private disclosure.
-
----
-
-## 🤝 Contributing
-
-PRs and issues welcome. Start with **[CONTRIBUTING.md](CONTRIBUTING.md)** and the
-**[Code of Conduct](CODE_OF_CONDUCT.md)**. Good first steps live in
-[docs/getting-started.md](docs/getting-started.md); open items are tracked in
-[docs/known-issues.md](docs/known-issues.md).
-
-By contributing you agree your work is licensed under **AGPL-3.0-or-later**.
-
----
-
-## 📦 Releases & Changelog
-
-Current: **v0.2.0** — a **development milestone, not a published release**: the tag
-marks a tree, and **no images are published**. It supersedes `v0.1.0 "Genesis"`, which
-stays as a historical marker 232 commits back. Since Genesis: crimson DE, RAID-1,
-hardware FDE, USB networking/storage, PQ signing, plus the supply-chain and boot work of
-`U-137`…`U-152`.
-
-> ⚠️ **About the `v0.2.0` tag specifically:** it carries `R-F16` — a second PCI storage
-> controller stalls the boot before the root filesystem is mounted, silently. **That defect
-> is fixed on `main` after the tag** (`U-153`: a read-modify-write on the write-one-to-clear
-> `GICD_ICENABLER`, which disabled every enabled interrupt in a 32-IRQ block instead of one).
-> A two-NVMe aarch64 machine boots from `main`, not from `v0.2.0`.
->
-> ⚠️ **Still open (`R-F18`):** a storage device sharing the **xHCI** controller's INTx line
-> boots in ~110–124s instead of ~16s. It completes, but slowly.
-
-Every change is recorded, numbered (`U-NNN`) and described in
-**[CHANGELOG.md](CHANGELOG.md)** ([Keep a Changelog](https://keepachangelog.com) ·
-[SemVer](https://semver.org)).
-
----
-
-## 🙏 Built on Redox OS
-
-E-OS exists because of **[Redox OS](https://www.redox-os.org)** and its community,
-led by **Jeremy Soller**. The kernel, relibc, RedoxFS, drivers and build system
-are Redox's work, under the **MIT License** (`licenses/Redox-OS-MIT.txt`).
-
-If you like E-OS, please **support upstream**:
-[Redox Donate](https://redox-os.org/donate/) ·
-[The Redox Book](https://doc.redox-os.org/book/) ·
-[Matrix chat](https://matrix.to/#/#redox-join:matrix.org).
-
-"Redox" is a trademark of its owners; E-OS is independent and unaffiliated.
-See [TRADEMARK.md](TRADEMARK.md).
-
----
-
-## ⚖️ License
-
-- **E-OS as a whole:** [GNU AGPL-3.0-or-later](LICENSE).
-- **Inherited Redox components:** [MIT](licenses/Redox-OS-MIT.txt) (notices retained).
-- Details: [NOTICE](NOTICE).
-
-<p align="center"><img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.png" width="100%" alt="" /></p>
-
-<p align="center">
-  <sub>Made with 🦀 and ❤️ · © 2026 E-OS contributors · AGPL-3.0 · <a href="#top">back to top ↑</a></sub>
-</p>
-
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:0B0B0B,100:E50914&height=120&section=footer" alt="" />
-</p>
+**Source of truth:** <https://gitlab.com/e-os/e-os>. The GitHub repository is a read-only mirror.
