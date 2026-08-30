@@ -1,0 +1,137 @@
+# E-OS — profil instalacyjny.  Schemat: docs/architecture/installer-profiles.md
+#
+# Profil klasy `amnesic`. Reguła V-19: w profilu tej klasy KAŻDY wpis `[[select]]` musi
+# nieść niepuste pole `does_not_protect`. Nie jest to konwencja redakcyjna — walidator
+# odrzuca plik bez niego. Powód jest konkretny: profil, który sam siebie nazywa „ghost”,
+# przyciąga użytkownika o realnym przeciwniku, a najgroźniejszą awarią takiego profilu
+# jest MILCZĄCA nadgwarancja. Pole `does_not_protect` jest kontrolą, którą da się
+# maszynowo sprawdzić, więc istnieje.
+
+schema = 1
+
+[profile]
+id            = "eos.ghost"
+version       = "1.0.0"
+class         = "amnesic"
+inherits      = ["eos.base"]
+author        = "E-OS"
+min_installer = "0.2.42"
+arch          = ["x86_64", "aarch64"]
+
+[profile.text.pl]
+name    = "E-OS Ghost (amnezyjny)"
+summary = "System w RAM z nośnika tylko-do-odczytu. Nie zostawia śladu NA DYSKU. Nie daje anonimowości w SIECI."
+
+[profile.text.en]
+name    = "E-OS Ghost (amnesic)"
+summary = "RAM-only from a read-only medium. Leaves no trace ON DISK. Gives no anonymity ON THE NETWORK."
+
+[[notice]]
+severity = "blocking"
+
+[notice.text.pl]
+body = """
+PRZECZYTAJ, ZANIM UŻYJESZ TEGO PROFILU DO CZEGOKOLWIEK, CO MA ZNACZENIE.
+
+Ten profil daje JEDNĄ rzecz: brak śladu na nośniku po wyłączeniu zasilania.
+Nie daje żadnej z poniższych, których ludzie po takim profilu oczekują:
+
+  * NIE daje anonimowości sieciowej. Twój adres IP i MAC są widoczne. Nie ma Tora
+    (nie ma portu, nie ma zapory, która mogłaby wymusić ruch przez proxy), nie ma VPN
+    w obrazie, nie ma Wi-Fi. docs/plan.md §3.2: „Do NOT promise this.”
+  * NIE randomizuje adresu MAC. `ifaces/<if>/mac` jest zapisywalny i istnieje pośrednik
+    `eos-netcfg`, ale podkomendy `randomize-mac` NIE MA, a nazwa interfejsu jest zaszyta.
+  * NIE izoluje aplikacji od siebie. Piaskownicy nie ma (znalezisko C-5): `recipes/core/contain`
+    istnieje, `config/desktop-contain.toml` to kompletna sesja piaskownicowa, ale pakiet jest
+    WYŁĄCZONY (`#contain = {}` w config/server.toml:14), receptura nie ma `rev` i nie ma
+    `contain.pkgar` w zbudowanym repozytorium.
+  * NIE chroni przed przeciwnikiem obecnym W TRAKCIE sesji ani przed zmodyfikowanym nośnikiem
+    na maszynie, której firmware nie ufa naszemu kluczowi Secure Boot (ADR-0005).
+  * NIE gwarantuje wymazania RAM po wyłączeniu.
+  * NIE zapisuje niczego o tym, co się działo — nie ma trwałego dziennika audytu (C-9).
+    To bywa pożądane, ale znaczy też, że po incydencie nie odtworzysz przebiegu.
+
+Jeżeli Twój przeciwnik jest silniejszy niż „ktoś, kto później dostanie ten pendrive”,
+ten profil nie jest dla Ciebie i E-OS nie ma dziś nic lepszego.
+"""
+
+[notice.text.en]
+body = """
+This profile gives exactly one thing: no trace on the medium after power-off. It gives no
+network anonymity, no MAC randomisation, no application isolation, no protection against an
+adversary present during the session, no guaranteed RAM wipe, and no audit trail.
+If your adversary is stronger than "someone who later obtains this USB stick", this profile
+is not for you and E-OS has nothing better today.
+"""
+
+# ── Wybory ────────────────────────────────────────────────────────────────────────
+
+[[select]]
+feature = "sys.amnesia"
+state   = "on"
+locked  = true
+reason  = "To jest cały sens tego profilu. Bez tego `eos.ghost` byłby `eos.base` z inną nazwą."
+does_not_protect = "Tylko dysk. Sesja w RAM jest w pełni obserwowalna dla każdego procesu tego użytkownika, bo nie ma piaskownicy (C-5). Wymazanie RAM po wyłączeniu nie jest wymuszone."
+
+[[select]]
+feature = "net.tor"
+state   = "off"
+reason  = "NIEREALNE DZIŚ — brak portu, brak zapory zdolnej wymusić ruch przez proxy, brak Wi-Fi/VPN w obrazie."
+does_not_protect = "Nic. Ruch wychodzi bezpośrednio. Profil amnezyjny bez Tora to brak śladu na dysku przy pełnej widoczności w sieci — i to jest najgroźniejsze nieporozumienie, jakie ten profil może wywołać."
+
+[[select]]
+feature = "sys.identity"
+state   = "off"
+locked  = true
+reason  = "Unikalna nazwa maszyny to nowy, trwały identyfikator rozgłaszany w sieci. Odchylenie od `eos.base`, gdzie ta funkcja jest `on`."
+does_not_protect = "Wyłączenie unikalnej nazwy nie ukrywa maszyny: zostaje adres MAC (nierandomizowany), adres IP, odciski stosu sieciowego i wszystko, co wysyła przeglądarka."
+
+[[select]]
+feature = "disk.encrypt"
+state   = "off"
+locked  = true
+reason  = "Odchylenie od zalecenia funkcji (`recommend.class.amnesic = \"on\"`), więc pole `reason` jest OBOWIĄZKOWE (V-10). Nośnik jest tylko-do-odczytu i nic na niego nie trafia; szyfrowanie roota nie ma tu czego chronić, a monit o hasło przy rozruchu dawałby fałszywe poczucie, że sesja jest chroniona."
+does_not_protect = "Wyłączenie nie zmienia nic w tym profilu, ale ZMIENIŁOBY wszystko w profilu instalowanym na dysk. Nie kopiuj tego wpisu do profilu nieamnezyjnego."
+
+[[select]]
+feature = "net.sshd"
+state   = "off"
+locked  = true
+reason  = "Konflikt zadeklarowany w definicji `sys.amnesia`: bez trwałego magazynu klucze hosta zmieniałyby się przy każdym rozruchu, więc ostrzeżenie o zmianie klucza u klienta przestaje cokolwiek znaczyć."
+does_not_protect = "Wyłączenie sshd nie zamyka innych portów — nie ma zapory (R-904, C-10), więc każda inna uruchomiona usługa nadal jest osiągalna z całej sieci."
+
+[[select]]
+feature = "storage.raid1"
+state   = "off"
+locked  = true
+reason  = "Profil nie montuje dysków hosta."
+does_not_protect = "Nic. Wpis istnieje po to, żeby konflikt zadeklarowany w `sys.amnesia` był rozstrzygnięty JAWNIE w pliku, a nie domyślnie przez walidator."
+
+[[select]]
+feature = "user.schemes.minimal"
+state   = "on"
+reason  = "Zawężenie przestrzeni schematów konta interaktywnego. Nie blokujemy, bo docs/hardening.md §7 przyznaje, że pełnej sesji graficznej nie da się dziś zweryfikować bezgłowo — blokada byłaby mocniejszym twierdzeniem niż dowód."
+does_not_protect = "To nie jest izolacja aplikacji. Przestrzeń schematów ustawia się RAZ na sesję w `login.rs`, więc każda aplikacja dziedziczy pełne uprawnienia konta. Przeglądarka i menedżer haseł są w tej samej przestrzeni."
+
+[[select]]
+feature = "pkg.source.eos"
+state   = "off"
+reason  = "System amnezyjny nie przeżywa restartu, więc nie ma czego aktualizować w miejscu. Aktualizacja tego profilu polega na zbudowaniu nowego nośnika."
+does_not_protect = "Wyłączenie źródła nie chroni przed niczym — po prostu przenosi weryfikację podpisu na moment budowy nośnika. Jeśli nośnik został zbudowany z zepsutego drzewa, profil tego nie wykryje."
+
+[[select]]
+feature = "pkg.source.redox-upstream"
+state   = "off"
+locked  = true
+reason  = "R-701a, bez wyjątków w tym profilu."
+does_not_protect = "Nic dodatkowego."
+
+[[select]]
+feature = "net.firewall"
+state   = "off"
+reason  = "Podsystem nie istnieje (R-904)."
+does_not_protect = "Nic — i to jest sedno. Profil o nazwie „ghost” bez filtra pakietów nie kontroluje ruchu wychodzącego, więc nie potrafi zapobiec temu, żeby aplikacja zadzwoniła do domu."
+
+[unverified]
+"sys.amnesia.ram_wipe" = "[NIEZWERYFIKOWANE] Nie sprawdzono w drzewie, czy przy wyłączeniu przez `sys:kstop` zawartość RAM jest w jakikolwiek sposób nadpisywana. Zakładamy, że NIE — i tak to opisujemy — dopóki ktoś tego nie zmierzy."
+"sys.amnesia.no_host_mount" = "[NIEZWERYFIKOWANE] Obraz live JEST zweryfikowany jako bootujący z RAM (U-133), ale nie potwierdzono, że tryb live POWSTRZYMUJE się od montowania dysków hosta — `raid1d` w normalnej konfiguracji otwiera każdy `/scheme/disk.*` do odczytu i zapisu. Wariant `eos-live-amnesic` musi to jawnie zablokować; bez tego nazwa profilu jest nadgwarancją."

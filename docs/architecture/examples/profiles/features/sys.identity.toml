@@ -1,0 +1,109 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "sys.identity"
+version  = "1.0.0"
+category = "system"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "DO ZBUDOWANIA"
+evidence = """
+Dziś NIE ISTNIEJE: config/x86_64/eos.toml zapisuje `/etc/hostname` = "eos" na sztywno
+(`postinstall = true`), więc KAŻDA instalacja E-OS nazywa się tak samo; nie ma machine-id
+ani kluczy hosta SSH. To jest dokładnie zakres otwartej pozycji R-606, a zbieranie
+hostname/locale we front-endach instalatora to R-603.
+Wykonalne bez nowego podsystemu: instalator już umie pisać pliki (`[[files]]`) i już ma
+źródło losowości w obrazie (schemat `rand`).
+"""
+roadmap = ["R-603", "R-606"]
+
+[text.pl]
+name    = "Tożsamość per-maszyna"
+summary = "Unikalny hostname, machine-id i klucze hosta zamiast wspólnego `eos` dla wszystkich instalacji."
+
+[text.en]
+name    = "Per-machine identity"
+summary = "A unique hostname, machine-id and host keys instead of the shared `eos` every install carries today."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true
+
+[[effects.on.files_write]]
+path        = "/etc/hostname"
+postinstall = true
+data        = "@prompt:hostname"
+
+[[effects.on.files_write]]
+path        = "/etc/machine-id"
+mode        = 0o444
+postinstall = true
+data        = "@random:hex128"
+
+[effects.on.text.pl]
+description = "Kreator pyta o nazwę maszyny (domyślna propozycja: `eos-<8 hex>`); machine-id losowany przy instalacji, nie w obrazie."
+
+[effects.on.text.en]
+description = "The wizard asks for a machine name (default suggestion `eos-<8 hex>`); the machine-id is drawn at install time, not baked into the image."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Zostaje stan dzisiejszy: hostname `eos`, brak machine-id."
+residual_risk = "Dwie maszyny E-OS w jednej sieci są nierozróżnialne po nazwie; identyfikator maszyny wypieczony w obrazie jest wspólny dla wszystkich jego kopii, więc nie nadaje się na klucz niczego."
+
+[effects.off.text.en]
+description   = "Today's state remains: hostname `eos`, no machine-id."
+residual_risk = "Two E-OS machines on one network are indistinguishable by name; an identifier baked into the image is shared by every copy of it and cannot key anything."
+
+[requires]
+features     = []
+capabilities = ["scheme.rand"]
+
+[conflicts]
+features = []
+
+[threat]
+model           = ["remote-network"]
+severity_if_off = "średnie"
+
+[threat.text.pl]
+protects = "Nic wprost. Usuwa wspólny, przewidywalny identyfikator z każdej instalacji — warunek wstępny dla czegokolwiek, co miałoby wiązać sekret z maszyną."
+does_not_protect = """
+Losowy machine-id NIE jest kotwicą zaufania: nie ma TPM (R-913), więc nie da się go
+związać ze sprzętem ani zmierzyć przy rozruchu. Kto ma dysk, ten go czyta i podmienia.
+Nie chroni przed śledzeniem — unikalny hostname to nowy identyfikator rozgłaszany w sieci,
+w profilu amnezyjnym to szkoda, nie zysk (patrz `recommend.class.amnesic`).
+"""
+
+[threat.text.en]
+protects = "Nothing directly. It removes a shared, predictable identifier — a precondition for binding any secret to a machine."
+does_not_protect = """
+A random machine-id is not a trust anchor: with no TPM (R-913) it cannot be bound to the
+hardware or measured at boot. Whoever holds the disk reads and replaces it.
+No protection against tracking — a unique hostname is a new identifier broadcast on the
+network, which in an amnesic profile is a loss, not a gain.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 1
+reversible = true
+
+[cost.text.pl]
+runtime = "Jedno dodatkowe pytanie w kreatorze; w trybie nienadzorowanym wartość bierze się z pliku odpowiedzi albo z generatora."
+
+[cost.text.en]
+runtime = "One extra wizard question; unattended, the value comes from the answer file or the generator."
+
+[recommend.class]
+desktop = "on"
+gaming  = "on"
+server  = "on"
+amnesic = "off"     # unikalna nazwa to identyfikator, a ten profil ma go nie zostawiać
+
+[recommend.profile]
+"eos.business" = "on"

@@ -1,0 +1,119 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "net.sshd"
+version  = "1.0.0"
+category = "network"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "DO ZBUDOWANIA"
+evidence = """
+Pakiet `openssh` JEST w zestawie obrazu E-OS (config/x86_64/eos.toml, sekcja „CLI toolbox”).
+Czego NIE MA: usługi init dla `sshd` w obrazie E-OS, generacji kluczy hosta przy pierwszym
+starcie (R-606: dziś każda instalacja ma hostname `eos`, brak machine-id i kluczy hosta)
+oraz jakiegokolwiek filtrowania pakietów (R-904).
+Konfiguracja z `PermitEmptyPasswords yes` istnieje obok, w config/x86_64/server-demo.toml —
+docs/plan.md §2.3 nazywa ją „o jedną sylabę od prawdziwej konfiguracji”.
+Zakres do zbudowania: usługa `/usr/lib/init.d/`, generacja kluczy hosta, twarda konfiguracja
+(bez hasła, bez roota), test dymny bezgłowy.
+"""
+roadmap = ["R-606", "R-904"]
+
+[text.pl]
+name    = "Serwer SSH (sshd)"
+summary = "Zdalne logowanie po kluczu. Wystawia port na sieć w systemie bez zapory."
+
+[text.en]
+name    = "SSH server (sshd)"
+summary = "Remote key-based login. Exposes a port to the network on a system with no firewall."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true
+
+[[effects.on.service_enable]]
+name = "40_sshd.service"
+
+[[effects.on.files_write]]
+path        = "/etc/ssh/sshd_config"
+mode        = 0o600
+postinstall = true
+data = """
+PermitRootLogin no
+PasswordAuthentication no
+PermitEmptyPasswords no
+KbdInteractiveAuthentication no
+"""
+
+[effects.on.text.pl]
+description = "Włącza usługę `sshd` z uwierzytelnianiem wyłącznie kluczem. Wymaga wgrania klucza publicznego (funkcja `user.authorized-key`)."
+
+[effects.on.text.en]
+description = "Enables `sshd` with key-only authentication. Requires a public key to be seeded (`user.authorized-key`)."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Brak usługi SSH. `openssh` zostaje w obrazie jako KLIENT."
+residual_risk = "Brak zdalnego dostępu awaryjnego — na maszynie bez klawiatury/monitora odcinasz sobie jedyną drogę. Brak konta awaryjnego to osobne znalezisko (C-18)."
+
+[effects.off.text.en]
+description   = "No SSH service. `openssh` remains in the image as a CLIENT."
+residual_risk = "No remote recovery path — on a headless machine this is the only way in. The missing break-glass account is a separate finding (C-18)."
+
+[requires]
+features     = ["user.authorized-key"]
+capabilities = ["net.interface"]
+
+[conflicts]
+features = ["sys.amnesia"]
+
+[conflicts.text.pl]
+reason = "Profil amnezyjny nie ma trwałego magazynu na klucze hosta — sshd generowałby nową tożsamość przy każdym rozruchu, co znosi ostrzeżenie o zmianie klucza hosta u klientów."
+
+[conflicts.text.en]
+reason = "An amnesic profile has no persistent store for host keys — sshd would present a new identity on every boot, defeating host-key change warnings on clients."
+
+[threat]
+model           = ["remote-network"]
+severity_if_off = "niskie"      # WYŁĄCZENIE tej funkcji nie osłabia systemu
+
+[threat.text.pl]
+protects = "Nic. To funkcja zwiększająca powierzchnię ataku; `severity_if_off = niskie` znaczy „wyłączenie jej jest bezpieczne”, nie „jest nieważna”."
+does_not_protect = """
+Włączenie wystawia port TCP w systemie, który NIE MA ZAPORY (R-904, znalezisko C-10) —
+nie da się ograniczyć źródłowego adresu ani prędkości prób.
+Nie ma trwałego dziennika audytu (C-9), więc próby logowania nie zostawiają śladu do wglądu po fakcie.
+Nie ma piaskownicy (C-5), więc kompromitacja sshd daje pełne uprawnienia konta.
+"""
+
+[threat.text.en]
+protects = "Nothing. This feature widens the attack surface; `severity_if_off = low` means turning it off is safe."
+does_not_protect = """
+Enabling exposes a TCP port on a system with NO FIREWALL (R-904, finding C-10).
+No persistent audit log (C-9), so login attempts leave nothing to review.
+No sandbox (C-5), so a compromised sshd holds the account's full authority.
+"""
+
+[cost]
+disk_mib   = 0          # openssh jest już w obrazie
+ram_mib    = 0          # [NIEZWERYFIKOWANE] — nie zmierzone na działającym obrazie
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Stale działający demon nasłuchujący na sieci."
+
+[cost.text.en]
+runtime = "A permanently running daemon listening on the network."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "on"
+amnesic = "off"
+
+[recommend.profile]
+"eos.business" = "off"

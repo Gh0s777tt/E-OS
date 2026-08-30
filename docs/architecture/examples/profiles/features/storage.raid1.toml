@@ -1,0 +1,113 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "storage.raid1"
+version  = "1.0.0"
+category = "storage"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "JEST"
+evidence = """
+`raid1d` — demon lustrzany w PRZESTRZENI UŻYTKOWNIKA — jest w obrazie, wstawiany jako
+`/usr/lib/init.d/25_raid1d.service` (config/x86_64/eos.toml, R-501).
+Typ usługi musi zostać `oneshot_async`, NIE `notify`: init drenuje usługi na jednym wątku,
+a `raid1d` zgłasza gotowość dopiero po przebadaniu każdego `/scheme/disk.*`, więc zablokowany
+dysk zamroziłby init i `30_console` nigdy by nie wystartowało — dokładnie to wygasiło
+konsolę tekstową live-ISO na aarch64.
+Czego NIE MA: LVM, RAID 0/5/10 (R-912, blokowane przez R-F04), żadnego menedżera woluminów.
+"""
+roadmap = ["R-912"]
+
+[text.pl]
+name    = "Lustro RAID-1 (raid1d)"
+summary = "Składanie lustra z dwóch dysków przez demona w przestrzeni użytkownika."
+
+[text.en]
+name    = "RAID-1 mirror (raid1d)"
+summary = "Assembles a two-disk mirror through a user-space daemon."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true
+
+[[effects.on.service_enable]]
+name = "25_raid1d.service"
+type = "oneshot_async"
+
+[effects.on.text.pl]
+description = "Uruchamia `raid1d` po `00_base.target`. Demon kończy pracę po cichu, gdy nie ma macierzy."
+
+[effects.on.text.en]
+description = "Starts `raid1d` after `00_base.target`. The daemon exits quietly when there is no array."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Brak demona lustra."
+residual_risk = "Awaria jednego dysku to utrata systemu. Nie ma kopii zapasowej ani ścieżki odtworzenia w obrazie (docs/plan.md §2.1 wymienia backup/restore jako brakujące, bez pozycji roadmapy)."
+
+[effects.off.text.en]
+description   = "No mirror daemon."
+residual_risk = "A single disk failure loses the system. No backup or recovery path ships in the image."
+
+[requires]
+features     = []
+capabilities = ["disk.count>=2"]
+
+[conflicts]
+features = []
+
+[threat]
+model           = []
+severity_if_off = "niskie"
+
+[threat.text.pl]
+protects = "Nic w modelu zagrożeń. To dostępność, nie bezpieczeństwo."
+does_not_protect = """
+Lustro NIE jest kopią zapasową: kasowanie, szyfrowanie przez okup i błąd człowieka replikują
+się na oba dyski natychmiast.
+NIE chroni przed cichym uszkodzeniem danych — nie ma sum kontrolnych per blok na poziomie
+woluminu (nie ma btrfs/ZFS i nie będzie ich na Redoksie).
+NIE ma RAID 0/5/10 ani LVM (R-912).
+Interakcja z `disk.encrypt` NIE JEST ZWERYFIKOWANA — patrz `notes`.
+"""
+
+[threat.text.en]
+protects = "Nothing in the threat model. This is availability, not security."
+does_not_protect = """
+A mirror is not a backup: deletion, ransomware and human error replicate instantly.
+No per-block checksums at the volume layer. No RAID 0/5/10 and no LVM (R-912).
+Interaction with `disk.encrypt` is UNVERIFIED — see `notes`.
+"""
+
+# Pole `notes` należy do funkcji, nie do tłumaczenia — stąd własny nagłówek tabeli.
+[feature.notes]
+pl = """
+[NIEZWERYFIKOWANE] Nie potwierdzono w drzewie, czy `raid1d` składa lustro nad ZASZYFROWANYM
+RedoxFS i w którym momencie rozruchu — bootloader pyta o hasło przed startem przestrzeni
+użytkownika, a `raid1d` startuje dopiero po `00_base.target`. Do sprawdzenia przed
+dopuszczeniem kombinacji `disk.encrypt = on` + `storage.raid1 = on` w profilu.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Drugi dysk o tej samej pojemności — pojemność użytkowa spada o połowę."
+
+[cost.text.en]
+runtime = "A second disk of the same size — usable capacity halves."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "ask"
+amnesic = "off"
+
+[recommend.profile]
+"eos.business" = "ask"

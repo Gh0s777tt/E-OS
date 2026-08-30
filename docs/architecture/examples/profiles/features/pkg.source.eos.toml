@@ -1,0 +1,119 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "pkg.source.eos"
+version  = "1.0.0"
+category = "updates"
+arch     = ["x86_64", "aarch64"]
+
+# Ta sama funkcja ma RÓŻNY stan na różnych architekturach. Kreator pokazuje stan
+# dla architektury instalowanej; walidator odrzuca `state = "on"` tam, gdzie
+# `stage_by_arch` mówi coś innego niż JEST (V-12).
+stage    = "DO ZBUDOWANIA"
+stage_by_arch = { aarch64 = "JEST", x86_64 = "DO ZBUDOWANIA" }
+evidence = """
+Klucz publiczny repo JEST wpięty w oba obrazy: `/etc/pkg/eos-repo-sign.pub.toml`
+(config/x86_64/eos.toml, sekcja R-702; hybryda ed25519 + ML-DSA-65 wg ADR-0004).
+`/etc/pkg.d/50_eos` JEST w obrazie, ale ZAKOMENTOWANY — pkg-lib `update_remotes()`
+pomija linie z `#`, więc plik parsuje się czysto i daje zero źródeł.
+ROADMAP-v2 §9.5 `R-701`: publikacja ✅ (U-209), `50_eos` aktywne na aarch64 (U-210);
+x86_64 zostaje — to jest znalezisko C-4 (brak kanału aktualizacji na x86_64).
+`/etc/pkg.d/50_redox` (upstream Redoksa) jest w obrazie świadomie WYŁĄCZONY (R-701a) i
+pilnuje tego check 9 w scripts/ci-integrity.sh.
+"""
+roadmap = ["R-701", "R-702", "R-703", "R-705"]
+
+[text.pl]
+name    = "Źródło pakietów E-OS"
+summary = "Aktualizacje z podpisanego repozytorium E-OS zamiast z żadnego."
+
+[text.en]
+name    = "E-OS package source"
+summary = "Updates from the signed E-OS repository instead of from nowhere."
+
+[effects.on]
+irreversible    = false
+requires_reboot = false
+
+# Efekt STRUKTURALNY: /etc/pkg.d/ jest strzeżony przez check 9 ci-integrity.sh,
+# więc surowy `files_write` na tę ścieżkę jest błędem walidacji (V-18).
+[[effects.on.pkgsource_enable]]
+name       = "50_eos"
+url        = "https://gh0s777tt.github.io/eos-pkg-{arch}/pkg"
+pinned_key = "/etc/pkg/eos-repo-sign.pub.toml"
+
+[effects.on.text.pl]
+description = "Odkomentowuje źródło E-OS. Klucz jest już przypięty, więc brak lub zły `repo.toml.sig` jest BŁĘDEM KRYTYCZNYM, nie ostrzeżeniem."
+
+[effects.on.text.en]
+description = "Un-comments the E-OS source. The key is already pinned, so a missing or invalid `repo.toml.sig` is a HARD ERROR, not a warning."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Instalacja bez żadnego źródła pakietów."
+residual_risk = "Maszyna nigdy nie dostanie poprawki bezpieczeństwa inaczej niż przez pełną reinstalację. Na x86_64 to jest dziś stan domyślny — znalezisko C-4."
+
+[effects.off.text.en]
+description   = "The install has no package source at all."
+residual_risk = "The machine will never receive a security fix except by full reinstall. On x86_64 that is today's default — finding C-4."
+
+[requires]
+features     = []
+capabilities = ["net.interface"]
+
+[conflicts]
+features = ["pkg.source.redox-upstream"]
+
+[conflicts.text.pl]
+reason = "Upstreamowe binarki są budowane BEZ flag hartowania E-OS (overflow-checks, W⊕X, ASLR), a kanał jest u klienta nieuwierzytelniony do czasu R-703. Trzymanie obu źródeł oznacza, że rozstrzyga kolejność, a nie polityka."
+
+[conflicts.text.en]
+reason = "Upstream binaries are built WITHOUT the E-OS hardening flags and the channel is unauthenticated on the client until R-703. Keeping both sources means ordering decides, not policy."
+
+[threat]
+model           = ["supply-chain"]
+severity_if_off = "wysokie"
+
+[threat.text.pl]
+protects = "Przeciwnik «łańcuch dostaw» (docs/threat-model.md §3): indeks podpisany hybrydowo, pakiety pkgar z ed25519 + blake3 sprawdzanym przed zatwierdzeniem."
+does_not_protect = """
+NIE chroni przed cofnięciem wersji: poprawnie podpisany STARSZY pkgar wciąż się instaluje (R-704).
+NIE ma rotacji ani unieważniania klucza na urządzeniu — pkgar wiąże pakiet z DOKŁADNIE JEDNYM
+kluczem, bez keyringu i bez listy unieważnień (R-711). Skompromitowanego klucza nie da się odwołać.
+NIE ma transakcyjnego zastosowania: `transaction.commit()` mutuje żywy system pętlą rename bez
+dziennika, a jądro podmienia się w locie (R-706, R-707) — nieudana aktualizacja może zabić dysk.
+Na x86_64 nie ma czego włączać (C-4).
+"""
+
+[threat.text.en]
+protects = "The supply-chain adversary: a hybrid-signed index, pkgar packages with ed25519 + blake3 checked before commit."
+does_not_protect = """
+No rollback protection: a correctly signed OLDER pkgar still installs (R-704).
+No on-device key rotation or revocation (R-711) — a compromised key cannot be withdrawn.
+No transactional apply (R-706, R-707) — a failed update can destroy a real disk.
+On x86_64 there is nothing to enable yet (C-4).
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Ruch sieciowy przy sprawdzaniu aktualizacji. Dziś ręczny `pkg`; demon `eos-update` to R-705."
+
+[cost.text.en]
+runtime = "Network traffic when checking for updates. Manual `pkg` today; the `eos-update` daemon is R-705."
+
+[recommend.class]
+desktop = "on"
+gaming  = "on"
+server  = "on"
+amnesic = "off"
+
+[recommend.profile]
+"eos.business" = "on"

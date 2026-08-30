@@ -1,0 +1,116 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "user.schemes.minimal"
+version  = "1.0.0"
+category = "hardening"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "JEST"
+evidence = """
+Mechanizm istnieje i jest w obrazie: `/etc/login_schemes.toml` czytany przez
+`apply_login_schemes()` z userutils; obraz E-OS już nadpisuje ten plik
+(config/x86_64/eos.toml, sekcja R-904a — usunięty `ip`).
+Zawężenie o `memory`/`irq`/`serio` opisane w docs/hardening.md §7 wraz z uzasadnieniem,
+dlaczego NIE jest domyślne: obraz „bootuje do greetera bez błędów uprawnień do schematów”,
+ale sesji graficznej po zalogowaniu nie da się przejechać w obecnym bezgłowym stanowisku
+testowym (QEMU-on-macOS nie dostarcza wejścia szeregowego).
+"""
+roadmap = []
+
+[text.pl]
+name    = "Wąska przestrzeń schematów użytkownika"
+summary = "Konto interaktywne traci `memory`, `irq` i `serio` — zdolności należące do sterowników."
+
+[text.en]
+name    = "Narrow user scheme namespace"
+summary = "The interactive account loses `memory`, `irq` and `serio` — driver-context capabilities."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true      # skutkuje przy następnym logowaniu
+
+# Efekt STRUKTURALNY, nie surowy zapis pliku. Dwie funkcje mogą zawężać tę samą listę;
+# surowy `files_write` na /etc/login_schemes.toml jest błędem walidacji (V-18), bo
+# ostatni zapis wygrywa i cicho przywraca to, co poprzednia funkcja usunęła.
+[[effects.on.schemes_deny]]
+user   = "user"
+scheme = "memory"
+
+[[effects.on.schemes_deny]]
+user   = "user"
+scheme = "irq"
+
+[[effects.on.schemes_deny]]
+user   = "user"
+scheme = "serio"
+
+[effects.on.text.pl]
+description = "Z `[user_schemes.user]` znikają trzy schematy sprzętowe. `icmp`, `tcp`, `udp`, `orbital`, `sudo`, `file` zostają."
+
+[effects.on.text.en]
+description = "Three hardware schemes are dropped from `[user_schemes.user]`. `icmp`, `tcp`, `udp`, `orbital`, `sudo`, `file` stay."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Konto `user` zachowuje domyślną listę schematów obrazu."
+residual_risk = "Nieuprzywilejowany proces użytkownika może mapować pamięć fizyczną/urządzeń (`memory`) i rejestrować linie przerwań (`irq`) — droga wprost poza model najmniejszych uprawnień."
+
+[effects.off.text.en]
+description   = "The `user` account keeps the image default scheme list."
+residual_risk = "An unprivileged user process can map raw physical/device memory (`memory`) and register IRQ lines (`irq`) — straight out of the least-privilege model."
+
+[requires]
+features     = []
+capabilities = []
+
+[conflicts]
+features = []
+
+[threat]
+model           = ["local-unprivileged-process"]
+severity_if_off = "średnie"
+
+[threat.text.pl]
+protects = "Przeciwnik «lokalny nieuprzywilejowany proces» (docs/threat-model.md §3) — zawęża jego zasięg."
+does_not_protect = """
+Nie chroni przed niczym, co działa jako root ani przed złośliwym sterownikiem: bez IOMMU
+sterownik programuje DMA gdziekolwiek (docs/threat-model.md §3, R-F13).
+Nie jest piaskownicą aplikacji — przestrzeń schematów ustawiana jest RAZ na sesję w `login.rs`,
+więc KAŻDA aplikacja użytkownika dziedziczy pełne uprawnienia tego konta (docs/plan.md §3.2).
+Zaznaczenie tej funkcji nie oddziela przeglądarki od portfela.
+NIE jest zweryfikowane przejściem pełnej sesji graficznej — patrz `evidence`.
+"""
+
+[threat.text.en]
+protects = "The local unprivileged process adversary — it narrows the reachable authority."
+does_not_protect = """
+Nothing against root, and nothing against a malicious driver: with no IOMMU a driver
+can DMA anywhere. This is not an application sandbox — the namespace is set once per
+session in `login.rs`, so every app inherits the account's full authority.
+Not verified through a full graphical session — see `evidence`.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Program wymagający surowego dostępu do sprzętu przestanie działać na koncie użytkownika. Cofnięcie: edycja `/etc/login_schemes.toml` i ponowne logowanie."
+
+[cost.text.en]
+runtime = "A program needing raw hardware access stops working for that account. Undo: edit `/etc/login_schemes.toml` and log in again."
+
+[recommend.class]
+desktop = "ask"
+gaming  = "off"      # gamepad/wejście przez USB HID — patrz docs/plan.md §2.2
+server  = "on"
+amnesic = "on"
+
+[recommend.profile]
+"eos.business" = "on"

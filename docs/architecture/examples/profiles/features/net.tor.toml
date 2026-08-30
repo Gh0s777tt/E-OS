@@ -1,0 +1,100 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+#
+# Wpis „NIEREALNE DZIŚ” istnieje po to, żeby kreator miał CO ODPOWIEDZIEĆ, gdy ktoś
+# tego szuka — zamiast milczeć i pozwolić użytkownikowi zgadywać. docs/plan.md §3.2:
+# „Do NOT promise this. […] bez wszystkich trzech to jest gwarancja, której system nie
+# może dotrzymać, a porażka jest cicha — gorsza niż nieoferowanie.”
+schema = 1
+
+[feature]
+id       = "net.tor"
+version  = "0.1.0"
+category = "network"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "NIEREALNE DZIŚ"
+evidence = """
+Brakują trzy niezależne rzeczy naraz:
+1. Portu Tora nie ma w drzewie receptur E-OS (`recipes/net/` nie zawiera tor).
+2. Nie ma zapory (R-904, C-10), więc nie da się WYMUSIĆ, żeby ruch szedł przez proxy —
+   dowolny program otwiera `tcp:` bezpośrednio.
+3. Nie ma Wi-Fi ani VPN w obrazie; pokrycie kart przewodowych jest cienkie (R-910).
+Do tego brak piaskownicy (C-5), więc nawet poprawnie skonfigurowana aplikacja nie jest
+odizolowana od tej, która wycieknie.
+Zależy od ekosystemu, którego nie ma: portów sieciowych i warstwy wymuszania polityki ruchu.
+"""
+roadmap = ["R-904", "R-903"]
+
+[text.pl]
+name    = "Cały ruch przez Tor"
+summary = "NIEOSIĄGALNE. E-OS nie może tego obiecać i świadomie nie obiecuje."
+
+[text.en]
+name    = "All traffic over Tor"
+summary = "NOT ACHIEVABLE. E-OS cannot promise this and deliberately does not."
+
+[effects.on]
+irreversible = false
+unavailable  = true
+
+[effects.on.text.pl]
+description = "Nie do włączenia."
+
+[effects.on.text.en]
+description = "Cannot be enabled."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Ruch idzie bezpośrednio, tak jak w każdym innym profilu."
+residual_risk = "Adres IP maszyny jest widoczny dla każdego zdalnego rozmówcy. Profil amnezyjny NIE daje anonimowości sieciowej — daje brak śladu NA DYSKU. To dwie różne rzeczy i mylenie ich jest najgroźniejszym nieporozumieniem w tym zestawie."
+
+[effects.off.text.en]
+description   = "Traffic goes out directly, as in every other profile."
+residual_risk = "The machine's IP is visible to every remote peer. An amnesic profile gives no network anonymity — it gives no trace ON DISK. Confusing the two is the most dangerous misunderstanding in this set."
+
+[requires]
+features     = ["net.firewall"]
+capabilities = []
+
+[conflicts]
+features = []
+
+[threat]
+model           = ["remote-network"]
+severity_if_off = "niskie"
+
+[threat.text.pl]
+protects = "Nic. Funkcji nie ma."
+does_not_protect = """
+Nie chroni przed obserwacją ruchu, korelacją, ani identyfikacją po odcisku przeglądarki —
+nawet gdyby Tor był w obrazie, sam Tor nie daje żadnej z tych rzeczy.
+Nie zastępuje zapory i nie ukrywa faktu korzystania z sieci przed dostawcą łącza.
+"""
+
+[threat.text.en]
+protects = "Nothing. The feature does not exist."
+does_not_protect = """
+No protection against traffic observation, correlation or browser fingerprinting — Tor alone
+would not give any of those either. It is not a firewall and it does not hide network use
+from the link provider.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 0
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "Nie dotyczy."
+
+[cost.text.en]
+runtime = "N/A."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "off"
+amnesic = "off"

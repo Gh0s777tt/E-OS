@@ -1,0 +1,136 @@
+# E-OS — definicja funkcji instalatora.
+# Schemat i uzasadnienie: docs/architecture/installer-profiles.md
+schema = 1
+
+[feature]
+id       = "sys.amnesia"
+version  = "0.2.0"
+category = "privacy"
+arch     = ["x86_64", "aarch64"]
+
+stage    = "DO ZBUDOWANIA"
+evidence = """
+Połowa JEST i jest zweryfikowana: obraz live kopiuje ~1,4 GB systemu plików do RAM i bootuje
+z niego na obu architekturach (U-133; docs/install.md — „bootloader oferuje `l` do wyłączenia
+trybu live, pozostawiony sam kopiuje system do RAM i ląduje na `eos login:`").
+docs/plan.md §3.2 nazywa to wprost: „Tails: amnesia — JUŻ ZBUDOWANE, jako efekt uboczny obrazu
+live. Brakuje uczynienia z tego PRODUKTU: wariantu `eos-live-amnesic`, który nie montuje
+żadnego dysku hosta, mówi o tym na ekranie logowania i używa efemerycznego klucza dla `/tmp`
+i `$HOME`." Blokerów: „none — high value, low cost”.
+Zakres do zbudowania: wariant konfiguracji, odmowa montowania dysków hosta, komunikat na
+greeterze, klucz efemeryczny.
+"""
+roadmap = []
+
+[text.pl]
+name    = "Tryb amnezyjny (system w RAM, bez zapisu na dysk)"
+summary = "System działa z pamięci; żaden dysk hosta nie jest montowany. Po wyłączeniu nie zostaje nic na nośniku."
+
+[text.en]
+name    = "Amnesic mode (RAM-only, no disk writes)"
+summary = "The system runs from memory; no host disk is mounted. Nothing survives power-off on the medium."
+
+[effects.on]
+irreversible    = false
+requires_reboot = true
+
+[[effects.on.general_set]]
+key   = "live"
+value = true
+
+[[effects.on.files_write]]
+path        = "/etc/issue"
+postinstall = true
+data = """
+
+  E-OS — TRYB AMNEZYJNY.  System działa w pamięci RAM.
+  Nic nie jest zapisywane na dysk.  Po wyłączeniu wszystko przepada.
+  To NIE JEST anonimowość sieciowa — Twój adres IP jest widoczny.
+
+"""
+
+[effects.on.text.pl]
+description = "Rozruch z nośnika tylko-do-odczytu, system plików w RAM, dyski hosta niemontowane."
+
+[effects.on.text.en]
+description = "Boots from a read-only medium into a RAM filesystem; host disks are left unmounted."
+
+[effects.off]
+
+[effects.off.text.pl]
+description   = "Zwykła instalacja na dysk."
+residual_risk = "Wszystko, co robisz, zostaje na nośniku — i bez `disk.encrypt` zostaje w postaci jawnej."
+
+[effects.off.text.en]
+description   = "A normal on-disk install."
+residual_risk = "Everything you do stays on the medium — and without `disk.encrypt`, in the clear."
+
+[requires]
+features     = []
+capabilities = ["ram_mib>=2048"]
+
+[requires.text.pl]
+reason = "Sam system plików to ~1,4 GB kopiowane do RAM (U-133), zanim uruchomi się cokolwiek innego."
+
+[requires.text.en]
+reason = "The filesystem alone is ~1.4 GB copied into RAM before anything else starts."
+
+[conflicts]
+features = ["storage.raid1", "net.sshd"]
+
+[conflicts.text.pl]
+reason = "Obie funkcje zakładają trwały stan (macierz, klucze hosta), którego ten profil z założenia nie ma."
+
+[conflicts.text.en]
+reason = "Both assume persistent state (an array, host keys) which this profile deliberately lacks."
+
+[threat]
+model           = ["physical-lost-device"]
+severity_if_off = "wysokie"
+
+[threat.text.pl]
+protects = "Przeciwnik, który dostaje NOŚNIK PO fakcie — nie ma na nim historii, plików ani kluczy sesji."
+does_not_protect = """
+NIE daje anonimowości sieciowej. Adres IP i adres MAC są widoczne. Nie ma Tora (net.tor:
+NIEREALNE DZIŚ), nie ma zapory (R-904), nie ma VPN w obrazie.
+Randomizacja MAC NIE jest zaimplementowana — `ifaces/<if>/mac` jest zapisywalny i istnieje
+uprzywilejowany pośrednik `eos-netcfg`, ale podkomendy `randomize-mac` nie ma, a nazwa
+interfejsu jest zaszyta na sztywno (docs/plan.md §3.2).
+NIE chroni przed przeciwnikiem obecnym W TRAKCIE sesji — zawartość RAM jest dostępna dla
+każdego procesu tego użytkownika, bo nie ma piaskownicy (C-5).
+NIE gwarantuje wymazania RAM po wyłączeniu — nie ma wymuszonego czyszczenia pamięci ani
+ochrony przed atakiem zimnego rozruchu.
+NIE chroni przed zmodyfikowanym NOŚNIKIEM: Secure Boot jest udowodniony (ADR-0005), ale
+tylko wtedy, gdy firmware ufa NASZEMU kluczowi — na obcym x86_64 to jeden świadomy krok
+właściciela, którego nikt za niego nie zrobi.
+Bez trwałego dziennika audytu (C-9) nie da się po fakcie stwierdzić, co się działo.
+"""
+
+[threat.text.en]
+protects = "An adversary who obtains the MEDIUM afterwards — no history, files or session keys on it."
+does_not_protect = """
+No network anonymity: IP and MAC are visible; no Tor, no firewall, no VPN in the image.
+MAC randomisation is NOT implemented (no `randomize-mac` subcommand; interface name hard-coded).
+No protection against an adversary present DURING the session — no application sandbox (C-5).
+No guaranteed RAM wipe at power-off; no cold-boot resistance.
+No protection against a modified MEDIUM unless the firmware trusts our Secure Boot key.
+With no persistent audit log (C-9) nothing can be reconstructed afterwards.
+"""
+
+[cost]
+disk_mib   = 0
+ram_mib    = 1400        # sam system plików, U-133; naddatek na sesję niezmierzony
+install_s  = 0
+reversible = true
+
+[cost.text.pl]
+runtime = "~1,4 GB RAM zajęte przez system plików. Każdy plik, który chcesz zachować, musisz świadomie wynieść."
+
+[cost.text.en]
+runtime = "~1.4 GB of RAM held by the filesystem. Anything you want to keep must be exported deliberately."
+
+[recommend.class]
+desktop = "off"
+gaming  = "off"
+server  = "off"
+amnesic = "on"

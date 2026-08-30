@@ -1,0 +1,102 @@
+# E-OS — profil instalacyjny.  Schemat: docs/architecture/installer-profiles.md
+#
+# `eos.base` jest korzeniem drzewa dziedziczenia i jedynym profilem bez `inherits`.
+# Zasada: base NIE BLOKUJE niczego (`locked` nie występuje), bo każda blokada tutaj
+# stałaby się blokadą we wszystkich profilach potomnych i nie dałoby się jej zdjąć —
+# odblokowania nie ma z założenia (§3.6).
+
+schema = 1
+
+[profile]
+id            = "eos.base"
+version       = "1.0.0"
+class         = "desktop"       # desktop | gaming | server | amnesic
+inherits      = []
+author        = "E-OS"
+homepage      = "https://gitlab.com/e-os/e-os"
+min_installer = "0.2.42"
+arch          = ["x86_64", "aarch64"]
+
+[profile.text.pl]
+name    = "E-OS Desktop (podstawa)"
+summary = "Wspólny mianownik wszystkich profili. Odpowiada temu, co obraz robi dzisiaj, plus pytania, których dziś instalator nie zadaje."
+
+[profile.text.en]
+name    = "E-OS Desktop (base)"
+summary = "The common denominator of every profile. Matches what the image does today, plus the questions the installer does not ask yet."
+
+# ── Ogłoszenia pokazywane PRZED pierwszym pytaniem kreatora ────────────────────────
+# Profil potomny może DODAĆ ogłoszenie; nie może żadnego usunąć (V-20).
+[[notice]]
+severity = "info"
+
+[notice.text.pl]
+body = """
+E-OS jest przed wersją 1.0. Każde twierdzenie o rozruchu w tym repozytorium pochodzi
+z QEMU — na fizycznym sprzęcie system nie był walidowany (docs/install.md).
+"""
+
+[notice.text.en]
+body = """
+E-OS is pre-1.0. Every boot claim in this repository comes from QEMU; the system has not
+been validated on physical hardware.
+"""
+
+# ── Wybory ────────────────────────────────────────────────────────────────────────
+# `state` to INTENCJA. Stan skuteczny = intencja ∧ dostępność; obniżenie nigdy nie jest
+# ciche — trafia do pliku odpowiedzi jako `source = "unavailable"` (§5.2).
+
+[[select]]
+feature = "disk.encrypt"
+state   = "ask"
+reason  = "Domyślnie pytamy. Zaszyfrowany root wymaga hasła przy KAŻDYM rozruchu i nie ma depozytu klucza — decyzja należy do właściciela maszyny, nie do profilu."
+
+[[select]]
+feature = "user.authorized-key"
+state   = "ask"
+reason  = "Obraz wysyła `user` bez hasła i `root`/`password`. OOBE wymusza zmianę przy konsoli (R-602), ale na maszynie bezgłowej klucz jest jedyną drogą do pierwszego logowania."
+
+[[select]]
+feature = "sys.identity"
+state   = "on"
+reason  = "Dziś KAŻDA instalacja E-OS nazywa się `eos` i nie ma machine-id (R-606). Intencja jest `on`; funkcja ma stage DO ZBUDOWANIA, więc do czasu R-603/R-606 rozstrzygnie się jako niedostępna i tak zostanie zapisana w pliku odpowiedzi."
+
+[[select]]
+feature = "user.schemes.minimal"
+state   = "ask"
+reason  = "docs/hardening.md §7 opisuje, dlaczego NIE jest to domyślne: zmiany nie da się dziś zweryfikować przejściem pełnej sesji graficznej w bezgłowym stanowisku testowym. Pytanie z uczciwym opisem jest lepsze niż domyślne włączenie bez dowodu."
+
+[[select]]
+feature = "pkg.source.eos"
+state   = "on"
+reason  = "Bez źródła aktualizacji maszyna nie dostanie poprawki inaczej niż przez reinstalację. Na x86_64 kanału jeszcze nie ma (C-4), więc tam rozstrzygnie się jako niedostępny."
+
+[[select]]
+feature = "pkg.source.redox-upstream"
+state   = "off"
+reason  = "R-701a. Binarki bez flag hartowania E-OS, kanał nieuwierzytelniony u klienta do czasu R-703."
+
+[[select]]
+feature = "net.sshd"
+state   = "off"
+reason  = "Nie ma zapory (R-904, C-10). Usługa sieciowa domyślnie wyłączona."
+
+[[select]]
+feature = "storage.raid1"
+state   = "off"
+reason  = "Wymaga drugiego dysku; na typowej maszynie biurkowej nie ma czego składać."
+
+[[select]]
+feature = "net.firewall"
+state   = "off"
+reason  = "Podsystem nie istnieje (R-904). Wpis jest tu po to, żeby brak był widoczny w spisie, a nie zamilczany."
+
+[[select]]
+feature = "sys.amnesia"
+state   = "off"
+reason  = "Profil instalacji na dysk."
+
+[[select]]
+feature = "net.tor"
+state   = "off"
+reason  = "NIEREALNE DZIŚ. docs/plan.md §3.2 — obietnicy, której system nie może dotrzymać, nie składamy."
