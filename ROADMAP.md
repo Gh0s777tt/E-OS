@@ -1231,10 +1231,14 @@ Not a new item; the standing context every row above is measured against.
   measured.
 - **`exit 1` ≠ `exit 2`.** 1 = the gate **found a defect**, fix the tree. 2 = the gate **could not
   run**, fix the toolbox. The same split as `FAIL (instrument):` in `ci-integrity.sh` (`U-177`).
-- **`ci-integrity.sh` has checks 0…12** — verified this session: banner `0.` (the instrument probe)
-  through `11.`, plus check **12**, the tarball-blake3 gate calling `scripts/eos-check-tar-pins.py`
-  (`ci-integrity.sh:339`). **The numbering gate that decision D5 requires is therefore check 13, not
-  check 12** — see Annex B. *Re-measured 2026-08-31, correcting the wording inherited from the
+- **`ci-integrity.sh` has checks 0…13** — banner `0.` (the instrument probe) through `11.`, plus
+  check **12**, the tarball-blake3 gate (`scripts/eos-check-tar-pins.py`), plus check **13**, added
+  2026-08-31: `scripts/eos-check-unbound-arrays.py`, which refuses an empty array expanded under
+  `set -u`. Check 5 could not see that class — it greps for bash-4-only *syntax*, and this parses in
+  bash 3.2 and dies at run time on one branch. Measured: `ci-install-smoke.sh` died with
+  `VIDEO_ARGS[@]: unbound variable` while this gate printed `ok` and exited 0 in the same tree. It
+  found one further instance nobody had planted, in `scripts/rx-proof-harness.sh:193`.
+  **The numbering gate that decision D5 requires is therefore check 14, not 13** — see Annex B. *Re-measured 2026-08-31, correcting the wording inherited from the
   predecessors: `CLAUDE.md` **has no §0**, and its §3 (line 75) already says "twelve checks", which
   is current. The single stale place is **§13** (line 443), which still says "8 invariant checks" —
   four behind the gate, and therefore also contradicting §3 of its own document. (`CLAUDE.md` is
@@ -1767,7 +1771,7 @@ carry the D2 header. Mechanisable minimum: `grep -q 'ARCHIVAL NUMBERING'` in
 `docs/architecture/update-system.md` **and** `docs/architecture/driver-manager.md`, otherwise the
 check fails naming the file. **How that check fails:** remove the header from one file → red with
 its name; remove `grep` from `PATH` → `FAIL (instrument):`, never "broken invariant" (`CLAUDE.md`
-§13, the `U-177` pattern). **Corrected in this merge: it is check 13, not check 12.** An earlier
+§13, the `U-177` pattern). **Corrected again 2026-08-31: it is check 14, not 13** — check 13 was taken by the empty-array gate. An earlier
 version asserted `ci-integrity.sh` holds checks 0…11 and that this becomes check 12. **Check 12
 already exists** — the tarball-blake3 gate at `ci-integrity.sh:339` calling
 `scripts/eos-check-tar-pins.py`. Renumber before anyone implements D5.

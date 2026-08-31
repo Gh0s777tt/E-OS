@@ -72,7 +72,7 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (12 kontroli)
+bash scripts/ci-integrity.sh                    # bramka integralności (13 kontroli)
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=26 drift=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -440,7 +440,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (12 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (13 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
@@ -471,6 +471,7 @@ pierwszą kontrolą — §4.2 zastosowane do samej bramki.
 | **typ repo niezgodny z tym, co fork faktycznie niesie** | ✅ **działa** (`U-169`) — `mirror-drift` porównuje `type` z `repos.toml` z pomiarem na forku i **pada**; offline'owy odpowiednik to kontrola 7 (`CLAUDE.md` §11 vs `repos.toml`) |
 | **przepis z forkiem E-OS pobierany jako binarka upstreamu** | ✅ **działa** (`U-168`, kontrola 6) — `cookbook.lock` jest śledzony, a bramka pada z nazwą przepisu |
 | **ciche znormalizowanie końców linii** | ✅ **działa** (`U-173`, kontrola 8) — `.gitattributes` powstrzymuje gita, kontrola 8 edytor: pada przed pushem, nazywając plik, któremu zniknął CRLF |
+| **pusta tablica rozwijana pod `set -u`** | ✅ **działa** (kontrola 13) — skrypt PARSUJE się w bashu 3.2 i pada dopiero w czasie wykonania, na jednej gałęzi, więc kontrola 5 (wzorce składniowe) tego **nie widziała**. Zmierzone: `ci-install-smoke.sh` padł na `VIDEO_ARGS[@]: unbound variable`, a `ci-integrity` w tym samym drzewie wypisał `ok` i kod 0. Bramka wskazuje plik, linię i zmienną |
 | **bramka, która nie mogła się wykonać** | ✅ **działa** (`U-177`) — brak `git`/`grep`/`awk` albo katalog spoza drzewa roboczego przerywa `ci-integrity.sh` **przed** pierwszą kontrolą; brak `python3` lub pliku pomocniczego pada jako `FAIL (instrument):` w kontroli 6 i 7, nigdy jako złamany niezmiennik |
 | **konflikt rebase łatek** | ⚠️ **doradcze** (`U-169`) — `rebase-check` wykrywa konflikt przez `git merge-tree`, ale nie blokuje: ruch upstreamu to nie nasza usterka, chodzi o to, by dowiedzieć się **teraz**, a nie przy następnej synchronizacji |
 | **`cargo-audit`** | ⚠️ świadomie pominięty w CI jako nadmiarowy wobec `cargo-deny`; lokalnie w `local-scan.sh` |
