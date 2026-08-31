@@ -20,7 +20,14 @@ OUT="${EOS_OUT:-$HOME/eos-artifacts}"; mkdir -p "$OUT"
 VOL="${EOS_BUILD_VOLUME:-eos-work}"
 BUILD="/work/redox/build/$ARCH/eos"
 
-inbox(){ podman run --rm -v "$VOL":/work localhost/redox-base:latest bash -lc "$1"; }
+# eos-root is mounted as well as $VOL, and that is not belt-and-braces: cargo and rustup live
+# in the eos-root volume at /root/.cargo, so a /work-only container cannot run `make` at all --
+# mk/depends.mk:11 stops with `rustup not found`. This helper was /work-only, which made every
+# `make` query through it fail with status 2; with `2>/dev/null` on the caller and `set -e` on
+# the script, that killed eos-build.sh right after the sync line, silently, for BOTH arches.
+# The same trap is already written down five lines below for the host-tools step. It was worth
+# reading twice.
+inbox(){ podman run --rm -v "$VOL":/work -v eos-root:/root localhost/redox-base:latest bash -lc "$1"; }
 
 echo "==> sync this repo into the build volume (the build tree is separate, see CLAUDE.md 20.1)"
 scripts/eos-sync-buildtree.sh --apply >/dev/null
