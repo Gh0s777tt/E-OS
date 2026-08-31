@@ -26,6 +26,20 @@ import time
 ESC = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 PASSWORD = "eos"
 
+# One knob for "this guest is slower than the one these windows were measured on", instead
+# of editing eleven constants by hand and having them drift apart. MEASURED on x86_64 under
+# TCG on an Apple Silicon host: the same flow that passes first time on aarch64 needed THREE
+# login attempts, because attempts 1 and 2 timed out at the shell prompt and the password
+# confirmation before the guest had warmed up. Multiplying is honest -- the steps are the
+# same, the machine is slower -- whereas raising each constant for everyone would slow the
+# failure path down on the arch where these numbers were correct.
+SLOW = float(os.environ.get("EOS_SMOKE_SLOW", "1"))
+
+
+def w(seconds):
+    """Scale a measured window for a slower guest (EOS_SMOKE_SLOW)."""
+    return int(seconds * SLOW)
+
 
 class Console:
     def __init__(self, serial_path, budget, logfile):
@@ -74,9 +88,18 @@ class Console:
             self.log.write(text)
             self.log.flush()
 
-    def mark(self):
-        """Freeze a point in the stream; expect() only looks at output after it."""
-        self.marker = len(self.buf)
+    def mark(self, pos=None):
+        """Freeze a point in the stream; expect() only looks at output after it.
+
+        `pos` defaults to the END of everything received so far, and that default is a trap
+        on a match: one recv() can carry the matched text AND whatever the guest printed
+        next, so marking at len(buf) silently discards output that has already arrived.
+        MEASURED: after a rejected login the guest prints "Login incorrect" and its next
+        `eos login:` in the same chunk, so the retry waited forever for a prompt that was
+        sitting in the buffer, three lines above the marker. expect() therefore marks at the
+        end of its MATCH, not at the end of the stream.
+        """
+        self.marker = len(self.buf) if pos is None else pos
 
     def expect(self, pattern, what, window=None, optional=False):
         """Wait for `pattern` in output produced AFTER the last mark().
@@ -94,9 +117,10 @@ class Console:
             if self.dead:
                 print("install-smoke: FAIL — the VM went away while waiting for %s" % what)
                 return False
-            if rx.search(self.buf[self.marker:]):
+            m = rx.search(self.buf[self.marker:])
+            if m:
                 print("install-smoke:   saw %s" % what)
-                self.mark()
+                self.mark(self.marker + m.end())
                 return True
         # A check that cannot fail the run must not print FAIL. Two progress observations
         # here -- the ESP write and the install starting -- have their results discarded by
@@ -122,9 +146,10 @@ class Console:
                 return None
             tail = self.buf[self.marker:]
             for key, r in rx.items():
-                if r.search(tail):
+                m = r.search(tail)
+                if m:
                     print("install-smoke:   saw %s" % key)
-                    self.mark()
+                    self.mark(self.marker + m.end())
                     return key
         print("install-smoke: FAIL — timed out waiting for %s" % what)
         return None
@@ -166,40 +191,120 @@ class Console:
             pass
 
 
-def login(con):
-    """Log in as root.
+def login(con, attempts=3):
+    """Log in as root, tolerating a first attempt eaten by console re-initialisation.
 
     Root and `sudo` behave IDENTICALLY here -- both reach "Installing to RedoxFS
-    partition" and both fail with `Operation not permitted (os error 1)` (R-F19). An
-    earlier note in this file claimed sudo was the problem; that was read off a run killed
-    too early to see root fail the same way. Root is used anyway because it removes one
-    variable from a flow that already has a blocker in it.
+    partition" and both fail with `Operation not permitted (os error 1)` (R-F19). Root is
+    used anyway because it removes one variable from a flow that already has a blocker.
+
+    WHY THE RETRY, measured twice on x86_64 under TCG: the getty prints its banner and
+    prompt, then RE-PRINTS both, and a login started before the reprint is discarded. The
+    password then lands at the USERNAME prompt -- visible in the serial log because it is
+    echoed IN THE CLEAR, `eos login: p`, `eos login: pa`, ... -- and the run dies on
+    "Login incorrect" with the real cause 25 lines earlier.
+
+    Waiting for the console to go quiet before typing was tried, and made it WORSE: the
+    login prompt has its own timeout, so settling past it produced the same clear-text
+    echo one step SOONER, failing at the OOBE prompt the previous run had reached. That
+    experiment is why this is a retry and not a delay -- predicting the guest is the wrong
+    move, tolerating it is the right one.
     """
+    for attempt in range(1, attempts + 1):
+        if _login_once(con):
+            return True
+        if con.dead:
+            return False
+        if attempt < attempts:
+            # Deliberately NO mark() here. expect_either() already marked immediately after
+            # "Login incorrect", and the getty prints its next `eos login:` AFTER that -- so
+            # marking again skips the very prompt the retry is waiting for. Measured: the
+            # first version of this retry did exactly that and hung with the guest sitting
+            # at a visible prompt the driver could no longer see. Same class as the
+            # whole-buffer expect() this file already carries a scar for (U-166): the marker
+            # decides what you are allowed to notice, so moving it is never cosmetic.
+            print("install-smoke:   login attempt %d did not take, retrying" % attempt)
+    return False
+
+
+def _login_once(con):
     if not con.expect(r"login:", "the login prompt"):
         return False
     con.send("root")
     # Every password pattern below REQUIRES the colon. A bare "password" also matches the
     # login banner -- "Accounts: user * root - the first login makes you set a password" --
     # which is printed after the login: prompt, so it lands after the mark and looks like a
-    # prompt to expect(). When that happened the driver typed "password" into the USERNAME
-    # field and the run died with "Login incorrect", 25 lines before anything interesting.
-    # Same class of defect as the whole-buffer expect() fixed in U-166: matching text that
-    # is not a prompt. Being specific is the fix; a longer timeout would not have helped.
-    if con.expect(r"password:", "the root password prompt", window=40):
-        con.send("password")          # the shipped default the OOBE forces you off
-    # R-602 forces a password change for any account still on the shipped default.
-    if con.expect(r"new password:", "the first-boot password prompt", window=60):
+    # prompt to expect(). Being specific is the fix; a longer timeout would not have helped.
+    if not con.expect(r"password:", "the root password prompt", window=w(40)):
+        return False
+    con.send("password")              # the shipped default the OOBE forces you off
+
+    # Race the outcomes instead of waiting out the happy path's window on a login that has
+    # ALREADY been refused. "Login incorrect" is a RESULT, not a timeout, and telling the
+    # two apart is what lets this retry instead of reporting a timeout for a rejection
+    # (CLAUDE.md 13, U-177: red must say WHAT is broken -- the tree or the instrument).
+    seen = con.expect_either(
+        {"the first-boot password prompt": r"new password:",
+         "a rejected login": r"Login incorrect"},
+        "the login outcome", window=w(90))
+    if seen != "the first-boot password prompt":
+        return False
+
+    # R-602 forces a password change for any account still on the shipped default, and the
+    # OOBE is driven in a LOOP rather than once, because it can legitimately have to ask
+    # twice. MEASURED on x86_64 under TCG:
+    #
+    #     new password:
+    #     confirm password:
+    #     passwd: new password does not match confirm password
+    #
+    # -- the two prompts printed back to back with nothing typed between them, so the first
+    # read returned an EMPTY line. There is a stray newline in the guest's input queue after
+    # the login password, the OOBE eats it as the new password, then eats our real one as the
+    # confirmation, and the pair does not match. The OOBE re-asks; the driver has to be able
+    # to answer the second round instead of treating the first mismatch as fatal.
+    #
+    # Every step below races its outcomes instead of waiting out a window. Waiting cost 540 s
+    # per failed attempt on a run that had already printed the reason in one line -- and a
+    # timeout reported for a result the guest already told us is the "red that does not say
+    # what is broken" this project bans (CLAUDE.md 13, U-177).
+    for _ in range(4):
+        seen = con.expect_either(
+            {"the first-boot password prompt": r"new password:",
+             "a rejected login": r"Login incorrect"},
+            "the first-boot prompt", window=w(90))
+        if seen != "the first-boot password prompt":
+            return False
         con.send(PASSWORD)
-        time.sleep(1)
-        if con.expect(r"password:", "the password confirmation", window=40):
-            con.send(PASSWORD)
-    return con.expect(r"root:.*#|:~#|\$", "a shell prompt", window=90)
+
+        seen = con.expect_either(
+            {"the password confirmation": r"confirm password:",
+             "a password mismatch": r"does not match",
+             "a rejected login": r"Login incorrect"},
+            "the confirmation prompt", window=w(60))
+        if seen == "a rejected login":
+            return False
+        if seen != "the password confirmation":
+            continue                      # mismatch or nothing: let the OOBE ask again
+        con.send(PASSWORD)
+
+        seen = con.expect_either(
+            {"a shell prompt": r"root:.*#|:~#|\$",
+             "a password mismatch": r"does not match",
+             "a rejected login": r"Login incorrect"},
+            "the result of the password change", window=w(180))
+        if seen == "a shell prompt":
+            return True
+        if seen == "a rejected login":
+            return False
+        # a mismatch: the OOBE prints its banner again, so go round.
+    return False
 
 
 def run_install(con):
     con.send("redox_installer_tui")
 
-    if not con.expect(r"Select a drive from 1 to", "the installer's drive menu", window=120):
+    if not con.expect(r"Select a drive from 1 to", "the installer's drive menu", window=w(120)):
         return False
 
     # Report what the installer offered -- the point of the exercise. The boot disk is in
@@ -222,19 +327,19 @@ def run_install(con):
     # The installer's last observable step is writing the EFI loader; the shell prompt
     # comes back after that. Both are matched only in output produced after the drive was
     # chosen, so neither can be satisfied by something printed earlier in the session.
-    if not con.expect(r"Opening disk", "the installer opening the target disk", window=90):
+    if not con.expect(r"Opening disk", "the installer opening the target disk", window=w(90)):
         return False
 
     # Order matters and mine was wrong at first: the ESP -- and therefore BOOTAA64.EFI --
     # is written BEFORE the RedoxFS partition, so expecting it afterwards produced a false
     # FAIL on a run that had got further than any before it.
-    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=120, optional=True)
+    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI", "the EFI bootloader being written", window=w(120), optional=True)
     # Two install paths print two different things, and expecting only the slow one made a
     # PASSING run print a FAIL line. The fast path (try_fast_install, block copy out of the
     # live disk in RAM) announces itself and then reports percentages; the slow path walks
     # files. Accept either, and say which was taken -- that is the interesting bit.
     con.expect(r"fast install: live disk at|Installing to RedoxFS partition",
-               "the install starting (fast or file-by-file)", window=120, optional=True)
+               "the install starting (fast or file-by-file)", window=w(120), optional=True)
 
     # Race the two outcomes instead of waiting out a failure window first. Once the copy
     # phase genuinely runs it moves 13679 files, so the old "expect failure for 180s, then
@@ -245,7 +350,7 @@ def run_install(con):
             "the shell prompt returning after the install": r"root:.*#|:~#",
         },
         "the install to finish one way or the other",
-        window=max(120, int(con.deadline - time.time())),
+        window=max(w(120), int(con.deadline - time.time())),
     )
     if outcome == "the installer FAILING":
         for line in [l for l in con.buf[-1500:].replace("\r", "\n").split("\n") if l.strip()][-6:]:

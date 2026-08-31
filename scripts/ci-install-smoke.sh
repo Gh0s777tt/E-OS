@@ -29,12 +29,30 @@ BUDGET="${2:-600}"
 ARCH="aarch64"; prev=""
 for a in "$@"; do case "$prev" in --arch) ARCH="$a";; esac; prev="$a"; done
 [ -f "$IMG" ] || { echo "install-smoke: image not found: $IMG"; exit 1; }
-[ "$ARCH" = "aarch64" ] || { echo "install-smoke: only aarch64 is wired up"; exit 2; }
 
-QEMU="$(command -v qemu-system-aarch64 || echo /opt/homebrew/bin/qemu-system-aarch64)"
-FW_CODE=/opt/homebrew/share/qemu/edk2-aarch64-code.fd
-FW_VARS=/opt/homebrew/share/qemu/edk2-arm-vars.fd
-[ -x "$QEMU" ] || { echo "install-smoke: qemu-system-aarch64 not found"; exit 1; }
+# R-601c. The arch block is lifted from ci-boot-smoke.sh rather than re-derived: those
+# values are already proven on this host, and a second, independently-guessed copy is how
+# two harnesses come to disagree about the same machine. Three details are not free choices:
+#   * OVMF ships its writable vars as the i386 file even for the x86_64 build;
+#   * ramfb is the virt-board framebuffer -- q35 has none and REJECTS the device, so it
+#     cannot simply be passed on both arches;
+#   * -cpu max on q35, because Redox needs features cortex-a72's x86 counterpart lacks.
+case "$ARCH" in
+  aarch64)
+    QEMU="$(command -v qemu-system-aarch64 || echo /opt/homebrew/bin/qemu-system-aarch64)"
+    FW_CODE=/opt/homebrew/share/qemu/edk2-aarch64-code.fd
+    FW_VARS=/opt/homebrew/share/qemu/edk2-arm-vars.fd
+    ;;
+  x86_64)
+    QEMU="$(command -v qemu-system-x86_64 || echo /opt/homebrew/bin/qemu-system-x86_64)"
+    FW_CODE=/opt/homebrew/share/qemu/edk2-x86_64-code.fd
+    FW_VARS=/opt/homebrew/share/qemu/edk2-i386-vars.fd
+    ;;
+  *) echo "install-smoke: unsupported --arch '$ARCH' (aarch64|x86_64)"; exit 2 ;;
+esac
+[ -x "$QEMU" ] || { echo "install-smoke: qemu for $ARCH not found: $QEMU"; exit 1; }
+[ -f "$FW_CODE" ] || { echo "install-smoke: firmware not found: $FW_CODE"; exit 1; }
+[ -f "$FW_VARS" ] || { echo "install-smoke: firmware vars not found: $FW_VARS"; exit 1; }
 
 WORK="$(mktemp -d)"; QPID=""; QLOG=""
 # Keep the evidence when a run fails. Deleting $WORK unconditionally -- which this used to
@@ -64,10 +82,23 @@ cp "$FW_VARS" "$WORK/vars.fd"
 # race. Recorded as R-F23. Set EOS_SMOKE_ACCEL=hvf to reproduce it; leave it unset for a
 # trustworthy run. MEASURED, not estimated: boot to login is 19s under TCG and 10s under
 # hvf -- about 1.9x, not the order of magnitude the raw speed of the copy suggested.
-if [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
-  ACCEL_ARGS=(-machine virt,accel=hvf -cpu host)
+# The video device is folded INTO this array rather than kept in a second one, and that is
+# not a style choice. A separate `VIDEO_ARGS=()` for x86_64 is an EMPTY array, and expanding
+# an empty array under `set -u` is an "unbound variable" fatal in bash 3.2 -- which is what
+# /bin/bash is on the reference host. Measured, after I wrote exactly that bug: the harness
+# died with `line 100: VIDEO_ARGS[@]: unbound variable` before qemu ever started, and
+# ci-integrity check 5 still reported "no bash-4-only syntax". ci-boot-smoke.sh has never had
+# this defect because it never split the arrays; re-deriving instead of copying is what
+# introduced it here.
+if [ "$ARCH" = "x86_64" ]; then
+  # No hvf at all on this path: the reference host is arm64, so x86_64 is emulation by
+  # definition. ramfb is deliberately absent -- it is the virt-board framebuffer and q35
+  # REJECTS it, so passing it on both arches would fail to start the guest.
+  ACCEL_ARGS=(-machine q35 -cpu max)
+elif [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
+  ACCEL_ARGS=(-machine virt,accel=hvf -cpu host -device ramfb)
 else
-  ACCEL_ARGS=(-machine virt -cpu cortex-a72)
+  ACCEL_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)
 fi
 
 boot() { # $1=vars $2=serial-sock $3=monitor-sock  $4.. = drives
@@ -75,12 +106,23 @@ boot() { # $1=vars $2=serial-sock $3=monitor-sock  $4.. = drives
   "$QEMU" "${ACCEL_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m "${EOS_SMOKE_MEM:-2048}" \
     -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
     -drive "if=pflash,unit=1,format=raw,file=$vars" \
-    -device ramfb -device qemu-xhci -device usb-kbd -device virtio-rng-pci \
+    -device qemu-xhci -device usb-kbd -device virtio-rng-pci \
     -display none -serial "unix:$ser,server,nowait" -monitor "unix:$mon,server,nowait" \
     "$@" >"$WORK/qemu-$(basename "$ser" .sock).log" 2>&1 &
   QPID=$!
   QLOG="$WORK/qemu-$(basename "$ser" .sock).log"
 }
+
+# The driver's step windows were measured on aarch64, where this host runs QEMU close to
+# native. x86_64 is emulation on an arm64 box, and the difference is not a constant offset:
+# MEASURED, the same flow needed THREE login attempts because attempts 1 and 2 timed out at
+# the shell prompt and the password confirmation before the guest had warmed up. Scaling the
+# windows says "same steps, slower machine"; raising every constant would instead slow the
+# FAILURE path down on the arch where the numbers are already right.
+if [ "$ARCH" = "x86_64" ]; then
+  export EOS_SMOKE_SLOW="${EOS_SMOKE_SLOW:-3}"
+  echo "install-smoke: x86_64 under TCG — step windows scaled x$EOS_SMOKE_SLOW"
+fi
 
 echo "install-smoke: stage 1 — install onto a blank second disk"
 boot "$WORK/vars.fd" "$WORK/s1.sock" "$WORK/m1.sock" \
