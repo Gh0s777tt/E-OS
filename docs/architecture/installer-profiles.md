@@ -10,7 +10,7 @@
   pakietów nie daje wybrać, hostname wpisuje na sztywno jako `eos`, a kasowanie całego dysku
   chowa się za gołym menu numerycznym bez identyfikacji dysku. Każde pytanie, które kreator ma
   kiedyś zadać, musi mieć jedno źródło — inaczej GUI, TUI, dokumentacja i tryb nienadzorowany
-  rozjadą się natychmiast, tak jak `docs/install.md` rozjechało się z GUI (`R-608`) i — jak
+  rozjadą się natychmiast, tak jak `docs/getting-started/install.md` rozjechało się z GUI (`R-608`) i — jak
   pokazuje §1.2 — nawet z wierszem poleceń.
 - **Pozycje roadmapy:** `R-603` (konta/hostname/locale we front-endach), `R-604` (bariery przy
   destrukcyjnych operacjach), `R-605` (instalator wskazany na podpisane repo E-OS), `R-606`
@@ -18,7 +18,7 @@
   `R-610` (zależności builda instalatora na źródła E-OS), **`R-D13`** (katalog łańcuchów i18n —
   założona w rejestrze na wniosek §9 tego dokumentu). Rejestr rozpisał ten dokument na
   `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP.md` §6.2 i §6.4 („M4").
-- **Powiązane:** [`docs/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/install.md`](../getting-started/install.md) ·
+- **Powiązane:** [`docs/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/getting-started/install.md`](../getting-started/install.md) ·
   [`docs/encryption.md`](../guides/encryption.md) · [`docs/hardening.md`](../security/hardening.md) ·
   [`docs/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
   [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) ·
@@ -105,7 +105,7 @@ różne programy i dwa różne momenty.
   i tracimy ją świadomie; koszt tej straty jest wyceniony w §4.4.
 - **JSON + JSON Schema jako format wewnętrzny, TOML jako fasada.** Dwa formaty, dwie
   reprezentacje, dwa miejsca na rozjazd. Odrzucone z tego samego powodu, dla którego
-  `docs/install.md` rozjechało się z GUI: jedna prawda albo żadna.
+  `docs/getting-started/install.md` rozjechało się z GUI: jedna prawda albo żadna.
 - **Rust / Dhall / Starlark (konfiguracja wykonywalna).** To jest **rozwiązanie odwrotne do
   problemu**. Profil z sieci ma być danymi właśnie po to, żeby nie mógł nic wykonać (§6.2).
   Konfiguracja, która się wykonuje, zamienia „import profilu" w „uruchom cudzy program jako
@@ -891,7 +891,7 @@ Zgodnie z `CLAUDE.md` §2 regułą 3 — wymienione w tym samym oddechu co reszt
   `deny_unknown_fields` (od tego zależy, ile z V-05 dostajemy za darmo), ani czy `[general]`
   przyjmuje pole `live` (użyte w `sys.amnesia`) — flagę `--live` widać tylko w `mk/disk.mk`
   jako argument wiersza poleceń.
-  **Poprawione po przeglądzie:** wiersz poleceń. Pierwsza wersja przepisała za `docs/install.md:78`
+  **Poprawione po przeglądzie:** wiersz poleceń. Pierwsza wersja przepisała za `docs/getting-started/install.md` §3
   formę `redox_installer <config.toml> <disk>`; prawdziwa jest odwrotna i widać ją w `mk/disk.mk`
   bez sięgania po źródła (§1.2). Ten sam plik `install.md` jest powodem istnienia `R-608`.
 - **Kodu źródłowego RedoxFS też nie ma w tym repozytorium.** `recipes/core/redoxfs/` niesie sam
