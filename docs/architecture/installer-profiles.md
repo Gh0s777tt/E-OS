@@ -75,7 +75,9 @@ Klasyfikacja samego materiału tego dokumentu jest w §8.
 | **Tablice tablic pasują do kształtu danych.** `[[select]]`, `[[notice]]`, `[[effects.on.files_write]]` — dokładnie to samo, czym są `[[files]]`, `[[repo]]` i `[[drivers]]` w istniejących plikach. Czytelnik nie uczy się nowej figury. | `config/base.toml`, `repos.toml` |
 
 > **Sygnatura, którą ten dokument przepisał błędnie za cudzym plikiem — poprawiona.**
-> `docs/install.md:78` podaje `redox_installer <config.toml> <disk>`. To jest **odwrócone**:
+> `docs/getting-started/install.md` §3 podawało `redox_installer <config.toml> <disk>`
+> — **naprawione 2026-08-31 w `R-608`**, wraz z ostrzeżeniem, dlaczego stara forma nie była
+> nieszkodliwa. To było **odwrócone**:
 > ścieżka obrazu jest argumentem **pozycyjnym**, a konfiguracja **flagą**:
 > `redox_installer <diskpath.img> [--config=plik.toml] [--write-bootloader[=ŚCIEŻKA]] [--live]`
 > (dodatkowo `--skip-partition`, odpowiednik `general.skip_partitions`, pomija zapis tablic GPT).

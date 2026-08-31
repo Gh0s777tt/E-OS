@@ -1274,10 +1274,12 @@ przegląd kodu — przegląd nie widzi tego, co robi zależność zależności.
 `--skip-partition` / `general.skip_partitions` pomija zapis tablic GPT. `[general] encrypt_disk = "…"`
 włącza pełne szyfrowanie nieinteraktywnie.
 
-> **Uwaga o dwóch składniach.** `docs/install.md:78` podaje `redox_installer <config.toml> <disk>`.
-> To jest przestarzała forma i przypadek `R-608` (dokumentacja rozjechana z binarką), a nie druga
-> dopuszczalna składnia. Kreator generuje plik dla formy z `--config=`; poprawienie
-> `docs/install.md` należy do `R-608`.
+> **Uwaga o dwóch składniach — domknięta.** `docs/getting-started/install.md` §3 podawało
+> `redox_installer <config.toml> <disk>`. To była przestarzała forma i przypadek `R-608`
+> (dokumentacja rozjechana z binarką), a nie druga dopuszczalna składnia. Kreator generuje plik
+> dla formy z `--config=`. **Poprawione 2026-08-31 w `R-608`**, po zmierzeniu w przypiętej
+> rewizji instalatora `74726c889b`: `src/bin/installer.rs:208` bierze `parser.args.first()`
+> jako ścieżkę przekazywaną do `install(config, path)`.
 
 **Rozróżnienie, które musi być trzymane konsekwentnie w całym dokumencie:** `redox_installer` to
 instalator **budowania** — działa na **pliku obrazu**. Instalacja na goły sprzęt uruchamiana
@@ -1514,10 +1516,9 @@ Odrzucone przez precedens: `R-608` powstało z rozjazdu między `docs/install.md
 zamiast powtarzać formułę: `docs/install.md:58-64` **niesie dziś jawne ostrzeżenie**
 *„It does not create accounts, and it does not let you pick packages"*, więc zdanie
 „§2 opisuje tworzenie kont, którego binarka nie robi" **przestało być prawdziwe**.
-Rozjazd, który **został** i który potwierdzam: `docs/install.md:78` podaje składnię
-`redox_installer <config.toml> <disk>`, gdy binarka przyjmuje
-`redox_installer <diskpath.img> [--config=file.toml]` **[z briefu]**; do tego dochodzi nazwa
-artefaktu `redox-live.iso` (`R-611a`, `installer.md` §2.1). Argument zostaje w mocy, ale stoi
+Rozjazd, który stąd wynikał — składnia `redox_installer <config.toml> <disk>` zamiast
+`redox_installer <diskpath.img> [--config=file.toml]`, oraz nazwa artefaktu — **został
+zamknięty 2026-08-31** w `R-608` i `R-611a`. Argument zostaje w mocy, ale stoi
 na **zmierzonym** przykładzie, nie na cytacie z pamięci. Dwa źródła prawdy zawsze się rozjadą;
 pytanie brzmi tylko, kiedy ktoś to zauważy — i tu odpowiedź brzmi: po tym, jak jedno z nich
 zostało po cichu naprawione, a drugie dalej je cytowało.

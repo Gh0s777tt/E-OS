@@ -194,7 +194,8 @@ EOS_VERSION?=0.2.0
 ## was not a lie about the format. It was a lie about the USE: `.iso` tells a user to burn
 ## a disc, and E-OS has no optical-drive driver, so that disc cannot boot. The name also
 ## said nothing about whose system it is, which version, or that it installs anything.
-## `.img` + `dd` is what the documented procedure actually is (docs/install.md).
+## `.img` + `dd` is what the documented procedure actually is
+## (docs/getting-started/install.md §4).
 INSTALLER_MEDIUM_NAME=eos-$(EOS_VERSION)-$(ARCH)-installer.img
 INSTALLER_MEDIUM=$(BUILD)/$(INSTALLER_MEDIUM_NAME)
 FSTOOLS=build/fstools

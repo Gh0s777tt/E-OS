@@ -1,7 +1,7 @@
 ---
 title: Installing E-OS
 status: current
-last-reviewed: 2026-08-30
+last-reviewed: 2026-08-31
 owner: Gh0s777tt
 ---
 
@@ -15,8 +15,10 @@ image — pick whichever fits. Before anything, **verify your download** (see
 # No CI-published signed download exists yet — GitHub Actions is disabled on the
 # account (see ROADMAP R-004). Build locally, then verify against the checksums
 # the build emits:
-scripts/make-release.sh                         # -> release/eos-<ver>-<arch>.img + SHA256SUMS
-( cd release && sha256sum -c SHA256SUMS )        # verify the images
+scripts/make-release.sh          # -> release/eos-<ver>-<arch>.img              (installed system)
+                                 #    release/eos-<ver>-<arch>-installer.img    (write this to USB)
+                                 #    release/SHA256SUMS
+( cd release && sha256sum -c SHA256SUMS )        # verify BOTH artefacts
 # If you signed with the release key, also:
 #   minisign -Vm release/SHA256SUMS -p keys/eos-release.pub
 ```
@@ -35,21 +37,42 @@ make CONFIG_NAME=eos qemu          # x86_64, KVM-accelerated
 Default logins: **`user`** (no password) · **`root`** / `password`
 — **change these** before real use ([hardening.md](../security/hardening.md)).
 
-### Live / installer medium (USB-style, read-only)
+### The installation medium (USB)
 
-Besides the pre-installed `harddrive.img`, E-OS builds a **bootable live ISO** — a
-read-only medium that boots the full system (greeter + `installer-gui`) so you can try
-it and then install to a real disk, exactly like a Linux live USB:
+Besides the pre-installed `harddrive.img`, E-OS builds a **bootable installation
+medium** — it boots the full system (greeter + `installer-gui`) so you can try it and
+then install to a real disk, exactly like a Linux live USB:
 
 ```sh
-make CONFIG_NAME=eos ARCH=x86_64  build/x86_64/eos/redox-live.iso   # or ARCH=aarch64
-# → boot the .iso in a UEFI VM, or flash it to a USB stick (dd, see §4)
+make CI=1 ARCH=x86_64 CONFIG_NAME=eos live      # or ARCH=aarch64
+# -> build/x86_64/eos/eos-0.2.0-x86_64-installer.img
 ```
 
-Both arches are **verified** to boot the live ISO to `eos login:` (QEMU/UEFI: "Switching
-to live disk" → E-OS 0.1.0 "Genesis" → login, 0 exceptions on aarch64 **and** x86_64):
+Ask the build system for the name rather than typing it — it carries the version, so it
+changes when `EOS_VERSION` does:
 
-![E-OS graphical greeter booted from the aarch64 live ISO](../img/eos-aarch64-live-iso-greeter.png)
+```sh
+make print-installer-medium ARCH=x86_64 CONFIG_NAME=eos
+```
+
+> **This artefact was renamed in `R-611a`**; if you have an older command line that
+> builds a live *ISO*, that target no longer exists — the old filename is recorded in
+> `ROADMAP.md` under `R-611a`. The file genuinely *is* ISO 9660 with a hybrid MBR+GPT, so
+> the old name was not a lie about the format. It was a lie about the **use**: `.iso`
+> tells you to burn a disc, and E-OS has no optical-drive driver, so that disc could not
+> boot. Write it with `dd` (§4).
+
+Both arches boot this medium to `eos login:` under QEMU/UEFI ("Switching to live disk"
+-> E-OS 0.1.0 "Genesis" -> login, 0 exceptions on aarch64 **and** x86_64). Two caveats,
+because neither is cosmetic:
+
+- The greeting says **0.1.0 "Genesis"** while the medium is named **0.2.0**. That is not
+  a typo here: `config/*/eos.toml` still stamps `0.1.0 (Genesis)` into `/etc/os-release`
+  while `EOS_VERSION` names the artefacts. Reconciling the two is its own change.
+- **Every boot claim in this repository is QEMU.** Firmware on a real machine is not
+  QEMU's firmware; that first bare-metal run is `R-607b`, and it is open.
+
+![E-OS graphical greeter booted from the aarch64 installation medium](../img/eos-aarch64-live-iso-greeter.png)
 
 ## 2. Graphical install (recommended)
 
@@ -82,8 +105,18 @@ The TUI has the same limits as the GUI above: no account creation, no package
 selection (`installer_tui` TODO#3 is unimplemented — `R-603`).
 
 Both front-ends drive the same engine (`redox_installer`); a config-file install is also
-supported (`redox_installer <config.toml> <disk>`), where
-`[general] encrypt_disk = "…"` enables FDE non-interactively.
+supported, where `[general] encrypt_disk = "…"` enables FDE non-interactively:
+
+```sh
+redox_installer /dev/sdX --config=install.toml     # disk is POSITIONAL, config is a flag
+```
+
+> Earlier versions of this page had these the other way round (`redox_installer
+> <config.toml> <disk>`). That was wrong, and not harmlessly: the first positional
+> argument is the **install target**, so following the old line would have pointed the
+> installer at your TOML file. Measured in the pinned installer revision `74726c889b` --
+> `src/bin/installer.rs:208` takes `parser.args.first()` as the path handed to
+> `redox_installer::install(config, path)`, while the config comes from `-c/--config`.
 
 ## 4. Flash the image directly
 
@@ -97,21 +130,30 @@ sudo dd if=build/x86_64/eos/harddrive.img of=/dev/sdX bs=4M conv=fsync status=pr
 (Replace `/dev/sdX` with the real device — this **erases** it.) This path does not
 prompt for encryption; use the installer (2/3) if you want an encrypted root.
 
-### Live USB — the on-ramp to real hardware
+### Installation USB — the on-ramp to real hardware
 
-For trying E-OS on a machine without touching its disks, build the **live image**
-instead. It carries the whole filesystem and is loaded into RAM at boot, so nothing
-is written to the host:
+For trying E-OS on a machine without touching its disks, write the **installation
+medium** instead. It carries the whole filesystem and is loaded into RAM at boot, so
+nothing is written to the host:
 
 ```sh
-make CI=1 ARCH=x86_64 CONFIG_NAME=eos live      # -> build/x86_64/eos/redox-live.iso
-sudo dd if=build/x86_64/eos/redox-live.iso of=/dev/sdX bs=4M conv=fsync status=progress
+make CI=1 ARCH=x86_64 CONFIG_NAME=eos live
+MEDIUM=$(make -s print-installer-medium ARCH=x86_64 CONFIG_NAME=eos)
+sudo dd if="$MEDIUM" of=/dev/sdX bs=4M conv=fsync status=progress
 ```
 
-Despite the `.iso` name it is a **raw GPT image with a protective MBR**, so `dd` is
-the right tool (not an ISO burner). Boot the target in **UEFI** mode. The bootloader
-offers `l` to disable live mode; left alone it copies the ~1.4 GB filesystem into RAM
-and lands on `eos login:`.
+From a release rather than a build tree, write the file `make-release.sh` packaged and
+check it first — its hash is in the same `SHA256SUMS` the release signature covers:
+
+```sh
+( cd release && sha256sum -c SHA256SUMS )
+sudo dd if=release/eos-0.2.0-x86_64-installer.img of=/dev/sdX bs=4M conv=fsync status=progress
+```
+
+It is a **raw GPT image with a protective MBR**, so `dd` is the right tool, not an ISO
+burner. Boot the target in **UEFI** mode. The bootloader offers `l` to disable live mode;
+left alone it copies the filesystem (**1.37 GiB**, measured) into RAM and lands on
+`eos login:`.
 
 > **What to expect on real hardware.** E-OS has not been validated on metal — every
 > boot claim in this repo is QEMU. The upstream results in [HARDWARE.md](../../HARDWARE.md)
@@ -125,9 +167,10 @@ and lands on `eos login:`.
 ## Architectures
 
 - **x86_64** — boots end-to-end to the Crimson desktop (UEFI, NVMe). Both the
-  pre-installed image and the live ISO boot to `eos login:` with 0 exceptions.
+  pre-installed image and the installation medium boot to `eos login:` with 0 exceptions,
+  under QEMU.
 - **aarch64** — **boots to the graphical E-OS greeter/login** under QEMU `virt` (UEFI),
-  and the live ISO boots the same way (verified). The early-boot blockers that once
+  and the installation medium boots the same way (verified). The early-boot blockers that once
   stopped it (`R-401b` FEAT_RNG emulation and the follow-on PCIe-INTx / signal-ordering
   fixes) are **fixed** — see `upstream/`. The extra **COSMIC apps** (store/settings/reader)
   are still deferred on aarch64 because their `fontconfig → host:gperf` build dependency
