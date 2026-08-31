@@ -54,7 +54,28 @@ esac
 [ -f "$FW_CODE" ] || { echo "install-smoke: firmware not found: $FW_CODE"; exit 1; }
 [ -f "$FW_VARS" ] || { echo "install-smoke: firmware vars not found: $FW_VARS"; exit 1; }
 
-WORK="$(mktemp -d)"; QPID=""; QLOG=""
+# The harness needs ~5.5 GiB of scratch: a full copy of the source image plus a 4 GiB target.
+# It used to take that from the system temp without asking, and when the system temp was full
+# the failure did not mention disk space at all -- `cp` failed, qemu was handed a ZERO-BYTE
+# firmware vars file, and the run reported:
+#
+#     qemu-system-x86_64: system firmware block device pflash1 has invalid size 0
+#
+# A reader chasing that message looks at firmware and QEMU, which are both fine. So: the work
+# directory can be pointed somewhere with room (EOS_SMOKE_WORK), and the space is checked
+# BEFORE anything is copied, so the run says what is actually wrong.
+WORK="$(mktemp -d "${EOS_SMOKE_WORK:-${TMPDIR:-/tmp}}/eos-install-smoke.XXXXXX")"
+NEED_MIB=6000
+avail_mib() { df -m "$1" 2>/dev/null | awk 'NR==2 {print $4}'; }
+HAVE="$(avail_mib "$WORK")"
+if [ -n "$HAVE" ] && [ "$HAVE" -lt "$NEED_MIB" ]; then
+  echo "install-smoke: FAIL (instrument) -- $WORK has ${HAVE} MiB free, this run needs ~${NEED_MIB} MiB." >&2
+  echo "               A source-image copy plus a 4 GiB target do not fit. Point the scratch" >&2
+  echo "               directory somewhere with room: EOS_SMOKE_WORK=/path $0 ..." >&2
+  rmdir "$WORK" 2>/dev/null
+  exit 2
+fi
+QPID=""; QLOG=""
 # Keep the evidence when a run fails. Deleting $WORK unconditionally -- which this used to
 # do -- means a failure tells you THAT something broke and never what: R-F25 was chased for
 # three runs with no serial log, no qemu log and no exit status, because all three were
@@ -69,11 +90,12 @@ trap cleanup EXIT
 
 # The source image is COPIED: the installer writes to the target, but the run also sets a
 # password and otherwise mutates the source. A harness must not leave its input changed.
-cp "$IMG" "$WORK/src.img"
+cp "$IMG" "$WORK/src.img" || { echo "install-smoke: FAIL (instrument) -- could not copy the source image into $WORK" >&2; exit 2; }
 # 4 GiB blank target. Sparse, so it costs nothing until written, and non-zero-length or
 # the installer's disk_paths() skips it (`if size > 0`).
 dd if=/dev/zero of="$WORK/target.img" bs=1m count=0 seek=4096 2>/dev/null
-cp "$FW_VARS" "$WORK/vars.fd"
+cp "$FW_VARS" "$WORK/vars.fd" || { echo "install-smoke: FAIL (instrument) -- could not copy firmware vars into $WORK" >&2; exit 2; }
+[ -s "$WORK/vars.fd" ] || { echo "install-smoke: FAIL (instrument) -- firmware vars copy is EMPTY; qemu would report 'pflash1 has invalid size 0'" >&2; exit 2; }
 
 # Hardware acceleration is OPT-IN, and deliberately not the default: E-OS is NOT stable
 # under hvf. Boot-smoke passes under it, but under sustained load
