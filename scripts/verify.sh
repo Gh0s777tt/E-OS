@@ -107,6 +107,7 @@ there maps to exactly one row here:
   coverage     cargo llvm-cov floor                (E-OS-owned crate only)   [slow]
   integrity    scripts/ci-integrity.sh
   tar-pins     scripts/eos-check-tar-pins.py       (every tar source in the image closure has a blake3)
+  release-pack scripts/eos-test-make-release.sh    (make-release.sh packs the install medium, and can refuse)
   gitleaks     gitleaks detect over the full history
   cargo-deny   advisories/licences/bans/sources                              [slow]
   osv-scanner  both Cargo.lock files                                         [slow]
@@ -430,6 +431,21 @@ stage_integrity() {
 # recipe git REVISIONS against 26 fork tips over the network, and `eos-fork-linkage.py`
 # needs recipes/*/source, which is untracked and only exists inside the build container
 # (CLAUDE.md §9).
+# R-611b. The release script is the only thing that decides what a release CONTAINS, and
+# nothing else in this chain exercises it -- shellcheck reads it, but shellcheck cannot tell
+# whether a missing install medium is refused or silently skipped, which is exactly the
+# defect this gate was written for. The suite builds throwaway trees; it touches neither the
+# real build tree nor release/.
+RELEASE_TEST="scripts/eos-test-make-release.sh"
+stage_release_pack() {
+  if [ ! -f "$RELEASE_TEST" ]; then
+    STAGE_NOTE="$RELEASE_TEST does not exist in this tree"
+    return "$CANNOT"
+  fi
+  have make || { missing_tool make "xcode-select --install"; return "$CANNOT"; }
+  bash "$RELEASE_TEST" || return 1
+}
+
 stage_tar_pins() {
   if [ ! -f "$TAR_PIN_GATE" ]; then
     STAGE_NOTE="$TAR_PIN_GATE does not exist in this tree — the gate is unwritten, not passing"
@@ -547,6 +563,7 @@ run_stage test        stage_test
 run_stage coverage    stage_coverage
 run_stage integrity   stage_integrity
 run_stage tar-pins    stage_tar_pins
+run_stage release-pack stage_release_pack
 run_stage gitleaks    stage_gitleaks
 run_stage cargo-deny  stage_cargo_deny
 run_stage osv-scanner stage_osv

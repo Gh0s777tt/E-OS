@@ -15,6 +15,13 @@ all: $(BUILD)/harddrive.img
 print-installer-medium:
 	@echo $(INSTALLER_MEDIUM)
 
+## Same reason, for the version alone: scripts/make-release.sh used to carry its own
+## default (0.1.0) while the build stamped EOS_VERSION into the medium's name, so the
+## two could disagree with nothing to notice it.
+.PHONY: print-eos-version
+print-eos-version:
+	@echo $(EOS_VERSION)
+
 live:
 	-$(FUMOUNT) $(BUILD)/filesystem/ || true
 	-$(FUMOUNT) /tmp/redox_installer/ || true
