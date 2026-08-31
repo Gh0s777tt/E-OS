@@ -137,6 +137,17 @@ for f in harddrive.img "$MEDIUM_NAME"; do
   if [ -s "$o.partial" ]; then
     mv "$o.partial" "$o"
     echo "    $o ($(( $(wc -c < "$o") / 1048576 )) MiB)"
+    # R-611c: the medium carries the Secure Boot certificate and the enrolment instructions,
+    # because the person who needs them is standing at a firmware menu with this stick and a
+    # machine that will not boot. Done here rather than in mk/disk.mk only because writing
+    # into a FAT image needs mtools and the build container has none; the script is the SAME
+    # one the CI job calls, so there is one implementation, not two that drift.
+    if [ "$f" = "$MEDIUM_NAME" ]; then
+      if ! scripts/eos-esp-add-cert.sh "$o"; then
+        echo "!! could not put the Secure Boot certificate on $(basename "$o")"
+        export_rc=1
+      fi
+    fi
   else
     rm -f "$o.partial"; echo "!! $f exported as 0 bytes -- discarded"; export_rc=1
   fi

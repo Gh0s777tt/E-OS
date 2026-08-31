@@ -388,6 +388,8 @@ build-image:
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME all $MEDIUM"
     - podman cp "$EOS_CONTAINER:/work/redox/build/$ARCH/$CONFIG_NAME/harddrive.img" "harddrive-$ARCH.img"
     - podman cp "$EOS_CONTAINER:/work/redox/$MEDIUM" "$(basename "$MEDIUM")"
+    # R-611c: same script eos-build.sh calls -- one implementation, two callers.
+    - bash scripts/eos-esp-add-cert.sh "$(basename "$MEDIUM")"
     - bash scripts/ci-boot-smoke.sh "harddrive-$ARCH.img" 420
     # R-601b: boot the MEDIUM, drive the installer onto a blank disk, boot the result. This
     # is a different and much stronger claim than booting a pre-installed image, and it is
@@ -436,6 +438,8 @@ build-image-x86_64:
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=x86_64 CONFIG_NAME=eos all $MEDIUM"
     - podman cp "$EOS_CONTAINER:/work/redox/build/x86_64/eos/harddrive.img" "harddrive-x86_64.img"
     - podman cp "$EOS_CONTAINER:/work/redox/$MEDIUM" "$(basename "$MEDIUM")"
+    # R-611c: same script eos-build.sh calls -- one implementation, two callers.
+    - bash scripts/eos-esp-add-cert.sh "$(basename "$MEDIUM")"
     # Boot-smoke was skipped here on the assumption that an x86_64 boot under TCG on
     # an Apple Silicon runner would time out. Measured 2026-08-21 (U-133): it reaches
     # `eos login:` in ~16 s, i.e. the same order as the aarch64 job. Gating on it is
