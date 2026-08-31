@@ -518,12 +518,13 @@ oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porów
 zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
 baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
 
-**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **15 etapów**:
+**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **16 etapów**:
 
 | przebieg | wynik | kod |
 |---|---|---|
 | pełny, **przed** doinstalowaniem narzędzi | 13 PASS · 0 FAIL · 2 `SKIPPED (could not run)` | **2** |
 | pełny, **po** `cargo install cargo-llvm-cov cargo-deny` | **15 PASS · 0 FAIL · 0 SKIPPED** | **0** |
+| pełny, po dołożeniu etapu `release-pack` (`R-611b`) | **16 PASS · 0 FAIL · 0 SKIPPED** | **0** |
 
 Ta para wierszy jest tu celowo — pokazuje **kierunek**, nie samą liczbę (§5.10 reguła 2).
 Dwa `SKIPPED (could not run)` w pierwszym przebiegu to `coverage` i `cargo-deny`; obu

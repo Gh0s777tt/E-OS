@@ -2,7 +2,7 @@
 
 **Last reviewed:** 2026-08-31 · **Owner:** Gh0s777tt · **Status:** current · **Language:** English
 **Tree state:** branch `main` = `821b30fd6`. All 14 merge requests merged, none open.
-`scripts/verify.sh` on `main`: 15 stages, 15 PASS, 0 FAIL, 0 SKIPPED.
+`scripts/verify.sh` on `main`: 16 stages, 16 PASS, 0 FAIL, 0 SKIPPED.
 `scripts/eos-repos.sh pins --strict`: 26 OK, 0 drift.
 
 > **This file replaces both predecessors: the time-ordered `ROADMAP.md` and the subject-ordered,
@@ -701,7 +701,7 @@ and service lifecycle, not installation.
 | `R-610` | **Repoint the installer's build dependencies onto E-OS-controlled forks.** `redox_installer` pins git crates to `gitlab.redox-os.org` (`arg_parser`, `liblibc`, `pkgutils`, `redoxfs` 0.3), so "we build from OUR signed source" holds at the runtime remote but not at the build-dependency layer `[P1·M·🖥️]` · needs `R-F02` ✅ | **BUILDABLE** | 🔴 |
 | `R-611` | **The installation medium as a release product.** Parent of `a`–`d`. Not a duplicate of `R-301`: that closed item covers the **pre-installed image**, this one the **installation medium** — two different files. Extending a closed item would have hidden that | **BUILDABLE** | 🟡 |
 | `R-611a` | `mk/disk.mk` produces `eos-<ver>-<arch>-installer.img` instead of `redox-live.iso`. ✅ **done** — `mk/config.mk:198` `INSTALLER_MEDIUM_NAME=eos-$(EOS_VERSION)-$(ARCH)-installer.img`, `make print-installer-medium` at `Makefile:14`, and `scripts/eos-build.sh:31` reads that name and `:72` builds the target. **The reason is not "it isn't an ISO"** — the file *is* ISO 9660 (§14). The reason is that `.iso` promises a disc that will not boot, and `redox-live.iso` says neither whose system it is, nor which version, nor that it installs `[P1·S·🖥️]` | **BUILDABLE** | ✅ |
-| `R-611b` | `scripts/make-release.sh` packs the medium **alongside** `harddrive.img`, hashes it into `SHA256SUMS` and covers it with the minisign signature. Measured today: the loop takes only `build/$arch/eos/harddrive.img` (`make-release.sh:21`) — **a missing medium is not an error, it is silence**. Negative control: delete the medium before running → non-zero exit naming the missing file, as it already does for `harddrive.img` `[P0·S·🖥️🔑]` | **BUILDABLE** | 🔴 |
+| `R-611b` | `scripts/make-release.sh` packs the medium **alongside** `harddrive.img`, hashes it into `SHA256SUMS` and is therefore covered by the minisign signature over that file. **Done 2026-08-31.** The medium's *name* comes from `mk/config.mk` through `make print-installer-medium`, so the naming rule keeps one home. Two further defects were measured and closed in the same change: the script hard-coded `build/$arch/eos/` while `.config` sets `CONFIG_NAME` with `?=`, so `CONFIG_NAME=desktop` would have mixed two configs into one `SHA256SUMS`; and `VERSION` defaulted to `0.1.0` while the build stamped `EOS_VERSION=0.2.0` into the medium's filename, so it now defaults to `make print-eos-version` and **refuses** a version it did not build. Proof by control test: on the pre-change script the new suite scores **5 failed / 2 passed**, the two passes being the controls `[P0·S·🖥️🔑]` | **WORKS TODAY** | ✅ |
 | `R-611c` | The medium carries `EFI/EOS/eos-secureboot.der` plus `EFI/EOS/README.txt` explaining how to enrol the certificate in firmware. Negative control is part of the task: `sbverify --cert` with the medium's own certificate against the medium's `EFI/BOOT/BOOTX64.EFI` → OK; with a foreign certificate → refusal `[P1·S·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-611d` | Fix the El Torito boot-catalogue entry for the **EFI** platform, which currently points at zero bytes. **This is not "build a hybrid image"** — the hybrid is measured and present (§14); one catalogue entry is wrong. An entry pointing at zeros is a control pretending to be a capability. Deliberately **excluded from M1** — convenience for Ventoy and VMs, not a precondition — and scheduled in **M2** `[P2·S·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-612` | **Installation transaction.** Parent of `a`–`d`. Not `R-706`: that is the **update** transaction in `pkg-lib`; this is the **installation** transaction in `redox_installer` — different code, different moment. What they share is the **journal format**, and `R-612c` carries that as a requirement so two semantics of resumption never appear | **BUILDABLE** | 🟡 |
@@ -729,7 +729,7 @@ is the schedule.
 | # | id | task | proof it is done — and how it fails | work |
 |---|---|---|---|---|
 | 1 | `R-611a` ✅ | `mk/disk.mk` target produces `eos-<ver>-<arch>-installer.img` | `make CI=1 ARCH=x86_64 CONFIG_NAME=eos live` yields the new name; **fails** if a target still refers to the old path. Before the change, `grep -c redox-live Makefile mk/*.mk` → **13 hits in 4 files**, so this was never a one-liner | `[P1·S·🖥️]` |
-| 2 | `R-611b` | `make-release.sh` packs, hashes and signs the medium | remove the medium before running → non-zero exit naming the missing file | `[P0·S·🖥️🔑]` |
+| 2 | `R-611b` ✅ | `make-release.sh` packs, hashes and signs the medium | ✅ met — `scripts/eos-test-make-release.sh`, wired into `verify.sh` as stage `release-pack`; 7 cases, 4 of them refusals | `[P0·S·🖥️🔑]` |
 | 3 | `R-611c` | medium carries `eos-secureboot.der` + README | `sbverify --cert` from the medium → OK; foreign certificate → refusal | `[P1·S·🖥️]` |
 | 4 | `R-601a` | CI builds and exports the medium | measured today `grep -c "redox-live" .gitlab-ci.yml` → **0**; after the change, removing the step turns the job red | `[P1·S·🐧]` |
 | 5 | `R-601b` | install-smoke starts from the medium, on a schedule | measured today `grep -c "install-smoke" .gitlab-ci.yml` → **0**; negative control: an image with no installer → FAIL, not silence | `[P1·M·🐧]` |
@@ -1224,7 +1224,7 @@ Not a new item; the standing context every row above is measured against.
 - **`scripts/verify.sh`** is the one command run before every commit: format → lint → typecheck →
   build → test → project gates → security scans, exiting non-zero on any failure. It **calls** the
   same commands the pipelines do rather than restating their rules — a second copy of a rule is a
-  copy that drifts. **On `main` today: 15 stages, 15 PASS, 0 FAIL, 0 SKIPPED.**
+  copy that drifts. **On `main` today: 16 stages, 16 PASS, 0 FAIL, 0 SKIPPED.**
 - **A missing tool is `SKIPPED` *and* a non-zero exit**, because `gitleaks || true` once passed a
   planted key while printing green (`U-140`): an absent scanner gives the same result as a disabled
   one. The deliberate escape is `--allow-missing`, and then the summary names what was **not**
