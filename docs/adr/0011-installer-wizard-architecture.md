@@ -10,7 +10,7 @@
   `src/bin/repo.rs:25,97,464` · `config/x86_64/eos.toml:7,800-841` ·
   `config/desktop.toml:3,20` · `config/desktop-minimal.toml:3` · `config/server.toml:3,14` ·
   `config/minimal.toml:3` · `config/base.toml:246-254` ·
-  `recipes/groups/desktop/recipe.toml:13` · `docs/known-issues.md:388` · `docs/install.md:28` ·
+  `recipes/groups/desktop/recipe.toml:13` · `docs/known-issues.md:388` · `docs/getting-started/install.md` ·
   `scripts/install-smoke-drive.py:8,169-180,199-200` · `scripts/ci-install-smoke.sh:23,32` ·
   `scripts/ci-integrity.sh:113` · `scripts/eos-rebase-check.sh:22-29` ·
   `.gitlab-ci.yml:66-76` · `ROADMAP.md` §6.3–§6.4 ·
@@ -79,7 +79,7 @@ To jest ustalenie z tego drzewa, nie z briefu, i zmienia rozkład decyzji.
 
 | Element | Odczyt |
 |---|---|
-| Domyślne logowanie na pulpicie to `user`, bez hasła, w grupie `sudo` | hasło: `config/base.toml:246-249` (`[users.user]`, `password = ""`); grupa: `config/base.toml:252-254` (`[groups.sudo]`, `members = ["user"]`) — czyli **`240-254`**, nie `240-249`, jak podawał ten wiersz wcześniej: zakres urwany na 249 nie obejmuje wpisu o grupie, którym ten wiersz argumentuje. Potwierdzenie od strony użytkownika: `docs/install.md:28` |
+| Domyślne logowanie na pulpicie to `user`, bez hasła, w grupie `sudo` | hasło: `config/base.toml:246-249` (`[users.user]`, `password = ""`); grupa: `config/base.toml:252-254` (`[groups.sudo]`, `members = ["user"]`) — czyli **`240-254`**, nie `240-249`, jak podawał ten wiersz wcześniej: zakres urwany na 249 nie obejmuje wpisu o grupie, którym ten wiersz argumentuje. Potwierdzenie od strony użytkownika: `docs/getting-started/install.md` |
 | `installer-gui` uruchamia się z launchera jako `/usr/bin/redox_installer_gui`, **bez żadnego podniesienia uprawnień** | `recipes/gui/installer-gui/manifest:3` — brak `sudo`, brak shima |
 | Przestrzeń schematów użytkownika `user` **nie zawiera `disk`** | `config/x86_64/eos.toml:800-841` (`[[files]]` → `/etc/login_schemes.toml`, `user_schemes.user`) — lista to `debug, event, memory, pipe, serio, irq, time, sys, rand, null, zero, log, icmp, tcp, udp, shm, chan, uds_stream, uds_dgram, file, display.vesa, display*, proc, pty, sudo, audio, orbital`. Dla porównania `user_schemes.root` = `["*"]` (`:803-804`) |
 | Ścieżka TUI, ta udowodniona, jedzie **jako `root`** — nie przez `sudo` | **Poprawka faktu, bo poprzednia wersja tego wiersza cytowała nieaktualny docstring.** `scripts/install-smoke-drive.py:8` istotnie mówi *„`sudo redox_installer_tui`"*, ale **kod tego skryptu robi co innego**: `login()` (`:169-180`) loguje się jako **`root`** (`con.send("root")`, `:180`) z własnym uzasadnieniem — *„Root and `sudo` behave IDENTICALLY here … Root is used anyway because it removes one variable"* (`:170-176`) — a `run_install()` wysyła **gołe** `redox_installer_tui` bez `sudo` (`:199-200`). Docstring pliku jest zwietrzały wobec jego własnego kodu; drzewo wygrywa (`CLAUDE.md` §4.5). **Skutek dla argumentu:** kontrast wobec GUI jest **mocniejszy**, nie słabszy — udowodniona ścieżka jedzie z pełnymi uprawnieniami (`user_schemes.root` = `["*"]`), a GUI z launchera nie ma nawet `disk` |
@@ -142,7 +142,7 @@ o zależnościach *wewnątrz* instalatora, tu chodzi o zależność *cookbooka o
 |---|---|
 | Format profilu: TOML z `[general]`, `[packages]`, `[[files]]`, `[users.*]`, `[groups.*]` | **JEST** — `config/base.toml`, `config/x86_64/eos.toml` |
 | Dziedziczenie i nadpisywanie: `include = [...]`, **cztery skoki `include`, pięć plików** (wcześniej stało tu „trzy poziomy" — łańcuch obok ma cztery strzałki, więc liczba przeczyła własnemu dowodowi) | **JEST** — `config/x86_64/eos.toml:7` → `config/desktop.toml:3` → `desktop-minimal.toml:3` **i** `server.toml:3` → `minimal.toml:3` → `base.toml` (jedyny bez `include`). Zmierzone: `grep -n '^include'` na każdym z tych plików |
-| Instalacja nienadzorowana sterowana plikiem | **JEST** — `redox_installer <diskpath> --config=file.toml` **[z briefu]**, `docs/install.md` §3 |
+| Instalacja nienadzorowana sterowana plikiem | **JEST** — `redox_installer <diskpath> --config=file.toml` **[z briefu]**, `docs/getting-started/install.md` §3 |
 | Pominięcie zapisu GPT | **JEST** — `--skip-partition` / `general.skip_partitions` **[z briefu]** |
 | Warstwa metadanych: opis w języku naturalnym, skutki, zależności, konflikty, znaczenie dla modelu zagrożeń, i18n, ocena bezpieczeństwa | **BRAK** |
 | Semantyka profili Gamer / Business / Ghost | **BRAK** — w `config/` nie ma takich plików |
@@ -409,7 +409,7 @@ To jest **stan dzisiejszy**, nie wariant hipotetyczny: `installer_tui.rs` ma wł
 i `choose_disk()` **[z briefu]**, a GUI ma swoje. Odrzucony, bo `R-603` opisuje jedną usterkę
 w dwóch miejscach (*„both GUI and TUI clone base.toml defaults and create no accounts"*), więc
 naprawa jest podwójna, a rozjazd — kwestią czasu. Precedens kosztu jest w drzewie: `R-608`
-istnieje wyłącznie dlatego, że `docs/install.md` §2 opisuje tworzenie kont i wybór pakietów,
+istnieje wyłącznie dlatego, że `docs/getting-started/install.md` §2 opisuje tworzenie kont i wybór pakietów,
 których binarka nie robi. Dwa źródła prawdy zawsze się rozjadą; pytanie brzmi tylko, kiedy ktoś
 to zauważy.
 
@@ -424,7 +424,7 @@ kod w Ruście** ([`installer-profiles.md`](../architecture/installer-profiles.md
 
 **4. Jeden frontend zamiast dwóch — wariant „tylko GUI".**
 Odrzucony na twardych faktach: ścieżka GUI **nigdy nie przeszła od końca do końca** (`R-D08`),
-`R-601` prowadzi TUI, a `docs/install.md` §2 mimo to nazywa GUI *„recommended"*. Do tego GUI nie
+`R-601` prowadzi TUI, a `docs/getting-started/install.md` §2 mimo to nazywa GUI *„recommended"*. Do tego GUI nie
 działa bez myszy na laptopie — nie ma magistrali I2C, więc nie ma I2C-HID (`R-916`, `V2-N01`) —
 i prawdopodobnie nie widzi dziś dysków w sesji użytkownika (Kontekst §3). Instalacja headless
 i serwerowa znika razem z TUI.
@@ -621,7 +621,7 @@ z rejestrem, co do numeru.
 | D7 — model danych profili i funkcji, resolver | **`R-603c`**; dziedziczenie z blokadami `R-603c+` | **ta sama praca** |
 | D7 — konta, hostname, strefa, układ klawiatury jako dane | **`R-603d`** | **ta sama praca**, sformalizowana |
 | D7 — tożsamość per-maszyna | `R-606` | **ta sama praca** |
-| D7 — generowanie dokumentacji z tych samych danych | **`R-608a`** | **ta sama praca**. `R-608` (nadrzędne) zostaje przy *„popraw `docs/install.md`"* |
+| D7 — generowanie dokumentacji z tych samych danych | **`R-608a`** | **ta sama praca**. `R-608` (nadrzędne) zostaje przy *„popraw `docs/getting-started/install.md`"* |
 | D7 — walidator z rozróżnieniem `bad` / `cannot` | `R-609a` | **ta sama praca** |
 | D7 — semantyka profili Gamer / Business / Ghost | `R-609c` | **ta sama praca** |
 | D8 — sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **`R-609b`** | **ta sama praca** |
@@ -670,9 +670,9 @@ nie wolno zakładać ponownie."**
 | Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/known-issues.md:388`, `U-078`); pozycja `R-603c+` (`ROADMAP.md`) |
 | Warstwa metadanych funkcji (opis, skutki, `stage`, zagrożenie, koszt) | **DO ZBUDOWANIA** (`L`) | nie istnieje; pozycja `R-603c`, walidator `R-609a` |
 | Semantyka profili Gamer / Business / Ghost | **DO ZBUDOWANIA** (`M`) | brak takich plików w `config/`; pozycja `R-609c` (`ROADMAP.md`) — z ostrzeżeniem stamtąd, że część treści tych profili to **NOWY PODSYSTEM** (Tor, VPN, zapora, dziennik audytu) albo **NIEREALNE DZIŚ** (tryb amnezyjny, domena/LDAP/MDM) |
-| Generowanie dokumentacji z tych samych danych | **DO ZBUDOWANIA** (`S`) | pozycja **`R-608a`** (`ROADMAP.md`); `R-608` nadrzędne zostaje przy *„popraw `docs/install.md`"* |
+| Generowanie dokumentacji z tych samych danych | **DO ZBUDOWANIA** (`S`) | pozycja **`R-608a`** (`ROADMAP.md`); `R-608` nadrzędne zostaje przy *„popraw `docs/getting-started/install.md`"* |
 | Katalog łańcuchów i18n | **NOWY PODSYSTEM** (`M`) | brak jakiejkolwiek infrastruktury; `eos-control` ma napisy w kodzie, a wcześniejsze twierdzenie o bramce i18n było zmyślone (`U-126`). Pozycja **istnieje**: `R-D13` (`ROADMAP.md`) |
-| Instalacja nienadzorowana z pliku | **JEST** | `--config=file.toml`, `general.skip_partitions` **[z briefu]**; potwierdzenie od strony użytkownika: `docs/install.md` §3 |
+| Instalacja nienadzorowana z pliku | **JEST** | `--config=file.toml`, `general.skip_partitions` **[z briefu]**; potwierdzenie od strony użytkownika: `docs/getting-started/install.md` §3 |
 | Sekcja `[setup]`, zgoda na destrukcję, zapis pliku z przebiegu | **DO ZBUDOWANIA** (`M`) | D8; pozycja **`R-609b`** (`ROADMAP.md`) |
 | Model i numer seryjny dysku w identyfikatorze celu | **NOWY PODSYSTEM** (`L`) | brak kanału komend administracyjnych — pozycja **istnieje**: `R-815` (`ROADMAP.md`, `[P2·L·⚙️]`). Do czasu jego powstania identyfikatorem jest ścieżka schematu + rozmiar, i to **musi być napisane na ekranie**, a nie odkryte przy zgłoszeniu (`ROADMAP.md`). Czy sterowniki wystawiają dziś jakikolwiek taki kanał — **[NIEZWERYFIKOWANE]** (A5) |
 | Skrypty `%pre`/`%post` w pliku odpowiedzi | **odrzucone** | D8, wariant 11 |

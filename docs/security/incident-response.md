@@ -501,7 +501,7 @@ found no minisign key (`U-192`). So rotation needs **no image rebuild and no cli
 re-imaging**.
 
 What it does cost: every `SHA256SUMS` signed with the old key stops verifying under the new
-one, and `docs/install.md` and `docs/hardening.md` instruct users to verify downloads with
+one, and `docs/getting-started/install.md` and `docs/security/hardening.md` instruct users to verify downloads with
 the committed key — so those instructions change in the same commit as the key, or the
 documentation starts promising a check that cannot pass. `SHA256SUMS` also covers the
 CycloneDX SBOM (`scripts/make-release.sh` folds it into the same signed file), so re-signing

@@ -33,7 +33,7 @@ severity = "info"
 [notice.text.pl]
 body = """
 E-OS jest przed wersją 1.0. Każde twierdzenie o rozruchu w tym repozytorium pochodzi
-z QEMU — na fizycznym sprzęcie system nie był walidowany (docs/install.md).
+z QEMU — na fizycznym sprzęcie system nie był walidowany (docs/getting-started/install.md).
 """
 
 [notice.text.en]

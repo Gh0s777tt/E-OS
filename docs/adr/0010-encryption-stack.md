@@ -73,7 +73,7 @@ Do tego czasu liczba slotów i wariant KDF zostają **[wg briefu]**, a nie pomia
 | AES-XTS-128 jako szyfr woluminu RedoxFS | `docs/encryption.md`; `docs/threat-model.md:29` |
 | szyfrowanie wdrażane **przy instalacji**, nie w obrazie | `docs/encryption.md`, „Design note" |
 | `redoxfs-mkfs --encrypt` i przelot flagi przez build | `mk/config.mk:47` (`REDOXFS_MKFS_FLAGS`), `mk/disk.mk:50` |
-| instalacja nienadzorowana z `[general] encrypt_disk` | `docs/encryption.md` §1, `docs/install.md` §3 |
+| instalacja nienadzorowana z `[general] encrypt_disk` | `docs/encryption.md` §1, `docs/getting-started/install.md` §3 |
 | bootloader pyta o hasło i odblokowuje root **przed** załadowaniem jądra | `docs/encryption.md:19-24`, zweryfikowane end-to-end 2026-07-11 na aarch64 **i** x86_64 pod UEFI, 0 wyjątków / 0 panik |
 | sprzętowe AES na aarch64 w ścieżce FDE | `R-502` (✅), `recipes/core/redoxfs/recipe.toml:15` → `RUSTFLAGS="--cfg aes_armv8"` |
 | jedna wersja RedoxFS po obu stronach formatu (bootloader ↔ system) | `R-F10` zamknięte w `U-156`; `ci-boot-smoke.sh` PASS |

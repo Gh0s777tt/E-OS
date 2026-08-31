@@ -116,17 +116,17 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 |---|---|
 | Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `c8d32ad39e5c` | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
 | Front-endy: `redox_installer_tui` i `redox_installer_gui` — **oba są w obrazie** | `config/server.toml:20` (`installer = {}`) i `config/desktop.toml:20` (`installer-gui = {}`), oba wciągane przez `config/{aarch64,x86_64}/eos.toml`; binarka GUI: `recipes/gui/installer-gui/manifest` (`binary=/usr/bin/redox_installer_gui`) |
-| Umie: GPT + EFI/BIOS, RedoxFS, pełne szyfrowanie AES-XTS, weryfikacja pkgar ed25519, fast-clone | `docs/install.md` §2–3, `ROADMAP.md` `R-F24` |
+| Umie: GPT + EFI/BIOS, RedoxFS, pełne szyfrowanie AES-XTS, weryfikacja pkgar ed25519, fast-clone | `docs/getting-started/install.md` §2–3, `ROADMAP.md` `R-F24` |
 | Instalacja end-to-end **udowodniona 3× z rzędu** (partycja → instalacja → reboot → login) — **wyłącznie pod QEMU/TCG** | `R-601`, `scripts/ci-install-smoke.sh`, `ROADMAP.md` §14.1 |
 | Wybór dysku to **gołe menu numeryczne**: `Select a drive from 1 to N`, pozycje to ścieżki `/scheme/disk/...` | `scripts/install-smoke-drive.py:202,209`; w kodzie: `choose_disk()` w `src/bin/installer_tui.rs` **[z briefu]** |
 | `disk_paths()` iteruje po schematach `disk*`, **pomija partycje** i zwraca **wyłącznie ścieżkę i rozmiar**. Na Linuksie jest **pustą funkcją** (`fn disk_paths(_paths: &mut Vec<…>) {}`) | `src/bin/installer_tui.rs` **[z briefu]** |
 | Komentarz upstreamu w `installer_tui.rs:15-17` nazywa całą brakującą pracę: `1. Linux: Implement disk listing…` · `2. Allow partitioning to allow dual boot…` · `3. Prompt everything (disk password, users, preconfigured packages, import from existing img)` | **[z briefu]** |
 | Dysk, z którego wystartowano, **nie jest wypisany** — bo jest zajęty, a nie dlatego, że ktoś go odfiltrował | `scripts/install-smoke-drive.py:205-206` — **komentarz harnessu**, czyli obserwacja, nie reguła w instalatorze |
-| Monit o szyfrowanie: jedno pytanie „redoxfs password (empty for none)"; **niewidoczne na konsoli szeregowej** | `docs/install.md` §2, `scripts/install-smoke-drive.py:214-216` |
-| Kont nie tworzy, pakietów nie wybiera — klonuje domyślne z `base.toml` | `R-603`, `docs/install.md:57-64` (ostrzeżenie w §2) |
+| Monit o szyfrowanie: jedno pytanie „redoxfs password (empty for none)"; **niewidoczne na konsoli szeregowej** | `docs/getting-started/install.md` §2, `scripts/install-smoke-drive.py:214-216` |
+| Kont nie tworzy, pakietów nie wybiera — klonuje domyślne z `base.toml` | `R-603`, `docs/getting-started/install.md` §2 (ostrzeżenie) |
 | Hostname każdej instalacji to `eos` | `config/aarch64/eos.toml:58-61` (`path = "/etc/hostname"`, `data = "eos"`), tak samo w `config/x86_64/eos.toml`; `R-606` |
 | `DiskWrapper::open` zawsze raportuje rozmiar bloku 512 (`src/disk_wrapper.rs:28`, `// TODO: get real block size…`) → strażnik `match block_size { 512 => …, _ => bail!(…) }` w `src/installer.rs:604` jest **martwym kodem** i dysk 4Kn zostanie zapisany z geometrią liczoną na złym sektorze | **[z briefu]**; pozycja: `R-607` / `R-607a` |
-| Instalacja z pliku konfiguracyjnego **działa już dziś**: `redox_installer <diskpath.img> [--config=file.toml] [--write-bootloader[=PATH]] [--live]`, w tym `[general] encrypt_disk` i `general.skip_partitions` | składnia: `src/bin/installer.rs` **[z briefu]**, potwierdzona w `ROADMAP.md` `R-609b`. **Uwaga:** `docs/install.md:78` podaje przestarzałą formę `redox_installer <config.toml> <disk>` — to jest przypadek `R-608`, nie druga poprawna składnia |
+| Instalacja z pliku konfiguracyjnego **działa już dziś**: `redox_installer <diskpath.img> [--config=file.toml] [--write-bootloader[=PATH]] [--live]`, w tym `[general] encrypt_disk` i `general.skip_partitions` | składnia: `src/bin/installer.rs` **[z briefu]**, potwierdzona w `ROADMAP.md` `R-609b`. **Uwaga:** `docs/getting-started/install.md` podaje przestarzałą formę `redox_installer <config.toml> <disk>` — to jest przypadek `R-608`, nie druga poprawna składnia |
 | Scalanie konfiguracji **nie deduplikuje**: `Config::merge` → `self.files.extend(other_files)`, wygrywa ostatni wpis | `docs/known-issues.md:388` |
 | RedoxFS: KDF to **Argon2id** (`argon2::Algorithm::Argon2id`, `Version::V0x13`, wyjście 16 B), parametry **domyślne i niekonfigurowalne** (`ParamsBuilder::new()` ustawia wyłącznie `output_len`) | `src/key.rs` **[z briefu]**; szerzej `ADR-0010` |
 | RedoxFS: nagłówek ma **64 sloty klucza** — `pub key_slots: [KeySlot; 64]`; `KeySlot` = `salt` + para `EncryptedKey` (dwa klucze, bo AES-XTS) | `src/header.rs:31` **[z briefu]** |
@@ -417,7 +417,7 @@ Trzy różne rzeczy, które zamówienie zlewa w jedną:
 
 | Co | Znacznik | Stan |
 |---|---|---|
-| **Wypalenie nośnika instalacyjnego na USB przez `dd`** | **JEST** | `docs/install.md:87,101` (§4) — `harddrive.img` i `redox-live.iso` |
+| **Wypalenie nośnika instalacyjnego na USB przez `dd`** | **JEST** | `docs/getting-started/install.md` §4 — `harddrive.img` i `redox-live.iso` |
 | **Wypalenie przez `popsicle`** | **[NIEZWERYFIKOWANE]** | cel istnieje — `Makefile:16-17`: `popsicle: $(BUILD)/redox-live.iso` → `popsicle-gtk …` — ale wywołuje **linuksowe narzędzie GTK po stronie hosta**, którego na hoście budowania tego projektu (macOS/Apple Silicon, `CLAUDE.md` §9) nie ma; `installer.md:94` mówi wprost, że ta ścieżka **nigdy nie była testowana przez E-OS**. Istnienie celu Make nie jest dowodem na „JEST" |
 | **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `docs/plan-do-sprzetu.md:36`). Kreator nie może się na to powoływać |
 | **Instalacja E-OS *na* pendrive jako cel** | **DO ZBUDOWANIA** (`S`) | silnik pisze na dowolne `/scheme/disk/...`; brakuje wykrycia „to jest wymienne" i ostrzeżenia |
@@ -1468,7 +1468,7 @@ nadał tej samej pracy drugiej nazwy.
 | **4c** | Plik odpowiedzi: sekcja `[setup]`, zgoda na destrukcję, zapis z przebiegu | §13 | **`R-609b`** |
 | **4d** | Treść profili Gamer / Business / Ghost — wyłącznie to, co da się dowieźć | §6.3–§6.5 | **`R-609c`** |
 | **4e** | Katalog i18n + bramka parytetu kluczy (pl/en) | §11 | **`R-D13`** |
-| **5** | Doprowadzić `docs/install.md` do zgodności. **Zmierzone dziś:** §2 jest już poprawione (ostrzeżenie o kontach i pakietach, `install.md:58-64`); otwarte zostaje `install.md:78` — przestarzała składnia CLI — oraz nazwa artefaktu (`R-611a`) | §1, §13.1, §16 poz. 3 | **`R-608`** |
+| **5** | Doprowadzić `docs/getting-started/install.md` do zgodności. **Zmierzone dziś:** §2 jest już poprawione (ostrzeżenie o kontach i pakietach, `install.md:58-64`); otwarte zostaje `install.md:78` — przestarzała składnia CLI — oraz nazwa artefaktu (`R-611a`) | §1, §13.1, §16 poz. 3 | **`R-608`** |
 | **6** | Ścieżka online z podpisanego repo E-OS, świadoma architektury | §12 | **`R-605`** (`C-4` na x86_64) |
 | **7** | Tryby partycjonowania w stanie S4 | §4.8 | **`R-609`** / **`R-609d`** |
 | **8** | Przypadki harnessu: FDE, przerwanie, dwa dyski, 4Kn, BIOS | §4.6, §9.3 | **`R-601e`** |
@@ -1511,9 +1511,9 @@ w `R-F10` przez lata trzymała bootloader na innej wersji RedoxFS niż system. *
 nad istniejącym silnikiem, którego wyjściem jest `config.toml`, który silnik już przyjmuje.
 
 **3. Opisy funkcji w kodzie kreatora, dokumentacja pisana osobno.**
-Odrzucone przez precedens: `R-608` powstało z rozjazdu między `docs/install.md` a binarką.
+Odrzucone przez precedens: `R-608` powstało z rozjazdu między `docs/getting-started/install.md` a binarką.
 **Sprawdzone w drzewie, i część tego precedensu jest już nieaktualna** — to trzeba powiedzieć,
-zamiast powtarzać formułę: `docs/install.md:58-64` **niesie dziś jawne ostrzeżenie**
+zamiast powtarzać formułę: `docs/getting-started/install.md` §2 **niesie dziś jawne ostrzeżenie**
 *„It does not create accounts, and it does not let you pick packages"*, więc zdanie
 „§2 opisuje tworzenie kont, którego binarka nie robi" **przestało być prawdziwe**.
 Rozjazd, który stąd wynikał — składnia `redox_installer <config.toml> <disk>` zamiast

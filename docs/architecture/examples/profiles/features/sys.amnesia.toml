@@ -11,7 +11,7 @@ arch     = ["x86_64", "aarch64"]
 stage    = "DO ZBUDOWANIA"
 evidence = """
 Połowa JEST i jest zweryfikowana: obraz live kopiuje ~1,4 GB systemu plików do RAM i bootuje
-z niego na obu architekturach (U-133; docs/install.md — „bootloader oferuje `l` do wyłączenia
+z niego na obu architekturach (U-133; docs/getting-started/install.md — „bootloader oferuje `l` do wyłączenia
 trybu live, pozostawiony sam kopiuje system do RAM i ląduje na `eos login:`").
 docs/plan.md §3.2 nazywa to wprost: „Tails: amnesia — JUŻ ZBUDOWANE, jako efekt uboczny obrazu
 live. Brakuje uczynienia z tego PRODUKTU: wariantu `eos-live-amnesic`, który nie montuje

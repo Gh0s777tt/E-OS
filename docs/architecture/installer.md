@@ -87,7 +87,7 @@ mówiła o instalatorze. **Proponuję rozszerzyć `R-601`**, nie tworzyć nowej 
 **3. Ścieżka graficzna nie była testowana od końca do końca ani razu.**
 `R-D08` mówi to wprost: *„zostaje pełny przepływ live → greeter → installer-gui → instalacja,
 nigdy nietestowany od końca do końca (`R-601` udowodnił ścieżkę TUI, nie tę)"*. Front-end,
-który polecamy w `docs/install.md` §2 jako *„recommended"*, jest tym nieprzetestowanym.
+który polecamy w `docs/getting-started/install.md` §2 jako *„recommended"*, jest tym nieprzetestowanym.
 
 **4. Kolejność zapisu na dysk docelowy jest odwrotna do bezpiecznej.**
 Zmierzone i zapisane w harnessie: *„the ESP — and therefore `BOOTAA64.EFI` — is written
@@ -152,7 +152,7 @@ ta sama praca: `R-610` mówi o zależnościach *wewnątrz* instalatora, tu chodz
 
 Stało tu: *„`.iso` nie jest ISO […] w drzewie nie ma śladu ISO9660 ani El Torito
 (`grep -ril iso9660 recipes/ config/ docs/` → brak trafień)"*, z powołaniem na
-`docs/install.md` §4. **Oba twierdzenia są fałszywe**, a jedno z nich było fałszywe także jako
+`docs/getting-started/install.md` §4. **Oba twierdzenia są fałszywe**, a jedno z nich było fałszywe także jako
 cytat: ten `grep` **daje trafienia** (`docs/adr/0007-…md` i ten plik). Pomiar na zbudowanym
 artefakcie **[zmierzone]**:
 
@@ -192,7 +192,7 @@ daje `recipes/libs/mesa` i `recipes/wip/security/breakmancer`, nic sterownikoweg
 naszej konfiguracji** — sprawdzić w `eos-installer` kod składający El Torito i porównać z
 nietkniętym obrazem upstreamu.
 
-**Czego ten punkt nie zdejmuje z listy usterek.** `docs/install.md` §4 twierdzi
+**Czego ten punkt nie zdejmuje z listy usterek.** `docs/getting-started/install.md` §4 twierdzi
 *„Despite the `.iso` name it is a **raw GPT image with a protective MBR**, so `dd` is the right
 tool (not an ISO burner)"*. Zdanie o `dd` jest dobrą radą; zdanie o formacie jest **nieprawdziwe**
 i to jest wada dokumentacji do naprawienia w `R-608` — dokument opisujący nieistniejący stan
@@ -238,7 +238,7 @@ sterownika napędu optycznego), natomiast nazwa `redox-live.iso` nie mówi ani c
 ani jaka wersja, ani że to **instalator**. Nazwa artefaktu jest częścią umowy z użytkownikiem.
 
 **Znacznik: DO ZBUDOWANIA.** Zmiana celu w `mk/disk.mk:20` (dziś zna wyłącznie `redox-live.iso`,
-tak samo `Makefile:10`) plus poprawka `docs/install.md` (`R-608`). Zawartość bajtowa jest ta sama.
+tak samo `Makefile:10`) plus poprawka `docs/getting-started/install.md` (`R-608`). Zawartość bajtowa jest ta sama.
 
 ### 2.2 Decyzja B2 — hybrydowe ISO już jest zbudowane; do zrobienia został wpis EFI
 
@@ -265,7 +265,7 @@ Stan po pomiarze, rozbity na to, co działa i co nie:
 EFI w El Torito jest tania i warta zrobienia — nie dla płyt, tylko dlatego, że **wpis, który
 wskazuje zera, to kontrola udająca zdolność**, a takich w tym projekcie nie zostawiamy. Wpinam
 ją jako rozszerzenie zakresu `R-611d` (hybrydowe ISO, wygoda dla Ventoya i VM), a nie jako nową
-pozycję. Napisanie tego wprost w `docs/install.md` jest tańsze niż jedno zgłoszenie
+pozycję. Napisanie tego wprost w `docs/getting-started/install.md` jest tańsze niż jedno zgłoszenie
 *„płyta się nie uruchamia"*.
 
 ### 2.3 Wymagania hosta budowania
@@ -610,7 +610,7 @@ Stan faktyczny jest ubogi i lepiej to napisać, niż udawać:
 Konsekwencje wiążące: to on jest testowany w CI (`ci-install-smoke.sh` już go prowadzi), i to on
 jest jedyną ścieżką, która na dziś działa bez myszy. GUI jest ładniejsze i **nieprzetestowane od
 końca do końca** (`R-D08`). Dopóki to się nie zmieni, dokumentacja nie ma prawa nazywać GUI
-*„recommended"* — dziś nazywa (`docs/install.md` §2), i to jest sąsiadem `R-608`.
+*„recommended"* — dziś nazywa (`docs/getting-started/install.md` §2), i to jest sąsiadem `R-608`.
 
 ### 4.6 Lokalizacja
 
