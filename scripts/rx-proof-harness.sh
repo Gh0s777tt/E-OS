@@ -190,7 +190,14 @@ PY
   fi
 
   echo "rx-proof[$ARCH/$nic]: booting -device ${dev}  (pcap=$PCAP, login<=${TIMEOUT}s, settle=${SETTLE}s)"
-  "$QEMU" "${A[@]}" & QPID=$!
+  # ${A[@]+...} rather than "${A[@]}": both branches above assign a non-empty array TODAY, so
+  # this is safe today -- but `local A=()` plus `set -u` is one edit away from fatal on bash 3.2,
+  # which is what /bin/bash is on the reference host. Measured, on this very construct in
+  # ci-install-smoke.sh: `VIDEO_ARGS[@]: unbound variable`, before qemu started. The guard
+  # expands identically when the array has elements (verified: `-x`, `a b`, `-y` preserved with
+  # quoting intact), so it costs nothing and stops depending on control flow the next editor
+  # may change. Gated by scripts/eos-check-unbound-arrays.py (ci-integrity check 13).
+  "$QEMU" ${A[@]+"${A[@]}"} & QPID=$!
 
   local strip='s/\x1b\[[0-9;?]*[a-zA-Z]//g'
   local sent=0 login=0 deadline=$(( $(date +%s) + TIMEOUT ))

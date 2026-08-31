@@ -345,6 +345,23 @@ if command -v python3 >/dev/null 2>&1; then
 else
   cannot "check 12 could not run: python3 is missing -- tar pins are UNKNOWN, not proven present"
 fi
+
+# 13) No empty array expanded under `set -u` -- fatal on the reference host's bash 3.2.
+# Check 5 greps for bash-4-ONLY SYNTAX and cannot see this: the script PARSES in 3.2 and dies at
+# run time, on one branch, only when the array happens to be empty. Measured 2026-08-31 on
+# scripts/ci-install-smoke.sh -- `VIDEO_ARGS[@]: unbound variable`, the harness dead before qemu
+# started -- while THIS gate printed `ok: no bash-4-only syntax` and exited 0 in the same tree.
+# A gate that lets through the class of defect it exists for is what CLAUDE.md 4.1 forbids.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-unbound-arrays.py 2>&1)"; then
+    printf '%s\n' "$out" | grep -E '^ok:' >/dev/null && ok "${out#ok: }"
+  else
+    printf '%s\n' "$out"
+    bad "an empty array is expanded under \`set -u\` -- this dies on bash 3.2"
+  fi
+else
+  cannot "check 13 could not run: python3 is missing -- array guards are UNKNOWN, not proven present"
+fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
