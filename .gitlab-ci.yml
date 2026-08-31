@@ -379,9 +379,21 @@ build-image:
     - podman exec "$EOS_CONTAINER" true            # fail fast if container unreachable
     - echo "sync $CI_COMMIT_SHORT_SHA -> $EOS_CONTAINER:/work/redox (tracked sources only)"
     - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
-    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME all"
+    # R-601a: `all` builds ONLY harddrive.img (Makefile:8), so the installation medium --
+    # the artefact a person actually writes to a USB stick -- was never built here and never
+    # exported. Its name carries EOS_VERSION, so it is asked for rather than typed: one home
+    # for the naming rule (mk/config.mk), as with scripts/make-release.sh.
+    - MEDIUM=$(podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make -s print-installer-medium ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME")
+    - echo "medium is $MEDIUM"
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=$CONFIG_NAME all $MEDIUM"
     - podman cp "$EOS_CONTAINER:/work/redox/build/$ARCH/$CONFIG_NAME/harddrive.img" "harddrive-$ARCH.img"
+    - podman cp "$EOS_CONTAINER:/work/redox/$MEDIUM" "$(basename "$MEDIUM")"
     - bash scripts/ci-boot-smoke.sh "harddrive-$ARCH.img" 420
+    # R-601b: boot the MEDIUM, drive the installer onto a blank disk, boot the result. This
+    # is a different and much stronger claim than booting a pre-installed image, and it is
+    # the only job in this file that exercises the installer at all.
+    - bash scripts/ci-boot-smoke.sh "$(basename "$MEDIUM")" 420
+    - bash scripts/ci-install-smoke.sh "$(basename "$MEDIUM")" 2400 --arch "$ARCH"
     # SBOM (R-302): regenerate from THIS build's cooked package metadata (real
     # blake3 + source revs), deterministic via the commit timestamp, then export it.
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && python3 scripts/gen-sbom.py --repo-dir repo/$ARCH-unknown-redox --target $ARCH-unknown-redox --eos-commit $CI_COMMIT_SHA --timestamp $CI_COMMIT_TIMESTAMP --out sbom/eos-$ARCH.cdx.json"
@@ -391,6 +403,7 @@ build-image:
     expire_in: 1 week
     paths:
       - harddrive-aarch64.img
+      - eos-*-aarch64-installer.img
       - sbom-aarch64.cdx.json
 
 # x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
@@ -418,19 +431,29 @@ build-image-x86_64:
     - podman start "$EOS_CONTAINER" 2>/dev/null || true
     - podman exec "$EOS_CONTAINER" true
     - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
-    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=x86_64 CONFIG_NAME=eos all"
+    - MEDIUM=$(podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make -s print-installer-medium ARCH=x86_64 CONFIG_NAME=eos")
+    - echo "medium is $MEDIUM"
+    - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && make CI=1 ARCH=x86_64 CONFIG_NAME=eos all $MEDIUM"
     - podman cp "$EOS_CONTAINER:/work/redox/build/x86_64/eos/harddrive.img" "harddrive-x86_64.img"
+    - podman cp "$EOS_CONTAINER:/work/redox/$MEDIUM" "$(basename "$MEDIUM")"
     # Boot-smoke was skipped here on the assumption that an x86_64 boot under TCG on
     # an Apple Silicon runner would time out. Measured 2026-08-21 (U-133): it reaches
     # `eos login:` in ~16 s, i.e. the same order as the aarch64 job. Gating on it is
     # cheap, and an image that builds but does not boot is exactly what this job
     # otherwise ships as a green artifact.
     - bash scripts/ci-boot-smoke.sh "harddrive-x86_64.img" 600 --arch x86_64
+    # R-601a/R-601c: the medium boots too, and the installer runs from it. MEASURED on the
+    # reference host: the medium reaches `eos login:` under TCG, and ci-install-smoke.sh
+    # scales its step windows (EOS_SMOKE_SLOW) because emulation is slower than the aarch64
+    # numbers those windows were taken from -- hence the larger budget here than for aarch64.
+    - bash scripts/ci-boot-smoke.sh "$(basename "$MEDIUM")" 900 --arch x86_64
+    - bash scripts/ci-install-smoke.sh "$(basename "$MEDIUM")" 5400 --arch x86_64
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
       - harddrive-x86_64.img
+      - eos-*-x86_64-installer.img
 
 # ──────────────────  Renovate (scheduled dependency updates)  ───────────────
 # Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
