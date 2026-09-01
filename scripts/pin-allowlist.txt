@@ -16,3 +16,12 @@
 # EXIT=0, boot-smoke PASS, EOS-CONTROL-SELFTEST-OK), and both recipe revs were
 # bumped to their fork tips. If you add an entry here, state the removal
 # condition, not just the reason.
+
+eos-installer   R-604a (#9) jest scalone w forku, ale pin CELOWO nie jest podbity: ekran wyboru
+#                dysku nie zostal ani razu uruchomiony na Redoksie (CLAUDE.md §5.3), bo harness nie
+#                dociera do instalatora (#16). Tryb awarii jest bezpieczny — instalacja się nie
+#                zaczyna zamiast iść na zły dysk — ale „nigdy nieuruchomione" nie jest stanem,
+#                w którym wolno przypiąć rewizję wchodzącą do obrazu.
+#                WARUNEK USUNIĘCIA: ci-install-smoke.sh dochodzi do promptu `Disk to erase:` i
+#                pokazuje `refused:` na błędnej nazwie — wtedy podbić pin do tipu forka i USUNĄĆ
+#                ten wpis. Praca czeka na gałęzi feat/r-604a-disk-identity.

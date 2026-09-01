@@ -62,7 +62,7 @@ jest upstreamowy, uruchamiany na **hoście linuksowym**, i — jak stwierdza
 
 | fakt | dowód |
 |---|---|
-| bootloader to fork `eos-bootloader`, gałąź `eos-rebased`, rev `87b214b5b481…` | `recipes/core/bootloader/recipe.toml:4-6` |
+| bootloader to fork `eos-bootloader`, gałąź `eos-rebased`, rev `4f230035e2f9…` | `recipes/core/bootloader/recipe.toml:4-6` |
 | podpis Secure Boot następuje **w stage podczas `cook`**, kluczem operatora z `build/sb-signing/{mok.key,mok.crt}` | `recipe.toml:108`; `ADR-0005` §Integracja |
 | SBAT jest wstrzykiwany **przed** podpisem (Authenticode pokrywa całą binarkę) | `recipe.toml:73`, `scripts/eos-add-sbat.py`, `sbat.csv` = `eos-bootloader,1,E-OS,…` |
 | klucz weryfikacji ładunku jest **wkompilowany** w binarkę (32 surowe bajty w `src/eos-boot-verify.pub.bin`, feature `verify-boot`) | `recipe.toml:24-31` (kontrola „32 raw bytes" w `:28`, feature w `:31`); uzasadnienie w komentarzu: ta binarka jest jedynym artefaktem, który uwierzytelnia firmware (`V2-N03`) |
@@ -85,7 +85,7 @@ jest upstreamowy, uruchamiany na **hoście linuksowym**, i — jak stwierdza
 który je zauważył.
 
 1. **Rewizja bootloadera.** `ROADMAP.md` (§5.1) cytuje rev `b249982f`. Receptura mówi
-   `87b214b5b481be7f7049fbb07cf927961b00da5b` (`recipe.toml:6`), i to samo mówi
+   `4f230035e2f9a7b378229f8d30d1479ed6ea762c` (`recipe.toml:6`), i to samo mówi
    `repos.toml:43`. `b249982f` to rev **zamknięcia `R-F10`** (`ROADMAP.md:280`, `U-156`) —
    czyli roadmapa cytuje stan sprzed późniejszych podbić i jest **nieaktualna**. O ile
    dokładnie — nie wiem: historii forka nie da się tu sprawdzić, `git` był w tym zadaniu
@@ -691,7 +691,7 @@ Lista jest częścią dokumentu, nie przypisem.
 1. **Wnętrze `eos-bootloader`.** `recipes/core/bootloader/source` **nie istnieje** w tym drzewie
    (sprawdzone). Wszystko o zachowaniu bootloadera pochodzi z receptury, ze skryptów dowodowych,
    z harnessu i z rejestru — nigdy z odczytu jego kodu na miejscu. **Sprawdzić:** świeży klon
-   forka na rev `87b214b5b481…` albo `recipes/core/bootloader/source` po `make c.bootloader`.
+   forka na rev `4f230035e2f9…` albo `recipes/core/bootloader/source` po `make c.bootloader`.
 2. **Wnętrze `redox_installer`.** `recipes/core/installer/` zawiera wyłącznie `recipe.toml`.
    Układ partycji (`installer.rs:565-660`), `efi_partition_size` i wariant FAT-a cytuję
    za `docs/architecture/system-updates.md` §1.4, nie z odczytu.
