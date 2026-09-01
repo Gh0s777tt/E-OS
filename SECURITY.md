@@ -101,9 +101,9 @@ Published deliberately. A security policy that hides the gaps is worth less than
 
 | Gap | Finding | Status |
 |---|---|---|
-| 30 of 65 image packages are upstream binaries whose signing key is fetched from the serving host | `C-1` | open |
+| 30 of 65 image packages are upstream prebuilt binaries. Their signing key is now **pinned in-tree** (`keys/upstream-redox-pkg.pub.toml`, written over whatever the sync fetches), so it no longer comes from the serving host — but the binaries are still upstream's | `C-1` | **partly addressed** |
 | `mpc`, a compiler dependency, is fetched with no hash from a substituted mirror | `C-1b` | open |
-| Boot verification is fail-open at build time when no key is present | `C-2` | open |
+| ~~Boot verification is fail-open at build time when no key is present~~ | `C-2` | **closed** — the recipe now exits 1 with the reason on stderr unless `EOS_ALLOW_UNVERIFIED_BOOT=1` |
 | `rustls-webpki 0.103.4` with six advisories ships inside `pkg` | `C-3` | open |
 | No active update channel on x86_64 | `C-4` | open |
 | No application sandbox — the browser holds the same schemes as the shell | `C-5` | open |

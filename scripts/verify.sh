@@ -3,14 +3,20 @@
 #
 # ── WHY THIS FILE EXISTS ──────────────────────────────────────────────────────────────
 # Three measurements, not three opinions:
-#   * C-7 — every GitLab job has failed in ~0 s with `ci_quota_exceeded` since 2026-08-28.
-#     The jobs are still listed in .gitlab-ci.yml; they have measured nothing for days.
+#   * C-7 — the SHARED light tier fails in ~0 s with `ci_quota_exceeded`, intermittently:
+#     dead 2026-08-28 → the 2026-09-01 quota reset, green that whole day, dead again by
+#     evening. The self-hosted `eos-heavy` tier spends no shared minutes and is NOT covered
+#     by this — build-image succeeded on 2026-09-01 in 1299 s, running boot-smoke on both
+#     images and install-smoke through to a login prompt on the installed disk.
 #   * GitHub Actions does not execute for this repository either. Measured 2026-08-30: a
 #     minimal push-triggered workflow on a fresh branch produced NO run — not queued, not
 #     failed. `.github/workflows/_canary.yml` keeps that measurable: it does nothing but
 #     prove a runner was reached, so nobody has to believe the claim second-hand.
-#   * C-6 — every commit in this project's history went straight to `main`, so even a
-#     working pipeline would have run AFTER publication and mirroring, not before it.
+#   * C-6 — every commit BEFORE 2026-08-30 went straight to `main`. Since then each landed
+#     through a merge request (38 merged as of 2026-09-01) with a merge_request_event
+#     pipeline on the MR head. What survives: the branch is published before that pipeline
+#     finishes, and the pipeline requirement has been switched off and back on to merge
+#     while the shared quota was exhausted.
 # Together: the run on a contributor's own machine is currently the only gate that is
 # certain to execute before a push. This script is that run.
 #

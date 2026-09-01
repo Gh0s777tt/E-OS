@@ -409,7 +409,7 @@ Konkretne tryby awarii samego walidatora, które trzeba pokryć testem negatywny
 ### 4.3 Gdzie to biegnie
 
 1. **W CI** — nowa kontrola w `scripts/ci-integrity.sh` nad `docs/architecture/examples/profiles/**`
-   oraz nad profilami wysyłanymi w obrazie. Plik ma dziś **jedenaście** ponumerowanych kontroli:
+   oraz nad profilami wysyłanymi w obrazie. Plik ma dziś **czternaście** ponumerowanych kontroli (zmierzone 2026-09-01 — bramka wypisuje 14 linii `ok:`):
    `# 1)`…`# 6)` oraz `# ── 7.` … `# ── 11.`, poprzedzonych sondą przyrządów opisaną jako
    *„0. Instruments before results"*. Nowa pozycja to więc **kontrola 12** — numer 11 jest zajęty
    przez *„no fork source vendored back into this repo"*. (`CLAUDE.md:39` mówi o **ośmiu
@@ -911,7 +911,7 @@ Zgodnie z `CLAUDE.md` §2 regułą 3 — wymienione w tym samym oddechu co reszt
   `eos.ghost` i są w nim odnotowane jako `[unverified]`.
 - **Nie zweryfikowano użyteczności `gettext`/`libintl` z rustowego stosu GUI** (§3.4).
 - **Nie zweryfikowano, czy stos tekstowy orbital obsługuje bidi** (§6.5).
-- **Liczba kontroli w `scripts/ci-integrity.sh`** policzona z nagłówków w pliku: **1–11**
+- **Liczba kontroli w `scripts/ci-integrity.sh`** policzona z nagłówków w pliku: **1–14** (kontrole 12–14 doszły 2026-08-31 i 2026-09-01: piny tarballi, puste tablice pod `set -u`, martwe ścieżki `docs/`)
   (pierwsza wersja podała 1–10 i proponowała numer już zajęty). `CLAUDE.md:39` mówi o ośmiu —
   nieaktualny jest opis, nie skrypt. Rozjazd nie jest przedmiotem tego dokumentu, ale wpływa
   na numer nowej kontroli (§4.3).

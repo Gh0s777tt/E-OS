@@ -406,7 +406,7 @@ version table, and the disclosure policy. **Please do not open a public issue fo
 | Adversary | Position |
 |---|---|
 | Network attacker between device and repository | **Addressed** — hybrid signature, image-pinned key, blake3 enforced on package bytes, rollback/freeze counters |
-| Whoever controls `static.redox-os.org` | **Not addressed** — 30 of 65 packages are prebuilt upstream binaries, and their signing key is fetched from that same host |
+| Whoever controls `static.redox-os.org` | **Partly addressed** — 30 of 65 packages are still prebuilt upstream binaries, but their signing key is now pinned in-tree (`keys/upstream-redox-pkg.pub.toml`) and written over whatever the sync fetches, so the key no longer comes from the serving host |
 | Local unprivileged user | **Partly addressed** — no raw IP sockets; but the boundary is per-account, and there is no application sandbox |
 | Device theft | **Addressed if enabled** — AES-XTS full-disk encryption is offered at install, not default |
 | Build-machine compromise | **Not addressed** — signing keys live on the build host |

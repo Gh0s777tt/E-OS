@@ -70,7 +70,7 @@ Full click-by-click is in [`docs/operations/ci.md`](ci.md).
 
 | Action | Why | Where |
 |--------|-----|-------|
-| **`eos-repo-sign keygen`** → commit `keys/eos-repo-sign.pub.toml`, keep secret off-repo | Make the package-manifest signing chain live (C.1/C.2) | local + `keys/` |
+| ~~**`eos-repo-sign keygen`**~~ — **done**: `keys/eos-repo-sign.pub.toml` is committed and pinned; the secret is held off-repo | Make the package-manifest signing chain live (C.1/C.2) | local + `keys/` |
 | **Run `scripts/eos-setup-mirrors.sh --apply`** with a GitHub PAT in `$GITHUB_MIRROR_PAT` | Mirror the 24 forks GitLab→GitHub (E-OS already mirrors) | local |
 | Set masked/protected CI var **`GITLAB_TOKEN`** (api) | Enable semantic-release (tags + GitLab Releases) | GitLab → Settings → CI/CD → Variables |
 | Set **`RENOVATE_TOKEN`** (api) + a nightly **pipeline schedule** | Enable Renovate dependency updates | GitLab → Settings → CI/CD |
@@ -98,4 +98,4 @@ and [`ROADMAP.md`](https://github.com/Gh0s777tt/E-OS/blob/main/ROADMAP.md):
 - **Entropy (K-02/06/08)** — emulated aarch64 RNG is weak under emulation; harden `randd`/kernel.
 - **Doc consistency (M-12/13/14/16)** — CHANGELOG fragment, SECURITY.md/ROADMAP claims vs reality, `HARDWARE.md`.
 - **Fork nits** — `xhcid` byte-count, `pcid` `_PRT` parsing, `redoxfs` `from_utf8_unchecked`, etc.
-- **Fork pin bumps** — `eos-base` (raid1d fix) and `eos-pkgutils` (R-703) fixes are pushed but not yet pinned into a build.
+- **Fork pin bumps** — done: `eos-base` is pinned at `816546df2a` and `eos-pkgutils` at `ec08f22aa6` in `repos.toml`, and the `pin-check` gate holds them there (25 OK, 0 non-allowlisted drift, measured 2026-09-01).
