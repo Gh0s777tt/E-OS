@@ -190,8 +190,8 @@ shell-lint:
     - shellcheck -f gcc -S error scripts/*.sh
 
 # Coverage, gated on E-OS-OWNED code only. Measured baseline (U-168):
-#   tools/eos-repo-sign  38.84% lines
-#   redox_cookbook (root) 2.92% lines
+#   tools/eos-repo-sign  38.84% lines at U-168, 41.06% on 2026-09-01
+#   redox_cookbook (root) 2.92% lines at U-168,  6.26% on 2026-09-01
 # The root crate is the VENDORED upstream build engine (CLAUDE.md 11, type B). Holding it
 # to an E-OS coverage bar would mean writing tests for somebody else's code and carrying
 # the divergence forever, so it is reported and not gated. The floor below is set just

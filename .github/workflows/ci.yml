@@ -223,8 +223,8 @@ jobs:
 
   # ────────────────────────────────  coverage  ────────────────────────────────
   # Gated on E-OS-OWNED code only. Baseline measured in U-168:
-  #   tools/eos-repo-sign   38.84 % lines
-  #   redox_cookbook (root)  2.92 % lines
+  #   tools/eos-repo-sign   38.84 % lines at U-168, 41.06 % on 2026-09-01
+  #   redox_cookbook (root)  2.92 % lines at U-168,  6.26 % on 2026-09-01
   # The floor below sits just under the measured value: it is a REGRESSION detector, not a
   # certificate that 38 % is good. .gitlab-ci.yml records that it was verified to be able to
   # fail (at --fail-under-lines 60 the job exits non-zero) — a floor nobody has seen go red

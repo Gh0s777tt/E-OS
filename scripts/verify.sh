@@ -78,7 +78,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || dirname "$(dirname "$0")")" |
 
 M_OWNED="tools/eos-repo-sign/Cargo.toml"     # E-OS-owned: full strictness
 M_VENDORED="Cargo.toml"                      # vendored redox_cookbook: tests + advisories
-COVERAGE_FLOOR=38                            # measured 38.84 % (U-168) — a regression trap
+COVERAGE_FLOOR=38                            # 38.84 % at U-168, 41.06 % on 2026-09-01 — a trap
 L_VENDORED="Cargo.lock"                      # lockfiles: osv-scanner reads these, not the manifests
 L_OWNED="tools/eos-repo-sign/Cargo.lock"
 TAR_PIN_GATE="scripts/eos-check-tar-pins.py"
