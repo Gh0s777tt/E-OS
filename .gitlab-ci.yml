@@ -477,12 +477,32 @@ build-image:
         [ -f "$f" ] && shasum -a 256 "$f"
       done > sha256sums-aarch64.txt
       cat sha256sums-aarch64.txt
+    # R-601a: publish the images, compressed. Raw they are 1.4 GiB each against a 1 GiB
+    # per-job cap, and a failed upload turns a fully green verification red -- which is how
+    # this job reported FAILED on 2026-09-01 after passing every check it exists for.
+    # Measured on the real aarch64 medium that day:
+    #     zstd -19  130 MB (9.3%)   98 s      -- 43 MB smaller, 65x slower
+    #     zstd -3   173 MB (12.3%)  1.5 s     <- chosen; decompresses in 2.55 s
+    # and `cmp` says the round trip is byte-identical. Both images at -3 come to ~350 MB,
+    # comfortably inside the cap.
+    #
+    # The checksums stay over the RAW images on purpose: what a person verifies is the file
+    # they will write to a disk, after decompressing, not the transport wrapper.
+    - |
+      command -v zstd >/dev/null || { echo "zstd not installed on this runner" >&2; exit 1; }
+      for f in harddrive-aarch64.img eos-*-aarch64-installer.img; do
+        [ -f "$f" ] || continue
+        zstd -3 -T0 -q -f "$f" -o "$f.zst"
+        printf '  %s -> %s (%s)\n' "$f" "$f.zst" "$(du -h "$f.zst" | cut -f1)"
+      done
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
       - sha256sums-aarch64.txt
       - sbom-aarch64.cdx.json
+      - harddrive-aarch64.img.zst
+      - eos-*-aarch64-installer.img.zst
 
 # x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
 # Apple Silicon runs under TCG (slow/flaky), so this is MANUAL and non-blocking.
@@ -575,11 +595,31 @@ build-image-x86_64:
         [ -f "$f" ] && shasum -a 256 "$f"
       done > sha256sums-x86_64.txt
       cat sha256sums-x86_64.txt
+    # R-601a: publish the images, compressed. Raw they are 1.4 GiB each against a 1 GiB
+    # per-job cap, and a failed upload turns a fully green verification red -- which is how
+    # this job reported FAILED on 2026-09-01 after passing every check it exists for.
+    # Measured on the real aarch64 medium that day:
+    #     zstd -19  130 MB (9.3%)   98 s      -- 43 MB smaller, 65x slower
+    #     zstd -3   173 MB (12.3%)  1.5 s     <- chosen; decompresses in 2.55 s
+    # and `cmp` says the round trip is byte-identical. Both images at -3 come to ~350 MB,
+    # comfortably inside the cap.
+    #
+    # The checksums stay over the RAW images on purpose: what a person verifies is the file
+    # they will write to a disk, after decompressing, not the transport wrapper.
+    - |
+      command -v zstd >/dev/null || { echo "zstd not installed on this runner" >&2; exit 1; }
+      for f in harddrive-x86_64.img eos-*-x86_64-installer.img; do
+        [ -f "$f" ] || continue
+        zstd -3 -T0 -q -f "$f" -o "$f.zst"
+        printf '  %s -> %s (%s)\n' "$f" "$f.zst" "$(du -h "$f.zst" | cut -f1)"
+      done
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
       - sha256sums-x86_64.txt
+      - harddrive-x86_64.img.zst
+      - eos-*-x86_64-installer.img.zst
 
 # ──────────────────  Renovate (scheduled dependency updates)  ───────────────
 # Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
