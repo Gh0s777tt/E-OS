@@ -154,10 +154,10 @@ The update system has **no backend until this exists**, and the recon's "just wr
 **Path (all local, no Actions):**
 1. **Build** produces the pkgar repo (already happens: `repo.toml` + `.pkgar` per arch).
 2. **Sign locally**: ✅ **DONE** — `scripts/publish-repo-pages.sh` calls `tools/eos-repo-sign` and emits `repo.toml.sig` (hybrid ed25519+ML-DSA-65), and since `U-120` a missing signing key is a hard failure instead of a silent unsigned publish. The R-503 "security theater as shipped" gap has therefore moved entirely to the *other* side of the wire: the manifest signature still authenticates nothing at runtime, because no key is pinned (step 3, `R-702`) and no client verifies it (`R-703`).
-3. **Generate the off-repo E-OS signing key** (does not exist yet) with encrypted-at-rest custody; pin its public half into the image.
+3. ~~**Generate the off-repo E-OS signing key**~~ — **done**: `keys/eos-repo-sign.pub.toml` (hybrid ed25519 + ML-DSA-65) is committed and pinned; the secret is held off-repo. Pin its public half into the image.
 4. **Publish**: the existing `publish-repo-pages.sh` force-pushes an orphan commit of `pkg/<target>/` + `repo.toml` + `repo.toml.sig` + `id_ed25519.pub.toml` to `eos-pkg-<arch>` Pages **and/or a GitLab Pages / GitLab release** (GitLab CI is a viable non-Actions runner; the "GitLab mirror" is currently fiction — single `origin` remote — so this also makes the mirror claim real). Static hosting itself needs no Actions.
 5. **Wire the client**: ship `/etc/pkg.d/50_eos` (guarded so a dead URL degrades gracefully) pointing at the E-OS channel URL, and **remove/repoint** the default `/etc/pkg.d/50_redox` so a fresh install stops trusting/updating from upstream Redox.
-6. **Run the first publish** — never been done; until it runs, `check` has nothing to talk to.
+6. **Run the first publish** — ✅ **done for aarch64** (`R-008`/`U-209`): 78 packages / 893 MB published, `repo.toml` signed and verifying. Not done for x86_64, and the client still points at upstream Redox — until it is repointed, `check` still has nothing of ours to talk to.
 
 `SHA256SUMS` for release images must be regenerated over the *actual* retained artifact and minisigned locally (`make release` target), fixing the phantom-checksum problem so out-of-band downloads verify too.
 
