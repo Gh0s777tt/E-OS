@@ -132,6 +132,22 @@ Note what this does **not** do: more RAM gets aarch64 past the allocation and in
 different, deterministic failure (same `ESR 0x9600000B`, same `0x140027FB0`, measured
 twice on 2026-09-01). It is a diagnostic dial, not a workaround.
 
+**The nightly heavy build had not run since at least 2026-08-25, and nothing said so.**
+`podman machine start` returns once the VM is *launching*, not once its socket accepts
+connections, so the very next `podman exec` lost a race one tenth of a second later:
+
+```
+Starting machine "eos-build"
+Error: unable to connect to Podman socket: ssh: handshake failed: EOF
+ERROR: Job failed: exit status 125
+```
+
+Thirty consecutive scheduled pipelines failed this way. The job that fails is the only one that
+boots the OS, so "the nightly build is green" was never true and "it is red" never said why --
+it read as a build failure, not as a VM that had not finished starting. All three heavy jobs now
+wait for `podman info` to answer, up to 120 s, and say which of *starting / wedged / absent* to
+check if it never does.
+
 **Register the runner** (this project, id `82957024`; done once — the current runner is
 already online). On macOS with Homebrew:
 
