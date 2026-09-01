@@ -268,13 +268,31 @@ def _login_once(con):
     # per failed attempt on a run that had already printed the reason in one line -- and a
     # timeout reported for a result the guest already told us is the "red that does not say
     # what is broken" this project bans (CLAUDE.md 13, U-177).
+    # The prompt was ALREADY consumed by the race above, and `expect` matches new output only.
+    # Without this flag the first pass through the loop waits for a SECOND "new password:" that
+    # the guest has no reason to print: it is sitting at the prompt waiting for input, and the
+    # driver is waiting for the prompt. Both wait forever.
+    #
+    # That deadlock is issue #16, and it is a harness regression, not a guest fault. The version
+    # R-601 was proven on (8bd2c79d6) did `expect(...)` then `send(...)` immediately; the retry
+    # loop added in 6c62b0ff9 kept the wait and lost the send. Measured 2026-09-01 on aarch64 --
+    # the same stall the issue records on x86_64, so it was never architecture-specific:
+    #
+    #     install-smoke:   saw the first-boot password prompt
+    #     install-smoke: FAIL — timed out waiting for the first-boot prompt
+    #
+    # Reproduced on both arches, which is what rules out the "serial overrun" reading the issue
+    # was named after.
+    have_prompt = True
     for _ in range(4):
-        seen = con.expect_either(
-            {"the first-boot password prompt": r"new password:",
-             "a rejected login": r"Login incorrect"},
-            "the first-boot prompt", window=w(90))
-        if seen != "the first-boot password prompt":
-            return False
+        if not have_prompt:
+            seen = con.expect_either(
+                {"the first-boot password prompt": r"new password:",
+                 "a rejected login": r"Login incorrect"},
+                "the first-boot prompt", window=w(90))
+            if seen != "the first-boot password prompt":
+                return False
+        have_prompt = False   # a later round must see the OOBE ask again
         con.send(PASSWORD)
 
         seen = con.expect_either(
