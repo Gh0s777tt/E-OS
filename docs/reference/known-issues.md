@@ -1,14 +1,52 @@
 ---
 title: Known Issues
 status: current
-last-reviewed: 2026-08-30
+last-reviewed: 2026-09-01
 owner: Gh0s777tt
 ---
 
 # 🐞 Known Issues
 
-_No issue currently blocks a full **aarch64** or **x86_64** desktop boot._
+**aarch64 does not boot today** — see the entry directly below. **x86_64** boots to
+userspace (`boot-smoke: PASS`, exit 0, 2026-09-01).
 Resolved items are kept below for the record.
+
+---
+
+## 🔴 aarch64 stopped booting — regression against a state that was proven (OPEN, recorded 2026-09-01, issue #15)
+
+A freshly built aarch64 image does not reach userspace under QEMU `virt`:
+
+```
+ConvertPages: failed to find range 140000000 - 140038FFF
+Error: Image at 000BFB5D000 start failed: Aborted
+```
+
+The bootloader starts, finds RedoxFS and draws its menu, then cannot place the
+kernel. `0x140000000` is 5 GiB, and on `virt` RAM starts at 1 GiB, so with the
+harness's `-m 2048` the address is far past the end of memory. Raising RAM to
+6144 MiB gets past the allocation and into a different failure:
+`ESR 0x9600000B` — data abort, access-flag fault at level 3, faulting address
+`0x47667A50`, which sits at the stack pointer. Level 3 means a 4 KiB granule,
+so those are the firmware's tables, not the bootloader's 1 GiB identity blocks.
+
+**Why this is a regression and not a never-worked.** aarch64 booted to the
+greeter repeatedly: `R-401b/c/d` RESOLVED 2026-06-08 (below), `hardware-matrix.md`
+verified 2026-06-18, `build-troubleshooting.md` records a boot-smoke PASS on
+2026-07-24, and `docs/img/eos-aarch64-live-iso-greeter.png` is a real 800×600
+capture of the greeter, added 2026-08-14. Something between mid-August and now
+broke it.
+
+**Not yet established:** which change. Candidates are the `eos-bootloader` pin,
+the `eos-kernel` pin, and the image growing to 1400 MiB. Do not assume the
+bootloader — `0x140000000` being a fixed address that ignores RAM size is the
+symptom, and nothing yet shows which commit introduced it.
+
+**Rejected en route,** so nobody spends the time twice: the harness is not at
+fault (unmodified `ci-boot-smoke.sh` reproduces it); the firmware is not at fault
+(same firmware, empty disk, zero exceptions); the ESP holds the correct
+`BOOTAA64.EFI` (196152 B, read from the FAT directory — grepping the whole image
+hits the installer binary in the rootfs and proves nothing).
 
 ---
 

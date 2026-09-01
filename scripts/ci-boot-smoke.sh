@@ -3,10 +3,16 @@
 # Used by the `build-image` jobs on the self-hosted `eos-heavy` runner (macOS +
 # QEMU). Exits 0 if the boot reaches the login prompt, 1 else.
 #
-# Proven for x86_64 only. The aarch64 path has never been observed reaching
-# userspace on this host -- see issue #15. This header used to call it a mirror
-# of "the proven local harness out/rf08_boot.sh"; that file exists neither in
-# this repo nor anywhere in its history, so the claim rested on nothing.
+# x86_64: proven, exit 0 (2026-08-21, re-measured 2026-09-01).
+# aarch64: booted to the greeter repeatedly through 2026-08 (see known-issues.md
+# R-401b/c/d and docs/img/eos-aarch64-live-iso-greeter.png), but does NOT boot
+# today -- issue #15. Treat a green aarch64 run as news, not as routine.
+#
+# This header used to call the aarch64 path a mirror of "the proven local harness
+# out/rf08_boot.sh". That file is in neither the repo, its history, nor the build
+# volume; it most likely lived in the Redox build tree's out/, which is wiped. The
+# harness may well have been real -- the point is the citation cannot be checked,
+# so it is not evidence.
 #
 #   scripts/ci-boot-smoke.sh <image> [timeout_seconds] [--arch aarch64|x86_64]
 #

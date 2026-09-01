@@ -638,12 +638,23 @@ w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64**; aarch64 
 
 - **`cargo nextest`** zamiast `cargo test` (równoległość, czytelny raport) — ❌ brak.
 - **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ⚠️ **x86_64 działa**
-  (`boot-smoke: PASS — reached userspace login`, zmierzone ponownie 2026-09-01);
-  **aarch64 nie doszedł do przestrzeni użytkownika w żadnym zapisanym przebiegu** — #15.
-  `build-image-x86_64` jest `manual`.
-  Do 2026-09-01 te dwa zdania stały tu **odwrotnie**. Twierdzenie „aarch64 działa”
-  weszło commitem przepisującym dokumentację (`8e39f4068`), nie pomiarem, i opierało się
-  na `out/rf08_boot.sh` — pliku, którego **nigdy nie było w tym repo**.
+  (`boot-smoke: PASS — reached userspace login`, exit 0, zmierzone 2026-09-01);
+  **aarch64 nie bootuje dziś** — #15. `build-image-x86_64` jest `manual`.
+
+  Do 2026-09-01 stało tu: *„aarch64 działa; x86_64 nigdy nie był bootowany na tym
+  hoście”*. Pierwsza połowa **była prawdziwa i przestała być**; druga **nigdy nie była
+  prawdziwa**. Dowody, że aarch64 bootował: `R-401b/c/d` RESOLVED 2026-06-08
+  (`docs/reference/known-issues.md`), `hardware-matrix.md` „boots to `eos login:`”
+  zweryfikowane 2026-06-18, `build-troubleshooting.md` boot-smoke PASS 2026-07-24,
+  oraz zrzut ekranu greetera `docs/img/eos-aarch64-live-iso-greeter.png` (800×600,
+  wniesiony `c3a55959c`, 2026-08-14). Dowody, że x86_64 bootował: `U-169` w
+  CHANGELOG-u, `ci-boot-smoke.sh:11` (pomiar 2026-08-21) i pomiar dzisiejszy.
+
+  **Zapisane, bo sam się na to nabrałem:** najpierw przeszukałem wyłącznie
+  `~/eos-artifacts/` — same awarie — i napisałem „brak zapisu udanego bootu aarch64”.
+  To był wniosek z **jednego** katalogu ogłoszony jako wniosek ze wszystkich źródeł.
+  Dowody leżały w `docs/`. Zanim napiszesz „nie ma dowodu”, wymień miejsca, w których
+  szukałeś.
 - **`cargo-fuzz`** dla parserów wejścia niezaufanego (matcher katalogu sterowników,
   `repo.toml`, deskryptory HID) — ❌ brak.
 - **`miri`** dla kodu `unsafe` — ❌ brak.
