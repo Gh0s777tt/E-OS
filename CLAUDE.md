@@ -630,15 +630,20 @@ aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
 ## 16. Testowanie
 
 **Jest dziś:** `cargo test` na obu manifestach (9 testów vendorowanego cookbooka + 9
-w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU aarch64),
+w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64**; aarch64 — patrz #15),
 `repro-intx-lines.sh` (10-konfiguracyjny strażnik regresji z kolumną czasu),
 `ci-install-smoke.sh` (dwuetapowy dowód instalacji), `--selftest` w aplikacjach GUI.
 
 **Docelowo — nic z poniższych nie jest jeszcze wpięte:**
 
 - **`cargo nextest`** zamiast `cargo test` (równoległość, czytelny raport) — ❌ brak.
-- **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ⚠️ aarch64 działa;
-  **x86_64 nigdy nie był bootowany na tym hoście**, `build-image-x86_64` jest `manual`.
+- **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ⚠️ **x86_64 działa**
+  (`boot-smoke: PASS — reached userspace login`, zmierzone ponownie 2026-09-01);
+  **aarch64 nie doszedł do przestrzeni użytkownika w żadnym zapisanym przebiegu** — #15.
+  `build-image-x86_64` jest `manual`.
+  Do 2026-09-01 te dwa zdania stały tu **odwrotnie**. Twierdzenie „aarch64 działa”
+  weszło commitem przepisującym dokumentację (`8e39f4068`), nie pomiarem, i opierało się
+  na `out/rf08_boot.sh` — pliku, którego **nigdy nie było w tym repo**.
 - **`cargo-fuzz`** dla parserów wejścia niezaufanego (matcher katalogu sterowników,
   `repo.toml`, deskryptory HID) — ❌ brak.
 - **`miri`** dla kodu `unsafe` — ❌ brak.

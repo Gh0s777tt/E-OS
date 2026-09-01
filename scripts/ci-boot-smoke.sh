@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Boot-smoke an E-OS image headlessly and assert it reaches userspace.
 # Used by the `build-image` jobs on the self-hosted `eos-heavy` runner (macOS +
-# QEMU). The aarch64 path mirrors the proven local harness out/rf08_boot.sh (same
-# machine/cpu/firmware/device model). Exits 0 if the boot reaches the login
-# prompt, 1 else.
+# QEMU). Exits 0 if the boot reaches the login prompt, 1 else.
+#
+# Proven for x86_64 only. The aarch64 path has never been observed reaching
+# userspace on this host -- see issue #15. This header used to call it a mirror
+# of "the proven local harness out/rf08_boot.sh"; that file exists neither in
+# this repo nor anywhere in its history, so the claim rested on nothing.
 #
 #   scripts/ci-boot-smoke.sh <image> [timeout_seconds] [--arch aarch64|x86_64]
 #
@@ -60,8 +63,8 @@ trap cleanup EXIT
 cp "$FW_VARS_SRC" "$WORK/vars.fd"
 SERIAL="$WORK/serial.log"; MON="$WORK/mon.sock"; : > "$SERIAL"
 
-# Send a QEMU monitor command over the unix socket (python3, as in rf08_boot.sh —
-# BSD nc's -U behaviour is unreliable for this).
+# Send a QEMU monitor command over the unix socket. python3 rather than nc:
+# BSD nc's -U behaviour is unreliable for this.
 mon() {
   python3 - "$MON" "$1" <<'PY' 2>/dev/null || true
 import socket, sys, time
@@ -89,7 +92,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   sleep 3
   kill -0 "$QPID" 2>/dev/null || { echo "boot-smoke: FAIL — qemu exited early"; break; }
   txt="$(sed "$strip" "$SERIAL" 2>/dev/null)"
-  # Accept the bootloader video-mode menu once (as rf08_boot.sh does).
+  # The bootloader opens on a video-mode menu and waits; press Enter once to
+  # take the default. Once only -- a second Enter would land in the login prompt.
   if [ "$sent_ret" -eq 0 ] && echo "$txt" | grep -qaiE 'Redox Loader|E-OS|Genesis|BdsDxe'; then
     mon 'sendkey ret'; sent_ret=1
   fi
