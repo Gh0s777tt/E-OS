@@ -97,13 +97,31 @@ cmd_pins() {
   [ "${1:-}" = "--strict" ] && strict=1
   local allow_file="$HERE/scripts/pin-allowlist.txt"
   printf "%-16s | %-12s | %-11s | %-11s | %s\n" "FORK" "BRANCH" "PIN" "FORK-TIP" "STATUS"
-  local ok=0 drift=0 baddrift=0
+  local ok=0 drift=0 baddrift=0 split=0
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
     [ "$pinned" = "true" ] || continue
     local head
     head=$(git ls-remote "$gh" "refs/heads/$br" </dev/null 2>/dev/null | awk '{print $1}')
+
+    # The rev the BUILD will actually use, read from the recipe -- not from the manifest.
+    # Until 2026-09-01 this gate compared only repos.toml against the fork tip, so a recipe
+    # pointing somewhere else was invisible: measured, manifest new + recipe old printed
+    # `OK(tip)` and exit 0, while cookbook would have built the old revision. The manifest is
+    # the source of truth for the LIST; the recipe is what the build reads. When they
+    # disagree there are two pins for one repository, and the gate must say so.
+    local rrev=""
+    if [ -n "$recipe" ] && [ -f "$HERE/$recipe/recipe.toml" ]; then
+      rrev=$(awk -F'"' '/^[[:space:]]*rev[[:space:]]*=/{print $2; exit}' "$HERE/$recipe/recipe.toml")
+    fi
+
     local st
-    if [ -z "$head" ]; then
+    if [ -n "$rrev" ] && [ "$rrev" != "$rev" ]; then
+      # Deliberately NOT silenceable by the allowlist. That list exists for a pin held behind
+      # the fork ON PURPOSE; it says nothing about a manifest and a recipe disagreeing, which
+      # is never intentional and cannot be reasoned about from either file alone.
+      st="SPLIT-PIN recipe=${rrev:0:10} manifest=${rev:0:10}"
+      split=$((split+1))
+    elif [ -z "$head" ]; then
       st="BRANCH-GONE:$br"; drift=$((drift+1)); baddrift=$((baddrift+1))
     elif [ "$rev" = "$head" ]; then
       st="OK(tip)"; ok=$((ok+1))
@@ -112,15 +130,22 @@ cmd_pins() {
       if [ -f "$allow_file" ] && awk '!/^[[:space:]]*#/{print $1}' "$allow_file" | grep -qxF "$name"; then
         st="DRIFT (allowlisted)"
       else
-        st="DRIFT (recipe behind fork)"; baddrift=$((baddrift+1))
+        st="DRIFT (pin behind fork tip)"; baddrift=$((baddrift+1))
       fi
     fi
     printf "%-16s | %-12s | %-11s | %-11s | %s\n" "$name" "$br" "${rev:0:10}" "${head:0:10}" "$st"
   done < <(_parse)
-  echo "---- pins ok=$ok drift=$drift (non-allowlisted=$baddrift) ----"
+  echo "---- pins ok=$ok drift=$drift (non-allowlisted=$baddrift) split-pin=$split ----"
+  if [ "$strict" = "1" ] && [ "$split" -gt 0 ]; then
+    echo "pin-check: FAIL — $split repo(s) carry TWO DIFFERENT pins: the recipe and repos.toml" >&2
+    echo "  disagree. The build reads the recipe; this gate and the manifest say something else," >&2
+    echo "  so 'built == pinned' cannot hold. Not allowlistable: set both to the same revision." >&2
+    return 1
+  fi
   if [ "$strict" = "1" ] && [ "$baddrift" -gt 0 ]; then
     echo "pin-check: FAIL — $baddrift pin(s) drift from the fork tip and are not allowlisted." >&2
-    echo "  Fix: bump the recipe rev to the fork tip (docs-only drift is safe to bump)," >&2
+    echo "  The compared value is repos.toml's pinned_rev; the recipe is checked separately above." >&2
+    echo "  Fix: bump BOTH the recipe rev and repos.toml to the fork tip (docs-only drift is safe)," >&2
     echo "  or add the repo name + reason to scripts/pin-allowlist.txt for deliberate drift." >&2
     return 1
   fi

@@ -103,7 +103,7 @@ Zmierzone dziś (`python3 scripts/eos-check-repo-types.py`):
 ## 3. Macierz przypięć obrazu — 26 receptur
 
 Kolumny `PIN` i `TIP` z przebiegu `bash scripts/eos-repos.sh pins` (2026-08-30, z siecią).
-Wynik zbiorczy: **`---- pins ok=26 drift=0 (non-allowlisted=0) ----`**.
+Wynik zbiorczy: **`---- pins ok=25 drift=1 (non-allowlisted=0) split-pin=0 ----`**. Jeden dryf jest **celowy i wpisany** na `scripts/pin-allowlist.txt` wraz z warunkiem usunięcia (`eos-installer`, `R-604a` czeka na dowód end-to-end); `split-pin` liczy repozytoria, w których receptura i manifest wskazują **różne** rewizje — to nigdy nie jest zamierzone i nie da się tego wyciszyć listą.
 
 Zweryfikowałem osobno, skryptem porównującym oba pliki, że **`pinned_rev` i `pinned_branch`
 w `repos.toml` zgadzają się z polami `rev`/`branch` w recepturze dla wszystkich 26 pozycji**
