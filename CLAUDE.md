@@ -65,14 +65,15 @@ podman run --rm --network=host -v eos-work:/work -v eos-root:/root localhost/red
 cd tools/eos-repo-sign && cargo test
 ```
 
-Stan faktyczny: `redox_cookbook` ma **9 testów** (wszystkie w kodzie upstreamu),
+Stan faktyczny: `redox_cookbook` ma **15 testów** (12 w `src/lib.rs` + 3 w `src/bin/repo.rs`;
+9 z nich to kod upstreamu, 6 dołożono 2026-08-30 w `2c836aef5` i `0029fb7e6`),
 `tools/eos-repo-sign` **9**, fork `eos-pkgutils` **33**. `src/bin/repo_builder.rs`
 i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (13 kontroli)
+bash scripts/ci-integrity.sh                    # bramka integralności (14 kontroli)
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -321,7 +322,7 @@ Każda zmierzona, nie wydedukowana.
 
 | # | Pułapka | Objaw | Obejście |
 |---|---|---|---|
-| P-1 | **`make` nie przebudowuje narzędzi hosta** — `$(FSTOOLS_TAG)` nie ma prerekwizytów źródłowych | build zielony, zmiana nieobecna w artefakcie | `eos-build.sh` buduje je przed `make`; docelowo napraw `mk/fstools.mk` |
+| P-1 | ~~**`make` nie przebudowuje narzędzi hosta**~~ — **NAPRAWIONE `f667d9c12`, 2026-08-30**: `mk/fstools.mk:72` daje `$(FSTOOLS_TAG)` 29 prerekwizytów źródłowych przez `COOKBOOK_HOST_SRC` (`:70`). Wpis zostaje jako historia, bo `eos-build.sh` nadal przebudowuje je jawnie — to już pas bezpieczeństwa, nie obejście | — | — |
 | P-2 | **`make all` melduje „Nothing to be done"** i składa obraz ze starych artefaktów | obraz z poprzedniego kodu, bez ostrzeżenia | usuń `build/<arch>/<cfg>/repo.tag` przed budowaniem |
 | P-3 | **`cmd \| tail` w kontenerze** oddaje status `tail` | błąd przejeżdża mimo `set -e` | `set -o pipefail` **po stronie kontenera** |
 | P-4 | **Przekierowanie tworzy plik przed poleceniem** | zerowy plik udający artefakt | etapuj przez `.partial`, potem `mv` |
@@ -352,8 +353,13 @@ Lokalna siatka zastępcza jest w `lefthook.yml` — zainstaluj raz:
 brew install lefthook && lefthook install
 ```
 
-Ma to znaczenie praktyczne: **CI nie działa od 2026-08-28** (wyczerpany limit minut GitLaba), więc
-bramki lokalne są dziś jedyną działającą kontrolą. Szczegóły:
+Ma to znaczenie praktyczne, ale **nie tak jednoznaczne, jak tu wcześniej stało**. Limit minut
+współdzielonych GitLaba wyczerpuje się **z przerwami**, a nie na stałe od 2026-08-28: był
+wyczerpany od 2026-08-28 do rana 2026-09-01, potem tego dnia przeszło **kilkadziesiąt** w pełni
+zielonych przebiegów, a późnym popołudniem wyczerpał się ponownie. Warstwa **własnego** runnera
+minut nie zużywa i chodzi niezależnie — `build-image` przeszedł 2026-09-01 o 19:14 UTC.
+Bramki lokalne **nie są** więc jedyną działającą kontrolą; są jedyną, o której z góry wiadomo,
+że się wykona. Szczegóły:
 [`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §2.
 
 ---
@@ -441,7 +447,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (13 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (14 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
@@ -498,7 +504,9 @@ rozjeżdża (§6, `U-164`).
 w ~0 s na `ci_quota_exceeded` od 2026-08-28 (C-7); GitHub Actions dla tego repozytorium **w
 ogóle się nie uruchamia** — 2026-08-30 minimalny workflow `on: push` na świeżej gałęzi nie
 wyprodukował **żadnego** przebiegu, ani zakolejkowanego, ani czerwonego (pomiar zostaje
-powtarzalny w `.github/workflows/_canary.yml`); a C-6 mówi, że każdy commit w historii szedł
+powtarzalny **nie jest** — `.github/workflows/_canary.yml` nie ma ani na `main`, ani na żadnym
+z obu zdalnych; został tylko jako nieaktualna referencja śledząca w jednym klonie. Albo wrócić
+z pobieralnym kanarkiem, albo nie obiecywać powtarzalności); a C-6 mówi, że każdy commit w historii szedł
 prosto na `main`, więc nawet działający pipeline sprawdzałby kod **po** publikacji i
 zlustrzaniu. Przebieg na własnej maszynie jest dziś jedyną bramką, o której wiadomo, że się
 wykona.
@@ -562,23 +570,20 @@ suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnoś
 `hadolint`, bo `lint.yml` `containerfiles` **blokuje** na `podman/*containerfile`, a
 `verify.sh` twierdził wcześniej, że żadne zadanie w tym drzewie hadolinta nie uruchamia.
 
-Łańcuch jest dziś **kompletny na tym hoście** — ale zieleń 15/15 kupiona jest tym, że ktoś
-doinstalował dwa narzędzia. Na czystej maszynie ten sam commit da 13 PASS i kod 2, i to jest
+Łańcuch jest dziś **kompletny na tym hoście** — ale zieleń 16/16 kupiona jest tym, że ktoś
+doinstalował dwa narzędzia. Na czystej maszynie ten sam commit da 14 PASS · 2 SKIPPED i kod 2, i to jest
 zachowanie **poprawne**: brak skanera daje ten sam wynik co skaner wyłączony, więc skrypt
 odmawia nazwania tego zielonym. Nie zamykaj tego przez `--allow-missing`.
 
-**Znana flaga w vendorowanym manifeście — zmierzona, nie wywnioskowana.**
-`cook::cook_build::tests::file_system_loop_no_infinite_loop` pada na
-`src/config.rs:209` z `Configuration is not initialized`: czyta globalny stan, który
-inicjalizuje **inny** test w tym samym binarium, więc wynik zależy od kolejności wątków.
-To wyścig, którego szanse **rosną z obciążeniem CPU**: **2 porażki na 18** domyślnych
-(równoległych) przebiegów na bezczynnej maszynie, **5 na 6** przebiegów robionych, gdy o
-procesor biły się inne zadania, i **0 na 3** przy `-- --test-threads=1`. Obciążony współdzielony
-runner CI jest więc dla tego testu **najgorszym**, a nie najlepszym przypadkiem. Czego **nie**
-ustalono: który test inicjalizuje ten globalny stan i czy upstream już to naprawił.
-Dotyczy tak samo `rust-checks` w `.gitlab-ci.yml` i zadania `rust`
-w `ci.yml` — obydwa wołają zwykłe `cargo test`. Jeśli `verify.sh` czerwieni się **na tej
-jednej nazwie testu i niczym więcej**, to nie jest Twoja zmiana. `verify.sh` tego **nie
+**Była tu znana flaga w vendorowanym manifeście — **naprawiona `758be384e`, 2026-09-01**.
+`cook::cook_build::tests::file_system_loop_no_infinite_loop` padał, bo czytał globalną
+konfigurację inicjowaną przez **inny** test w tym samym binarium. Nie był to wyścig o CPU, jak
+tu wcześniej stało, tylko **deterministyczna zależność od zestawu celów**: przechodził pod
+`cargo test` i padał pod `cargo test --tests`, którego używa `llvm-cov`. Jest teraz jedna
+wspólna konfiguracja testowa, inicjowana przez tego, kto pierwszy jej potrzebuje. Zmierzone po
+poprawce: **0 porażek na 20** przebiegów bezczynnych i **0 na 6** przy obciążonym procesorze.
+Wpis zostaje jako historia; jeśli ta nazwa testu znów się zaczerwieni, to **jest** regresja.
+`verify.sh` tego **nie
 obchodzi** przez `--test-threads=1`: lokalna zieleń kupiona rozjazdem z CI to nadal czerwony
 pipeline, a flaga w bramce jest wadą do naprawienia, nie do schowania w bramce.
 
@@ -610,7 +615,8 @@ uzasadnienie **oraz plan usunięcia**.
 
 ## 15. Dokumentacja — struktura docelowa
 
-**Jest dziś:** mdBook (`book.toml`, `docs/SUMMARY.md`), 38 plików w `docs/`, w tym
+**Jest dziś:** mdBook (`book.toml`, `docs/SUMMARY.md`), 109 śledzonych plików w `docs/`
+(78 markdownów), w tym
 `docs/architecture/overview.md`, `docs/security/threat-model.md`, `docs/reference/hardware-matrix.md`,
 `docs/design-*.md`, `docs/adr`-podobne uzasadnienia rozsiane po CHANGELOG-u.
 `mdbook-mermaid` jest wpięty w `pages` i `docs-pdf`.
@@ -630,8 +636,9 @@ aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
 
 ## 16. Testowanie
 
-**Jest dziś:** `cargo test` na obu manifestach (9 testów vendorowanego cookbooka + 9
-w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64**; aarch64 — patrz #15),
+**Jest dziś:** `cargo test` na obu manifestach (15 testów vendorowanego cookbooka + 9
+w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64 i aarch64** — obie PASS,
+exit 0, zmierzone 2026-09-01; #15 zamknięte),
 `repro-intx-lines.sh` (10-konfiguracyjny strażnik regresji z kolumną czasu),
 `ci-install-smoke.sh` (dwuetapowy dowód instalacji), `--selftest` w aplikacjach GUI.
 
@@ -660,7 +667,7 @@ w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64**; aarch64 
 - **`cargo-fuzz`** dla parserów wejścia niezaufanego (matcher katalogu sterowników,
   `repo.toml`, deskryptory HID) — ❌ brak.
 - **`miri`** dla kodu `unsafe` — ❌ brak.
-- **Pokrycie (`cargo-llvm-cov`)** — ✅ **jest** (`U-168`). Zmierzone: `tools/eos-repo-sign` **38,84%**, vendorowany cookbook **2,92%**. Bramka obejmuje wyłącznie kod własny; próg 38% ma łapać **regresję**, a nie certyfikować 38% jako dobry wynik. Sprawdzone, że potrafi paść (przy progu 60% kończy się błędem).
+- **Pokrycie (`cargo-llvm-cov`)** — ✅ **jest** (`U-168`). Zmierzone przy `U-168`: `tools/eos-repo-sign` **38,84%**, vendorowany cookbook **2,92%**. **Ponownie 2026-09-01: 41,06% i 6,26%** — oba wzrosły, próg 38% ma dziś ~3 punkty zapasu. Stare liczby zostają, bo to one uzasadniają wybór progu. Bramka obejmuje wyłącznie kod własny; próg 38% ma łapać **regresję**, a nie certyfikować 38% jako dobry wynik. Sprawdzone, że potrafi paść (przy progu 60% kończy się błędem).
 
 ## 17. Wydania — odtwarzalność i łańcuch dostaw
 
@@ -724,7 +731,10 @@ gita** — to rozpakowane archiwa. Nie da się z nich pchać, nie widać w nich 
 choć obie były wypchnięte, a `eos-base-eos-july` odpowiadał rewizji `816546df^` — **jeden
 commit przed** przypięciem.
 
-Zostały przeniesione do `../_archiwum-migawek/` (przeniesione, nie usunięte) razem z
+Zostały **przeniesione do `../_archiwum-migawek/`, którego dziś nie ma** — sprawdzone 2026-09-01:
+katalog projektu zawiera `E-OS/` i cztery ukryte pliki, `find` i `mdfind` nie znajdują archiwum,
+Kosz jest pusty. Zdanie o przeniesieniu zamiast usunięcia przestało obowiązywać, i nie wiadomo
+od kiedy. Pierwotnie trafiły tam razem z
 `PRZECZYTAJ-MNIE.md` wyjaśniającym, czym są. Katalog projektu zawiera teraz **wyłącznie
 `E-OS/` i to archiwum**. Jeśli kiedyś znów pojawią się takie katalogi obok repozytorium —
 przenieś je tam od razu, zamiast czytać.
@@ -951,7 +961,6 @@ Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika 
 | `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
 | `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
 | `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
-| `R-601` | partycja → instalacja → reboot → login nadal **nieudowodnione**; blokuje `R-F19`. | 🚧 P0 |
 
 ### Narzędzia, których w repo nie ma
 
