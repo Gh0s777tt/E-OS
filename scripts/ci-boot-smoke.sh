@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 # Boot-smoke an E-OS image headlessly and assert it reaches userspace.
 # Used by the `build-image` jobs on the self-hosted `eos-heavy` runner (macOS +
-# QEMU). The aarch64 path mirrors the proven local harness out/rf08_boot.sh (same
-# machine/cpu/firmware/device model). Exits 0 if the boot reaches the login
-# prompt, 1 else.
+# QEMU). Exits 0 if the boot reaches the login prompt, 1 else.
+#
+# x86_64: proven, exit 0 (2026-08-21, re-measured 2026-09-01).
+# aarch64: booted to the greeter repeatedly through 2026-08 (see known-issues.md
+# R-401b/c/d and docs/img/eos-aarch64-live-iso-greeter.png), but does NOT boot
+# today -- issue #15. Treat a green aarch64 run as news, not as routine.
+#
+# This header used to call the aarch64 path a mirror of "the proven local harness
+# out/rf08_boot.sh". That file is in neither the repo, its history, nor the build
+# volume; it most likely lived in the Redox build tree's out/, which is wiped. The
+# harness may well have been real -- the point is the citation cannot be checked,
+# so it is not evidence.
 #
 #   scripts/ci-boot-smoke.sh <image> [timeout_seconds] [--arch aarch64|x86_64]
 #
@@ -60,8 +69,8 @@ trap cleanup EXIT
 cp "$FW_VARS_SRC" "$WORK/vars.fd"
 SERIAL="$WORK/serial.log"; MON="$WORK/mon.sock"; : > "$SERIAL"
 
-# Send a QEMU monitor command over the unix socket (python3, as in rf08_boot.sh —
-# BSD nc's -U behaviour is unreliable for this).
+# Send a QEMU monitor command over the unix socket. python3 rather than nc:
+# BSD nc's -U behaviour is unreliable for this.
 mon() {
   python3 - "$MON" "$1" <<'PY' 2>/dev/null || true
 import socket, sys, time
@@ -89,7 +98,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   sleep 3
   kill -0 "$QPID" 2>/dev/null || { echo "boot-smoke: FAIL — qemu exited early"; break; }
   txt="$(sed "$strip" "$SERIAL" 2>/dev/null)"
-  # Accept the bootloader video-mode menu once (as rf08_boot.sh does).
+  # The bootloader opens on a video-mode menu and waits; press Enter once to
+  # take the default. Once only -- a second Enter would land in the login prompt.
   if [ "$sent_ret" -eq 0 ] && echo "$txt" | grep -qaiE 'Redox Loader|E-OS|Genesis|BdsDxe'; then
     mon 'sendkey ret'; sent_ret=1
   fi
