@@ -408,9 +408,29 @@ stage_coverage() {
   # -- the vendored cookbook is upstream's code and gating its coverage would be re-litigating
   # a tree we do not own. The number is printed so a regression is visible to a human.
   echo "--- advisory: vendored redox_cookbook ---"
-  if ! CARGO_TARGET_DIR="$cov_target" \
-       cargo llvm-cov --locked --manifest-path "$M_VENDORED" --summary-only; then
-    echo "  (advisory leg did not complete — not failing the stage)"
+  # Advisory means "do not gate on upstream's coverage NUMBER". It was never meant to swallow a
+  # TEST FAILURE. Measured 2026-09-01 on main: cargo test exited 101 under llvm-cov with
+  # `cook::cook_build::tests::file_system_loop_no_infinite_loop ... FAILED`, and the only thing a
+  # human saw was the one-line "advisory leg did not complete" below -- no test name, no count.
+  # The outcome (stage does not fail) is deliberate and unchanged; what changes is that a
+  # failing test is now named. See issue #20.
+  local adv_log="${cov_target}.advisory.log"
+  if CARGO_TARGET_DIR="$cov_target" \
+     cargo llvm-cov --locked --manifest-path "$M_VENDORED" --summary-only 2>&1 | tee "$adv_log"
+  then :; fi
+  # `cmd | tee` yields tee's status (P-3), so ask the artifact, not the exit code.
+  if grep -qE '^test result: FAILED' "$adv_log" 2>/dev/null; then
+    echo "  !! the vendored cookbook's TESTS FAILED under llvm-cov (not just low coverage):"
+    grep -E '^test .* \.\.\. FAILED$' "$adv_log" | sed 's/^/       /'
+    grep -E '^test result: FAILED' "$adv_log" | sed 's/^/       /'
+    echo "     Not failing this stage -- upstream code, and the \`test\` stage above is the"
+    echo "     authority on test outcomes. \`test\` runs \`cargo test\`; llvm-cov runs"
+    echo "     \`cargo test --tests\`, which builds a different set of targets, so a test"
+    echo "     that leans on state another test set up can pass in one and fail in the"
+    echo "     other. Measured 2026-09-01: file_system_loop_no_infinite_loop panics with"
+    echo "     'Configuration is not initialized' (src/config.rs:209). Issue #20."
+  elif ! grep -qE '^  *TOTAL|^Filename' "$adv_log" 2>/dev/null; then
+    echo "  (advisory leg did not complete and produced no coverage table — not failing the stage)"
   fi
 
   echo "--- blocking: E-OS-owned tools/eos-repo-sign ---"
