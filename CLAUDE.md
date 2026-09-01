@@ -333,6 +333,7 @@ Każda zmierzona, nie wydedukowana.
 | P-10 | **SELinux MCS na wolumenach podmana** | `EACCES` mimo uid 0 i `CAP_DAC_OVERRIDE` | `chcon -l s0` na pliku |
 | P-11 | **`grep -c` wypisuje `0` i zwraca status ≠ 0** | `\|\| echo 0` dokleja drugie zero i psuje arytmetykę | sprawdzaj status osobno |
 | P-12 | **Odczyt surowych urządzeń wymaga roota** | „błąd 5" z `fsck_apfs` **nie jest** dowodem uszkodzenia | nie diagnozuj na tej podstawie |
+| P-13 | **Powłoką hosta jest zsh, a on nie wypełnia `PIPESTATUS`** | `${PIPESTATUS[0]}` i `${PIPESTATUS[1]}` są **puste**, więc `EXIT=` wychodzi puste i wygląda jak sukces | w zsh użyj `${pipestatus[1]}` (od 1); w skryptach wołaj `bash`, gdzie `PIPESTATUS` działa |
 
 ---
 

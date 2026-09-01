@@ -67,6 +67,7 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 
 ### Fixed
 
+- **`verify.sh` uruchamia teraz `coverage` i `cargo-deny`** — oba etapy od dawna meldowały `SKIPPED — not installed`, choć narzędzia **były zainstalowane**. `cargo` pochodzi z homebrew i nie dodaje `~/.cargo/bin` do `PATH`, czyli dokładnie katalogu, w którym `cargo install` je umieszcza. Zmierzone po poprawce: `coverage` 4 s i `cargo-deny` 3 s zamiast `0s SKIPPED`, `16 PASS · 0 SKIPPED`.
 - **U-153** — R-F16` root-caused and fixed ([`1662771aa`](https://gitlab.com/e-os/e-os/-/commit/1662771aa), `fix(gic): root-cause R-F16 -- a read-modify-write on a W1C register (U-153)`)
 - **U-156** — R-F10` closed: the bootloader now unlocks the filesystem it was actually built against ([`5709a5921`](https://gitlab.com/e-os/e-os/-/commit/5709a5921), `fix(tcb): the bootloader now unlocks the filesystem it was built against (U-156,`)
 - **U-158** — eos-setup-mirrors.sh` would have destroyed the published package repos, and could not be audited without a credential ([`ba254d21d`](https://gitlab.com/e-os/e-os/-/commit/ba254d21d), `fix(mirrors): stop --apply from overwriting the published package repos (U-158)`)
