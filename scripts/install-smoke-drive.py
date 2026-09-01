@@ -319,20 +319,63 @@ def _login_once(con):
     return False
 
 
+def _offered_size(listing, path):
+    """Bytes for `path` as the installer printed them, or 0 when it did not say.
+
+    Parsed from the block the installer just wrote rather than from a `stat` on the host: the
+    number the OPERATOR sees is the number the choice must be made on, and if those two ever
+    disagree it is the printed one that misleads a person.
+    """
+    m = re.search(re.escape(path) + r"(.{0,200}?)size:\s*([0-9.]+)\s*([KMGT]?)i?B", listing, re.S)
+    if not m:
+        return 0
+    mult = {"": 1, "K": 1 << 10, "M": 1 << 20, "G": 1 << 30, "T": 1 << 40}[m.group(3)]
+    try:
+        return float(m.group(2)) * mult
+    except ValueError:
+        return 0
+
+
 def run_install(con):
     con.send("redox_installer_tui")
 
-    if not con.expect(r"Select a drive from 1 to", "the installer's drive menu", window=w(120)):
+    # R-604a changed this prompt deliberately: the installer no longer takes a NUMBER, because
+    # the number is a position in a list ordered by PCI enumeration, and that order was measured
+    # changing between runs (the same 4 GB disk appeared at 00-05.0 and at 00-06.0). It now
+    # requires the operator to retype the device path. This driver has to do the same thing a
+    # person would -- read what is offered, then name it.
+    if not con.expect(r"Disk to erase:", "the installer's disk prompt", window=w(120)):
         return False
 
-    # Report what the installer offered -- the point of the exercise. The boot disk is in
-    # use and is not listed, so the blank target is the only entry.
-    listing = con.buf[max(0, con.buf.rfind("Select a drive") - 800):con.buf.rfind("Select a drive")]
+    listing = con.buf[max(0, con.buf.rfind("Disks found:")):]
+    offered = []
     for line in listing.split("\n"):
-        if "/scheme/disk" in line:
-            print("install-smoke:     offered: " + line.strip()[:90])
+        line = line.strip()
+        m = re.search(r"(/scheme/disk[^\s:]+)", line)
+        if m and m.group(1) not in offered:
+            offered.append(m.group(1))
+    for path in offered:
+        print("install-smoke:     offered: " + path[:90])
+    if not offered:
+        print("install-smoke: FAIL -- the disk prompt appeared but no device path was listed")
+        return False
 
-    con.send("1")
+    # NEGATIVE CONTROL, and it is part of the test rather than decoration: type a path that
+    # does NOT name any offered disk and require the installer to refuse. If this ever stops
+    # printing "refused", the confirmation has become decorative and the next wrong answer
+    # erases a disk. A wrong name must cost nothing, so this runs before the real one.
+    con.send(offered[0] + "-not-a-real-disk")
+    if not con.expect(r"refused:", "the installer refusing a name that matches no disk",
+                      window=w(60)):
+        print("install-smoke: FAIL -- a wrong disk name was NOT refused")
+        return False
+
+    # The blank target is the largest offered disk: the live medium is 1.37 GiB and the target
+    # created by the harness is 4 GiB. Chosen by SIZE rather than by position for exactly the
+    # reason the prompt changed.
+    target = offered[-1] if len(offered) == 1 else max(offered, key=lambda p: _offered_size(listing, p))
+    print("install-smoke:     erasing: " + target)
+    con.send(target)
 
     # The redoxfs password prompt is INVISIBLE on the serial console: it is a password
     # prompt, so it echoes nothing, and waiting for it simply times out. An earlier
