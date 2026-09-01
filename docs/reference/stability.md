@@ -48,7 +48,7 @@ Pick **`lts/0.1`** for a deployment you don't want to chase; track `main` for th
 
 - The **syscall/scheme ABI** — inherited from upstream Redox, still evolving.
 - **On-disk format**, **default credentials/services**, **the package set**.
-- **aarch64** — experimental (boots the bootloader, not yet to login — `R-401b`).
+- **aarch64** — experimental, but it does boot all the way to a userspace login (`R-401b` resolved 2026-06-08; re-measured 2026-09-01 after the no-LTO bootloader fix). Experimental because it is less exercised than x86_64 and is built with LTO disabled, not because it stops at the bootloader.
 
 When `relibc` / the kernel ABI stabilises upstream and E-OS reaches `1.0`, this
 page becomes a binding promise rather than a plan. Until then: **pin versions, use

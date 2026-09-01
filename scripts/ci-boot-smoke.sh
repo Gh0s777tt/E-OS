@@ -4,9 +4,10 @@
 # QEMU). Exits 0 if the boot reaches the login prompt, 1 else.
 #
 # x86_64: proven, exit 0 (2026-08-21, re-measured 2026-09-01).
-# aarch64: booted to the greeter repeatedly through 2026-08 (see known-issues.md
-# R-401b/c/d and docs/img/eos-aarch64-live-iso-greeter.png), but does NOT boot
-# today -- issue #15. Treat a green aarch64 run as news, not as routine.
+# aarch64: proven, exit 0 (2026-09-01, both 2048 and 6144 MiB). It was broken for part
+# of August -- LTO merged stack frames past the firmware's ~124 KiB DXE stack -- and was
+# fixed by pinning eos-bootloader d4217442 (no LTO on aarch64). Issue #15 is closed, so a
+# RED aarch64 run is the news now.
 #
 # This header used to call the aarch64 path a mirror of "the proven local harness
 # out/rf08_boot.sh". That file is in neither the repo, its history, nor the build

@@ -16,9 +16,11 @@
   z kodu). Dopisana szósta powierzchnia przypięcia — skróty tarballi — i sprzeczność między
   docstringiem `eos-check-tar-pins.py` a `src/cook/fetch.rs:118-124` (§1).
 
-> ## ⚠️ To jest stan **PRZED** scaleniem czegokolwiek
+> ## ⚠️ Stan sprzed scalenia — zmierzony 2026-08-30, dziś nieaktualny
 >
-> Dziewięć MR-ów jest otwartych, **zero scalonych**. Wszystko poniżej opisuje drzewo takie,
+> **Wszystkie te MR-y zostały scalone.** Na 2026-09-01 repozytorium ma **38 scalonych MR-ów
+> i zero otwartych**. Blok zostaje, bo §8 opisuje, który MR przesuwa którą komórkę — ale
+> macierz poniżej opisuje drzewo **sprzed** tych scaleń. Wszystko poniżej opisuje drzewo takie,
 > jakie jest teraz — nie takie, jakie będzie po `main`. Sekcja [§8](#8-co-się-zmieni-po-scaleniu)
 > rozpisuje, którą komórkę tej macierzy przesuwa który MR.
 >
@@ -47,8 +49,9 @@ większości rozjazdów w tym projekcie, więc najpierw rozdział ról:
 Powierzchnia 6, zmierzona dziś dwoma niezależnymi sposobami. Zgrubnie: **397 źródeł `tar =`
 w `recipes/`, z czego 178 ma `blake3` albo `sha256`**. Dokładnie — przez uruchomienie skryptu
 kontroli 12 z `fix/p0-audit-findings` na **bieżącym** drzewie (kopia do katalogu tymczasowego,
-bez przełączania gałęzi): **dokładnie jedna receptura w domknięciu `config/*/eos.toml` ciąga
-tarball bez skrótu — `mpc` (`recipes/libs/mpc/recipe.toml`)**, exit 1; poza domknięciem siedem
+bez przełączania gałęzi): **żadna receptura w domknięciu `config/*/eos.toml` nie ciąga już tarballa bez skrótu**
+(zaktualizowane 2026-09-01: `mpc` dostał `blake3` w `f8ac1b09b`; bramka `tar-pins` przechodzi,
+77 receptur obejrzanych). Wtedy była dokładnie jedna — `mpc` — exit 1; poza domknięciem siedem
 kolejnych (`bash-completion`, `iperf3`, `jq`, `libinotify-stub`, `liburcu`, `nginx`,
 `sdl2-image`) i te skrypt raportuje jako doradcze.
 
@@ -254,10 +257,9 @@ Zmierzone na siedmiu gałęziach (`main`, `feat/m1-bootable-medium`, `fix/p0-aud
 `ci.yml` **świadomie nie ma osi wersji Rusta** i **nie używa** `dtolnay/rust-toolchain`:
 ta akcja eksportuje `RUSTUP_TOOLCHAIN`, które ma pierwszeństwo nad plikiem, więc po cichu
 podmieniłaby pin. Instaluje przez `rustup toolchain install` (`ci.yml:164`), które czyta plik;
-powód jest zapisany w komentarzu `ci.yml:155-160`. **Uwaga na zakres:** `.github/workflows/`
-nie istnieje ani na `main`, ani w bieżącym drzewie roboczym — te osiem workflow'ów leży
-**wyłącznie** na `chore/security-hardening` (`git ls-tree -r --name-only main --
-.github/workflows/` → pusto). Zdanie powyżej opisuje więc plik z niescalonej gałęzi, nie
+powód jest zapisany w komentarzu `ci.yml:155-160`. **Uwaga na zakres — nieaktualna od 2026-08-30:** `.github/workflows/` **jest** na `main`
+i w bieżącym drzewie (8 plików, przywrócone w `7c4380585`). Wcześniej te workflow'y leżały
+wyłącznie na `chore/security-hardening`, i to opisywało zdanie poniżej. Zdanie powyżej opisuje więc plik z niescalonej gałęzi, nie
 bramkę, która dziś gdziekolwiek działa.
 
 ### 5.2 Wersja produktu — `G-17`, **NIE naprawione**
@@ -345,8 +347,9 @@ upstreamu. Policzone z `Cargo.lock`, nie założone: sześć pakietów z czterec
 | `rust-toolchain.toml` vs `mk/prefix.mk:29` | błąd linkowania w `make prefix` | **żadna** | oba `2026-05-24` |
 | wersja produktu w 4–5 miejscach | system raportuje inną wersję niż wydana | **żadna** | rozjechane (`G-17`) |
 
-**Dopuszczalny rozjazd** obsługuje `scripts/pin-allowlist.txt` — dziś **pusty**, i plik sam
-mówi, że to stan docelowy. Dwa wpisy `R-902` (`eos-control`, `eos-installer`) zostały wyczyszczone
+**Dopuszczalny rozjazd** obsługuje `scripts/pin-allowlist.txt` — dziś **jeden wpis**
+(`eos-installer`, `R-604a`), z podanym warunkiem wycofania; pusty jest stanem docelowym,
+co plik mówi sam. Dwa wpisy `R-902` (`eos-control`, `eos-installer`) zostały wyczyszczone
 w `U-132` po wykonaniu przebiegu bramki, na który czekały. Wpis w tym pliku musi podawać
 **warunek usunięcia**, nie tylko powód.
 
