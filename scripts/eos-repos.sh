@@ -130,7 +130,24 @@ cmd_pins() {
       if [ -f "$allow_file" ] && awk '!/^[[:space:]]*#/{print $1}' "$allow_file" | grep -qxF "$name"; then
         st="DRIFT (allowlisted)"
       else
-        st="DRIFT (pin behind fork tip)"; baddrift=$((baddrift+1))
+        # Direction matters, and until 2026-09-01 this branch ignored it: ANY mismatch was
+        # reported as "pin behind fork tip". Measured that day -- a pin bumped to a commit that
+        # GitLab already carried, but the GitHub mirror had not yet replayed, printed
+        # "pin behind fork tip" while the pin was a commit AHEAD of the tip it was compared to.
+        # That message sends the operator to bump a pin that is already correct.
+        #
+        # `head` above comes from the GitHub MIRROR. GitLab is the source of truth (CLAUDE.md),
+        # so ask it: if the pin matches GitLab and only the mirror disagrees, the pin is right
+        # and the mirror has not caught up. That is a real condition worth reporting -- a build
+        # from the mirror would get different code -- but it is not the same defect and does not
+        # have the same fix, so it does not get the same name.
+        local glhead=""
+        [ -n "$gl" ] && glhead=$(git ls-remote "$gl" "refs/heads/$br" </dev/null 2>/dev/null | awk '{print $1}')
+        if [ -n "$glhead" ] && [ "$rev" = "$glhead" ]; then
+          st="MIRROR-BEHIND (gitlab=pin, github=${head:0:10})"; baddrift=$((baddrift+1))
+        else
+          st="DRIFT (pin behind fork tip)"; baddrift=$((baddrift+1))
+        fi
       fi
     fi
     printf "%-16s | %-12s | %-11s | %-11s | %s\n" "$name" "$br" "${rev:0:10}" "${head:0:10}" "$st"
