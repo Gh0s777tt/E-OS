@@ -67,6 +67,7 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 
 ### Fixed
 
+- **`ci-integrity` check 14 nie pada już na własnym źródle** — `scripts/eos-check-doc-paths.py` wymienia martwe ścieżki jako **przykłady** tego, co wykrywa, więc skanując siebie padał na własnej prozie. Na gałęzi tego nie było widać, bo plik był jeszcze **nieśledzony**, a bramka czyta `git ls-files` (klasa **P-9**). Wykluczony jest jeden plik, z warunkiem wycofania wpisu; wykrywanie w pozostałych plikach sprawdzone kontrolą negatywną.
 - **`verify.sh` uruchamia teraz `coverage` i `cargo-deny`** — oba etapy od dawna meldowały `SKIPPED — not installed`, choć narzędzia **były zainstalowane**. `cargo` pochodzi z homebrew i nie dodaje `~/.cargo/bin` do `PATH`, czyli dokładnie katalogu, w którym `cargo install` je umieszcza. Zmierzone po poprawce: `coverage` 4 s i `cargo-deny` 3 s zamiast `0s SKIPPED`, `16 PASS · 0 SKIPPED`.
 - **U-153** — R-F16` root-caused and fixed ([`1662771aa`](https://gitlab.com/e-os/e-os/-/commit/1662771aa), `fix(gic): root-cause R-F16 -- a read-modify-write on a W1C register (U-153)`)
 - **U-156** — R-F10` closed: the bootloader now unlocks the filesystem it was actually built against ([`5709a5921`](https://gitlab.com/e-os/e-os/-/commit/5709a5921), `fix(tcb): the bootloader now unlocks the filesystem it was built against (U-156,`)
