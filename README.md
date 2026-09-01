@@ -14,8 +14,12 @@ signed package index, and a curated desktop.
 [![last commit](https://img.shields.io/github/last-commit/Gh0s777tt/E-OS)](https://gitlab.com/e-os/e-os/-/commits/main)
 
 > **On the badges.** The pipeline badge currently reads **failed** and the coverage badge reads
-> **unknown**. Both are accurate: the GitLab CI minute quota was exhausted on 2026-08-28, so no job
-> has executed since — see [`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §2.
+> **unknown**. Both are accurate, but not for the reason first written here: the shared-runner
+> quota exhausts **intermittently**, not permanently. It was out from 2026-08-28 until the
+> 2026-09-01 reset, ran green all that day, and was out again by evening. The self-hosted
+> `eos-heavy` tier spends no shared minutes and is unaffected — `build-image` succeeded on
+> 2026-09-01 in 1299 s, running boot-smoke on two images and install-smoke through to a login
+> prompt — see [`docs/audit/03-security-audit-2026-08-30.md`](docs/audit/03-security-audit-2026-08-30.md) §2.
 > An OpenSSF Scorecard badge is deliberately absent: the project is not registered with Scorecard,
 > and the badge would render `invalid repo path`. A GitLab release badge is absent for the same
 > reason — it renders `none`, because tags exist but Release objects do not.

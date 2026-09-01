@@ -275,8 +275,11 @@ that range rather than trusting the pipeline history.
 optimistic: the **local hooks** (`lefthook.yml` — `gitleaks` fails closed on `pre-commit`,
 `clippy -D warnings` and `ci-integrity.sh` on `pre-push`), which are **opt-in** and require
 `lefthook install`; and the self-hosted `eos-heavy` jobs, which carry `needs: []` precisely so
-a quota-exhausted light tier cannot skip them — but which need a runner attached, and `U-152`
-records that none currently is.
+a quota-exhausted light tier cannot skip them. A runner **is** attached: `eos-heavy (mac podman)`,
+id 54369740, online, registered 2026-07-16. It ran `build-image` and `docs-pdf` on 2026-09-01.
+The `U-152` note saying none is attached — and the same note at `.gitlab-ci.yml:297` — is stale;
+so was my own reading of the runner list, which paginated over shared runners and never reached
+this one.
 
 **Do not treat the GitHub Actions suite as the closure of this window.** GitHub Actions does
 not execute for this repository — established by experiment on 2026-08-30, not assumed: a

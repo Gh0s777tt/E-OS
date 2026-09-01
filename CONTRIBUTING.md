@@ -10,11 +10,13 @@ owner: Gh0s777tt
 Read [`CLAUDE.md`](CLAUDE.md) first. It is the working contract; this file is the practical path
 through it.
 
-> **Honest note on process maturity.** This project has had **zero merge requests** in its entire
-> history — every commit so far went straight to `main`. The workflow below is what the project is
-> moving to, not a description of what has happened. Blocking direct pushes to `main` is the first
-> item on the roadmap (`S-1`) precisely because the pipeline gate is already configured and
-> currently bypassed.
+> **Honest note on process maturity.** Every commit **before 2026-08-30** went straight to `main`.
+> Since then **38 merge requests have been merged** (measured 2026-09-01), most of them that day, each with
+> a `merge_request_event` pipeline on the MR head. The workflow below is now a description of what
+> happens — with one gap. Blocking direct pushes to `main` is still the first item on the
+> roadmap (`S-1`), because the pipeline gate is configured and can still be bypassed: the
+> requirement was temporarily switched off to land a merge request while the shared quota
+> was exhausted, then switched back on and verified.
 
 ## Development environment
 

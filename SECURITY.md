@@ -81,14 +81,19 @@ installed x86_64 system through the update mechanism. Tracked as `C-4`; see
   **known gaps with roadmap entries**, not vulnerabilities. Reporting them is welcome as a design
   discussion, not as an advisory.
 
-CI is defined in **two** places, and neither is currently doing its job unaided.
-**GitLab** (`.gitlab-ci.yml`) is the authoritative pipeline, but every job there has
-failed in ~0 s with `ci_quota_exceeded` since 2026-08-28. **GitHub Actions**
+CI is defined in **two** places, and the shared half is unreliable.
+**GitLab** (`.gitlab-ci.yml`) is the authoritative pipeline. Its **shared-runner** jobs fail in
+~0 s with `ci_quota_exceeded` whenever the monthly minutes are gone — from 2026-08-28 to the
+2026-09-01 reset, green for a day, then gone again. Its **self-hosted** jobs (`tags: [eos-heavy]`,
+`needs: []`) spend no shared minutes and are not covered by that: on 2026-09-01 `build-image`
+succeeded in 1299 s and `docs-pdf` in 50 s. **GitHub Actions**
 (`.github/workflows/`) was added as the remediation — a public repository has no minute
 cap — but Actions do not execute on this account today: a minimal `on: push` workflow
 pushed straight to github.com produces no run at all. Turning that back on is step 0 of
 [docs/security/github-configuration.md](docs/security/github-configuration.md).
-Until one of the two is running, treat every gate below as *written, not enforced*.
+Read the gates below accordingly: the ones the `eos-heavy` tier runs (image build, boot-smoke,
+install-smoke) are **enforced**; the rest are *written, not enforced* whenever the shared
+quota is out — which is most of the time. Check the quota before relying on a green pipeline.
 
 ## Known gaps
 

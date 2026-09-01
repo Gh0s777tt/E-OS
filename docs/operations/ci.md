@@ -15,7 +15,9 @@ pipeline stopped measuring anything on 2026-08-28: every job fails in ~0 s with
 `ci_quota_exceeded` (audit finding C-7). A public repository has no Actions minute cap,
 which is the whole reason the second pipeline is a remediation rather than a duplicate.
 
-**Neither runs right now.** GitLab is out of minutes, and Actions do not execute on this
+**The LIGHT tier does not run right now; the heavy tier does.** GitLab's shared runners are out
+of minutes (intermittently — dead 2026-08-28, green through 2026-09-01, dead again that evening),
+and Actions do not execute on this
 account: a minimal `on: push` workflow with no branch filter, pushed directly to
 github.com on a fresh branch, produced no workflow run at all — not queued, not failed.
 Real workflows last ran here on 2026-06-16. See

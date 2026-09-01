@@ -59,10 +59,10 @@ a required review that has never been enforced. Status here means *verified toda
 | `cargo-deny` (advisories/licenses/sources) | `.gitlab-ci.yml` → `rust-checks` | ⚠️ **on, but one crate** — `tools/eos-repo-sign` only; the vendored `redox_cookbook` engine is not covered |
 | Force-push / branch deletion blocked | GitHub `main` | ✅ **on** |
 | Protected branch | GitLab `main` | ✅ **on** — push and merge restricted to Maintainers |
-| CodeQL code scanning | — | ❌ **off**. `.github/workflows/` no longer exists (Actions are disabled account-wide). The results GitHub still shows are from the last run before that and are **stale** — do not read them as current. |
+| CodeQL code scanning | `.github/workflows/security.yml` (job `codeql`) | ⚠️ **defined, never executed here.** The workflow suite was restored 2026-08-30 (`7c4380585`) and Actions are enabled — but no run is produced on this account, so the results GitHub shows are from the old `codeql.yml`, last run 2026-06-16, and are stale. |
 | Required review before merge | — | ❌ **not enforced** on either host |
 | CODEOWNERS review | `.github/CODEOWNERS` | ⚠️ **file present, unenforced** — with no required review it is advisory |
-| Pipeline must pass before merge | GitLab project setting | ❌ **off** — `only_allow_merge_if_pipeline_succeeds = false`, and there have been **0 merge requests** in project history, so every gate is a notification *after* the push, not a gate. `docs-currency` (MR-only) has never executed. |
+| Pipeline must pass before merge | GitLab project setting | ✅ **on** — `only_allow_merge_if_pipeline_succeeds = true`, and 38 merge requests have been merged (2026-09-01). The gate is only as good as the quota: it was switched off once to land a merge request while the shared runners were out of minutes, then switched back on and verified. |
 | Signed commits / tags | git + GitLab | ✅ **on (re-measured `U-152`)** — SSH signing, `commit.gpgsign`/`tag.gpgsign` both true, `allowed_signers` set; every commit since `1d3c62ea6` verifies `G`, and GitLab's signature API reports `verified`. `v0.2.0` is the first **annotated, signed** tag — the older two are *lightweight* and could never have held a signature. ⚠️ **GitHub mirror unconfirmed**: the `gh` token lacks `admin:ssh_signing_key`, so whether the key is registered there as a *signing* key is unknown; if not, mirrored commits read *Unverified*. |
 
 **What this table says in one line:** secrets are genuinely well covered end to end;
