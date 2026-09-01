@@ -107,12 +107,17 @@ sequenceDiagram
 
 **Source:** `eos-bootloader/src/main.rs:436-451` and `src/eos_boot_verify.rs:16-17, 49-56, 72-81`.
 
-**Known weakness.** The whole block is behind `#[cfg(feature = "verify-boot")]`, and the feature is
-enabled only when `build/boot-signing/boot.pub.bin` exists
-(`recipes/core/bootloader/recipe.toml:26-36`). Without the key the recipe prints a warning and
-builds a bootloader that verifies nothing — and `scripts/eos-build.sh:62` pipes make through
-`tail -3`, so the warning is not seen. Tracked as `C-2`; the fix is to require an explicit
-`EOS_ALLOW_UNVERIFIED_BOOT=1`.
+**Known weakness — closed.** The whole block is behind `#[cfg(feature = "verify-boot")]`, and the
+feature is enabled only when `build/boot-signing/boot.pub.bin` exists
+(`recipes/core/bootloader/recipe.toml:26-36`). Without that key the recipe now **refuses to
+build**: it writes the reason to stderr and exits 1, unless `EOS_ALLOW_UNVERIFIED_BOOT=1` is set
+explicitly.
+
+It used to fail **open** — print a warning and build a bootloader that verifies nothing. That was
+worse than it sounds: `scripts/eos-build.sh` pipes make through `tail`, so the warning never
+reached the operator, and a machine without the key produced an image indistinguishable from a
+verified one. Recorded as `C-2`; the fix asked for was exactly the explicit opt-in that is now
+in place.
 
 ---
 
@@ -188,7 +193,7 @@ graph LR
 
 ```mermaid
 graph TD
-  UP["static.redox-os.org<br/><b>UNPINNED</b> — key fetched from the same host"]:::bad
+  UP["static.redox-os.org<br/><b>PINNED</b> — key pinned in-tree at keys/upstream-redox-pkg.pub.toml"]:::warn
   MIR["github.com/Gh0s777tt mirror<br/>22 of 26 recipes fetch from here"]:::warn
   BLD["build machine<br/>4 private keys live here"]:::warn
   IMGX["signed image + pinned keys"]:::ok
@@ -209,9 +214,9 @@ graph TD
 | Boundary | Enforced by | State |
 |---|---|---|
 | Firmware → bootloader | Authenticode + SBAT | **enforced** |
-| Bootloader → kernel/initfs | ed25519 with domain separation | **enforced**, fail-closed at runtime; fail-**open** at build time (`C-2`) |
+| Bootloader → kernel/initfs | ed25519 with domain separation | **enforced**, fail-closed at runtime **and** at build time — a missing key aborts the bootloader build unless `EOS_ALLOW_UNVERIFIED_BOOT=1` (`C-2`) |
 | Repository → device | hybrid signature + pinned key + blake3 on bytes + serial/expires | **enforced**, currently unused (`C-4`) |
-| Upstream binaries → build | `sync_keys()` fetches the key from the serving host | **not enforced** (`C-1`) |
+| Upstream binaries → build | key pinned in-tree at `keys/upstream-redox-pkg.pub.toml`, written over whatever `sync_keys()` fetches | **partly enforced** — the key no longer comes from the serving host; the binaries themselves are still upstream's (`C-1`) |
 | Source mirror → build | nothing compares GitLab and GitHub heads | **not enforced** |
 | root → user | `/etc/login_schemes.toml` allowlist, `ip` removed | **enforced per account** |
 | application → application | — | **absent** (`C-5`) |

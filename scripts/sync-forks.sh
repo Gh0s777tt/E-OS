@@ -11,8 +11,10 @@
 # Auth for --push: ambient git credentials (gh auth / credential helper / SSH),
 # or set EOS_GH_TOKEN.
 #
-# NOTE: the six *modified* forks (kernel, base, relibc, userutils, bootloader,
-# orbdata) are NOT pure mirrors — they carry E-OS commits. Updating those means
+# NOTE: repos.toml declares TWELVE type-C forks (base, bootloader, kernel, redoxfs, relibc,
+# installer, pkgar, pkgutils, userutils, orbdata, orbital, orbutils) — they are NOT pure
+# mirrors, they carry E-OS commits. The old count of six was measured before the later
+# forks were taken. Updating those means
 # rebasing our commits onto new upstream (see docs/reference/known-issues.md, U-033), not a
 # fast-forward, so they are intentionally excluded here.
 set -u

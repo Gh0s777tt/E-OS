@@ -114,7 +114,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 
 | Fakt | Dowód |
 |---|---|
-| Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `c8d32ad39e5c` | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
+| Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `74726c889bdf` | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
 | Front-endy: `redox_installer_tui` i `redox_installer_gui` — **oba są w obrazie** | `config/server.toml:20` (`installer = {}`) i `config/desktop.toml:20` (`installer-gui = {}`), oba wciągane przez `config/{aarch64,x86_64}/eos.toml`; binarka GUI: `recipes/gui/installer-gui/manifest` (`binary=/usr/bin/redox_installer_gui`) |
 | Umie: GPT + EFI/BIOS, RedoxFS, pełne szyfrowanie AES-XTS, weryfikacja pkgar ed25519, fast-clone | `docs/getting-started/install.md` §2–3, `ROADMAP.md` `R-F24` |
 | Instalacja end-to-end **udowodniona 3× z rzędu** (partycja → instalacja → reboot → login) — **wyłącznie pod QEMU/TCG** | `R-601`, `scripts/ci-install-smoke.sh`, `ROADMAP.md` §14.1 |
@@ -424,10 +424,13 @@ Trzy różne rzeczy, które zamówienie zlewa w jedną:
 | **Instalacja z USB na USB** (źródło i cel wymienne) | **DO ZBUDOWANIA** (`M`) | wymaga rozróżnienia źródła od celu — patrz pierwsza reguła odmowy w §4.6 (`R-604c`) |
 
 Nazwa nośnika, jego suma i podpis należą do [`installer.md`](installer.md) §2 (`R-611a`–`R-611c`),
-nie tutaj. Kreator zakłada wyłącznie, że dostanie nośnik dający się sprawdzić — a dziś **suma
-nośnika nie jest podpisywana**: `scripts/make-release.sh` obejmuje `harddrive.img`, nie obraz
-instalacyjny (`R-611b`). Do czasu jego zamknięcia zdanie „sprawdź podpis pobranego nośnika"
-w kreatorze byłoby nieprawdą operacyjną.
+nie tutaj. Kreator zakłada wyłącznie, że dostanie nośnik dający się sprawdzić — i **od 2026-09-01
+tak jest**: `scripts/make-release.sh:94-96` dokłada `sha256` nośnika do tego samego `SHA256SUMS`,
+który `:115` podpisuje `minisign`.
+
+Wcześniej obejmowany był wyłącznie `harddrive.img`, więc zdanie „sprawdź podpis pobranego
+nośnika" byłoby w kreatorze nieprawdą operacyjną. Teraz nie jest — i to jest warunek, który
+kreator może wreszcie postawić.
 
 Ostrzeżenie przy celu wymiennym jest rzeczowe, nie straszące: instalacja na pendrive **działa**,
 ale nośniki USB mają mniejszą wytrzymałość zapisu i wolniejszy zapis losowy, a odłączenie w trakcie

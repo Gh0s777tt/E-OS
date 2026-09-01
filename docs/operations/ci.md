@@ -122,15 +122,19 @@ for speed and for real-hardware coverage, but it is no longer a prerequisite for
 
 **Guest RAM is `EOS_SMOKE_MEM`** (MiB, default `2048`), matching `ci-install-smoke.sh`,
 which already read it. It was hard-coded until 2026-09-01, which made a whole class of
-fault invisible to the harness: issue #15 is aarch64 asking for a fixed address at 5 GiB,
-and only a RAM sweep shows that the address does not move with memory size. A dial that
-cannot be turned without editing the script does not get turned.
+fault invisible to the harness. What the sweep actually exposed was NOT what it first looked
+like: issue #15 turned out to be an LTO-inflated stack frame overrunning the firmware's ~124 KiB
+DXE stack (`ESR 0x9600000B`), and it failed identically at 2048 and 6144 MiB — the fault never
+tracked memory size at all. The `ConvertPages` message at 5 GiB was the PE's preferred ImageBase
+and is benign. A dial that cannot be turned without editing the script does not get turned, and
+this one is what let the real fault be separated from the noise.
 
 ```sh
 EOS_SMOKE_MEM=6144 bash scripts/ci-boot-smoke.sh <image> 150 --arch aarch64
 ```
 
-Note what this does **not** do: more RAM gets aarch64 past the allocation and into a
+Note what this does **not** do — and this paragraph is now history, kept because it explains
+why the dial exists. Before the fix, more RAM got aarch64 past the allocation and into a
 different, deterministic failure (same `ESR 0x9600000B`, same `0x140027FB0`, measured
 twice on 2026-09-01). It is a diagnostic dial, not a workaround.
 

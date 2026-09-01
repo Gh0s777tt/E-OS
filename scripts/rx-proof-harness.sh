@@ -12,9 +12,12 @@
 # dir. Does NOT build or modify anything. Mirrors scripts/ci-boot-smoke.sh (aarch64 boot)
 # and mk/qemu.mk:232 (canonical -object filter-dump ... file=network.pcap).
 #
-# Why passive DHCP is the anchor: the network comes up automatically at boot, and
-# interactive serial input is NOT delivered to the guest on macOS QEMU
-# (verified: 0 RX interrupts, config/x86_64/eos.toml:151-153). So we boot, wait, capture.
+# Why passive DHCP is the anchor: the network comes up automatically at boot, so the proof
+# needs no interaction at all. The old reason given here — that serial input is NOT
+# delivered to the guest on macOS QEMU — is wrong: the "0 RX interrupts" note was a symptom
+# of the GICD_ICENABLER read-modify-write fixed in U-153. install-smoke-drive.py drives the
+# login prompt and the installer TUI over the serial socket today. So we boot, wait, capture
+# because it is simpler, not because typing is impossible.
 #
 # Usage:
 #   rx-proof-harness.sh <image> [aarch64|x86_64] [virtio|e1000|e1000e|rtl8139|all] [login_timeout] [settle]
