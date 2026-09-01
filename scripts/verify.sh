@@ -165,6 +165,16 @@ record() {  # id status note seconds
   ids+=("$1"); results+=("$2"); notes+=("$3"); times+=("$4")
 }
 
+# `cargo install` drops binaries in ~/.cargo/bin, but on this host cargo itself comes
+# from homebrew's rustup (/opt/homebrew/opt/rustup/bin/cargo), which never puts that
+# directory on PATH. Without this, `coverage` and `cargo-deny` report CANNOT RUN and
+# suggest installing tools that are already installed -- and the next person installs
+# them a second time. Measured 2026-09-01: both binaries present, neither on PATH.
+case ":$PATH:" in
+  *":$HOME/.cargo/bin:"*) ;;
+  *) [ -d "$HOME/.cargo/bin" ] && PATH="$PATH:$HOME/.cargo/bin" && export PATH ;;
+esac
+
 have() { command -v "$1" >/dev/null 2>&1; }
 
 # A stage declares a missing tool through this, then returns $CANNOT.
