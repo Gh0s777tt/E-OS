@@ -6,7 +6,7 @@
 # GitHub is a push-mirror. The GitLab release path is the `semantic-release` job
 # in .gitlab-ci.yml, and it has never run: its rule is
 #   `$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $GITLAB_TOKEN`
-# so it self-disables until a masked GITLAB_TOKEN exists (docs/ci.md §2 calls it
+# so it self-disables until a masked GITLAB_TOKEN exists (docs/operations/ci.md §2 calls it
 # "dormant"), and since 2026-08-28 every shared-runner job in that namespace dies
 # in 0 s with `ci_quota_exceeded` (audit C-7). Keyless signing needs an OIDC
 # issuer bound to the build, which is the other thing only this side has.
@@ -58,9 +58,9 @@
 # unless the mirror is configured to keep divergent refs. Either land the version
 # bump on GitLab (cherry-pick the release commit there) or accept that it lives
 # only on the mirror. This is a property of the mirror, not of release-please.
-# docs/ci.md §5 "GitHub mirror hygiene" states it flatly — "The GitHub repo is a
+# docs/operations/ci.md §5 "GitHub mirror hygiene" states it flatly — "The GitHub repo is a
 # read-only mirror" — and this workflow is the first thing that writes to it. Arming
-# it makes that sentence false; update docs/ci.md §5 in the same change.
+# it makes that sentence false; update docs/operations/ci.md §5 in the same change.
 # ─────────────────────────────────────────────────────────────────────────────
 name: release
 
@@ -407,7 +407,7 @@ jobs:
       #     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
       #     SHA256SUMS
       # Documented here and nowhere else a downloader would look: SECURITY.md
-      # names only minisign, docs/packages.md describes the pkgar/ed25519 chain,
+      # names only minisign, docs/reference/packages.md describes the pkgar/ed25519 chain,
       # and the single occurrence of `cosign` in docs/ is threat-model.md saying a
       # local `act` run cannot exercise cosign OIDC. CLAUDE.md's "tools not in the
       # repo" table still lists cosign as absent. Copying the two commands above

@@ -86,7 +86,7 @@ w sekcji podanej obok; **żadna z nich nie jest „wkrótce"** — to jest stan 
 
 12. **Nikim, kto ma dostęp do działającego systemu** — klucz jest wtedy w RAM.
 13. **Atakiem na sam monit o hasło.** Bootloader na ESP jest **jawny**, nie ma powiązania z TPM
-    ani measured boot (`R-913`); `docs/encryption.md` „Caveats" mówi to wprost. (§5.5)
+    ani measured boot (`R-913`); `docs/guides/encryption.md` „Caveats" mówi to wprost. (§5.5)
 14. **Podmienionym sterownikiem.** ~16 sterowników ładuje się z roota **niepodpisanych**, a IOMMU
     nie ma (`Dmar::init` to TODO) — urządzenie czyta i pisze dowolny adres fizyczny. (§5.5, §6.5.2)
 15. **Trybem live.** Cały obraz nośnika wczytywany jest do RAM **bez weryfikacji** — a to jest
@@ -95,7 +95,7 @@ w sekcji podanej obok; **żadna z nich nie jest „wkrótce"** — to jest stan 
 17. **Zapomnieniem hasła.** Nie ma escrow ani automatycznego odblokowania — **z założenia**.
     Klucz odzyskiwania to `DO ZBUDOWANIA`, nie `JEST`. (§5.7)
 18. **Cold-bootem, DMA ani analizą entropii dysku.** (§5.2, §5.6)
-19. **Niczym, co wymagałoby audytu kryptografii** — E-OS go nie przeszedł (`docs/encryption.md`).
+19. **Niczym, co wymagałoby audytu kryptografii** — E-OS go nie przeszedł (`docs/guides/encryption.md`).
 
 **Czego nie ma w systemie, więc żaden profil tego nie włączy:** zapory (`R-904`, `C-10`),
 piaskownicy (`C-5`, `R-1010`), trwałego dziennika audytu (`C-9`), konta awaryjnego (`C-18`),
@@ -127,7 +127,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 | Hostname każdej instalacji to `eos` | `config/aarch64/eos.toml:58-61` (`path = "/etc/hostname"`, `data = "eos"`), tak samo w `config/x86_64/eos.toml`; `R-606` |
 | `DiskWrapper::open` zawsze raportuje rozmiar bloku 512 (`src/disk_wrapper.rs:28`, `// TODO: get real block size…`) → strażnik `match block_size { 512 => …, _ => bail!(…) }` w `src/installer.rs:604` jest **martwym kodem** i dysk 4Kn zostanie zapisany z geometrią liczoną na złym sektorze | **[z briefu]**; pozycja: `R-607` / `R-607a` |
 | Instalacja z pliku konfiguracyjnego **działa już dziś**: `redox_installer <diskpath.img> [--config=file.toml] [--write-bootloader[=PATH]] [--live]`, w tym `[general] encrypt_disk` i `general.skip_partitions` | składnia: `src/bin/installer.rs` **[z briefu]**, potwierdzona w `ROADMAP.md` `R-609b`. **Uwaga:** `docs/getting-started/install.md` podaje przestarzałą formę `redox_installer <config.toml> <disk>` — to jest przypadek `R-608`, nie druga poprawna składnia |
-| Scalanie konfiguracji **nie deduplikuje**: `Config::merge` → `self.files.extend(other_files)`, wygrywa ostatni wpis | `docs/known-issues.md:388` |
+| Scalanie konfiguracji **nie deduplikuje**: `Config::merge` → `self.files.extend(other_files)`, wygrywa ostatni wpis | `docs/reference/known-issues.md` |
 | RedoxFS: KDF to **Argon2id** (`argon2::Algorithm::Argon2id`, `Version::V0x13`, wyjście 16 B), parametry **domyślne i niekonfigurowalne** (`ParamsBuilder::new()` ustawia wyłącznie `output_len`) | `src/key.rs` **[z briefu]**; szerzej `ADR-0010` |
 | RedoxFS: nagłówek ma **64 sloty klucza** — `pub key_slots: [KeySlot; 64]`; `KeySlot` = `salt` + para `EncryptedKey` (dwa klucze, bo AES-XTS) | `src/header.rs:31` **[z briefu]** |
 | RedoxFS: odblokowanie **iteruje po wszystkich 64 slotach**, a w pętli stoi `slot.cipher(password).unwrap()` z `//TODO: handle errors` — **ścieżka paniki przy odblokowaniu** | `src/header.rs:121` **[z briefu]** |
@@ -304,7 +304,7 @@ pokaż, co zniknie, potem poproś o potwierdzenie, nigdy odwrotnie.** Szczegół
 
 **Znacznik: NOWY PODSYSTEM (`L`). Pozycja: `R-815`** — założona przez `ROADMAP.md` §6.2 i §6.4
 **na podstawie tej sekcji**, w rodzinie `R-8xx`, bo `R-812`–`R-814` są zarezerwowane przez
-`docs/driver-manager-design.md`. Powody, po kolei:
+`docs/architecture/driver-manager.md`. Powody, po kolei:
 
 1. W obrazie nie ma żadnego narzędzia SMART. Jedyny ślad w drzewie to receptura
    `recipes/wip/tools/smartmontools/recipe.toml`, której pierwsza linia brzmi
@@ -419,7 +419,7 @@ Trzy różne rzeczy, które zamówienie zlewa w jedną:
 |---|---|---|
 | **Wypalenie nośnika instalacyjnego na USB przez `dd`** | **JEST** | `docs/getting-started/install.md` §4 — `harddrive.img` i `redox-live.iso` |
 | **Wypalenie przez `popsicle`** | **[NIEZWERYFIKOWANE]** | cel istnieje — `Makefile:16-17`: `popsicle: $(BUILD)/redox-live.iso` → `popsicle-gtk …` — ale wywołuje **linuksowe narzędzie GTK po stronie hosta**, którego na hoście budowania tego projektu (macOS/Apple Silicon, `CLAUDE.md` §9) nie ma; `installer.md:94` mówi wprost, że ta ścieżka **nigdy nie była testowana przez E-OS**. Istnienie celu Make nie jest dowodem na „JEST" |
-| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `docs/plan-do-sprzetu.md:36`). Kreator nie może się na to powoływać |
+| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `docs/archive/hardware-plan.md`). Kreator nie może się na to powoływać |
 | **Instalacja E-OS *na* pendrive jako cel** | **DO ZBUDOWANIA** (`S`) | silnik pisze na dowolne `/scheme/disk/...`; brakuje wykrycia „to jest wymienne" i ostrzeżenia |
 | **Instalacja z USB na USB** (źródło i cel wymienne) | **DO ZBUDOWANIA** (`M`) | wymaga rozróżnienia źródła od celu — patrz pierwsza reguła odmowy w §4.6 (`R-604c`) |
 
@@ -459,9 +459,9 @@ instaluje Redoksa w wolnym miejscu z hosta i dopisuje wpis do `systemd-boot`. To
 ### 5.1 Fakt strukturalny, od którego zależy cała reszta
 
 **Szyfrowanie w E-OS jest własnością systemu plików, nie warstwy blokowej.** RedoxFS szyfruje
-sam siebie: AES-XTS-128 (`docs/encryption.md:7-8`), klucz wyprowadzany z hasła przez
+sam siebie: AES-XTS-128 (`docs/guides/encryption.md`), klucz wyprowadzany z hasła przez
 **Argon2id** — `argon2::Algorithm::Argon2id`, `Version::V0x13`, wyjście 16 bajtów, zależność
-`argon2 = "0.4"` (`src/key.rs` **[z briefu]**). `docs/encryption.md` pisze samo „argon2", bez
+`argon2 = "0.4"` (`src/key.rs` **[z briefu]**). `docs/guides/encryption.md` pisze samo „argon2", bez
 wariantu; wariant jest **odczytany ze źródła**, nie zgadnięty.
 Redox **nie ma device-mappera**, więc nie ma czego układać w warstwy: nie da się „założyć
 drugiego dm-crypta pod pierwszym", bo nie ma pierwszego jako urządzenia.
@@ -540,7 +540,7 @@ To są dwie różne rzeczy i wcześniejsza wersja tej sekcji je myliła — pyta
 **[NIEZWERYFIKOWANE]**, jaki to wariant, choć odpowiedź jest w źródle. Poprawka, jawnie:
 
 - **Wariant: Argon2id.** `argon2::Algorithm::Argon2id`, `argon2::Version::V0x13`, wyjście
-  16 bajtów, zależność `argon2 = "0.4"` — `src/key.rs` **[z briefu]**. `docs/encryption.md`
+  16 bajtów, zależność `argon2 = "0.4"` — `src/key.rs` **[z briefu]**. `docs/guides/encryption.md`
   pisze samo „argon2"; to jest niedopowiedzenie dokumentu, nie niewiadoma.
 - **Parametry są DOMYŚLNE i niekonfigurowalne.** `ParamsBuilder::new()` ustawia **wyłącznie**
   `output_len` **[z briefu]** — `t`, `m`, `p` zostają na wartościach domyślnych crate'a.
@@ -582,12 +582,12 @@ Ale nawet gdyby istniała, jest to zły wybór i trzeba to powiedzieć:
 - **Chroni przed jednym zdarzeniem: kryptoanalitycznym złamaniem AES.** Takiego zdarzenia nie
   ma, a gdyby było, to znacznie wcześniej przewróciłoby cały łańcuch zaufania E-OS (podpisy,
   repozytorium, TLS), a nie tylko dysk.
-- **Nie chroni przed niczym z listy realnych zagrożeń** z `docs/threat-model.md` §3: działający
+- **Nie chroni przed niczym z listy realnych zagrożeń** z `docs/security/threat-model.md` §3: działający
   system, DMA bez IOMMU, podmieniony bootloader, słabe hasło.
 - **Kosztuje** ~2× pracy CPU na każdy sektor i — przy Serpencie bez akceleracji — prognozowane
   **10–15× spadku przepustowości** (założenia P1+P2, §5.2).
 - **Podwaja powierzchnię kodu kryptograficznego w TCB** w systemie, który
-  `docs/encryption.md` opisuje jako **nieaudytowany przez stronę trzecią**. Dwa nieaudytowane
+  `docs/guides/encryption.md` opisuje jako **nieaudytowany przez stronę trzecią**. Dwa nieaudytowane
   szyfry to nie dwa razy więcej bezpieczeństwa, tylko dwa razy więcej miejsc na błąd
   implementacyjny.
 
@@ -603,7 +603,7 @@ RedoxFS**, a bootloader je stamtąd wyjmuje po odblokowaniu:
 
 > bootloader pyta `RedoxFS password (1/10):`, odblokowuje AES-XTS RedoxFS, **ładuje z niego
 > jądro** i dochodzi do `eos login:` — zweryfikowane end-to-end na aarch64 i x86_64 pod UEFI
-> (`docs/encryption.md`).
+> (`docs/guides/encryption.md`).
 
 Do tego, od `V2-MS02`/`U-212`, bootloader **weryfikuje podpisem ed25519** jądro i initfs, które
 ładuje, i odmawia startu po zmianie jednego bajtu (`scripts/eos-boot-verify-proof.sh`
@@ -614,7 +614,7 @@ udowodniony z kontrolą negatywną (`ADR-0005`, `U-206`, `U-208`).
 
 | Element | Stan | Co z tego wynika |
 |---|---|---|
-| bootloader na ESP | jawny | atak na sam **monit o hasło** jest w modelu zagrożeń (`docs/encryption.md`, „Caveats") |
+| bootloader na ESP | jawny | atak na sam **monit o hasło** jest w modelu zagrożeń (`docs/guides/encryption.md`, „Caveats") |
 | ścieżka **BIOS** (nie-UEFI) | stage1/2/3 to surowe sektory, których nic nie uwierzytelnia | podpis jądra jest tam **dowodem manipulacji, nie kotwicą zaufania** (`threat-model.md` §6) |
 | tryb **live** | cały obraz wczytywany do RAM **bez weryfikacji** przed pobraniem z niego jądra | dotyczy nośnika instalacyjnego, czyli tego, na którym stoi kreator |
 | ~16 sterowników ładowanych z roota po montowaniu | **niepodpisane**, brak IOMMU (`eos-base`, `drivers/acpid/src/acpi.rs:461`: `//TODO (hangs on real hardware): Dmar::init(&this);`) | podmieniony sterownik dostaje DMA — czyli to samo przejęcie, innym plikiem |
@@ -627,7 +627,7 @@ udowodniony z kontrolą negatywną (`ADR-0005`, `U-206`, `U-208`).
 Wymaga: (a) rozdzielenia nagłówka RedoxFS od danych w formacie na dysku; (b) **nowej ścieżki
 wykrywania urządzeń w bootloaderze** — bootloader musiałby przed odblokowaniem przeskanować
 drugi nośnik. Bootloader jest najkruchszym elementem tego systemu (`R-F10`: przez lata używał
-innej wersji RedoxFS; `docs/encryption.md`: panikował na szyfrowanym roocie zamiast pytać
+innej wersji RedoxFS; `docs/guides/encryption.md`: panikował na szyfrowanym roocie zamiast pytać
 o hasło). Dokładanie tam wykrywania USB przed odblokowaniem to praca w najgorszym możliwym
 miejscu.
 
@@ -652,7 +652,7 @@ i measured boot: *„nie istnieje; piąta warstwa zaufania z `docs/reference/key
 jedna funkcja.
 
 **Klucz odzyskiwania — DO ZBUDOWANIA (`M`) i to jest priorytet.** Dziś jedynym sekretem
-chroniącym dysk jest hasło i **nie ma żadnej drogi powrotu** (`docs/encryption.md:93`: *„there is
+chroniącym dysk jest hasło i **nie ma żadnej drogi powrotu** (`docs/guides/encryption.md`: *„there is
 no key-escrow or auto-unlock (by design)"*). Zapomniane hasło = utracone dane. Drugi slot klucza,
 zapisany jako wysokoentropijny ciąg pokazany **raz** na ekranie S10 z żądaniem przepisania go
 z powrotem (dowód, że został zapisany), jest funkcją o największym stosunku wartości do kosztu
@@ -770,7 +770,7 @@ To nie jest szczegół. Dzisiejszy `redox_installer` scala konfiguracje **konkat
 deduplikacji**:
 
 > `Config::merge` → `self.files.extend(other_files)` — brak deduplikacji, wygrywa ostatni wpis
-> na dysku (`docs/known-issues.md:388`).
+> na dysku (`docs/reference/known-issues.md`).
 
 Kosztowało to `R-F08`: `desktop.toml` włącza `desktop-minimal.toml` **i** `server.toml`, oba
 ciągną `minimal.toml`, więc stara definicja `30_console` z `inputd -A 2` lądowała **po** poprawionej
@@ -791,7 +791,7 @@ Zamówienie: „rozluźnione mitygacje" z ostrzeżeniem i **zmierzonym** komprom
 odpowiedź jest niewygodna.
 
 **a) Czego dokładnie miałoby dotyczyć rozluźnienie?**
-Mitygacje, które E-OS faktycznie ma, są wypisane w `docs/hardening.md` §„Build-time hardening":
+Mitygacje, które E-OS faktycznie ma, są wypisane w `docs/security/hardening.md` §„Build-time hardening":
 
 | Mitygacja | Gdzie | Czy da się wyłączyć przy instalacji? |
 |---|---|---|
@@ -846,9 +846,9 @@ Zawartość i znaczniki:
 
 | Element profilu | Znacznik | Uwaga |
 |---|---|---|
-| Wymuszone szyfrowanie dysku | **JEST** | `[general] encrypt_disk`, `docs/encryption.md` |
+| Wymuszone szyfrowanie dysku | **JEST** | `[general] encrypt_disk`, `docs/guides/encryption.md` |
 | Wymuszenie mocnego hasła przy pierwszym starcie | **JEST** | `R-602` — zweryfikowane na **każdej** ścieżce logowania (getty, serial, greeter graficzny) |
-| Zawężone `login_schemes.toml` dla konta interaktywnego | **JEST jako dane** | `config/base.toml:24+`; gotowy zestaw do usunięcia (`memory`, `irq`, `serio`) w `docs/hardening.md` §7 — z zastrzeżeniem autora, że nie jest to boot-weryfikowane pod obecnym harnessem |
+| Zawężone `login_schemes.toml` dla konta interaktywnego | **JEST jako dane** | `config/base.toml:24+`; gotowy zestaw do usunięcia (`memory`, `irq`, `serio`) w `docs/security/hardening.md` §7 — z zastrzeżeniem autora, że nie jest to boot-weryfikowane pod obecnym harnessem |
 | Minimalny zestaw pakietów | **JEST** | mechanizm `[packages]` w konfiguracji instalatora |
 | Przypięty klucz repozytorium, weryfikacja podpisu | **JEST** | `R-702` ✅, `V2-MS13`–`V2-MS15`; hasze blake3 sprawdzane przed rozpakowaniem |
 | Tożsamość per-maszyna: unikalny hostname, machine-id, klucze SSH hosta | **DO ZBUDOWANIA** | to jest dokładnie `R-606`; dziś każda instalacja to `eos` |
@@ -898,7 +898,7 @@ przed czym **nie** chroni.
 | **Ochrona metadanych w czasie pracy** | **NIEREALNE DZIŚ** | FDE chroni dane w spoczynku; działający system pokazuje wszystko |
 | **Anonimowość na poziomie systemu (jak Tails)** | **NIEREALNE DZIŚ** | brak trybu amnezyjnego, brak wymuszonego routingu przez Tor, brak kasowania RAM przy wyłączeniu |
 | **Walidacja na fizycznym sprzęcie** | — | **każdy** zielony ptaszek w tym projekcie to QEMU (`ROADMAP.md` §14.1); `R-607` otwarte |
-| **Audyt kryptografii przez stronę trzecią** | — | `docs/encryption.md`: *„E-OS has not had a third-party cryptographic audit"* |
+| **Audyt kryptografii przez stronę trzecią** | — | `docs/guides/encryption.md`: *„E-OS has not had a third-party cryptographic audit"* |
 
 #### 6.5.3 Zdanie, które kreator musi wyświetlić
 
@@ -998,7 +998,7 @@ używa:
 | skutki włączenia | cztery osie: **wydajność · prywatność · zgodność · użyteczność**; każda z wartością i **uzasadnieniem** | kreator (ekran szczegółów), S8 |
 | skutki wyłączenia | osobne pole, bo „nie włączone" ≠ „nic się nie dzieje" | kreator, S8 |
 | zależności / konflikty / implikacje | wejście solvera (§7.3) | solver |
-| znaczenie dla modelu zagrożeń | odwołanie do adwersarza z `docs/threat-model.md` §3 | S8, ocena ryzyka |
+| znaczenie dla modelu zagrożeń | odwołanie do adwersarza z `docs/security/threat-model.md` §3 | S8, ocena ryzyka |
 | zalecenie per profil | `zalecane` / `neutralne` / `odradzane` + powód | ekran funkcji |
 | **znacznik dojrzałości** | `JEST` / `DO ZBUDOWANIA` / `NOWY PODSYSTEM` / `NIEREALNE DZIŚ` | kreator: czy kontrolka jest aktywna |
 | **dowód** | `plik:linia`, nazwa binarki albo pozycja `R-*` | dokumentacja, przegląd |
@@ -1080,7 +1080,7 @@ Pokazujemy ją, bo ludzie porównują konfiguracje i liczba do tego służy. Ale
   nie jako ocena absolutna;
 - **nigdy nie jest zielona.** Maksimum osiągalne dziś to nie jest „bezpiecznie" — to „tyle, ile
   ten system dziś umie", przy braku zapory, piaskownicy, dziennika audytu i IOMMU. Skala kończy
-  się na „najlepsze, co E-OS dziś potrafi", i pod spodem jest link do `docs/threat-model.md` §6.
+  się na „najlepsze, co E-OS dziś potrafi", i pod spodem jest link do `docs/security/threat-model.md` §6.
 
 **Tryb porażki oceny:** liczba zaczyna żyć własnym życiem — ludzie optymalizują punkty zamiast
 bezpieczeństwa, a autorzy profili dobierają wagi pod wynik. Zabezpieczenie: wagi leżą
@@ -1211,7 +1211,7 @@ kontrola słaba i tak trzeba ją nazwać.
 ## 11. Lokalizacja
 
 **Stan wyjściowy: żadnej infrastruktury i18n w projekcie nie ma.** To jest zweryfikowane, i to
-w sposób, który sam był korektą: `docs/reality-ledger.md` (nota `U-126`) odnotowuje, że wcześniejsza
+w sposób, który sam był korektą: `docs/archive/reality-ledger.md` (nota `U-126`) odnotowuje, że wcześniejsza
 teza o istniejącej „bramce parytetu i18n" w `CLAUDE.md` była **wymyślona** — `grep` nie znajduje
 niczego, nie ma też takiej bramki w `lefthook.yml` ani w CI. Pakiet `gettext` występuje w niektórych
 konfiguracjach (`config/server.toml:18`), ale jako zależność portów, nie jako mechanizm dla
@@ -1481,7 +1481,7 @@ ma dziś pozycji: kanał komend administracyjnych do dysków … kandydat na oso
 `R-8xx` — do rozstrzygnięcia przy zatwierdzaniu"*. **To już zostało rozstrzygnięte** i pozostawienie
 tamtego zdania groziło dołożeniem drugiej nazwy do tej samej pracy. `ROADMAP.md` §6.2 i §6.4
 zakładają ją jako **`R-815`** — numer wybrany dlatego, że `R-812`–`R-814` rezerwuje
-`docs/driver-manager-design.md`. Tak samo i18n z §11 ma już **`R-D13`**. **Żadnej z tych dwóch
+`docs/architecture/driver-manager.md`. Tak samo i18n z §11 ma już **`R-D13`**. **Żadnej z tych dwóch
 nie wolno zakładać ponownie.**
 
 **Czego w rejestrze nadal nie ma** — nazwane, nie ponumerowane, bo numer nadaje `ROADMAP.md`:

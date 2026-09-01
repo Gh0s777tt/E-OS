@@ -79,7 +79,7 @@ severity_if_off = "niskie"      # WYŁĄCZONA jest stanem bezpiecznym
 protects = "Nic. To funkcja OSŁABIAJĄCA — pole `severity_if_off` mówi, że jej wyłączenie jest bezpieczne."
 does_not_protect = """
 WŁĄCZONA sprowadza do systemu binarki zbudowane BEZ flag E-OS: bez `overflow-checks`,
-bez W⊕X przy granicy wywołań systemowych, bez ASLR map anonimowych (docs/hardening.md).
+bez W⊕X przy granicy wywołań systemowych, bez ASLR map anonimowych (docs/security/hardening.md).
 Kanał jest nieuwierzytelniony u klienta do czasu R-703, a klucz pobierany TOFU z hosta,
 który serwuje pakiety, nie jest kotwicą zaufania — jest jej pozorem.
 """

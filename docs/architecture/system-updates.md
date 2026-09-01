@@ -12,9 +12,9 @@
   zapisuje), `ADR-0008` (system plików i układ partycji — od niego zależy §1.3 i §1.5),
   `ADR-0007` (bootloader i nośnik instalacyjny — cytuje §1.4, §4.3, §4.6, §5.2, §5.5),
   `ADR-0004` (hybrydowy podpis manifestu), `ADR-0005` (Secure Boot bez Microsoftu),
-  `ADR-0006` (ścieżka do weryfikacji Microsoftu — SBAT, §5.5), `docs/encryption.md`,
+  `ADR-0006` (ścieżka do weryfikacji Microsoftu — SBAT, §5.5), `docs/guides/encryption.md`,
   `ROADMAP.md` §6.2, §5.3 (kamienie M5–M8 odpowiadają etapom E0–E8 z §9),
-  `docs/update-system-design.md` (starszy, angielski projekt tej samej warstwy — patrz §11.2,
+  `docs/architecture/update-system.md` (starszy, angielski projekt tej samej warstwy — patrz §11.2,
   jego numeracja `R-70x` **koliduje** z `ROADMAP.md`).
 - **Numeracja sekcji tego pliku jest stabilna.** `ADR-0007`, `ADR-0008` i `ADR-0009` cytują
   §1.1–§1.5, §3.2, §4.1–§4.3, §4.6, §5.2, §5.4, §8.5 oraz **§11 poz. 3**. Nowy materiał
@@ -35,7 +35,7 @@ linuksowego na systemie, który nie ma ani jednego z tych klocków.
 | systemd-sysupdate | **NIEREALNE DZIŚ** | część systemd. E-OS używa `init` Redoksa — jednostki leżą pod `/usr/lib/init.d/` (`config/aarch64/eos.toml:82`, `:674`, `:692`), a w całej konfiguracji są **dokładnie dwa** typy usług, oba jednorazowe (§6.3). Systemd nie występuje w żadnym przepisie ani konfiguracji. |
 | Aktualizacje w stylu Mendera (obraz A/B) | **NOWY PODSYSTEM** | wymaga slotów w bootloaderze i drugiej partycji roota. Instalator tworzy **dokładnie trzy** partycje (§1.4). To jest `R-710`. |
 | Migawki btrfs / ZFS | **NIEREALNE DZIŚ** | żaden z tych systemów plików nie istnieje na Redoksie. |
-| Migawki RedoxFS | **NOWY PODSYSTEM** | RedoxFS jest wewnętrznie copy-on-write (`docs/architecture.md:82`), ale **nie eksponuje żadnego API migawek ani subwoluminów**. Rozstrzygnięcie w §1.3. |
+| Migawki RedoxFS | **NOWY PODSYSTEM** | RedoxFS jest wewnętrznie copy-on-write (`docs/architecture/overview.md`), ale **nie eksponuje żadnego API migawek ani subwoluminów**. Rozstrzygnięcie w §1.3. |
 | Transakcyjny menedżer pakietów | **DO ZBUDOWANIA** | `pkgar` ma transakcje, ale **w pamięci** i bez dziennika (`R-706`, §4.1). |
 | Kontrola pasma przy pobieraniu | **DO ZBUDOWANIA** | pobieranie to `curl -sSL` odpalany jako proces potomny (`curl_backend.rs:28`). Dodanie `--limit-rate` to jedna flaga. |
 | Wznawialne pobieranie | **DO ZBUDOWANIA** | ta sama linia: brak `-C -`, brak zapisu częściowego. |
@@ -61,11 +61,11 @@ linuksowego na systemie, który nie ma ani jednego z tych klocków.
 | Wycofanie jednym poleceniem (warstwa plikowa) | **DO ZBUDOWANIA** | kopie zamienianych plików + odwrócenie delty w `packages.toml` pod tym samym dziennikiem (§4.5). Nośnika brak, ale i nowego podsystemu nie trzeba. |
 | Kontrole zdrowia po aktualizacji | **DO ZBUDOWANIA** | jedyny istniejący dziś odpowiednik to `scripts/ci-boot-smoke.sh`, i robi **mniej**, niż zwykle się o nim mówi — patrz §4.4. |
 | Powiadomienie o dostępnej aktualizacji | **częściowo JEST** | `eos-notifyd` działa (toast przez odpytywany plik, `R-D03` 🟡); brak schematu `notify:`, kolejki, ikon i akcji. Panel ma gdzie mieszkać: `R-D01` **zbudowany i działa**, 9 paneli (`ROADMAP.md`). §8.1. |
-| Zaplanowane instalacje / okna serwisowe | **DO ZBUDOWANIA, ale trwale kalekie** | wymagają zaufanego czasu, którego nie ma: brak klienta NTP i synchronizacji RTC (`docs/reality-ledger.md:127`, `:144`). §8.3. |
+| Zaplanowane instalacje / okna serwisowe | **DO ZBUDOWANIA, ale trwale kalekie** | wymagają zaufanego czasu, którego nie ma: brak klienta NTP i synchronizacji RTC (`docs/archive/reality-ledger.md`, `:144`). §8.3. |
 | Aktualizacje awaryjne (`severity = "critical"`) | **DO ZBUDOWANIA** | wyłącznie polityka nad istniejącą weryfikacją; nie dodaje ani nie omija żadnej kontroli z §3.6. §7.3. |
 | Wymuszenie polityki, której użytkownik nie zmieni | **NIEREALNE DZIŚ** | brak piaskownicy i MAC-a (`C-5`, `R-1010`); root zmienia każdy plik konfiguracji. §7.4. |
-| Zdalne poświadczanie (remote attestation) | **NIEREALNE DZIŚ** | brak TPM i pomiarów rozruchu (`docs/threat-model.md:79` — łańcuch measured-boot jest wpisany jako **brakujący**, `R-913`). §5.4. |
-| Tryb ratunkowy / naprawa z nośnika instalacyjnego | **DO ZBUDOWANIA**, **poza zakresem tego dokumentu** | maszyna zepsuta poza zasięgiem wycofania nie ma dziś żadnej ścieżki odzyskania (`docs/reality-ledger.md`, „No recovery/rescue path"; konto awaryjne to `R-614c`/`C-18`). Nazywam to tutaj, żeby nikt nie wziął `eos-update rollback` za odpowiedź na ten przypadek. |
+| Zdalne poświadczanie (remote attestation) | **NIEREALNE DZIŚ** | brak TPM i pomiarów rozruchu (`docs/security/threat-model.md` — łańcuch measured-boot jest wpisany jako **brakujący**, `R-913`). §5.4. |
+| Tryb ratunkowy / naprawa z nośnika instalacyjnego | **DO ZBUDOWANIA**, **poza zakresem tego dokumentu** | maszyna zepsuta poza zasięgiem wycofania nie ma dziś żadnej ścieżki odzyskania (`docs/archive/reality-ledger.md`, „No recovery/rescue path"; konto awaryjne to `R-614c`/`C-18`). Nazywam to tutaj, żeby nikt nie wziął `eos-update rollback` za odpowiedź na ten przypadek. |
 
 ---
 
@@ -77,7 +77,7 @@ Ta sekcja jest tu, bo bez niej reszta czyta się jak obietnica. Każdy punkt ma 
 
 1. **Nie chroni przed napastnikiem z fizycznym dostępem.** ESP jest nieszyfrowany i
    nieuwierzytelniony, a rekomendowany licznik prób rozruchu ma na nim leżeć (§4.3) — kto ma
-   śrubokręt, przekręci go albo wyzeruje. To jest zgodne z modelem: `docs/encryption.md`
+   śrubokręt, przekręci go albo wyzeruje. To jest zgodne z modelem: `docs/guides/encryption.md`
    („Caveats", `:95-99`) mówi wprost, że **hasło jest jedynym sekretem**, bez powiązania z
    TPM/Secure Bootem.
 2. **Nie chroni przed rootem na tej maszynie.** Zapadka `serial` leży w zwykłym pliku
@@ -94,7 +94,7 @@ Ta sekcja jest tu, bo bez niej reszta czyta się jak obietnica. Każdy punkt ma 
    budowania (`R-303`/`V2-MS07`) łańcuch podpisów dowodzi wyłącznie, że coś podpisał właściciel
    klucza (§3.5).
 6. **Nie obejmuje sterowników ładowanych z roota po montowaniu.** ~16 sterowników jedzie z
-   niepodpisanego roota, bez IOMMU (`docs/hardening.md:171`). Aktualizacja ich pakietów
+   niepodpisanego roota, bez IOMMU (`docs/security/hardening.md`). Aktualizacja ich pakietów
    przechodzi tę samą weryfikację co każdy inny pakiet, ale **rozruch ich nie weryfikuje** —
    `V2-MS02` pokrywa jądro i initfs, nie resztę.
 7. **Nie działa tam, gdzie nie ma kanału.** Na x86_64 nie ma dziś aktywnego źródła
@@ -103,8 +103,8 @@ Ta sekcja jest tu, bo bez niej reszta czyta się jak obietnica. Każdy punkt ma 
    rozruchu (§5.1); „automatyczna aktualizacja w nocy" kończy się na monicie.
 9. **Nie ma trybu ratunkowego.** Wycofanie działa dla stanu, który system zdążył zapisać.
    Maszyna, która nie wstaje i nie ma z czego wrócić, potrzebuje nośnika — a tej ścieżki
-   projekt nie ma (`docs/reality-ledger.md`, „No recovery/rescue path").
-10. **Nie jest audytowany kryptograficznie.** Ani FDE (`docs/encryption.md:97-98`), ani ta
+   projekt nie ma (`docs/archive/reality-ledger.md`, „No recovery/rescue path").
+10. **Nie jest audytowany kryptograficznie.** Ani FDE (`docs/guides/encryption.md`), ani ta
     warstwa. Brak audytu nie jest wadą projektu aktualizacji — jest granicą tego, co wolno
     o nim powiedzieć na zewnątrz.
 
@@ -141,11 +141,11 @@ systemie desygnatu.
 **Nie.**
 
 - Repozytorium opisuje RedoxFS jako *„Copy-on-write, optionally-encrypted filesystem"*
-  (`docs/architecture.md:82`). Copy-on-write to własność **wewnętrznej alokacji**, a nie
+  (`docs/architecture/overview.md`). Copy-on-write to własność **wewnętrznej alokacji**, a nie
   funkcja użytkownika.
 - W całym drzewie nie ma narzędzia, wywołania ani schematu do robienia migawek:
   `grep -rni snapshot docs/ recipes/ mk/ scripts/ config/` daje wyłącznie **propozycje**
-  (`docs/feature-proposals.md:51`) i **plany** (`docs/update-system-design.md:104`), zero
+  (`docs/archive/feature-proposals.md`) i **plany** (`docs/architecture/update-system.md`), zero
   implementacji. Z RedoxFS-a budowane są tylko dwie binarki: `redoxfs-mkfs` i demon
   montujący `redoxfs` (`mk/fstools.mk:25`).
 - Nie ma też subwoluminów, więc nie ma czego wskazywać bootloaderowi jako „inny root".
@@ -404,7 +404,7 @@ przemilczenie:**
    kończy się zdaniem *„znacznik antycofkowy leży w zwykłym pliku obok przypiętego klucza, więc
    root na maszynie może go skasować — to ochrona przed napastnikiem w sieci, nie przed
    lokalnym"*. Ta sama granica dotyczy `package_serial` z §3.2.
-3. **Połowa `expires` zależy od zegara, którego nie ma.** Brak źródła NTP/RTC (`docs/reality-ledger.md:144`),
+3. **Połowa `expires` zależy od zegara, którego nie ma.** Brak źródła NTP/RTC (`docs/archive/reality-ledger.md`),
    więc na maszynie bez sensownego zegara `expires` odpada i zostaje sama zapadka — czyli
    ochrona przed *freeze* jest słabsza niż ochrona przed *rollback*.
 
@@ -639,7 +639,7 @@ napastnik z fizycznym dostępem może go wyzerować lub przekręcić), albo w Re
 bootloader musi umieć **zapisywać** do zaszyfrowanego RedoxFS-a, czego dziś nie robi).
 
 Rekomendacja: **licznik na ESP, i powiedzieć wprost, że nie chroni przed napastnikiem
-fizycznym** — bo ten i tak jest poza modelem (`docs/encryption.md`, „Caveats"). Licznik broni
+fizycznym** — bo ten i tak jest poza modelem (`docs/guides/encryption.md`, „Caveats"). Licznik broni
 przed **złą aktualizacją**, a nie przed człowiekiem z śrubokrętem.
 
 **Jak ten licznik zawodzi — trzy tryby, każdy do obsłużenia w projekcie, nie po awarii:**
@@ -724,7 +724,7 @@ kosztu `R-710b` i należy go tam wpisać, a nie odkryć w trakcie.
 **Znacznik: JEST**, i dla systemu aktualizacji jest to zaskakująco łagodne.
 
 RedoxFS szyfruje AES-XTS-128 kluczem wyprowadzonym z hasła, wdrażane **przy instalacji**
-(`docs/encryption.md:7-8`, `:15`). KDF to **Argon2id** w wersji `V0x13` z **domyślnymi,
+(`docs/guides/encryption.md`, `:15`). KDF to **Argon2id** w wersji `V0x13` z **domyślnymi,
 niekonfigurowalnymi parametrami** (`ParamsBuilder::new()` ustawia wyłącznie `output_len` = 16;
 `recipes/core/redoxfs/source/src/key.rs`, odczytane w drzewie budowania — §11 poz. 11).
 Bootloader pyta o hasło przy każdym rozruchu.
@@ -749,7 +749,7 @@ Konsekwencje dla aktualizacji:
   po aktualizacji jest niemożliwy na maszynie z FDE** — ktoś musi wpisać hasło. Dla serwera
   to jest realne ograniczenie i musi być w `R-712`.
 - Nie ma auto-odblokowania i nie ma depozytu klucza — **z założenia**
-  (`docs/encryption.md`, „Booting an encrypted E-OS"). Nie proponuję tego zmieniać; proponuję,
+  (`docs/guides/encryption.md`, „Booting an encrypted E-OS"). Nie proponuję tego zmieniać; proponuję,
   żeby UI aktualizacji **mówił**, że zaplanowana instalacja z restartem zatrzyma się na
   monicie o hasło.
 
@@ -811,8 +811,8 @@ przełączeniem.
 
 **E-OS nie ma TPM.** Nie ma sterownika TPM, nie ma stosu TSS, nie ma PCR-ów, nie ma
 zapieczętowania. Dowód **w tym drzewie**, żeby czytelnik mógł go sprawdzić bez dostępu do
-materiałów roboczych: `docs/threat-model.md:79` wymienia łańcuch **measured-boot (TPM)** wśród
-rzeczy, których **nie ma** (`R-913`), a `docs/encryption.md:99-100` mówi wprost: *„No **TPM /
+materiałów roboczych: `docs/security/threat-model.md` wymienia łańcuch **measured-boot (TPM)** wśród
+rzeczy, których **nie ma** (`R-913`), a `docs/guides/encryption.md` mówi wprost: *„No **TPM /
 Secure Boot** binding — the password alone protects the disk"*.
 Poza TPM-em brak też FIDO2: `ADR-0010` §3.4 rozstrzyga to jako **NIEREALNE DZIŚ**, bo klucz
 byłby potrzebny **w bootloaderze**, przed startem jakiegokolwiek sterownika USB.
@@ -870,7 +870,7 @@ w jądrze bywa pilna. Mechanizm to podmiana funkcji w locie przez `ftrace`, z mo
 spójności opartym na stanie stosów wszystkich wątków.
 
 E-OS ma **mikrojądro**. Sterowniki są w przestrzeni użytkownika — **~16 sterowników** ładowanych
-z roota po jego zamontowaniu (`docs/hardening.md:171`), wszystkie poza jądrem. W jądrze zostaje
+z roota po jego zamontowaniu (`docs/security/hardening.md`), wszystkie poza jądrem. W jądrze zostaje
 harmonogram, pamięć, IPC, przerwania.
 
 To zmienia rachunek w obie strony:
@@ -1035,7 +1035,7 @@ Aktualizacja" (`R-708`) ma gdzie mieszkać: `R-D01` (natywny panel sterowania E-
 jest **zbudowany i działa**, 9 paneli wyrenderowanych (`ROADMAP.md`).
 
 Czyli `R-708` nie jest już blokowane brakiem powłoki ustawień — starszy dokument
-(`docs/update-system-design.md` §1.4) twierdzi inaczej i jest w tym punkcie **nieaktualny**.
+(`docs/architecture/update-system.md` §1.4) twierdzi inaczej i jest w tym punkcie **nieaktualny**.
 
 ### 8.2 „Zaktualizuj i uruchom ponownie"
 
@@ -1055,7 +1055,7 @@ przy FDE dokładamy zdanie o monicie o hasło (§5.1).
 **Znacznik: DO ZBUDOWANIA, ale trwale kalekie** — nie z braku kodu, tylko z braku źródła czasu.
 
 **Nie ma źródła zaufanego czasu.** Nie ma klienta NTP, nie ma synchronizacji RTC — zapisane
-dwa razy w `docs/reality-ledger.md` (`:127` jako ryzyko `R-704`, `:144` jako luka pokrycia:
+dwa razy w `docs/archive/reality-ledger.md` (`:127` jako ryzyko `R-704`, `:144` jako luka pokrycia:
 *„no RTC-sync or NTP client anywhere (clock is UTC HH:MM, no date)"*). Komentarz przy `expires`
 w kodzie mówi to samo: *„a machine with no usable clock loses this half"* (cytat z forka
 `eos-pkgutils` w drzewie budowania — §11 poz. 11).
@@ -1217,7 +1217,7 @@ Pozycje oznaczone **[NIEZWERYFIKOWANE]**, z jawnym wskazaniem, co trzeba sprawdz
 
 3. **[NIEZWERYFIKOWANE] Czy bootloader potrafi cokolwiek zapisać.** Zakładam w §4.3, że nie
    potrafi, i na tym opieram klasyfikację licznika prób rozruchu jako **NOWY PODSYSTEM**.
-   Wnioskuję to z opisów (`ADR-0005`, `docs/encryption.md`) — źródło `eos-bootloader` rev
+   Wnioskuję to z opisów (`ADR-0005`, `docs/guides/encryption.md`) — źródło `eos-bootloader` rev
    `87b214b5` nie jest lokalnie dostępne. **Sprawdzić:** czy bootloader ma jakąkolwiek ścieżkę
    zapisu do ESP albo RedoxFS-a, i pod jakim adresem szuka jądra.
 
@@ -1279,7 +1279,7 @@ Pozycje oznaczone **[NIEZWERYFIKOWANE]**, z jawnym wskazaniem, co trzeba sprawdz
 
 ### 11.2 Kolizja numeracji, którą trzeba rozstrzygnąć poza tym dokumentem
 
-`docs/update-system-design.md` (angielski, starszy) używa **innego przypisania `R-70x`** niż
+`docs/architecture/update-system.md` (angielski, starszy) używa **innego przypisania `R-70x`** niż
 `ROADMAP.md`: w jego tabeli §7 `R-703` to demon, `R-704` to wycofanie, `R-705` to panel GUI,
 `R-708` to A/B. W `ROADMAP.md` te same numery znaczą co innego (`R-703`
 weryfikacja manifestu, `R-704` anti-rollback, `R-708` panel GUI, `R-710` A/B).
@@ -1297,7 +1297,7 @@ rozcięcie `R-710` na `R-710a`/`R-710b`. Ten dokument nie dokłada więc trzecie
 dwuznacznych numerów.
 
 **Co pozostaje otwarte, i to jest praca poza tym plikiem:** sam
-`docs/update-system-design.md` nadal używa kolidujących identyfikatorów i nadal nie ma
+`docs/architecture/update-system.md` nadal używa kolidujących identyfikatorów i nadal nie ma
 nagłówka mówiącego, że jest archiwalny. **Rekomendacja bez zmian:** oznaczyć go jako
 archiwalny i przekierować tutaj albo przenumerować do zgodności. Dopóki tego nie zrobiono,
 **każde zdanie zawierające „`R-704`" w repozytorium jest dwuznaczne** — raz znaczy „wycofanie",

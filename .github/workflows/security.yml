@@ -3,11 +3,11 @@
 #
 # WHY THIS LIVES ON GITHUB, given that .gitlab-ci.yml is the source of truth:
 # C-7 — every GitLab gate has been failing in 0 s with `ci_quota_exceeded` since
-# 2026-08-28 (docs/ci.md, "CI minutes (free tier)"). Actions on a public repo has no
+# 2026-08-28 (docs/operations/ci.md, "CI minutes (free tier)"). Actions on a public repo has no
 # minute cap, so on the push-mirror these jobs run when the GitLab light tier cannot.
 #
 # It is also not a duplicate of anything. C-15: there is no SAST in this project at all.
-# docs/ci.md, "Optional: GitLab security templates", lists GitLab's SAST /
+# docs/operations/ci.md, "Optional: GitLab security templates", lists GitLab's SAST /
 # Secret-Detection / Dependency-Scanning templates as things you *could* include, with
 # the minute budget given as the reason not to — and they were never included. On the
 # supply-chain side the only check that runs in CI is `cargo-deny` inside .gitlab-ci.yml's
@@ -22,7 +22,7 @@
 # which, and uses ci-integrity.sh's `FAIL (instrument):` prefix for the first.
 #
 # BEFORE TRUSTING ANY OF THIS: several files in this tree still assert that Actions cannot
-# run at all — .gitlab-ci.yml:2, SECURITY.md:69, docs/MAINTENANCE.md:17, docs/ecosystem.md:96
+# run at all — .gitlab-ci.yml:2, SECURITY.md:69, docs/operations/maintenance.md, docs/architecture/ecosystem.md
 # and keys/README.md:85, all citing "GitHub Actions is disabled account-wide (ROADMAP R-004)".
 # Those notes predate this suite. .github/dependabot.yml is NOT one of them any more — it was
 # corrected when the workflows came back, and docs/security/github-configuration.md §2, which

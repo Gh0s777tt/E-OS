@@ -7,7 +7,7 @@
 # an outside reader gets a number without having to take the README's word for anything.
 #
 # C-7: every GitLab gate on the shared-runner LIGHT tier has been failing in 0 s with
-# `ci_quota_exceeded` since 2026-08-28 (docs/ci.md, "CI minutes (free tier)"; the
+# `ci_quota_exceeded` since 2026-08-28 (docs/operations/ci.md, "CI minutes (free tier)"; the
 # self-hosted `eos-heavy` tier spends no shared minutes and is not affected). Actions on
 # a public repo has no minute cap, so this suite is the remediation for that light tier.
 #
@@ -33,7 +33,7 @@
 # BY CONSTRUCTION, and no change to this repository will lift them:
 #
 #   Branch-Protection  Reads GitHub's protected-branch settings. The protection meant to
-#                      govern `main` is a GitLab one — docs/ci.md §4 "Protect `main`":
+#                      govern `main` is a GitLab one — docs/operations/ci.md §4 "Protect `main`":
 #                      allowed to push = no one, merge only via MR, pipelines must succeed,
 #                      one approval. Read that as the specification, not as a measurement:
 #                      §4 sits under "What you must set up (one-time, in the GitLab UI)",

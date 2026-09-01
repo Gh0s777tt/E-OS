@@ -109,7 +109,7 @@ remote must also pin the key, or the gate fails.
 - **Drivers** (nvmed, e1000d, xhcid, …) → userspace, per-scheme confinement.
 - **Bootloader** → built from source (E-OS fork), verifiable; handles the encrypted-disk password prompt.
 - **Login / auth** → `redox_users` with **argon2** password hashing; per-user scheme namespaces (`/etc/login_schemes.toml`).
-- **Privileged GUI actions** (`eos-power`, the control-panel reboot/shutdown) → `sys:kstop` is root-only, and the GUI runs as the desktop user. Rather than run the GUI as root, a **short-lived `eos-power` shim** elevates via `/scheme/sudo` (the same daemon `sudo` uses — it checks sudo-group membership **and** the user's password, which the GUI pipes on the shim's **stdin**, never argv, so it never appears in `ps`) and then does exactly one thing: write `sys:kstop`. Blast radius even if the shim were abused is a **local reboot/poweroff** — and it still requires the user's password plus local access, which a password-holding user could already spend on `sudo shutdown`. The GUI process itself is **never elevated**; the password is held only transiently in the GUI and cleared after use. See `docs/design-eos-power.md`.
+- **Privileged GUI actions** (`eos-power`, the control-panel reboot/shutdown) → `sys:kstop` is root-only, and the GUI runs as the desktop user. Rather than run the GUI as root, a **short-lived `eos-power` shim** elevates via `/scheme/sudo` (the same daemon `sudo` uses — it checks sudo-group membership **and** the user's password, which the GUI pipes on the shim's **stdin**, never argv, so it never appears in `ps`) and then does exactly one thing: write `sys:kstop`. Blast radius even if the shim were abused is a **local reboot/poweroff** — and it still requires the user's password plus local access, which a password-holding user could already spend on `sudo shutdown`. The GUI process itself is **never elevated**; the password is held only transiently in the GUI and cleared after use. See `docs/architecture/eos-power.md`.
 - **Package install / update path** → per-package pkgar ed25519 + blake3, over an index signed
   by a key **pinned in the image** (§2.1, §7.1). The x86_64 image does not enable an E-OS
   package source at all today, so on that arch this surface is currently closed by absence
@@ -259,7 +259,7 @@ correction this section just made; do not cite it as current for `C-1`.
 
 Since **2026-08-28** every GitLab job has failed in roughly **0 s** with
 `ci_quota_exceeded` — free-tier minutes exhausted, the light tier dead, `pages` surfacing it
-first as `stuck_pending_no_matching_runners` (`docs/ci.md`). The jobs still *appear* in the
+first as `stuck_pending_no_matching_runners` (`docs/operations/ci.md`). The jobs still *appear* in the
 pipeline list. That is the dangerous part: a red that means "nothing ran" reads, at a glance,
 like a red that means "something was measured and failed", and a skipped stage reads like a
 passed one.

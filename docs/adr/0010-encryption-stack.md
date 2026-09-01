@@ -2,10 +2,10 @@
 
 - **Status:** Propozycja — do zatwierdzenia. Nic z tego nie jest zaimplementowane.
 - **Data:** 2026-08-30
-- **Dowód:** `docs/encryption.md:8,17,19-24,21,88` i „Caveats", `R-502`, `R-913`/`V2-N02`,
+- **Dowód:** `docs/guides/encryption.md` i „Caveats", `R-502`, `R-913`/`V2-N02`,
   `R-F10`/`U-156`, `U-170`, `U-212`, `recipes/core/redoxfs/recipe.toml:6,15`, `repos.toml:67`,
   `mk/config.mk:47`, `mk/disk.mk:50`, `scripts/install-smoke-drive.py:218,220`,
-  `docs/threat-model.md` §3/§6, `docs/architecture/installer-wizard.md` §5,
+  `docs/security/threat-model.md` §3/§6, `docs/architecture/installer-wizard.md` §5,
   `docs/architecture/installer-profiles.md` V-17/§3.2, `docs/architecture/installer.md` §5.4/§8.1/§9.1,
   oraz `src/key.rs` i `src/header.rs:31,121` w `eos-redoxfs` — patrz §0.
 - **Zakres:** czym szyfrujemy wolumin systemowy, czym wyprowadzamy z hasła klucz, ile jest dróg
@@ -70,14 +70,14 @@ Do tego czasu liczba slotów i wariant KDF zostają **[wg briefu]**, a nie pomia
 
 | element | dowód |
 |---|---|
-| AES-XTS-128 jako szyfr woluminu RedoxFS | `docs/encryption.md`; `docs/threat-model.md:29` |
-| szyfrowanie wdrażane **przy instalacji**, nie w obrazie | `docs/encryption.md`, „Design note" |
+| AES-XTS-128 jako szyfr woluminu RedoxFS | `docs/guides/encryption.md`; `docs/security/threat-model.md` |
+| szyfrowanie wdrażane **przy instalacji**, nie w obrazie | `docs/guides/encryption.md`, „Design note" |
 | `redoxfs-mkfs --encrypt` i przelot flagi przez build | `mk/config.mk:47` (`REDOXFS_MKFS_FLAGS`), `mk/disk.mk:50` |
-| instalacja nienadzorowana z `[general] encrypt_disk` | `docs/encryption.md` §1, `docs/getting-started/install.md` §3 |
-| bootloader pyta o hasło i odblokowuje root **przed** załadowaniem jądra | `docs/encryption.md:19-24`, zweryfikowane end-to-end 2026-07-11 na aarch64 **i** x86_64 pod UEFI, 0 wyjątków / 0 panik |
+| instalacja nienadzorowana z `[general] encrypt_disk` | `docs/guides/encryption.md` §1, `docs/getting-started/install.md` §3 |
+| bootloader pyta o hasło i odblokowuje root **przed** załadowaniem jądra | `docs/guides/encryption.md`, zweryfikowane end-to-end 2026-07-11 na aarch64 **i** x86_64 pod UEFI, 0 wyjątków / 0 panik |
 | sprzętowe AES na aarch64 w ścieżce FDE | `R-502` (✅), `recipes/core/redoxfs/recipe.toml:15` → `RUSTFLAGS="--cfg aes_armv8"` |
 | jedna wersja RedoxFS po obu stronach formatu (bootloader ↔ system) | `R-F10` zamknięte w `U-156`; `ci-boot-smoke.sh` PASS |
-| KDF woluminu to **Argon2id**, `Version::V0x13`, wyjście 16 B, zależność `argon2 = "0.4"` | rodzina KDF potwierdzona **na tej gałęzi**: `docs/encryption.md:8` — *„the key derived from your password (**argon2**)"*. Wariant `id`, wersja i długość wyjścia: **[wg briefu]** — `src/key.rs` |
+| KDF woluminu to **Argon2id**, `Version::V0x13`, wyjście 16 B, zależność `argon2 = "0.4"` | rodzina KDF potwierdzona **na tej gałęzi**: `docs/guides/encryption.md` — *„the key derived from your password (**argon2**)"*. Wariant `id`, wersja i długość wyjścia: **[wg briefu]** — `src/key.rs` |
 | nagłówek ma **64 sloty klucza**: `pub key_slots: [KeySlot; 64]` | **[wg briefu]** — `src/header.rs:31` |
 | `KeySlot` = `salt` + para `EncryptedKey` (dwa klucze, bo AES-XTS) | **[wg briefu]** |
 
@@ -89,7 +89,7 @@ najważniejsza rzecz w tym ADR-ze:
 1. `docs/architecture/installer.md` §5.4 mówi: *„`argon2id` w projekcie **jest**, ale to hasła
    kont, nie klucz woluminu"*, i klasyfikuje „Argon2id na woluminie" jako **NIEREALNE DZIŚ**.
    **Fałsz.** KDF woluminu **jest** Argon2id **[wg briefu]**, a sama rodzina KDF jest
-   potwierdzona nawet bez briefu — `docs/encryption.md:8`. Zamówiona pozycja rozpada się na
+   potwierdzona nawet bez briefu — `docs/guides/encryption.md`. Zamówiona pozycja rozpada się na
    dwie: **algorytm — JEST**, **konfigurowalne parametry — DO ZBUDOWANIA**.
    Dwa dokumenty siostrzane mówią tu **różne rzeczy** i naprawa jest w każdym inna:
    `installer.md` §5.4 ma zły **znacznik** (NIEREALNE DZIŚ → JEST/DO ZBUDOWANIA), a
@@ -120,7 +120,7 @@ zalążek stosowalnej warstwy blokowej i §3.2 wymaga rewizji.
 
 ### 1.4 Czego nie ma i co z tego wynika (zastrzeżenia, których nie wolno pominąć)
 
-Cytuję `docs/encryption.md`, „Caveats", bo dokument o szyfrowaniu nie ma prawa ich zamazać:
+Cytuję `docs/guides/encryption.md`, „Caveats", bo dokument o szyfrowaniu nie ma prawa ich zamazać:
 
 - **Brak audytu kryptograficznego osoby trzeciej.** *„Don't rely on it for high-assurance use
   yet."* AES-XTS-128 jest zaimplementowane w Ruście i nikt z zewnątrz tego nie przejrzał.
@@ -129,7 +129,7 @@ Cytuję `docs/encryption.md`, „Caveats", bo dokument o szyfrowaniu nie ma praw
 - **Brak depozytu klucza i brak automatycznego odblokowania — z założenia.** Zapomniane hasło
   to dziś **całkowita, nieodwracalna utrata danych**.
 
-Do tego dochodzi to, co mówi `docs/threat-model.md` §6 (pozycja „measured-boot (TPM) chain",
+Do tego dochodzi to, co mówi `docs/security/threat-model.md` §6 (pozycja „measured-boot (TPM) chain",
 `R-913`), i to są cytaty stamtąd, nie parafraza: brak IOMMU — *„`Dmar::init` is still a TODO"*,
 przez co podmieniony sterownik *„reaches DMA"*; kilkanaście sterowników (`xhcid`, `e1000d`,
 `usbhidd`, `usbscsid`, `ihdad`, `rtl8168d` i dalsze) ładuje się z **niepodpisanego** roota po
@@ -145,9 +145,9 @@ To nie są propozycje, tylko stan:
    miejscu to maszyna, która nie startuje i nie mówi dlaczego.
 2. **Błędne hasło kosztuje do 64 wyprowadzeń Argon2id**, poprawne w slocie 0 — jedno
    **[wg briefu]**. To realna asymetria czasowa i realny koszt na starcie.
-3. **Dokumentacja podaje dwa różne limity prób.** `docs/encryption.md:21` cytuje
-   `RedoxFS password (1/10):`, a `docs/encryption.md:88` — `RedoxFS password (1/3):`. Trzeci zapis,
-   `docs/encryption.md:17`, podaje monit jako `RedoxFS password (attempt/attempts):`, czyli bez
+3. **Dokumentacja podaje dwa różne limity prób.** `docs/guides/encryption.md` cytuje
+   `RedoxFS password (1/10):`, a `docs/guides/encryption.md` — `RedoxFS password (1/3):`. Trzeci zapis,
+   `docs/guides/encryption.md`, podaje monit jako `RedoxFS password (attempt/attempts):`, czyli bez
    liczby, więc nie rozstrzyga. Limit prób jest jedyną obroną przed zgadywaniem przy monicie, więc
    ta liczba musi być jedna i musi być zmierzona. **Co sprawdzić:** pętla monitu w `eos-bootloader`.
 
@@ -155,7 +155,7 @@ To nie są propozycje, tylko stan:
 
 | zamówiona zdolność | znacznik | uzasadnienie w jednym zdaniu |
 |---|---|---|
-| FDE hasłem (dzisiejsza) | **JEST** | `docs/encryption.md`, zweryfikowane na obu architekturach |
+| FDE hasłem (dzisiejsza) | **JEST** | `docs/guides/encryption.md`, zweryfikowane na obu architekturach |
 | szyfrowany `/boot` | **JEST** | nie ma osobnego `/boot` — jądro i initfs leżą **wewnątrz** szyfrowanego roota (`installer-wizard.md` §5.5) |
 | **Argon2id na woluminie — algorytm** | **JEST** | `src/key.rs` **[wg briefu]**; koryguje `installer.md` §5.4 |
 | **Argon2id — konfigurowalne parametry** | **DO ZBUDOWANIA** | `ParamsBuilder::new()` ustawia tylko `output_len` **[wg briefu]**; parametry trzeba zapisać w slocie |
@@ -170,7 +170,7 @@ To nie są propozycje, tylko stan:
 | **wolumin ukryty / plausible deniability** | **NIEREALNE DZIŚ** | §3.6; i odrzucone także merytorycznie |
 | **szyfrowany swap** | **NOWY PODSYSTEM** | swapu nie ma **w ogóle** — `ADR-0008` D7 („Bez partycji swap") i `installer.md` §5.2. Nie dubluję tej pozycji; szyfrowanie urządzenia, którego nie ma, nie jest osobną pracą, a gdy swap powstanie, ten wiersz wraca jako warunek jego przyjęcia |
 | szyfrowanie ESP | **NIEREALNE DZIŚ** — i nie „dziś" | ESP czyta **firmware**, zanim uruchomi się jakikolwiek nasz kod; zaszyfrowany ESP to maszyna, która nie startuje. Żaden postęp w Redoksie tego nie zmieni, więc jest to jedyna pozycja tej tabeli, przy której „DZIŚ" jest za łagodne |
-| depozyt klucza / auto-odblokowanie | **odrzucone z założenia** | `docs/encryption.md`; nie zmieniamy tego |
+| depozyt klucza / auto-odblokowanie | **odrzucone z założenia** | `docs/guides/encryption.md`; nie zmieniamy tego |
 
 ---
 
@@ -197,7 +197,7 @@ Kolejność prac ustalam po dwóch kryteriach, w tej hierarchii:
 `slot.cipher(password).unwrap()` w pętli po slotach zamienia uszkodzony nagłówek w panikę
 bootloadera. To jest ta sama klasa błędu, którą projekt już raz zapłacił: bootloader
 **panikował** `Failed to open RedoxFS` na zaszyfrowanym roocie, zamiast zapytać o hasło
-(`docs/encryption.md`, przypis o `eos-bootloader@083d9fae`).
+(`docs/guides/encryption.md`, przypis o `eos-bootloader@083d9fae`).
 *Jak ta poprawka może zawieść:* jeżeli nowa obsługa błędu zwinie wszystko do jednego komunikatu,
 użytkownik nie odróżni „złe hasło" od „nagłówek uszkodzony" — a to dwie różne naprawy.
 *Test negatywny, bez którego to nie jest kontrola:* obraz z jednym przestawionym bitem w slocie
@@ -281,10 +281,10 @@ wyszarzona to obietnica z datą, a my nie mamy dla nich daty.
 - Ekran S5 (`installer-wizard.md` §5) pokazuje **dwa** wybory: szyfrować/nie, oraz — po Etapie 1
   — klucz odzyskiwania. Nic więcej. Lista opcji, których nie ma, nie jest funkcją.
 - Ekran S5 mówi wprost, przed czym FDE **nie** chroni: działającym systemem, podmienionym
-  bootloaderem, DMA bez IOMMU, cold-bootem. `docs/threat-model.md` §3 ma na to gotowe nazwy
+  bootloaderem, DMA bez IOMMU, cold-bootem. `docs/security/threat-model.md` §3 ma na to gotowe nazwy
   przeciwników i katalog funkcji ma ich używać (`installer-profiles.md`, `threat.model`).
 - Funkcja `disk.encrypt` w katalogu (`installer-profiles.md` §3.2) dostaje `stage = "JEST"`
-  i `evidence` wskazujące `docs/encryption.md` z datą weryfikacji 2026-07-11.
+  i `evidence` wskazujące `docs/guides/encryption.md` z datą weryfikacji 2026-07-11.
 - Instalacja z FDE musi mieć **przypadek w harnessie**. Dziś go nie ma:
   `scripts/install-smoke-drive.py:220` wysyła **puste** hasło (`con.send("")`), a komentarz dwie
   linie wyżej (`:218`) mówi wprost *„Empty means an unencrypted install"*.
@@ -369,7 +369,7 @@ klocków (rozwinięcie w `installer-wizard.md` §5.4):
 - Chroni przed **jednym** zdarzeniem: kryptoanalitycznym złamaniem AES. Gdyby ono nastąpiło,
   przewróciłoby wcześniej cały łańcuch zaufania E-OS — podpisy, repozytorium, TLS — a nie tylko
   dysk. Broniłby się wtedy dysk w martwym systemie.
-- Nie chroni przed **niczym** z listy realnych przeciwników z `docs/threat-model.md` §3.
+- Nie chroni przed **niczym** z listy realnych przeciwników z `docs/security/threat-model.md` §3.
 - Kosztuje ~2× pracy CPU na sektor, a przy Serpencie bez akceleracji sprzętowej prognozowane
   10–15× spadku przepustowości (założenia P1/P2 z `installer-wizard.md` §5.2,
   **[NIEZWERYFIKOWANE]** — liczby z Linuksa, nie pomiar na E-OS).
@@ -402,7 +402,7 @@ anti-evil-maid i ADR tego nie obiecuje.
 Wymaga (a) rozdzielenia nagłówka od danych w formacie na dysku i (b) **nowej ścieżki wykrywania
 urządzeń w bootloaderze**, który musiałby przed odblokowaniem przeskanować drugi nośnik.
 Punkt (b) to praca w najkruchszym elemencie systemu — tym samym, który przez lata używał innej
-wersji RedoxFS (`R-F10`) i panikował zamiast pytać o hasło (`docs/encryption.md`).
+wersji RedoxFS (`R-F10`) i panikował zamiast pytać o hasło (`docs/guides/encryption.md`).
 
 **Przed czym chroni:** przed tym, że na dysku **widać etykietę** szyfrowanego RedoxFS.
 **Przed czym nie chroni:** dysk pełen danych o wysokiej entropii i tak wygląda jak dysk pełen
@@ -431,7 +431,7 @@ fizycznie oddzielony**.
 
 ### 3.7 Depozyt klucza i automatyczne odblokowanie
 
-**Odrzucone — podtrzymuję decyzję z `docs/encryption.md`.** Hasło jest wpisywane przy każdym
+**Odrzucone — podtrzymuję decyzję z `docs/guides/encryption.md`.** Hasło jest wpisywane przy każdym
 rozruchu i tak zostaje. Klucz odzyskiwania z Etapu 1 **nie jest** depozytem: nie opuszcza
 maszyny użytkownika, nie idzie na serwer i nie jest odtwarzalny przez nikogo poza posiadaczem
 kartki. To rozróżnienie musi zostać w interfejsie, bo te dwie rzeczy wyglądają podobnie
@@ -483,7 +483,7 @@ którą format pozwala usunąć bez zmiany formatu.
 
 | dług | termin |
 |---|---|
-| **brak audytu kryptograficznego osoby trzeciej** — dotyczy tego, co **już wydajemy** | przed pierwszym wydaniem reklamowanym jako nadające się do poważnego użytku; do tego czasu `docs/encryption.md` mówi prawdę i ma tak zostać |
+| **brak audytu kryptograficznego osoby trzeciej** — dotyczy tego, co **już wydajemy** | przed pierwszym wydaniem reklamowanym jako nadające się do poważnego użytku; do tego czasu `docs/guides/encryption.md` mówi prawdę i ma tak zostać |
 | brak przypadku FDE w harnessie instalacji (`scripts/install-smoke-drive.py:220` — `con.send("")`, z komentarzem w linii 218) | **przed Etapem 0** — bez tego żadnej bramki nie ma na czym uruchomić |
 | dwie różne liczby prób hasła w dokumentacji (§1.5 pkt 3) | przy Etapie 0, razem z obsługą błędów |
 | **treść** `key.rs`/`header.rs` między `555359ef61` a `58824d70` — nie sama rewizja, ta jest rozstrzygnięta (§0) | przed zatwierdzeniem tego ADR-a — rozstrzyga, czy fakty **[wg briefu]** dotyczą treści, którą budujemy |
@@ -493,7 +493,7 @@ którą format pozwala usunąć bez zmiany formatu.
 
 **Nie tworzę nowych identyfikatorów `R-*`.** Powód jest konkretny, nie ostrożnościowy: brief
 dokumentuje potwierdzoną **kolizję numeracji `R-70x`** między `ROADMAP.md` a
-`docs/update-system-design.md`, w której `R-704` znaczy raz „rollback", a raz „anti-rollback" —
+`docs/architecture/update-system.md`, w której `R-704` znaczy raz „rollback", a raz „anti-rollback" —
 znaczenia niemal przeciwne. Dokładanie trzeciego źródła numerów do rejestru, który ma już
 dwa i jest wewnętrznie sprzeczny, byłoby powtórzeniem tego samego błędu w innym epiku.
 

@@ -362,6 +362,23 @@ if command -v python3 >/dev/null 2>&1; then
 else
   cannot "check 13 could not run: python3 is missing -- array guards are UNKNOWN, not proven present"
 fi
+
+# 14) No reference to a docs page that does not exist.
+# The tree was reorganised once (d73fd1590) and mentions of the old paths stayed in running
+# text. #12 fixed one path; #17 counted 8 paths / ~141 hits; a full scan found 22 / 230. Each
+# sweep left the next drift free to accumulate because NOTHING FAILED when a stale path
+# appeared. `lychee --offline` reports 0 errors on the same tree -- these are mentions in
+# backticks, not links, so the link checker is structurally blind to them.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-doc-paths.py 2>&1)"; then
+    printf '%s\n' "$out" | grep -E '^doc-paths: ok' >/dev/null && ok "${out#doc-paths: ok -- }"
+  else
+    printf '%s\n' "$out"
+    bad "a docs/ reference points at a file that does not exist"
+  fi
+else
+  cannot "check 14 could not run: python3 is missing -- docs paths are UNKNOWN, not proven live"
+fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"

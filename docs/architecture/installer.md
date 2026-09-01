@@ -6,7 +6,7 @@
 - **Czego ten dokument NIE rozstrzyga:** strategii Secure Boot (rozstrzygnięta w
   [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) i
   [`ADR-0006`](../adr/0006-path-to-microsoft-verification.md)) ani mechaniki aktualizacji
-  (`docs/update-system-design.md`, epik `R-7xx`). Odwołuję się do nich; nie podejmuję ich od nowa.
+  (`docs/architecture/update-system.md`, epik `R-7xx`). Odwołuję się do nich; nie podejmuję ich od nowa.
 - **Czego ten instalator nie robi i przed czym nie chroni: §13.** Przeczytaj tę sekcję, zanim
   zacytujesz którąkolwiek inną — reszta dokumentu opisuje, co ma powstać, a §13 mówi, czego
   nie będzie i po czym poznasz, że ktoś obiecał za dużo.
@@ -50,7 +50,7 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 |---|---|
 | silnik instalacji `redox_installer` 0.2.42 | `Cargo.lock:896-898`; fork `eos-installer` rev `c8d32ad39e5c` (`recipes/core/installer/recipe.toml`, `repos.toml:107-117`) |
 | GPT + ochronny MBR + ESP + RedoxFS | `R-F19`/`U-162`: na dysku docelowym zmierzono **2 tablice GPT**, `BOOTAA64.EFI` na ESP i **11 sygnatur RedoxFS** |
-| FDE **przy instalacji** (AES-XTS-128) | `docs/encryption.md`; `[general] encrypt_disk` albo monit `redoxfs password` |
+| FDE **przy instalacji** (AES-XTS-128) | `docs/guides/encryption.md`; `[general] encrypt_disk` albo monit `redoxfs password` |
 | weryfikacja pakietów ed25519 + blake3 | `pkgar`; `V2-MS13`/`V2-MS14` domknięte (`U-223`) |
 | ścieżka szybka (kopia blokowa z RAM) | `try_fast_install()`, `installer.rs:765`; naprawiona w `U-176` (`eos-installer c8d32ad`) |
 | front-end tekstowy | **binarka** `redox_installer_tui` — **ta nazwa**, nie `installer_tui` (`scripts/ci-install-smoke.sh:23`); **plik źródłowy** to `src/bin/installer_tui.rs` [ze źródła]. Mylenie binarki z plikiem źródłowym kosztowało już jeden przebieg harnessu — dlatego oba są wypisane |
@@ -106,7 +106,7 @@ persystowanego dziennika**, a stan wznawiania jest wyłącznie w pamięci.
 kasowanie całego dysku"*. Brak partycjonowania ręcznego, brak instalacji obok, brak zmiany
 rozmiaru. `scripts/dual-boot.sh` **nie jest tego obejściem**: to skrypt upstreamowy, uruchamiany
 na **hoście linuksowym**, wymagający `bootctl --print-esp-path` (czyli systemd-boot) i
-`popsicle`, i — jak mówi `docs/plan-do-sprzetu.md` ETAP 3 — **nigdy nie testowany przez E-OS**.
+`popsicle`, i — jak mówi `docs/archive/hardware-plan.md` ETAP 3 — **nigdy nie testowany przez E-OS**.
 
 **7. Wybór dysku to gołe menu numeryczne.** `R-604`: *„Whole-disk-erase hides behind a bare
 numeric menu / single 'Confirm' button with no disk identification"*. Harness potwierdza kształt:
@@ -203,7 +203,7 @@ skoro obraz jest hybrydowy; **nikt tego nie sprawdził**, więc do czasu przebie
 **14. `scripts/ventoy.sh` nie zna konfiguracji `eos`.** Ma zaszyte `CONFIGS=(demo desktop)`
 i `ARCHS=(i686 x86_64)` — `R-F28`. Zbuduje i skopiuje cudze obrazy.
 
-**15. Zero pomiarów ze sprzętu.** `docs/plan-do-sprzetu.md`: *„Nic w tym repozytorium nigdy nie
+**15. Zero pomiarów ze sprzętu.** `docs/archive/hardware-plan.md`: *„Nic w tym repozytorium nigdy nie
 działało na fizycznym sprzęcie — każda weryfikacja to QEMU"*. `ROADMAP.md` §14.1 powtarza:
 *„`R-601` udowodnione wyłącznie pod QEMU/TCG"*.
 
@@ -272,13 +272,13 @@ pozycję. Napisanie tego wprost w `docs/getting-started/install.md` jest tańsze
 
 | wymaganie | stan |
 |---|---|
-| rootless Podman + `podman/redox-base-containerfile` | **JEST** (`mk/podman.mk`, `docs/building.md`) |
+| rootless Podman + `podman/redox-base-containerfile` | **JEST** (`mk/podman.mk`, `docs/getting-started/building.md`) |
 | `rustup`, `cbindgen`, `nasm`, `just` przy `PODMAN_BUILD=0` | **JEST** (`mk/depends.mk`) |
 | `sbsigntool` w obrazie bazowym, nie z `apt-get` w czasie `cook` | **JEST** — `V2-MS05` domknięte (`U-218`) |
-| `CI=1` przy budowaniu nieinteraktywnym | **JEST** (`docs/building.md`, panika `repo.rs:1693`) |
+| `CI=1` przy budowaniu nieinteraktywnym | **JEST** (`docs/getting-started/building.md`, panika `repo.rs:1693`) |
 | narzędzie do złożenia hybrydy ISO | **JEST** — składa ją sam instalator przy `--live`; `xorriso` **nie jest** do tego potrzebny na hoście. (`recipes/wip/tools/xorriso` i `recipes/wip/tools/mkisofs-rs` to receptury **dla Redoksa**, obie z `#TODO` w pierwszej linii, poza ścieżką budowania obrazu) |
 | reprodukowalność bajtowa obrazu i binarki EFI | **DO ZBUDOWANIA** — `R-303` / `V2-MS07`, otwarte |
-| architektura budowania: `.config` ustawia `ARCH?=aarch64` | **JEST** — `make CI=1 all` buduje aarch64, mimo że `docs/building.md` twierdzi `x86_64`; ARCH trzeba podać jawnie (`docs/plan-do-sprzetu.md` §0.1) |
+| architektura budowania: `.config` ustawia `ARCH?=aarch64` | **JEST** — `make CI=1 all` buduje aarch64, mimo że `docs/getting-started/building.md` twierdzi `x86_64`; ARCH trzeba podać jawnie (`docs/archive/hardware-plan.md` §0.1) |
 
 ### 2.4 Decyzja B3 — sumy kontrolne i podpisy: wepnij się, nie wymyślaj
 
@@ -476,7 +476,7 @@ przez wprowadzanie cudzego bootloadera. **Znacznik: JEST** dla samego bootowania
 | `bootloader.bios`, `bootloader-live.bios` | **JEST**, ale tylko dla `i586`/`i686`/`x86_64` (`recipes/core/bootloader/recipe.toml`) |
 | budżet rozmiaru | twarde 384 KiB, nienaruszalne |
 | SBAT | **celowo brak** — patrz §3.1 |
-| weryfikacja jądra na BIOS-ie | jest, ale **nie jest kotwicą zaufania**: `docs/threat-model.md:89` — *„stage1/2/3 to surowe sektory, których nic nie uwierzytelnia, więc kto może zapisać jądro, może podmienić weryfikator"* |
+| weryfikacja jądra na BIOS-ie | jest, ale **nie jest kotwicą zaufania**: `docs/security/threat-model.md` — *„stage1/2/3 to surowe sektory, których nic nie uwierzytelnia, więc kto może zapisać jądro, może podmienić weryfikator"* |
 | aarch64 | **wyłącznie UEFI** — bootloader BIOS nie jest budowany |
 
 **Decyzja:** BIOS jest wspierany jako **tor B, bez obietnicy integralności rozruchu**.
@@ -530,7 +530,7 @@ architektur (`config/{aarch64,x86_64}/eos.toml`). Harness pracuje z `EOS_SMOKE_M
 powitalnego instalatora i do strony pobierania.
 
 W trybie live *„cały obraz jest wczytywany do RAM **nieweryfikowany**, zanim jądro zostanie
-z niego wzięte"* (`docs/threat-model.md`). To ograniczenie `V2-MS02`, a nie jego obejście —
+z niego wzięte"* (`docs/security/threat-model.md`). To ograniczenie `V2-MS02`, a nie jego obejście —
 i jest w modelu zagrożeń zapisane. Zamknięcie tej luki (weryfikacja obrazu live przed pivotem)
 to **NOWY PODSYSTEM** w bootloaderze i nie jest tu obiecywane.
 
@@ -563,14 +563,14 @@ dadzą zgłoszenia typu *„nie działa"* zamiast danych. **Znacznik: DO ZBUDOWA
 
 Uzasadnienie nie jest ideologiczne, tylko rachunkowe: (a) mechanizmu ładowania firmware
 w E-OS **nie ma** — `firmware-loader` istnieje u Red Bear OS i jest wymieniony jako materiał do
-zapożyczenia (`docs/plan-do-sprzetu.md`), nie jako nasz komponent; (b) licencyjnie blob
+zapożyczenia (`docs/archive/hardware-plan.md`), nie jako nasz komponent; (b) licencyjnie blob
 w AGPL-owym obrazie wymagałby osobnej ścieżki dystrybucji; (c) sprzęt, który realnie by na tym
 zyskał (NVIDIA GSP, Wi-Fi) jest i tak poza zasięgiem z innych powodów.
 
 | przypadek | znacznik |
 |---|---|
 | mechanizm ładowania firmware w przestrzeni użytkownika | **NOWY PODSYSTEM** |
-| firmware GPU NVIDIA (GSP) | **NIEREALNE DZIŚ** — `docs/plan-do-sprzetu.md` §5: *„czego nie robić na start"* |
+| firmware GPU NVIDIA (GSP) | **NIEREALNE DZIŚ** — `docs/archive/hardware-plan.md` §5: *„czego nie robić na start"* |
 | firmware Wi-Fi | **NIEREALNE DZIŚ** — nie ma stosu Wi-Fi w ogóle |
 | mikrokod CPU | **NIEREALNE DZIŚ** — aktualizacja mikrokodu wymaga wsparcia jądra, którego nie ma `[NIEZWERYFIKOWANE]`; sprawdzić w `eos-kernel`, `src/arch/x86_64` |
 
@@ -704,8 +704,8 @@ ani nawet do odczytu. W drzewie jest jeden sterownik obcego systemu plików — 
 
 | cecha | btrfs / ZFS | RedoxFS | znacznik dla nas |
 |---|---|---|---|
-| copy-on-write | tak | **tak** (`docs/architecture.md:82`) | **JEST** |
-| migawki / subwoluminy | tak, tanie i atomowe | **NIE** — *„no mature snapshot/subvolume primitive to rely on for CoW rollback today"* (`docs/update-system-design.md:104`) | **NOWY PODSYSTEM** |
+| copy-on-write | tak | **tak** (`docs/architecture/overview.md`) | **JEST** |
+| migawki / subwoluminy | tak, tanie i atomowe | **NIE** — *„no mature snapshot/subvolume primitive to rely on for CoW rollback today"* (`docs/architecture/update-system.md`) | **NOWY PODSYSTEM** |
 | sumy kontrolne danych | kryptograficzne / silne | **seahash** — *„neither cryptographic nor keyed"*, więc atakujący z dostępem do dysku dostaje przeliczenie sumy **za darmo** (`scripts/eos-boot-verify-proof.sh`) | **NOWY PODSYSTEM** |
 | send/receive | tak | brak `[NIEZWERYFIKOWANE]` — sprawdzić `eos-redoxfs` | — |
 | kompresja | tak | brak `[NIEZWERYFIKOWANE]` — j.w. | — |
@@ -713,7 +713,7 @@ ani nawet do odczytu. W drzewie jest jeden sterownik obcego systemu plików — 
 | szyfrowanie | LUKS pod spodem / natywne | **natywne AES-XTS-128**, klucz woluminu wyprowadzany **Argon2id** z hasła, nagłówek z **64 slotami klucza** (§5.4) | **JEST** |
 
 **Wniosek wiążący dla dokumentu o aktualizacjach:** *rollback przez migawkę systemu plików nie
-jest dostępny i nie będzie w tym roku.* `docs/update-system-design.md` §4.1 już wyciąga ten sam
+jest dostępny i nie będzie w tym roku.* `docs/architecture/update-system.md` §4.1 już wyciąga ten sam
 wniosek i wybiera **generacyjny staging plikowy z dziennikiem**. To jest jedyna spójna droga,
 a A/B (`R-710`, 💡, `[P3·XL]`, zależne od `R-707`) oznacza **dwa woluminy RedoxFS i przełącznik
 slotu w bootloaderze** — czyli pracę w bootloaderze, nie w systemie plików. **Znacznik dla A/B:
@@ -728,7 +728,7 @@ reinstalację potem.
 ### 5.4 Szyfrowanie
 
 **JEST**, dokładnie w tym kształcie i z tymi zastrzeżeniami — cytuję je, bo dokument instalatora
-nie ma prawa ich pominąć (`docs/encryption.md`, „Caveats"):
+nie ma prawa ich pominąć (`docs/guides/encryption.md`, „Caveats"):
 
 - AES-XTS-128 w Ruście, **bez audytu kryptograficznego osoby trzeciej**; *„don't rely on it for
   high-assurance use yet"*.
@@ -742,7 +742,7 @@ nie ma prawa ich pominąć (`docs/encryption.md`, „Caveats"):
 Pierwsza wersja tej sekcji kończyła się zdaniem: *„Zamówione linuksowe odpowiedniki: LUKS2,
 dm-crypt, **Argon2id na woluminie**, TPM2, FIDO2 — NIEREALNE DZIŚ. `argon2id` w projekcie jest,
 ale to hasła kont, nie klucz woluminu."* **Zdanie o Argon2id jest fałszywe i było sprawdzalne
-na miejscu**: `docs/encryption.md:8` mówi w tym samym drzewie *„with the key derived from your
+na miejscu**: `docs/guides/encryption.md` mówi w tym samym drzewie *„with the key derived from your
 password (**argon2**)"*. To nie jest hasło konta — to klucz woluminu. Odczyt źródła potwierdza
 i doprecyzowuje [ze źródła, `recipes/core/redoxfs/source`]:
 
@@ -864,7 +864,7 @@ udała, spróbuj jeszcze raz"*. W rejestrze: **`R-612a`** (odwrócenie kolejnoś
   to jedyna partycja, którą **da się odczytać z zewnątrz** (FAT czyta każdy system), zanim
   RedoxFS w ogóle powstanie. Diagnostyka nieudanej instalacji nie może wymagać działającego E-OS.
 - Zapis: rekord intencji **przed** każdą fazą, `fsync`, znacznik ukończenia po. Ten sam kształt,
-  co `journal.toml` z `docs/update-system-design.md` §4.2 — **celowo ten sam**, żeby instalacja
+  co `journal.toml` z `docs/architecture/update-system.md` §4.2 — **celowo ten sam**, żeby instalacja
   i aktualizacja miały jedną semantykę wznawiania, a nie dwie.
 - Zawartość: wersja, architektura, cel, wybrany tryb (całość/ręcznie/obok), tryb Secure Boot,
   ścieżka (blokowa/plikowa), lista faz, wynik, wykryte inne systemy.
@@ -1135,7 +1135,7 @@ w połowie zapisu.
 ### 9.2 Macierz na prawdziwym sprzęcie — kryterium akceptacji
 
 **Piszę to wprost: kryterium akceptacji instalatora jest goły sprzęt, nie QEMU.**
-Dziś macierz sprzętowa E-OS ma **zero wierszy z E-OS** — `docs/hardware-matrix.md` jest zmierzona
+Dziś macierz sprzętowa E-OS ma **zero wierszy z E-OS** — `docs/reference/hardware-matrix.md` jest zmierzona
 pod QEMU, a `HARDWARE.md` to dane **upstreamu**, nie nasze. `R-607` przewiduje macierz instalacji
 na prawdziwym firmware i jest `[P2·M·metal]`. Poniżej jej proponowana treść.
 
@@ -1157,7 +1157,7 @@ na prawdziwym firmware i jest `[P2·M·metal]`. Poniżej jej proponowana treść
 przy włączonym SB po wgraniu certyfikatu.
 
 **Kryterium raportowania:** nawet nieudany przebieg jest wynikiem, jeśli zapisze, **gdzie
-stanął**. Tabela objawów z `docs/plan-do-sprzetu.md` §0.5 jest gotowym formularzem — firmware
+stanął**. Tabela objawów z `docs/archive/hardware-plan.md` §0.5 jest gotowym formularzem — firmware
 nie widzi nośnika / bootloader startuje bez obrazu / brak roota / brak klawiatury / brak sieci.
 
 ### 9.3 Czego QEMU nie udowodni — lista, nie zastrzeżenie
@@ -1224,7 +1224,7 @@ użytkowników nie działa wcale.
 Odrzucone, bo nie istnieją — nawet do odczytu. To nie jest wybór projektowy, tylko stan drzewa.
 
 **6. A/B na migawkach RedoxFS.**
-Odrzucone: prymitywu migawek nie ma (`docs/update-system-design.md:104`). A/B partycyjne pozostaje
+Odrzucone: prymitywu migawek nie ma (`docs/architecture/update-system.md`). A/B partycyjne pozostaje
 możliwe jako `R-710` (💡), ale jest pracą **w bootloaderze**, wymaga `R-707`, i tego dokumentu
 nie dotyczy poza jednym: instalator ma zostawić miejsce (§5.3).
 
@@ -1273,8 +1273,8 @@ Jeden znacznik na wiersz. Bez znacznika dokument byłby niekompletny.
 | GPT + ochronny MBR | **JEST** | `U-162`: 2 tablice GPT na dysku docelowym |
 | ESP + FAT + `BOOT{X64,AA64}.EFI` | **JEST** | `U-162`, `install-smoke-drive.py` |
 | RedoxFS jako root | **JEST** | `redoxfs-mkfs`, `mk/disk.mk` |
-| FDE AES-XTS-128 przy instalacji | **JEST** | `docs/encryption.md`, zweryfikowane 2026-07-11 na obu arch. |
-| **Argon2id jako KDF woluminu** | **JEST** | `src/key.rs` [ze źródła]; `docs/encryption.md:8`. **Koryguje pierwszą wersję §5.4**, która twierdziła „NIEREALNE DZIŚ" |
+| FDE AES-XTS-128 przy instalacji | **JEST** | `docs/guides/encryption.md`, zweryfikowane 2026-07-11 na obu arch. |
+| **Argon2id jako KDF woluminu** | **JEST** | `src/key.rs` [ze źródła]; `docs/guides/encryption.md`. **Koryguje pierwszą wersję §5.4**, która twierdziła „NIEREALNE DZIŚ" |
 | konfigurowalne parametry Argon2 | **DO ZBUDOWANIA** | `ParamsBuilder::new()` ustawia tylko `output_len` [ze źródła] |
 | wiele haseł / klucz odzyskiwania / plik klucza | **DO ZBUDOWANIA** | nagłówek ma **64 sloty** (`src/header.rs:31`); brakuje narzędzi, nie formatu → `ADR-0010` |
 | **LUKS2 / dm-crypt** | **NIEREALNE DZIŚ** | brak warstwy device-mapper; nagłówek RedoxFS jest bliżej LUKS-a, ale niezgodny (§5.4) |
@@ -1407,16 +1407,16 @@ Sformułowane jako zdania, które da się obalić, nie jako zastrzeżenia.
 1. **Nie chroni przed podmienionym nośnikiem.** Sprawdzenie nośnika (§8.4) porównuje obraz
    z manifestem **wiezionym na tym samym nośniku**, weryfikowanym kluczem **stamtąd samego**.
    Wykrywa uszkodzenie, nie podmianę. Jedyna droga to odcisk klucza spoza nośnika.
-2. **Nie chroni przed atakiem na monit o hasło FDE.** Cytat z `docs/encryption.md`, nie parafraza:
+2. **Nie chroni przed atakiem na monit o hasło FDE.** Cytat z `docs/guides/encryption.md`, nie parafraza:
    *„hasło jest jedynym sekretem, a atakujący, który może naruszyć (nieszyfrowany) bootloader,
    może zaatakować sam monit o hasło"*. Brak TPM, brak measured boot, brak powiązania z Secure
    Bootem (§5.4).
 3. **Nie chroni przed nikim na ścieżce live.** *„Cały obraz jest wczytywany do RAM
-   **nieweryfikowany**, zanim jądro zostanie z niego wzięte"* (`docs/threat-model.md`).
+   **nieweryfikowany**, zanim jądro zostanie z niego wzięte"* (`docs/security/threat-model.md`).
    Weryfikacja `V2-MS02` zaczyna się **po** tym kroku (§4.1).
 4. **Nie chroni na rozruchu BIOS-owym.** Stage1/2/3 to surowe sektory, których nic nie
    uwierzytelnia — kto może zapisać jądro, może podmienić weryfikator
-   (`docs/threat-model.md:89`). Weryfikacja tam działa, ale jest **śladem manipulacji, nie
+   (`docs/security/threat-model.md`). Weryfikacja tam działa, ale jest **śladem manipulacji, nie
    kotwicą** (§3.3).
 5. **Nie chroni przed atakiem na maszynę budującą.** Klucz podpisujący pakiety generuje się sam
    w `build/`, leży **jawnym tekstem**, a obie jego kopie są na **jednym komputerze** (§2.6,
@@ -1425,7 +1425,7 @@ Sformułowane jako zdania, które da się obalić, nie jako zastrzeżenia.
    instaluje (`R-704`). Dotyczy to także ładunku na nośniku.
 7. **Nie chroni przed sterownikiem podmienionym po zamontowaniu roota.** Sterowniki ładują się
    z **niepodpisanego** roota po montowaniu, przez `pcid`, a IOMMU nie ma
-   (`docs/threat-model.md`) — podmieniony sterownik sięga DMA.
+   (`docs/security/threat-model.md`) — podmieniony sterownik sięga DMA.
 8. **Nie chroni danych po instalacji.** Bez zapory (`C-10`), bez piaskownicy (`C-5`), bez
    trwałego dziennika audytu (`C-9`), bez konta awaryjnego (`C-18`). Instalator nie ma czego
    włączyć — te rzeczy nie istnieją.

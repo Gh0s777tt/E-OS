@@ -19,7 +19,7 @@ know them would give the wrong advice:
 
 1. **The build machine is the CI runner and it holds every private key** (`C-11`). The
    `eos-heavy` GitLab runner is a **shell executor running as the maintainer's login
-   user** on their Mac (`docs/ci.md` §"Register the runner"), sharing that user's `podman`
+   user** on their Mac (`docs/operations/ci.md` §"Register the runner"), sharing that user's `podman`
    machine and the `eosbuild` container. The six private keys in the inventory below live
    on that same machine. So "code merged to `main`" and "code executing next to the
    signing keys" are separated by one scheduled or tagged pipeline, and nothing else.
@@ -179,7 +179,7 @@ chain on.
    delete the value in *Settings → CI/CD → Variables* — revoking the token does not remove
    the variable, and a stale variable makes the next failure look like a bot outage rather
    than a revocation.
-2. **Do not start with a history rewrite.** `docs/security.md` is right that the secret is
+2. **Do not start with a history rewrite.** `docs/security/index.md` is right that the secret is
    compromised the moment it is pushed. Rewriting is also structurally hard here: `main` is
    protected on GitLab (push restricted to Maintainers) and force-push is blocked on the
    GitHub mirror, so a rewrite means lifting protections on the source of truth *and* on
@@ -212,7 +212,7 @@ A GitLab push mirror is a `remote_mirrors` object with the PAT embedded in the t
 that is how `scripts/eos-setup-mirrors.sh` writes them, and it is the only place the
 credential is assembled. Scale matters when you plan the cleanup: today **one** mirror exists,
 on the meta repo, because `--apply` has never been run for the forks (`U-158`, still open in
-`docs/MAINTENANCE.md`). Two consequences, and the second one grows with that count:
+`docs/operations/maintenance.md`). Two consequences, and the second one grows with that count:
 
 - **Revoking the PAT stops mirroring silently.** GitLab keeps the mirror object; it just
   stops succeeding. GitHub does not go stale loudly — it goes stale quietly, which looks

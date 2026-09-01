@@ -2,7 +2,7 @@
 #
 # ── THIS IS NOT A SECOND HOOK MANAGER ────────────────────────────────────────────────
 # The project already has one: lefthook.yml, installed with `lefthook install`, documented
-# in docs/ci.md ("Local hooks", line 269), docs/MAINTENANCE.md:56 and docs/security.md:48.
+# in docs/operations/ci.md ("Local hooks", line 269), docs/operations/maintenance.md and docs/security/index.md.
 # (README.md:316 describes the same fail-closed gitleaks hook but never names the manager,
 # so a reader who starts there does not learn that a hook manager is involved at all.)
 # Both managers install a script at .git/hooks/pre-commit, and whichever ran its `install`
@@ -22,7 +22,7 @@
 #
 # Measured on the working clone, 2026-08-30: .git/hooks contains ONLY the git *.sample
 # files. Nothing is installed — not lefthook, not this — so the fail-closed gitleaks hook
-# that README.md, CLAUDE.md and docs/security.md all describe as "on, fails closed" is not
+# that README.md, CLAUDE.md and docs/security/index.md all describe as "on, fails closed" is not
 # running on this machine at all. Adding a second manager on top of that does not fix it;
 # `lefthook install` does. Fix that first, then this file starts mattering.
 #
@@ -125,7 +125,7 @@ repos:
       # For scale: the largest file tracked in this repo today is CHANGELOG.md at 373,595
       # bytes. The ceiling has roughly 14x headroom over anything that legitimately lives
       # here, so it should never fire on real work — and when it does fire it is right.
-      # (The 100 MB figure in docs/packages.md is a different limit for a different repo:
+      # (The 100 MB figure in docs/reference/packages.md is a different limit for a different repo:
       # scripts/publish-repo-pages.sh:29 checks `-size +99M` against GitHub's blob limit
       # for the *package-hosting* repos. It is not this rule and is 20x looser.)
       #
@@ -153,7 +153,7 @@ repos:
           if [ -z "$n" ]; then printf "FAIL (instrument): wc gave no byte count for %s; its size was never measured.\n" "$f"; rc=1; continue; fi;
           if [ "$n" -gt "$max" ]; then printf "FAIL: %s is %s bytes; the ceiling is %s bytes (5 MB)\n" "$f" "$n" "$max"; rc=1; fi;
           done;
-          [ "$rc" -eq 0 ] || printf "%s\n" "  Build outputs belong in build/, repo/ and release/ (gitignored) or in the package-hosting repos (docs/packages.md), not in git history. If this file really must ship here, raise the ceiling in .pre-commit-config.yaml in its own commit.";
+          [ "$rc" -eq 0 ] || printf "%s\n" "  Build outputs belong in build/, repo/ and release/ (gitignored) or in the package-hosting repos (docs/reference/packages.md), not in git history. If this file really must ship here, raise the ceiling in .pre-commit-config.yaml in its own commit.";
           exit $rc' eos-large-file
 
       # ── private-key material ───────────────────────────────────────────────────────

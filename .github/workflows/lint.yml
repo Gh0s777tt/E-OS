@@ -399,7 +399,7 @@ jobs:
   # quietly left (CHANGELOG.md alone is ~370 KB of U-NNN history).
   #
   # EXPECTED TO BE RED ON ITS FIRST RUN. As of 2026-08-30 the blocking pass fails on
-  # two links in docs/design-desktop-environment.md, which point at
+  # two links in docs/architecture/desktop-environment.md, which point at
   # ../assets/screenshots/eos-crimson-greeter.png and .../eos-crimson-desktop.png —
   # neither file exists (assets/screenshots/ has the eos-* captures under other names).
   # That is the gate doing its job on real rot, the same way shell-lint's first run
@@ -422,7 +422,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # --exclude-path docs/REDOX-README.md: that file is upstream Redox's README kept
+      # --exclude-path docs/reference/upstream-redox-readme.md: that file is upstream Redox's README kept
       # verbatim, and its `./LICENSE` and `CONTRIBUTING.md` links resolve in upstream's
       # repository layout, not in ours. Rewriting them would fork the file for a
       # cosmetic reason; gating on them would fail this repo for upstream's paths. Same

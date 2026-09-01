@@ -224,7 +224,7 @@ ADR nie zakłada dla tego osobnej pozycji.
 sekcji PE; żadne firmware nie czyta SBAT w rozruchu legacy). Na aarch64 BIOS-owy bootloader nie
 istnieje w ogóle.
 
-Weryfikacja jądra działa i na tej ścieżce, ale **nie jest kotwicą**: `docs/threat-model.md` mówi
+Weryfikacja jądra działa i na tej ścieżce, ale **nie jest kotwicą**: `docs/security/threat-model.md` mówi
 wprost, że stage1/2/3 to surowe sektory, których nic nie uwierzytelnia, więc kto może zapisać
 jądro, może podmienić weryfikator. **Instalator ma to napisać na ekranie, nie w dokumentacji.**
 **Znacznik: DO ZBUDOWANIA** (jeden ekran).
@@ -533,7 +533,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | weryfikacja jądra i initfs ed25519 z separacją domen | **JEST** | `V2-MS02`/`U-212`, `eos-boot-verify-proof.sh` |
 | klucz weryfikacji **wkompilowany** w binarkę bootloadera | **JEST** | `recipe.toml:24-31` |
 | menu bootloadera z klawiatury (tryb wideo, `l`, Enter) | **JEST** | `install-smoke-drive.py:136-153` |
-| bootloader BIOS dla `i586`/`i686`/`x86_64`, budżet 384 KiB | **JEST**, bez kotwicy zaufania | `recipe.toml`; `docs/threat-model.md` |
+| bootloader BIOS dla `i586`/`i686`/`x86_64`, budżet 384 KiB | **JEST**, bez kotwicy zaufania | `recipe.toml`; `docs/security/threat-model.md` |
 | partycja BIOS boot 1 MiB (typ `BIOS`) **istnieje** | **JEST** | `system-updates.md` §1.4. Czy stage1 idzie tam, czy w lukę za MBR-em — **`[NIEZWERYFIKOWANE]`**, patrz *Kontekst*; `installer.md` §3.3 zostaje otwarte |
 | jądro i initfs ładowane z **zaszyfrowanego** RedoxFS-a po odblokowaniu | **JEST** | `installer-wizard.md` §5.5 |
 | hybrydowy MBR + GPT + ISO9660 na obu obrazach | **JEST** | sygnatury: `0` kod x86, `512` `EFI PART`, `0x8001` `CD001` — zmierzone w drzewie budowania, nie w tym repo |
@@ -561,7 +561,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | shim + MOK, `dbx`, unieważnianie przez Microsoft | **NIEREALNE DZIŚ** | `ADR-0006`, `V2-MS10`/`V2-MS11`; jedyny kandydat na własną ścieżkę unieważniania to SBAT — a jego egzekwowania nikt nie zmierzył (D9) |
 | wybór slotu A/B przez bootloader (wskaźnik w atrybutach GPT) | **NOWY PODSYSTEM** | `R-710b`, `system-updates.md` §4.6 |
 | trwały licznik prób rozruchu zapisywany przez bootloader | **NOWY PODSYSTEM** | `R-707`; bootloader dziś **niczego nie zapisuje** |
-| weryfikacja obrazu live **przed** pivotem (dziś ładowany do RAM nieweryfikowany) | **NOWY PODSYSTEM** | `docs/threat-model.md` |
+| weryfikacja obrazu live **przed** pivotem (dziś ładowany do RAM nieweryfikowany) | **NOWY PODSYSTEM** | `docs/security/threat-model.md` |
 | scalony obraz EFI (UKI) | **NOWY PODSYSTEM** | wariant G |
 | measured boot / TPM 2.0 / zapieczętowanie klucza FDE | **NIEREALNE DZIŚ** | `R-913` / `V2-N02`; warstwa 5 pusta (`keys-and-tokens.md` §6a) |
 | FIDO2 / token sprzętowy w ścieżce rozruchu | **NIEREALNE DZIŚ** | brak stosu CTAP i brak obsługi FIDO w `usbhidd`; inwentarz obrazu wymienia FIDO2 wśród rzeczy, których nie ma |
@@ -583,7 +583,7 @@ Zasada projektu w formie tabeli. Kolumna ostatnia jest najważniejsza.
 | bootloader zbudowany **bez** `build/boot-signing/` | **żadna** — system startuje, weryfikacja nie istnieje | pusty katalog kluczy na maszynie budującej | **nie** — jedyny ślad to linia w logu `cook` (`recipe.toml:34`). **To nie jest kontrola.** Naprawa: D8 |
 | bootloader zbudowany **bez** `build/sb-signing/` | obraz nie wystartuje pod Secure Bootem, ale wystartuje z wyłączonym | j.w. | **nie** — `make-release.sh` tego nie sprawdza. Naprawa: D8 |
 | zbuforowana paczka bootloadera po położeniu klucza | podpis „jest", ale w paczce go nie ma | `make all` bez świeżego `cook` | **częściowo** — `eos-sb-setup-key.sh` unieważnia paczkę; bramka z D8 domyka |
-| tryb live: cały obraz do RAM **nieweryfikowany**, zanim jądro zostanie z niego wzięte | brak | z założenia, każdy rozruch nośnika | **nie** — zapisane w `docs/threat-model.md` jako ograniczenie `V2-MS02` |
+| tryb live: cały obraz do RAM **nieweryfikowany**, zanim jądro zostanie z niego wzięte | brak | z założenia, każdy rozruch nośnika | **nie** — zapisane w `docs/security/threat-model.md` jako ograniczenie `V2-MS02` |
 | BIOS: stage1/2/3 to surowe sektory | weryfikacja jest dowodem manipulacji, nie kotwicą | rozruch legacy | **nie** — i tak ma być; D7 każe to napisać na ekranie |
 
 ---
@@ -598,7 +598,7 @@ Ta sekcja nie jest zastrzeżeniem prawnym. Jest listą zdań, których po przyj�
    `ihdad`, `rtl8168d` i kilkanaście innych ładują się z **niepodpisanego** roota po
    zamontowaniu, przez `pcid`, a IOMMU nie ma (`acpid/src/acpi.rs:461`:
    `//TODO (hangs on real hardware): Dmar::init(&this);`). Podmieniony sterownik dostaje DMA —
-   czyli to samo przejęcie, innym plikiem (`docs/threat-model.md`).
+   czyli to samo przejęcie, innym plikiem (`docs/security/threat-model.md`).
 2. **Nie chroni trybu live.** Cały obraz jest wczytywany do RAM **bez weryfikacji**, zanim
    zostanie z niego wzięte jądro. Dotyczy to **nośnika instalacyjnego**, czyli dokładnie tego,
    o czym jest ten dokument (`threat-model.md`, `installer-wizard.md` §5.5).
@@ -607,7 +607,7 @@ Ta sekcja nie jest zastrzeżeniem prawnym. Jest listą zdań, których po przyj�
    kotwicy (`system-updates.md` §5.4 pkt 3).
 4. **Nie chroni przed napastnikiem z fizycznym dostępem.** Bootloader leży na **nieszyfrowanym**
    ESP i sam pyta o hasło FDE, więc atak na monit jest **w modelu**, nie poza nim
-   (`docs/encryption.md`, „Caveats": *„an attacker who can tamper with the (unencrypted)
+   (`docs/guides/encryption.md`, „Caveats": *„an attacker who can tamper with the (unencrypted)
    bootloader could attack the prompt"*). Nie ma anti-evil-maid, bo nie ma measured bootu
    (`R-913`, warstwa 5 pusta).
 5. **Na BIOS-ie nie ma kotwicy w ogóle.** Stage1/2/3 to surowe sektory, których nic nie
