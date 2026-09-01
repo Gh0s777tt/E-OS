@@ -23,9 +23,11 @@ know them would give the wrong advice:
    machine and the `eosbuild` container. The six private keys in the inventory below live
    on that same machine. So "code merged to `main`" and "code executing next to the
    signing keys" are separated by one scheduled or tagged pipeline, and nothing else.
-2. **CI is not watching right now.** Every GitLab job has failed in ~0 s with
-   `ci_quota_exceeded` since 2026-08-28 (`C-7`), which includes `secret-scan` (gitleaks
-   over the full history) and `pin-check`. Detection today rests on the *local* pre-commit
+2. **CI coverage is intermittent — assume it may be dark when you need it.** GitLab's
+   shared-runner jobs fail in ~0 s with `ci_quota_exceeded` whenever the monthly minutes are
+   gone (`C-7`): dead from 2026-08-28 to the 2026-09-01 reset, then `secret-scan` and
+   `pin-check` ran repeatedly that day, then dark again by evening. Check the quota rather
+   than assuming either state. Detection today rests on the *local* pre-commit
    hook and GitHub's push protection, not on a pipeline. Do not plan a response around a
    gate that is currently dead.
 3. **One key cannot be rotated, only re-imaged around.** The repo-manifest public key is

@@ -74,7 +74,7 @@ Full click-by-click is in [`docs/operations/ci.md`](ci.md).
 | **Run `scripts/eos-setup-mirrors.sh --apply`** with a GitHub PAT in `$GITHUB_MIRROR_PAT` | Mirror the 24 forks GitLab→GitHub (E-OS already mirrors) | local |
 | Set masked/protected CI var **`GITLAB_TOKEN`** (api) | Enable semantic-release (tags + GitLab Releases) | GitLab → Settings → CI/CD → Variables |
 | Set **`RENOVATE_TOKEN`** (api) + a nightly **pipeline schedule** | Enable Renovate dependency updates | GitLab → Settings → CI/CD |
-| Register a runner tagged **`eos-heavy`** | Run the full OS image build + QEMU smoke test | GitLab → Settings → CI/CD → Runners |
+| ~~Register a runner tagged **`eos-heavy`**~~ — **done**: `eos-heavy (mac podman)`, id 54369740, shell executor, online; ran `build-image` and `docs-pdf` on 2026-09-01. What remains is a **native x86_64** heavy runner | Run the full OS image build + QEMU smoke test | GitLab → Settings → CI/CD → Runners |
 | **Protect `main`** (MR-only, green pipeline required, ≥1 approval) | Enforce review + CI gate | GitLab → Settings → Repository |
 | GitHub mirror hygiene (issues off / note dev-on-GitLab; enable secret-scanning + Dependabot alerts) | Keep contributions on GitLab | GitHub → Settings |
 
