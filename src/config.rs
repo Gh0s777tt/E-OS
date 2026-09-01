@@ -115,6 +115,32 @@ pub struct CookbookConfig {
 
 static CONFIG: OnceLock<CookbookConfig> = OnceLock::new();
 
+/// The ONE config a test build uses. Every test that needs one calls this.
+///
+/// `get_config()` panics on an unset `CONFIG`, and until now the only thing that ever set it in a
+/// test build was `setup_test_config()` inside this module's own `tests`. Any other test calling
+/// into code that reads the config therefore depended on a config test having run FIRST, in the
+/// same binary. That held under `cargo test` and broke under `cargo test --tests`, which builds a
+/// different set of targets:
+///
+///     cargo test           file_system_loop_no_infinite_loop ... ok
+///     cargo test --tests   file_system_loop_no_infinite_loop ... FAILED
+///                          Configuration is not initialized
+///
+/// Same code, same machine, one command apart. `set` on an already-set OnceLock returns Err and
+/// changes nothing, so this is safe to call from every test and in any order.
+#[cfg(test)]
+pub(crate) fn init_for_tests() {
+    let app_config = toml::from_str(
+        "[mirrors]\n\
+        \"ftp.gnu.org/gnu\" = \"example.com/gnu\"\n\
+        \"github.com/foo/bar\" = \"github.com/baz/bar\"\n\
+        \"github.com/a\" = \"github.com/b\"\n",
+    )
+    .expect("Unable to parse test config");
+    let _ = CONFIG.set(app_config);
+}
+
 pub fn init_config() {
     let mut config: CookbookConfig = if fs::exists("cookbook.toml").unwrap_or(false) {
         let toml_content = fs::read_to_string("cookbook.toml")
@@ -248,16 +274,9 @@ mod tests {
     use super::*;
 
     fn setup_test_config() {
-        let app_config = toml::from_str(
-            "[mirrors]\n\
-            \"ftp.gnu.org/gnu\" = \"example.com/gnu\"\n\
-            \"github.com/foo/bar\" = \"github.com/baz/bar\"\n\
-            \"github.com/a\" = \"github.com/b\"\n",
-        )
-        .expect("Unable to parse test config");
-        // This will be called for each test. If the config is already set,
-        // it will do nothing, which is fine as all tests use the same config.
-        let _ = CONFIG.set(app_config);
+        // One definition, above, shared with every other test module. Two copies is how the
+        // mirror map and a Default ended up racing each other.
+        super::init_for_tests();
     }
 
     #[test]

@@ -770,6 +770,10 @@ mod tests {
 
     #[test]
     fn file_system_loop_no_infinite_loop() {
+        // auto_deps_from_dynamic_linking reads the config; without this the test passes or fails
+        // depending on whether a config test happened to run first in the same binary.
+        crate::config::init_for_tests();
+
         let mut root = std::env::temp_dir();
         root.push("temp_test_dir_file_system_loop_no_infinite_loop");
         let _ = std::fs::remove_dir_all(&root);
