@@ -33,6 +33,15 @@ import sys
 
 SCAN_EXT = (".md", ".sh", ".py", ".toml", ".yml", ".yaml", ".rs")
 DATED_PREFIX = ("docs/audit/", "docs/archive/")
+# This file itself. It names dead paths as EXAMPLES of what it detects -- in the module
+# docstring and in the comment explaining why line numbers are dropped -- so scanning it
+# makes the gate fail on its own prose. Discovered the hard way: on the branch the file was
+# still UNTRACKED, `git ls-files` does not list untracked files, so the gate never scanned
+# itself and verify.sh went green; the merge made it tracked and main went red. Same class
+# as P-9 in CLAUDE.md, where a tracked-files-only tool cannot see a new file.
+# Retire this entry if the examples are ever moved out into a fixture file.
+SELF = "scripts/eos-check-doc-paths.py"
+
 DATED_EXACT = {
     "CHANGELOG.md",
     "docs/reference/semver-decisions-2026-08-30.md",
@@ -124,7 +133,7 @@ def main():
     for f in files:
         if not f.endswith(SCAN_EXT):
             continue
-        if f.startswith(DATED_PREFIX) or f in DATED_EXACT:
+        if f == SELF or f.startswith(DATED_PREFIX) or f in DATED_EXACT:
             continue
         try:
             with open(f, encoding="utf-8", errors="ignore") as fh:
