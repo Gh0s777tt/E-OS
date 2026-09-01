@@ -439,6 +439,23 @@ build-image:
     # is a different and much stronger claim than booting a pre-installed image, and it is
     # the only job in this file that exercises the installer at all.
     - bash scripts/ci-boot-smoke.sh "$(basename "$MEDIUM")" 420
+    # ci-install-smoke.sh copies the source image (~1.4 GiB) and creates a 4 GiB target, so it
+    # needs ~6 GiB of scratch. The runner's default TMPDIR is on the boot volume, measured
+    # 2026-09-01 at 3.7 GiB free, and the harness refused -- correctly, with exit 2 and the
+    # remedy in the message rather than a mangled "test failure":
+    #     install-smoke: FAIL (instrument) -- ... has 3811 MiB free
+    #                    Point the scratch directory somewhere with room: EOS_SMOKE_WORK=/path
+    # /Volumes/EOS-Podman is the external disk that already carries the podman machine (233 GiB
+    # free on the same date). If it is not mounted, say so instead of failing later on space.
+    - |
+      SMOKE_ROOT="${EOS_SMOKE_ROOT:-/Volumes/EOS-Podman}"
+      if [ ! -d "$SMOKE_ROOT" ]; then
+        echo "install-smoke scratch volume '$SMOKE_ROOT' is not mounted" >&2
+        echo "  mount it, or set EOS_SMOKE_ROOT to a path with at least 6 GiB free" >&2
+        exit 1
+      fi
+      mkdir -p "$SMOKE_ROOT/ci-smoke"
+      export EOS_SMOKE_WORK="$SMOKE_ROOT/ci-smoke"
     - bash scripts/ci-install-smoke.sh "$(basename "$MEDIUM")" 2400 --arch "$ARCH"
     # SBOM (R-302): regenerate from THIS build's cooked package metadata (real
     # blake3 + source revs), deterministic via the commit timestamp, then export it.
@@ -517,6 +534,23 @@ build-image-x86_64:
     # scales its step windows (EOS_SMOKE_SLOW) because emulation is slower than the aarch64
     # numbers those windows were taken from -- hence the larger budget here than for aarch64.
     - bash scripts/ci-boot-smoke.sh "$(basename "$MEDIUM")" 900 --arch x86_64
+    # ci-install-smoke.sh copies the source image (~1.4 GiB) and creates a 4 GiB target, so it
+    # needs ~6 GiB of scratch. The runner's default TMPDIR is on the boot volume, measured
+    # 2026-09-01 at 3.7 GiB free, and the harness refused -- correctly, with exit 2 and the
+    # remedy in the message rather than a mangled "test failure":
+    #     install-smoke: FAIL (instrument) -- ... has 3811 MiB free
+    #                    Point the scratch directory somewhere with room: EOS_SMOKE_WORK=/path
+    # /Volumes/EOS-Podman is the external disk that already carries the podman machine (233 GiB
+    # free on the same date). If it is not mounted, say so instead of failing later on space.
+    - |
+      SMOKE_ROOT="${EOS_SMOKE_ROOT:-/Volumes/EOS-Podman}"
+      if [ ! -d "$SMOKE_ROOT" ]; then
+        echo "install-smoke scratch volume '$SMOKE_ROOT' is not mounted" >&2
+        echo "  mount it, or set EOS_SMOKE_ROOT to a path with at least 6 GiB free" >&2
+        exit 1
+      fi
+      mkdir -p "$SMOKE_ROOT/ci-smoke"
+      export EOS_SMOKE_WORK="$SMOKE_ROOT/ci-smoke"
     - bash scripts/ci-install-smoke.sh "$(basename "$MEDIUM")" 5400 --arch x86_64
   artifacts:
     when: on_success
