@@ -154,9 +154,123 @@ class Console:
         print("install-smoke: FAIL — timed out waiting for %s" % what)
         return None
 
-    def send(self, line):
-        self.sock.sendall((line + "\n").encode())
+    def send(self, line, per_char=0.0, before_newline=0.5, enter="\r", clear=True):
+        """Type `line`, then Enter -- one character at a time, the way a person does.
+
+        WHY NOT ONE WRITE. The guest echoes PER CHARACTER: the serial log shows
+        `eos login: r`, `eos login: ro`, `eos login: roo` on separate lines, so every
+        keystroke is processed individually. Handing it nine bytes and a newline in a single
+        write asks a TCG-emulated 16550 with a small FIFO to absorb the lot before the reader
+        on the other side is ready.
+
+        MEASURED, and this is what the burst looked like:
+
+            new password:
+            confirm password:
+            passwd: new password does not match confirm password
+
+        -- two prompts back to back with nothing typed between them, because the NEWLINE
+        arrived before the `new password:` reader started and was consumed as an empty answer.
+        The rest of the line then landed in the confirmation, and the two did not match. Other
+        runs went quiet instead: the guest waited at `new password:` while this driver waited
+        for a prompt that had already been eaten.
+
+        The pause before Enter is separate and deliberate: Enter is the byte that COMMITS the
+        answer, so it is the one that must not overtake the text it terminates.
+
+        WHY CR, EVERYWHERE. Not deduced from terminal folklore -- read out of the source of the
+        program on the other side. `eos-userutils/src/bin/login.rs:174`, at the pinned revision
+        this image was built from:
+
+            let user = liner::Context::new()
+                .read_line(liner::Prompt::from("\x1B[1meos login:\x1B[0m "), ...)
+
+        and the password on line 228 via `termion`'s `read_passwd`. The first-boot setup is the
+        same story, visible in the SHIPPED IMAGE: the binary carrying `E-OS first-boot setup`
+        also carries `redox_liner-0.5.3/src/keymap/vi.rs` and `termion-4.0.5/src/event.rs`.
+
+        So the whole flow is a raw-mode line editor. Raw mode is where ICRNL is off, and `\n` is
+        therefore NOT Enter. Measured, and the failure is quiet rather than loud:
+
+            LF at the login prompt -> `eos login: root` echoed, then the line CLEARED with no
+            password prompt and no rejection; the retry then echoed `rootr`, `rootro`,
+            `rootroo`, `rootroot` -- the buffer had KEPT `root`, so LF redrew without
+            committing. `Login incorrect` came from the doubled name, not from a bad password.
+
+        Sending `\r\n` is not a safer middle: the CR commits and the LF is left in the buffer
+        as the next prompt's first keystroke -- which is exactly the empty answer the OOBE was
+        seen eating (`new password:` and `confirm password:` printed back to back with nothing
+        typed between them).
+
+        WHY THE OOBE PASSWORD FIELDS GET LF AND EVERYTHING ELSE GETS CR. Read out of
+        `eos-userutils/src/bin/login.rs:143`, at the pinned revision:
+
+            let _ = std::process::Command::new("passwd").arg(uname).status();
+
+        The first-boot setup does not read the password itself -- it SPAWNS `passwd` as a child.
+        That child puts the terminal into raw mode through `termion` on its own, and there CR is
+        not translated, so `termion`'s read terminates on `\n` and a CR never ends the line.
+        Inside `login` the same call works with CR because `liner` has already restored cooked
+        mode, where the driver maps CR to NL for us.
+
+        Measured, and it is the quiet kind of failure again: with CR everywhere the run reached
+        `saw the root password prompt` and `saw the first-boot password prompt` -- so login and
+        its own password were fine -- and then the guest went silent at `new password:` with
+        `confirm password` never printed, 0 occurrences.
+
+        WHY THE TEXT GOES IN ONE WRITE (`per_char` 0). Typing it slowly is WORSE here, and the
+        reason is in the same source: `liner` is driven with its **vi** keymap
+        (`redox_liner-0.5.3/src/keymap/vi.rs` is in the shipped binary). Fed one keystroke at a
+        time, the editor gets the chance to read letters as vi COMMANDS rather than text --
+        measured, typing `root` at 0.12 s/char echoed back as
+
+            eos login: r -> ro -> o -> ot        (`r` replace, `o` open-line: `root` -> `ot`)
+
+        and at 0.04 s/char as `rot`. Delivered in a single write the same input echoes cleanly
+        as `r`, `ro`, `roo`, `root`. So: text in one burst, then a pause, then Enter on its own.
+
+        Cost is trivial -- about 0.8 s for a ten-character answer -- and paid only on input,
+        which happens a handful of times per run.
+        """
+        # Clear whatever the field already holds BEFORE typing. Measured, twice: when an Enter
+        # is not accepted the line is redrawn empty but the BUFFER KEEPS the text, so the next
+        # attempt appends to it -- `root` typed twice echoed back as `rootroot` and was refused
+        # as a username. Without this the retries in login() are not independent attempts, they
+        # are one attempt getting steadily more wrong.
+        # ...but ONLY where a line editor is reading. `clear=False` at password fields: they are
+        # read by termion's `read_passwd`, which takes bytes as they come, so a leading 0x15
+        # would become part of the password rather than erasing anything.
+        if clear:
+            self.sock.sendall(b"\x15")      # ^U, kill line
+            time.sleep(0.3)
+        for ch in line:
+            self.sock.sendall(ch.encode())
+            time.sleep(per_char)
+        time.sleep(before_newline)
+        self.sock.sendall(enter.encode())
         time.sleep(0.7)
+
+    def commit(self, line, expect, what, window, enter="\r", tries=3):
+        """Type `line`, press Enter, and make sure the prompt actually MOVED ON.
+
+        A single Enter is not reliable at these prompts: `liner` runs with its vi keymap, and
+        depending on the mode it is in, Enter can redraw the line instead of submitting it --
+        measured, with both CR and LF, as `eos login: root` followed by an EMPTY prompt, no
+        acceptance and no rejection. Pressing Enter again is what a person does when a prompt
+        does not move, and it is what this does.
+        """
+        for attempt in range(1, tries + 1):
+            if attempt == 1:
+                self.send(line, enter=enter)
+            else:
+                print("install-smoke:   %s did not advance, pressing Enter again" % what)
+                self.sock.sendall(enter.encode())
+                time.sleep(1.0)
+            if self.expect(expect, what, window=window):
+                return True
+            if self.dead:
+                return False
+        return False
 
     def dismiss_boot_menu(self, monitor_path, toggle_live=False):
         """The bootloader's video-mode menu reads the emulated KEYBOARD, not the serial
@@ -230,14 +344,13 @@ def login(con, attempts=3):
 def _login_once(con):
     if not con.expect(r"login:", "the login prompt"):
         return False
-    con.send("root")
+    if not con.commit("root", r"password:", "the root password prompt", window=w(40)):
+        return False
     # Every password pattern below REQUIRES the colon. A bare "password" also matches the
     # login banner -- "Accounts: user * root - the first login makes you set a password" --
     # which is printed after the login: prompt, so it lands after the mark and looks like a
     # prompt to expect(). Being specific is the fix; a longer timeout would not have helped.
-    if not con.expect(r"password:", "the root password prompt", window=w(40)):
-        return False
-    con.send("password")              # the shipped default the OOBE forces you off
+    con.send("password", clear=False)  # the shipped default the OOBE forces you off
 
     # Race the outcomes instead of waiting out the happy path's window on a login that has
     # ALREADY been refused. "Login incorrect" is a RESULT, not a timeout, and telling the
@@ -275,7 +388,7 @@ def _login_once(con):
             "the first-boot prompt", window=w(90))
         if seen != "the first-boot password prompt":
             return False
-        con.send(PASSWORD)
+        con.send(PASSWORD, enter="\n", clear=False)
 
         seen = con.expect_either(
             {"the password confirmation": r"confirm password:",
@@ -286,7 +399,7 @@ def _login_once(con):
             return False
         if seen != "the password confirmation":
             continue                      # mismatch or nothing: let the OOBE ask again
-        con.send(PASSWORD)
+        con.send(PASSWORD, enter="\n", clear=False)
 
         seen = con.expect_either(
             {"a shell prompt": r"root:.*#|:~#|\$",
