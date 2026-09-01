@@ -1,7 +1,7 @@
 ---
 title: CI/CD & automation
 status: current
-last-reviewed: 2026-08-30
+last-reviewed: 2026-09-01
 owner: Gh0s777tt
 ---
 
@@ -117,6 +117,20 @@ job. `scripts/ci-boot-smoke.sh` takes `--arch aarch64|x86_64` (default `aarch64`
 aarch64 call site is unchanged) and works on both `harddrive.img` and the `redox-live.iso`
 from `make live` — both are raw GPT images. A native x86_64 runner is still worth having
 for speed and for real-hardware coverage, but it is no longer a prerequisite for gating.
+
+**Guest RAM is `EOS_SMOKE_MEM`** (MiB, default `2048`), matching `ci-install-smoke.sh`,
+which already read it. It was hard-coded until 2026-09-01, which made a whole class of
+fault invisible to the harness: issue #15 is aarch64 asking for a fixed address at 5 GiB,
+and only a RAM sweep shows that the address does not move with memory size. A dial that
+cannot be turned without editing the script does not get turned.
+
+```sh
+EOS_SMOKE_MEM=6144 bash scripts/ci-boot-smoke.sh <image> 150 --arch aarch64
+```
+
+Note what this does **not** do: more RAM gets aarch64 past the allocation and into a
+different, deterministic failure (same `ESR 0x9600000B`, same `0x140027FB0`, measured
+twice on 2026-09-01). It is a diagnostic dial, not a workaround.
 
 **Register the runner** (this project, id `82957024`; done once — the current runner is
 already online). On macOS with Homebrew:
