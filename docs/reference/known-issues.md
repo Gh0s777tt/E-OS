@@ -7,13 +7,13 @@ owner: Gh0s777tt
 
 # 🐞 Known Issues
 
-**aarch64 does not boot today** — see the entry directly below. **x86_64** boots to
-userspace (`boot-smoke: PASS`, exit 0, 2026-09-01).
+Both **aarch64** and **x86_64** boot to userspace (`boot-smoke: PASS`, exit 0, 2026-09-01).
+aarch64 was broken for part of August; the cause and the fix are recorded below.
 Resolved items are kept below for the record.
 
 ---
 
-## 🔴 aarch64 stopped booting — regression against a state that was proven (OPEN, recorded 2026-09-01, issue #15)
+## ✅ aarch64 stopped booting — LTO merged stack frames past the DXE stack (RESOLVED 2026-09-01, issue #15)
 
 A freshly built aarch64 image does not reach userspace under QEMU `virt`:
 
@@ -37,10 +37,38 @@ verified 2026-06-18, `build-troubleshooting.md` records a boot-smoke PASS on
 capture of the greeter, added 2026-08-14. Something between mid-August and now
 broke it.
 
-**Not yet established:** which change. Candidates are the `eos-bootloader` pin,
-the `eos-kernel` pin, and the image growing to 1400 MiB. Do not assume the
-bootloader — `0x140000000` being a fixed address that ignores RAM size is the
-symptom, and nothing yet shows which commit introduced it.
+**Cause, established 2026-09-01.** Not the allocation at all. The bootloader dies in a
+compiler stack probe (`__chkstk`) on the firmware's own DXE stack, before
+`ExitBootServices`: `ESR 0x9600000B`, access-flag fault at level 3, `FAR = SP - 0x8000`,
+eight probe steps down. `ELR` lands on `ldr xzr, [x17]` at helper+0x10.
+
+`87b214b5` put `lto = true` + `codegen-units = 1` in the bootloader's **workspace-wide**
+`[profile.release]`, because the BIOS stage3 is padded to a hard 384 KiB and Ed25519
+overflows it without LTO. That reason is real. But the profile is global, so aarch64 got
+LTO too — and LTO merges callee frames into their caller, making locals that were live one
+at a time live simultaneously:
+
+| | probed frames | total | note |
+|---|---|---|---|
+| `lto=true` | 12 | 229 808 B | carries a 36 704 B frame absent from every non-LTO build |
+| `lto=false` | 15 | 235 456 B | **more** in total, and it boots |
+
+The total is not what matters; the peak on one call path is. QEMU `virt` gives ~124 KiB of
+usable DXE stack and the kernel-load path needs ~128 KiB with LTO.
+
+**Fix:** `CARGO_PROFILE_RELEASE_LTO=false` in `mk/aarch64-unknown-uefi.mk` only, so the BIOS
+and x86_64 targets keep exactly what they had. Proven with a matched control — same revision,
+same `verify-boot`, same key, only the setting differing: the LTO rebuild fails identically at
+both 2048 and 6144 MiB; the fix reaches `eos login:` at both.
+
+**This restores a margin, it does not create headroom.** The path needs ~124 KiB of a ~124 KiB
+stack. The next frame growth brings it back. A durable answer is either lower stack demand or
+the bootloader switching to its own stack before `ExitBootServices`.
+
+**The `ConvertPages` message above is not the failure.** It records a failed `AllocateAddress`
+at the PE's preferred ImageBase followed by a successful relocation, and appears on a
+*successful* x86_64 boot to `eos login:`. At 2048 MiB the image relocates and still crashes,
+at a different address but the same offset into the binary.
 
 **Rejected en route,** so nobody spends the time twice: the harness is not at
 fault (unmodified `ci-boot-smoke.sh` reproduces it); the firmware is not at fault

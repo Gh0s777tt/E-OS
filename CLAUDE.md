@@ -638,9 +638,10 @@ w `eos-repo-sign`), `ci-boot-smoke.sh` (dowód bootu w QEMU **x86_64**; aarch64 
 **Docelowo — nic z poniższych nie jest jeszcze wpięte:**
 
 - **`cargo nextest`** zamiast `cargo test` (równoległość, czytelny raport) — ❌ brak.
-- **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ⚠️ **x86_64 działa**
-  (`boot-smoke: PASS — reached userspace login`, exit 0, zmierzone 2026-09-01);
-  **aarch64 nie bootuje dziś** — #15. `build-image-x86_64` jest `manual`.
+- **Testy integracyjne w QEMU dla x86_64 *i* aarch64** — ✅ **obie działają**
+  (`boot-smoke: PASS — reached userspace login`, exit 0, zmierzone 2026-09-01).
+  aarch64 był zepsuty przez część sierpnia — LTO scalało ramki stosu ponad stos DXE
+  firmware'u (#15, `known-issues.md`). `build-image-x86_64` jest `manual`.
 
   Do 2026-09-01 stało tu: *„aarch64 działa; x86_64 nigdy nie był bootowany na tym
   hoście”*. Pierwsza połowa **była prawdziwa i przestała być**; druga **nigdy nie była
