@@ -318,6 +318,11 @@ docs-pdf:
     #     ERROR: Job failed: exit status 125
     # So the one gate that actually boots the OS has not run in over a week -- it was failing on
     # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    #
+    # Measured on the reference host from a STOPPED machine, which is the condition that was
+    # failing: `podman info` first answers after ~47 s, and the whole sequence down to
+    # `podman exec <container> true` returning 0 takes ~75 s. The 120 s budget is therefore a
+    # margin of about 1.6x, not a guess -- raise it with a new measurement, not by feel.
     - |
       for i in $(seq 1 60); do
         podman info >/dev/null 2>&1 && break
@@ -399,6 +404,11 @@ build-image:
     #     ERROR: Job failed: exit status 125
     # So the one gate that actually boots the OS has not run in over a week -- it was failing on
     # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    #
+    # Measured on the reference host from a STOPPED machine, which is the condition that was
+    # failing: `podman info` first answers after ~47 s, and the whole sequence down to
+    # `podman exec <container> true` returning 0 takes ~75 s. The 120 s budget is therefore a
+    # margin of about 1.6x, not a guess -- raise it with a new measurement, not by feel.
     - |
       for i in $(seq 1 60); do
         podman info >/dev/null 2>&1 && break
@@ -471,6 +481,11 @@ build-image-x86_64:
     #     ERROR: Job failed: exit status 125
     # So the one gate that actually boots the OS has not run in over a week -- it was failing on
     # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    #
+    # Measured on the reference host from a STOPPED machine, which is the condition that was
+    # failing: `podman info` first answers after ~47 s, and the whole sequence down to
+    # `podman exec <container> true` returning 0 takes ~75 s. The 120 s budget is therefore a
+    # margin of about 1.6x, not a guess -- raise it with a new measurement, not by feel.
     - |
       for i in $(seq 1 60); do
         podman info >/dev/null 2>&1 && break
