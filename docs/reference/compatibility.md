@@ -470,10 +470,10 @@ się z żadnym z dwóch `Cargo.toml`. `[PROGNOZA]`
 | Zmiana | Dowód | Skutek |
 |---|---|---|
 | przebudowa `docs/` na `getting-started/`, `guides/`, `architecture/`, `reference/`, `security/`, `archive/` | `git ls-tree -r --name-only chore/repo-restructure -- docs/` | **ten plik jest już zapisany pod docelową ścieżką** `docs/reference/`; wszystkie odnośniki `../*.md` poniżej trzeba będzie przepiąć |
-| 10 receptur — zmiany **tylko w komentarzach** ze ścieżkami dokumentów | `git diff main..chore/repo-restructure -- recipes/` | `docs/known-issues.md → docs/reference/known-issues.md`, `docs/forks.md → docs/architecture/forks.md`. **Żadne `git`/`branch`/`rev` nie zmienione** — macierz §3 bez ruchu |
+| 10 receptur — zmiany **tylko w komentarzach** ze ścieżkami dokumentów | `git diff main..chore/repo-restructure -- recipes/` | `docs/reference/known-issues.md → docs/reference/known-issues.md`, `docs/architecture/forks.md → docs/architecture/forks.md`. **Żadne `git`/`branch`/`rev` nie zmienione** — macierz §3 bez ruchu |
 
 > **Znalezione przy okazji tego pomiaru, do naprawy przed scaleniem `!2`.** Przepisanie
-> ścieżek trafiło również w **adresy URL do cudzych repozytoriów**, gdzie `docs/building.md`
+> ścieżek trafiło również w **adresy URL do cudzych repozytoriów**, gdzie `docs/getting-started/building.md`
 > to ścieżka w projekcie, którego nie kontrolujemy. **Siedem** takich linii, wszystkie
 > w komentarzach (policzone, nie oszacowane: cały diff `recipes/` to 10 plików i 11 dodanych
 > linii, z czego 4 to poprawne przepisanie ścieżek wewnętrznych, a 7 — te poniżej):
@@ -600,7 +600,7 @@ git show fix/p0-audit-findings:docs/audit/00-inventory-2026-08-30.md
   przekazanego do tego zadania, nie z własnego odpytania API. Zmierzyłem **gałęzie lokalne**,
   które im odpowiadają.
 - **Sam nie jest bramkowany.** Rewizje w §3 są przepisane z `repos.toml` i **rozjadą się przy
-  pierwszym podbiciu pinu**. `docs/ecosystem.md` świadomie nie powtarza hashy właśnie z tego
+  pierwszym podbiciu pinu**. `docs/architecture/ecosystem.md` świadomie nie powtarza hashy właśnie z tego
   powodu — tutaj są, bo bez nich macierz zgodności nie jest macierzą, ale **źródłem prawdy
   pozostaje `repos.toml`**. Przy rozbieżności: wierz `repos.toml`, popraw ten plik.
 

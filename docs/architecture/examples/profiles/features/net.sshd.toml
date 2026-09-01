@@ -15,7 +15,7 @@ Czego NIE MA: usługi init dla `sshd` w obrazie E-OS, generacji kluczy hosta prz
 starcie (R-606: dziś każda instalacja ma hostname `eos`, brak machine-id i kluczy hosta)
 oraz jakiegokolwiek filtrowania pakietów (R-904).
 Konfiguracja z `PermitEmptyPasswords yes` istnieje obok, w config/x86_64/server-demo.toml —
-docs/plan.md §2.3 nazywa ją „o jedną sylabę od prawdziwej konfiguracji”.
+docs/archive/plan.md §2.3 nazywa ją „o jedną sylabę od prawdziwej konfiguracji”.
 Zakres do zbudowania: usługa `/usr/lib/init.d/`, generacja kluczy hosta, twarda konfiguracja
 (bez hasła, bez roota), test dymny bezgłowy.
 """

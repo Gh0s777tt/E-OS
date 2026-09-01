@@ -601,7 +601,7 @@ jest** wszechwładny, bo dostęp zależy od zdolności, nie od UID-a (co zmierzo
 
 **Klucze podpisujące pakiety:** docelowo **HSM lub Vault**. Dziś klucz **tajny** leży poza
 repozytorium w rękach operatora (`keys/README.md`), a w drzewie jest tylko część publiczna.
-Klucz hybrydowy (ed25519 + ML-DSA-65) opisany w `docs/security.md`.
+Klucz hybrydowy (ed25519 + ML-DSA-65) opisany w `docs/security/index.md`.
 **Generowanie klucza jest działaniem człowieka (§10.1).**
 
 **`unsafe`:** każdy blok z `SAFETY:` (§10.2), a docelowo `#![deny(unsafe_code)]`
@@ -611,7 +611,7 @@ uzasadnienie **oraz plan usunięcia**.
 ## 15. Dokumentacja — struktura docelowa
 
 **Jest dziś:** mdBook (`book.toml`, `docs/SUMMARY.md`), 38 plików w `docs/`, w tym
-`docs/architecture.md`, `docs/threat-model.md`, `docs/hardware-matrix.md`,
+`docs/architecture/overview.md`, `docs/security/threat-model.md`, `docs/reference/hardware-matrix.md`,
 `docs/design-*.md`, `docs/adr`-podobne uzasadnienia rozsiane po CHANGELOG-u.
 `mdbook-mermaid` jest wpięty w `pages` i `docs-pdf`.
 
@@ -621,9 +621,9 @@ aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
 | Cel | Stan |
 |---|---|
 | `docs/architecture/` z diagramami **Mermaid** | ✅ **jest** (`U-168`): topologia repozytoriów i ścieżka budowania, wpisane do `SUMMARY.md` |
-| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§2 reguła 4) |
+| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/security/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§2 reguła 4) |
 | `docs/adr/` — decyzje architektoniczne (ADR) | ✅ **jest** (`U-168`): szablon + ADR-0001…0004 wyciągnięte z realnych decyzji; CHANGELOG pozostaje dowodem |
-| `docs/hardware/` — macierz kompatybilności | ⚠️ jest `docs/hardware-matrix.md` + `HARDWARE.md` |
+| `docs/hardware/` — macierz kompatybilności | ⚠️ jest `docs/reference/hardware-matrix.md` + `HARDWARE.md` |
 | CHANGELOG generowany z Conventional Commits | ⚠️ `semantic-release` jest w CI, ale wpisy `U-NNN` pisane są ręcznie i **niosą dowody** — automat ich nie zastąpi |
 | Dokumentacja HTML ze zrzutami z QEMU | ⚠️ mdBook + `assets/screenshots/`; **MkDocs nie jest używany** |
 | `rustdoc` dla API | ✅ **jest** (`U-168`): zadanie `rustdoc` publikuje dokumentację `tools/eos-repo-sign` jako artefakt |

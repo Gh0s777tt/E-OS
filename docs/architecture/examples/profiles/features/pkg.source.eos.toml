@@ -78,7 +78,7 @@ model           = ["supply-chain"]
 severity_if_off = "wysokie"
 
 [threat.text.pl]
-protects = "Przeciwnik «łańcuch dostaw» (docs/threat-model.md §3): indeks podpisany hybrydowo, pakiety pkgar z ed25519 + blake3 sprawdzanym przed zatwierdzeniem."
+protects = "Przeciwnik «łańcuch dostaw» (docs/security/threat-model.md §3): indeks podpisany hybrydowo, pakiety pkgar z ed25519 + blake3 sprawdzanym przed zatwierdzeniem."
 does_not_protect = """
 NIE chroni przed cofnięciem wersji: poprawnie podpisany STARSZY pkgar wciąż się instaluje (R-704).
 NIE ma rotacji ani unieważniania klucza na urządzeniu — pkgar wiąże pakiet z DOKŁADNIE JEDNYM

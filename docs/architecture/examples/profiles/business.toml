@@ -54,13 +54,13 @@ recovery path. "Business" names a set of defaults, not compliance with any stand
 feature = "disk.encrypt"
 state   = "on"
 locked  = true
-reason  = "Sprzęt przenośny jest gubiony i kradziony. To jedyna kontrola w tym zestawie, która adresuje przeciwnika «fizyczny / zgubione urządzenie» (docs/threat-model.md §3), i jedyna, której NIE DA SIĘ dołożyć po instalacji — `irreversible = true` w definicji funkcji. Dlatego blokada, a nie pytanie."
+reason  = "Sprzęt przenośny jest gubiony i kradziony. To jedyna kontrola w tym zestawie, która adresuje przeciwnika «fizyczny / zgubione urządzenie» (docs/security/threat-model.md §3), i jedyna, której NIE DA SIĘ dołożyć po instalacji — `irreversible = true` w definicji funkcji. Dlatego blokada, a nie pytanie."
 
 [[select]]
 feature = "user.schemes.minimal"
 state   = "on"
 locked  = true
-reason  = "Usuwa `memory`, `irq` i `serio` z konta interaktywnego. docs/hardening.md §7 potwierdza, że obraz z zawężoną listą bootuje do greetera bez błędów uprawnień; ryzyko resztkowe (niesprawdzona pełna sesja graficzna) jest jawnie zapisane w funkcji i akceptowane na poziomie tego profilu."
+reason  = "Usuwa `memory`, `irq` i `serio` z konta interaktywnego. docs/security/hardening.md §7 potwierdza, że obraz z zawężoną listą bootuje do greetera bez błędów uprawnień; ryzyko resztkowe (niesprawdzona pełna sesja graficzna) jest jawnie zapisane w funkcji i akceptowane na poziomie tego profilu."
 
 [[select]]
 feature = "user.authorized-key"

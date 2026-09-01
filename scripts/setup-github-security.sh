@@ -281,7 +281,7 @@ step_actions_allowlist() {
   # sub-path (`github/codeql-action/init@*`, `.../analyze@*`, `.../upload-sarif@*`,
   # `google/osv-scanner-action/osv-scanner-action@*`) because that is the form the
   # workflows `uses:`. Whether GitHub's matcher accepts a sub-path pattern has not been
-  # tested here — Actions has never executed on this repository (docs/ci.md), so there is
+  # tested here — Actions has never executed on this repository (docs/operations/ci.md), so there is
   # no run to test it against. The codeql ones are `github/*` and should be covered by
   # `github_owned_allowed` regardless; the osv-scanner one is not. If a run is ever blocked
   # on it, add `google/osv-scanner-action@*` and re-run — do not widen this to
@@ -518,7 +518,7 @@ step_ruleset() {
     # The default, and it is a decision rather than an omission: on a push-mirror the
     # enforcing controls belong on GitLab (doc §0.5). A rule here gates nothing and can
     # reject the mirror push.
-    info "skip — the gate for this project is GitLab (docs/ci.md §4). Pass"
+    info "skip — the gate for this project is GitLab (docs/operations/ci.md §4). Pass"
     info "  --branch-ruleset evaluate|active to create one anyway; read doc §0.2 first."
     return
   fi

@@ -18,9 +18,9 @@
   `R-610` (zależności builda instalatora na źródła E-OS), **`R-D13`** (katalog łańcuchów i18n —
   założona w rejestrze na wniosek §9 tego dokumentu). Rejestr rozpisał ten dokument na
   `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP.md` §6.2 i §6.4 („M4").
-- **Powiązane:** [`docs/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/getting-started/install.md`](../getting-started/install.md) ·
-  [`docs/encryption.md`](../guides/encryption.md) · [`docs/hardening.md`](../security/hardening.md) ·
-  [`docs/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
+- **Powiązane:** [`docs/archive/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/getting-started/install.md`](../getting-started/install.md) ·
+  [`docs/guides/encryption.md`](../guides/encryption.md) · [`docs/security/hardening.md`](../security/hardening.md) ·
+  [`docs/security/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
   [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) ·
   [`ADR-0010`](../adr/0010-encryption-stack.md) (stos szyfrowania — źródło faktów z §8 poz. 13–13c) ·
   [`ADR-0011`](../adr/0011-installer-wizard-architecture.md) (granica silnik/frontend, która
@@ -45,7 +45,7 @@ a walidator odmawia przyjęcia profilu, który włącza to, czego nie ma (§4, r
 **Jeden wyjątek idzie w drugą stronę i trzeba go nazwać, bo pierwsza wersja tego dokumentu
 pomyliła się tutaj.** „Argon2id na woluminie" **JEST**. RedoxFS wyprowadza klucz woluminu
 Argon2id-em: `src/key.rs` → `argon2::Algorithm::Argon2id`, `argon2::Version::V0x13`, wyjście
-16 bajtów, zależność `argon2 = "0.4"`. `docs/encryption.md` mówi to samo od strony użytkownika —
+16 bajtów, zależność `argon2 = "0.4"`. `docs/guides/encryption.md` mówi to samo od strony użytkownika —
 *„the key derived from your password (**argon2**)"*. Więcej: nagłówek RedoxFS ma **64 sloty
 kluczy** (`src/header.rs:31` → `pub key_slots: [KeySlot; 64]`), więc format **na dysku** już dziś
 dopuszcza drugie hasło, plik klucza i klucz odzyskiwania — brakuje wyłącznie narzędzi do
@@ -67,7 +67,7 @@ Klasyfikacja samego materiału tego dokumentu jest w §8.
 
 | Argument | Dowód w drzewie |
 |---|---|
-| **Parser już jest w instalatorze.** `redox_installer` czyta TOML dziś: `-c <plik.toml>` (równoważnie `--config=`), `config/<arch>/eos.toml`, `[general] encrypt_disk`. Dodanie profili w TOML-u nie dodaje ani jednej zależności do binarki, która działa na Redoksie. | `mk/disk.mk` (`$(INSTALLER) $(INSTALLER_OPTS) -c $(FILESYSTEM_CONFIG) $@.partial`) · `mk/config.mk:172` (ścieżka binarki: `INSTALLER=$(FSTOOLS)/bin/redox_installer`) · `docs/encryption.md` §1 (`encrypt_disk`) |
+| **Parser już jest w instalatorze.** `redox_installer` czyta TOML dziś: `-c <plik.toml>` (równoważnie `--config=`), `config/<arch>/eos.toml`, `[general] encrypt_disk`. Dodanie profili w TOML-u nie dodaje ani jednej zależności do binarki, która działa na Redoksie. | `mk/disk.mk` (`$(INSTALLER) $(INSTALLER_OPTS) -c $(FILESYSTEM_CONFIG) $@.partial`) · `mk/config.mk:172` (ścieżka binarki: `INSTALLER=$(FSTOOLS)/bin/redox_installer`) · `docs/guides/encryption.md` §1 (`encrypt_disk`) |
 | **Cały projekt mówi w TOML-u.** `recipe.toml`, `repos.toml`, `cookbook.lock`, `config/*.toml`, `deny.toml`, `clippy.toml`, `rustfmt.toml`, `.gitleaks.toml`, a w samym obrazie `/etc/login_schemes.toml`, `/etc/contain.toml`, `/usr/lib/pcid.d/*.toml`, `/etc/pkg/eos-repo-sign.pub.toml`. Wprowadzenie drugiego formatu konfiguracji to drugi zestaw pułapek składniowych dla każdego, kto edytuje ten system. | `repos.toml`, `config/x86_64/eos.toml` |
 | **Komentarze są nośnikiem uzasadnienia.** Cała kultura tego drzewa polega na tym, że plik konfiguracyjny tłumaczy *dlaczego* — sekcja R-701a w `config/x86_64/eos.toml` ma 12 linii komentarza nad dwuliniowym plikiem. Format bez komentarzy (JSON) wyrzuca połowę wartości pliku. | `config/x86_64/eos.toml` |
 | **Powierzchnia ataku parsera.** Profil bywa pobrany z sieci (§6). TOML 1.0 nie ma kotwic ani aliasów (brak bomby aliasowej), nie ma tagów typu (`!!python/object`), nie ma kluczy scalających i ma małą gramatykę. YAML ma wszystkie trzy. | ADR-0003 (forma upstreamu), §6.2 |
@@ -222,7 +222,7 @@ roadmap       = ["R-701"]        # istniejące identyfikatory; nowych nazw nie w
 
 **Słowniki zamknięte.** `stage`, `class`, `severity`, `severity_if_off`, `category` i
 `threat.model` są enumami — wartość spoza listy jest błędem, nie ostrzeżeniem.
-`threat.model` używa **nazw przeciwników z `docs/threat-model.md` §3**
+`threat.model` używa **nazw przeciwników z `docs/security/threat-model.md` §3**
 (`remote-network`, `local-unprivileged-process`, `malicious-driver`, `physical-lost-device`,
 `supply-chain`), a nie własnej taksonomii. Powód jest praktyczny: gdy ktoś zmieni model
 zagrożeń, walidator pokaże, które funkcje trzeba przejrzeć.
@@ -252,7 +252,7 @@ to jest celowe: zdolność, której nikt nie umie zmierzyć, byłaby warunkiem z
 
 ### 3.4 i18n
 
-**Stan faktyczny, bez upiększeń:** infrastruktury i18n w projekcie **nie ma**. `docs/plan.md` §2.1
+**Stan faktyczny, bez upiększeń:** infrastruktury i18n w projekcie **nie ma**. `docs/archive/plan.md` §2.1
 wymienia „katalog łańcuchów i18n" wśród braków, które w chwili pisania planu nie miały pozycji
 roadmapy; rejestr założył ją **później** jako `R-D13` (`ROADMAP.md`, **NOWY PODSYSTEM**).
 `eos-control` ma polskie napisy **zaszyte w kodzie** (`settings.rs`), a dokumentacja jest po
@@ -290,7 +290,7 @@ z których każdy tłumaczy się na sprawdzoną składnię konfiguracji `redox_i
 
 | Rodzaj | Tłumaczy się na | Zweryfikowane w |
 |---|---|---|
-| `general_set` | `[general]` (`filesystem_size`, `target`, `prompt`, `efi_partition_size`, `encrypt_disk`) | `config/base.toml`, `config/aarch64/raspi3bp/minimal.toml:10`, `docs/encryption.md` |
+| `general_set` | `[general]` (`filesystem_size`, `target`, `prompt`, `efi_partition_size`, `encrypt_disk`) | `config/base.toml`, `config/aarch64/raspi3bp/minimal.toml:10`, `docs/guides/encryption.md` |
 | `packages_add` / `packages_remove` | `[packages]` | `config/*.toml` |
 | `files_write` | `[[files]]` (`path`, `data`, `mode`, `uid`, `gid`, `postinstall`, `directory`, `recursive_chown`) | `config/x86_64/eos.toml` |
 | `users_set` | `[users.<nazwa>]` (`password`, `uid`, `gid`, `shell`) | `config/base.toml:240` |
@@ -372,7 +372,7 @@ instalator instaluje bez szyfrowania, nikt się nie dowiaduje.
 | **V-20** | profil potomny usuwa `[[notice]]` odziedziczone od rodzica | odmowa |
 | **V-21** | `min_installer` nowsza niż działający `redox_installer` | odmowa z podaniem obu wersji |
 
-**V-17 zasługuje na osobne zdanie.** `docs/encryption.md` pokazuje działającą, udokumentowaną
+**V-17 zasługuje na osobne zdanie.** `docs/guides/encryption.md` pokazuje działającą, udokumentowaną
 formę `[general] encrypt_disk = "twoje-mocne-hasło"` — hasło **w postaci jawnej w pliku
 konfiguracyjnym**. Profil pobrany z sieci, który zawiera tę linię z wartością dosłowną,
 produkuje zaszyfrowany dysk, **którego hasło zna autor profilu**. To nie jest hipoteza,
@@ -645,7 +645,7 @@ sam brak: `recipes/core/contain` **istnieje**, `config/desktop-contain.toml` jes
 sesją piaskownicową (`contain_orblogin`, `getty --contain`, `/etc/contain.toml` z wąskim
 zestawem schematów i **pośredniczonym** schematem plików), a mimo to pakiet jest **wyłączony**:
 `config/server.toml:14` to `#contain = {} # needs to update dependencies`, receptura nie ma
-`rev`, a `contain.pkgar` nie ma w zbudowanym repozytorium. `docs/plan.md` §3.1 nazywa to
+`rev`, a `contain.pkgar` nie ma w zbudowanym repozytorium. `docs/archive/plan.md` §3.1 nazywa to
 „największym niewykorzystanym zasobem, jaki znalazł audyt". Włączenie i polityka per aplikacja
 to `R-1010` / krok 10 planu.
 
@@ -663,7 +663,7 @@ powyższe jest jedyną obroną i tak trzeba to opisywać.
 
 ### 6.7 Czego ten model **nie** zamyka
 
-- **Brak measured boot / TPM** (`R-913`, non-goal w ADR-0005 i w `docs/threat-model.md` §6):
+- **Brak measured boot / TPM** (`R-913`, non-goal w ADR-0005 i w `docs/security/threat-model.md` §6):
   przeciwnik z fizycznym dostępem podmieni `/etc/eos/install-answers.toml` w zainstalowanym
   systemie, a bootloader jest nieszyfrowany.
 - **Brak trwałego dziennika audytu** (C-9): „kto, kiedy i jaki profil zaimportował" nie jest
@@ -741,7 +741,7 @@ Nowa flaga trzyma kształt istniejących (`--config=`, `--write-bootloader=`), z
 drugą konwencję wiersza poleceń. **Ten sam resolver, ta sama walidacja.** Jedyna różnica: każda reguła, która
 w kreatorze otworzyłaby pytanie, tutaj **przerywa** z kodem ≠ 0 i powodem czytelnym maszynowo.
 
-`docs/plan.md` §2.3 dodaje warunek, którego nie wolno przeoczyć: **edycja serwerowa nie
+`docs/archive/plan.md` §2.3 dodaje warunek, którego nie wolno przeoczyć: **edycja serwerowa nie
 istnieje**, a OOBE (`R-602`) wymusza `passwd` przed powłoką na *każdej* ścieżce — co jest
 poprawne dla pulpitu i **zabójcze dla serwera**, który ma wstać bez człowieka przy konsoli.
 Reguła do dopisania: **konto zasilone kluczem publicznym z zablokowanym hasłem spełnia `R-602`**.
@@ -770,14 +770,14 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | 5 | Podpis pliku profilu (host) | **JEST** | `tools/eos-repo-sign` (ed25519 + ML-DSA-65), ADR-0004, klucz przypięty `U-224` |
 | 6 | **Weryfikacja podpisu profilu na urządzeniu** | **DO ZBUDOWANIA** | ADR-0004: narzędzie jest hostowe. Klient weryfikuje manifest przez `pkg-lib`, nie profile. **M** |
 | 7 | Keyring + unieważnianie kluczy na urządzeniu | **NOWY PODSYSTEM** | `R-711` otwarte. pkgar wiąże artefakt z **jednym** kluczem; nie ma keyringu ani CRL. Ta sama praca co `R-711` |
-| 8 | Import w piaskownicy | **DO ZBUDOWANIA** *(zablokowane)* | `contain` istnieje i jest **wyłączony** (`config/server.toml:14`, brak `rev`, brak pakietu). Ta sama praca co `R-1010` / krok 10 `docs/plan.md`. Do tego czasu — §6.6 |
+| 8 | Import w piaskownicy | **DO ZBUDOWANIA** *(zablokowane)* | `contain` istnieje i jest **wyłączony** (`config/server.toml:14`, brak `rev`, brak pakietu). Ta sama praca co `R-1010` / krok 10 `docs/archive/plan.md`. Do tego czasu — §6.6 |
 | 9 | Ekran różnicy z potwierdzeniem per osłabienie | **DO ZBUDOWANIA** | Rozszerzenie `R-604` (dziś: gołe menu numeryczne bez identyfikacji dysku). **M** |
 | 10 | Generowanie dokumentacji z tego samego źródła | **DO ZBUDOWANIA** | mdBook + `docs/SUMMARY.md` są; brakuje generatora. Rozszerzenie `R-608`. **S** |
-| 11 | Tryb nienadzorowany z pliku odpowiedzi | **DO ZBUDOWANIA** | Połowa **JEST**: `redox_installer <diskpath.img> --config=plik.toml` to już instalacja nienadzorowana sterowana plikiem. Brakuje resolvera, **zapisania pliku odpowiedzi przez kreator**, wczytania go przez TUI/GUI i reguły OOBE z `docs/plan.md` §2.3 (`R-602`, `R-603`). Ta sama praca co `R-609b` |
+| 11 | Tryb nienadzorowany z pliku odpowiedzi | **DO ZBUDOWANIA** | Połowa **JEST**: `redox_installer <diskpath.img> --config=plik.toml` to już instalacja nienadzorowana sterowana plikiem. Brakuje resolvera, **zapisania pliku odpowiedzi przez kreator**, wczytania go przez TUI/GUI i reguły OOBE z `docs/archive/plan.md` §2.3 (`R-602`, `R-603`). Ta sama praca co `R-609b` |
 | 12a | Łańcuchy w samym pliku profilu/funkcji (`[…text.<lang>]`, §3.4) | **DO ZBUDOWANIA** | Schemat działa bez katalogu zewnętrznego: `en` obowiązkowy (V-16), reszta opcjonalna, awaria wyszukania degraduje do widocznego identyfikatora z `⚠`. **S** |
 | 12b | Katalog łańcuchów i18n (zewnętrzny) + bramka parytetu kluczy | **NOWY PODSYSTEM** — poz. **`R-D13`** | **Nie istnieje żadna infrastruktura i18n.** `eos-control` ma napisy zaszyte w kodzie (`settings.rs`); wcześniejsze twierdzenie o bramce i18n w `CLAUDE.md` było zmyślone (`U-126`). Rejestr **założył już na to pozycję**: `ROADMAP.md` → `R-D13`, rodzina `R-Dxx`, bo brak dotyczy całej powłoki. **Cytuj `R-D13`, nie zakładaj drugiej pozycji** |
 | 13 | Funkcja: szyfrowanie dysku (`disk.encrypt`) | **JEST** | RedoxFS AES-XTS-128, `[general] encrypt_disk`, zweryfikowane end-to-end 2026-07-11 na obu architekturach |
-| 13a | KDF woluminu: **Argon2id** | **JEST** | `src/key.rs` → `argon2::Algorithm::Argon2id`, `argon2::Version::V0x13`, wyjście 16 B, zależność `argon2 = "0.4"`; `docs/encryption.md` mówi to samo od strony użytkownika. **Jedyna pozycja ze słownika z §0, która istnieje.** Źródło w drzewie budowania (§11) |
+| 13a | KDF woluminu: **Argon2id** | **JEST** | `src/key.rs` → `argon2::Algorithm::Argon2id`, `argon2::Version::V0x13`, wyjście 16 B, zależność `argon2 = "0.4"`; `docs/guides/encryption.md` mówi to samo od strony użytkownika. **Jedyna pozycja ze słownika z §0, która istnieje.** Źródło w drzewie budowania (§11) |
 | 13b | Konfigurowalne parametry Argon2 (`m`, `t`, `p`) jako `[select.params]` | **DO ZBUDOWANIA** | `ParamsBuilder::new()` ustawia dziś **wyłącznie** `output_len`, więc parametry są domyślne i niekonfigurowalne. Zakres: zmiana w `key.rs` **plus** zapisanie parametrów w slocie, żeby odblokowanie wiedziało, czym wyprowadzać. Bez tej drugiej połowy podniesienie parametrów zamyka użytkownikowi dysk. **M** |
 | 13c | Drugie hasło / plik klucza / klucz odzyskiwania | **DO ZBUDOWANIA** | Nagłówek RedoxFS ma **64 sloty**: `src/header.rs:31` → `pub key_slots: [KeySlot; 64]`; `KeySlot` = `salt` + para `EncryptedKey` (dwa klucze, bo AES-XTS-128). **Format na dysku już to dopuszcza** — brakuje wyłącznie narzędzi zarządzania slotami. To **nie** jest nowy podsystem i nie jest LUKS-em (poz. 28) |
 | 14 | Funkcja: wąska przestrzeń schematów (`user.schemes.minimal`) | **JEST** | `/etc/login_schemes.toml` + `apply_login_schemes()`; obraz już nadpisuje ten plik (R-904a) |
@@ -785,12 +785,12 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | 16 | Funkcja: źródło pakietów E-OS (`pkg.source.eos`) | **JEST** na aarch64 · **DO ZBUDOWANIA** na x86_64 | `R-701` ✅ publikacja `U-209`, `50_eos` aktywne na aarch64 `U-210`; x86_64 to znalezisko **C-4** |
 | 17 | Funkcja: tożsamość per-maszyna (`sys.identity`) | **DO ZBUDOWANIA** | `R-606` + `R-603`. Dziś każda instalacja to hostname `eos`, brak machine-id |
 | 18 | Funkcja: serwer SSH (`net.sshd`) | **DO ZBUDOWANIA** | `openssh` jest w obrazie; brakuje usługi, kluczy hosta i twardej konfiguracji |
-| 19 | Funkcja: klucz publiczny konta (`user.authorized-key`) | **DO ZBUDOWANIA** | Instalator umie `[[files]]` z `uid`/`gid`/`mode` i `[users.<nazwa>]`, ale front-endy **nie zbierają danych kont** — `R-603`. Nośnik dla reguły OOBE z `docs/plan.md` §2.3 |
+| 19 | Funkcja: klucz publiczny konta (`user.authorized-key`) | **DO ZBUDOWANIA** | Instalator umie `[[files]]` z `uid`/`gid`/`mode` i `[users.<nazwa>]`, ale front-endy **nie zbierają danych kont** — `R-603`. Nośnik dla reguły OOBE z `docs/archive/plan.md` §2.3 |
 | 20 | Funkcja: upstreamowe repo Redoksa (`pkg.source.redox-upstream`) | **JEST** | `/etc/pkg.d/50_redox` w obrazie, świadomie zakomentowany (`R-701a`); check 9 w `scripts/ci-integrity.sh` pilnuje, żeby żaden obraz nie wysyłał aktywnego, nieuwierzytelnionego źródła |
-| 21 | Funkcja: tryb amnezyjny (`sys.amnesia`) | **DO ZBUDOWANIA** | Rozruch z RAM **udowodniony** (`U-133`); brakuje wariantu, który nie montuje dysków hosta i mówi o tym na greeterze. `docs/plan.md` §3.2: „high value, low cost" |
+| 21 | Funkcja: tryb amnezyjny (`sys.amnesia`) | **DO ZBUDOWANIA** | Rozruch z RAM **udowodniony** (`U-133`); brakuje wariantu, który nie montuje dysków hosta i mówi o tym na greeterze. `docs/archive/plan.md` §3.2: „high value, low cost" |
 | 22 | Funkcja: zapora (`net.firewall`) | **NOWY PODSYSTEM** | `R-904`, znalezisko **C-10**. Netstack wystawia `ip`/`udp`/`tcp`/`raw` z zerowym filtrowaniem. Na Redoksie nie ma netfiltera |
-| 23 | Funkcja: cały ruch przez Tor (`net.tor`) | **NIEREALNE DZIŚ** | Brak portu, brak zapory zdolnej wymusić proxy, brak Wi-Fi/VPN. `docs/plan.md` §3.2: „Do NOT promise this" |
-| 24 | Wiązanie profilu z TPM / measured boot | **NIEREALNE DZIŚ** | `R-913`. Brak TPM w obrazie; non-goal w ADR-0005 i `docs/threat-model.md` §6 |
+| 23 | Funkcja: cały ruch przez Tor (`net.tor`) | **NIEREALNE DZIŚ** | Brak portu, brak zapory zdolnej wymusić proxy, brak Wi-Fi/VPN. `docs/archive/plan.md` §3.2: „Do NOT promise this" |
+| 24 | Wiązanie profilu z TPM / measured boot | **NIEREALNE DZIŚ** | `R-913`. Brak TPM w obrazie; non-goal w ADR-0005 i `docs/security/threat-model.md` §6 |
 | 25 | Dziennik audytu importów i instalacji | **NOWY PODSYSTEM** | Znalezisko **C-9**: brak trwałego dziennika audytu w ogóle |
 | 26 | Ręczne partycjonowanie / instalacja obok | **DO ZBUDOWANIA** | `R-609` 💡. Nie jest przedmiotem tego dokumentu, ale profil będzie musiał umieć to wyrazić — patrz §10 |
 | 27 | Sloty A/B roota, na których profil mógłby się cofnąć | **DO ZBUDOWANIA** | `R-710` 💡, zależne od `R-706`/`R-707`. Dziś `transaction.commit()` mutuje żywy system pętlą rename bez dziennika |
@@ -813,10 +813,10 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 > dwuznaczne — ten sam rodzaj wady co kolizja `R-70x` opisana w `ROADMAP.md` Annex B.
 >
 > - `net.tor` **w tym schemacie** znaczy *cały ruch przez Tor* — gwarancja, która wymaga zapory,
->   a zapory nie ma (`R-904`, `C-10`); stąd **NIEREALNE DZIŚ** i `docs/plan.md` §3.2:
+>   a zapory nie ma (`R-904`, `C-10`); stąd **NIEREALNE DZIŚ** i `docs/archive/plan.md` §3.2:
 >   *„**Do not promise this**"*. Sam **port** Tora to inna, węższa praca i tam **NOWY PODSYSTEM**
 >   jest właściwym znacznikiem.
-> - `sys.amnesia` **w tym schemacie** znaczy *nie zostawiaj śladu na dysku*. `docs/plan.md` §3.2
+> - `sys.amnesia` **w tym schemacie** znaczy *nie zostawiaj śladu na dysku*. `docs/archive/plan.md` §3.2
 >   podaje dla tego wiersza blokadę: *„**none — high value, low cost**"* (rozruch z RAM
 >   zweryfikowany, `U-133`); stąd **DO ZBUDOWANIA**. „Anonimowość systemowa" z wiersza kreatora to
 >   **inna zdolność** i ta rzeczywiście jest **NIEREALNE DZIŚ** — `examples/profiles/ghost.toml`
@@ -838,9 +838,9 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | `R-607` | **warunek wstępny** | dopóki `DiskWrapper::open` raportuje 512 bajtów, `capabilities` dotyczące geometrii dysku są niewiarygodne (§3.3) |
 | `R-608` | **rozszerzenie** | z „popraw dokumentację" na „dokument generowany z tego samego pliku, więc rozjazd jest niemożliwy" (§7.2) |
 | `R-609` 💡 | **nie objęte**, ale schemat musi zostawić miejsce | partycjonowanie ręczne to nie jest przełącznik boolowski; §10 |
-| `R-602` | **styk** | reguła „konto z kluczem + zablokowane hasło spełnia OOBE" (`docs/plan.md` §2.3) jest warunkiem trybu nienadzorowanego (§7.3) |
+| `R-602` | **styk** | reguła „konto z kluczem + zablokowane hasło spełnia OOBE" (`docs/archive/plan.md` §2.3) jest warunkiem trybu nienadzorowanego (§7.3) |
 | `R-711` | **ta sama praca** | keyring i unieważnianie kluczy — bez tego podpis profilu jest nieodwoływalny (§6.3) |
-| `R-1010` / krok 10 `docs/plan.md` | **zależność** | włączenie `contain`; do tego czasu import nie ma piaskownicy (§6.6) |
+| `R-1010` / krok 10 `docs/archive/plan.md` | **zależność** | włączenie `contain`; do tego czasu import nie ma piaskownicy (§6.6) |
 | `R-904` | **reprezentowane jako brak** | funkcja `net.firewall` ze `stage = NOWY PODSYSTEM` istnieje po to, żeby brak był w spisie widoczny |
 | `R-913` | **granica** | wiązanie z TPM poza zasięgiem; §6.7 |
 | `R-D08` | **ryzyko** | pełny przepływ live → greeter → `installer-gui` → instalacja nigdy nie był przejechany od końca do końca |
@@ -853,7 +853,7 @@ w rejestrze jako **`R-D13`** (`ROADMAP.md`; rodzina `R-Dxx`, bo brak dotyczy ca�
 powłoki, nie samego instalatora, i pozycja cytuje ten dokument z nazwiska). Zdanie *„roadmapa go
 nie ma"* było prawdziwe w chwili pisania i **jest już nieaktualne**; zostało zastąpione
 odsyłaczem, dokładnie po to, żeby nikt nie założył drugiej pozycji na tę samą pracę.
-`docs/plan.md` §2.1 nadal wymienia ten brak po stronie produktu.
+`docs/archive/plan.md` §2.1 nadal wymienia ten brak po stronie produktu.
 
 Rejestr prowadzi swoją stronę tego przypięcia w `ROADMAP.md` §6.2. Gdy te dwie tabele się
 rozjadą, **wiążąca jest roadmapa** — ona jest rejestrem projektu, ten plik jest specyfikacją.

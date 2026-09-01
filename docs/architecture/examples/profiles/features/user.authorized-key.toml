@@ -16,7 +16,7 @@ config/x86_64/eos.toml używa tego dla `/home/user/.config`) oraz zakładać kon
 Czego NIE MA: front-endy instalatora NIE zbierają danych kont — to otwarta pozycja R-603
 (docs/getting-started/install.md: „nie tworzy kont i nie pozwala wybrać pakietów”).
 Do zbudowania: pole na klucz publiczny w kreatorze + zapis pliku + reguła OOBE opisana
-w docs/plan.md §2.3 („konto zasilone kluczem publicznym z zablokowanym hasłem SPEŁNIA R-602”).
+w docs/archive/plan.md §2.3 („konto zasilone kluczem publicznym z zablokowanym hasłem SPEŁNIA R-602”).
 """
 roadmap = ["R-602", "R-603"]
 
@@ -54,7 +54,7 @@ description = "The wizard asks for a public key (paste or read from media) and l
 
 [effects.off.text.pl]
 description   = "Konto zostaje z domyślnymi poświadczeniami obrazu."
-residual_risk = "Obraz E-OS wysyła `user` BEZ HASŁA i `root` z hasłem `password` (docs/getting-started/install.md, docs/hardening.md). OOBE wymusza zmianę przy pierwszym logowaniu i to JEST zweryfikowane na każdej ścieżce (R-602), ale wymusza ją PRZY KONSOLI — na maszynie bezgłowej instalacja bez klucza nie ma jak dojść do pierwszego logowania."
+residual_risk = "Obraz E-OS wysyła `user` BEZ HASŁA i `root` z hasłem `password` (docs/getting-started/install.md, docs/security/hardening.md). OOBE wymusza zmianę przy pierwszym logowaniu i to JEST zweryfikowane na każdej ścieżce (R-602), ale wymusza ją PRZY KONSOLI — na maszynie bezgłowej instalacja bez klucza nie ma jak dojść do pierwszego logowania."
 
 [effects.off.text.en]
 description   = "The account keeps the image default credentials."

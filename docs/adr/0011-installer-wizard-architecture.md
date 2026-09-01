@@ -10,7 +10,7 @@
   `src/bin/repo.rs:25,97,464` · `config/x86_64/eos.toml:7,800-841` ·
   `config/desktop.toml:3,20` · `config/desktop-minimal.toml:3` · `config/server.toml:3,14` ·
   `config/minimal.toml:3` · `config/base.toml:246-254` ·
-  `recipes/groups/desktop/recipe.toml:13` · `docs/known-issues.md:388` · `docs/getting-started/install.md` ·
+  `recipes/groups/desktop/recipe.toml:13` · `docs/reference/known-issues.md` · `docs/getting-started/install.md` ·
   `scripts/install-smoke-drive.py:8,169-180,199-200` · `scripts/ci-install-smoke.sh:23,32` ·
   `scripts/ci-integrity.sh:113` · `scripts/eos-rebase-check.sh:22-29` ·
   `.gitlab-ci.yml:66-76` · `ROADMAP.md` §6.3–§6.4 ·
@@ -148,7 +148,7 @@ o zależnościach *wewnątrz* instalatora, tu chodzi o zależność *cookbooka o
 | Semantyka profili Gamer / Business / Ghost | **BRAK** — w `config/` nie ma takich plików |
 
 Jedna pułapka jest zmierzona i musi być w tej decyzji: **`include` scala pliki, nie decyzje.**
-`docs/known-issues.md:388` opisuje `U-078`: `Config::merge` robi `self.files.extend(other_files)`
+`docs/reference/known-issues.md` opisuje `U-078`: `Config::merge` robi `self.files.extend(other_files)`
 bez deduplikacji, więc `desktop.toml`, włączając równocześnie `desktop-minimal.toml` **i**
 `server.toml`, wpuścił z powrotem `inputd -A 2` z `minimal.toml` i **ukradł ekran greeterowi**.
 Naprawiono nie zmianą mechanizmu, tylko przypięciem wpisu w konfiguracji korzenia, bo ta jest
@@ -272,7 +272,7 @@ bez izolacji kupuje serializację, nie ochronę. Deklarowanie inaczej byłoby oz
 **Co protokół kupuje na pewno:** zapis i odtworzenie przebiegu (`--record` / `--replay`), czyli
 materiał, na którym stoi bramka parytetu (D5) i test trybu nienadzorowanego.
 **Znacznik: DO ZBUDOWANIA** (`M`). Prawdziwa piaskownica dla frontendu: **NOWY PODSYSTEM**,
-ta sama praca co `R-1010` / krok 10 `docs/plan.md` (za [`installer-profiles.md`](../architecture/installer-profiles.md) §8 poz. 8).
+ta sama praca co `R-1010` / krok 10 `docs/archive/plan.md` (za [`installer-profiles.md`](../architecture/installer-profiles.md) §8 poz. 8).
 
 ### D5 — Parytet jest bramką, nie deklaracją
 
@@ -330,7 +330,7 @@ gramatyka funkcji tłumaczy się na `[general]`/`[packages]`/`[[files]]`/`[users
 ([`installer-profiles.md`](../architecture/installer-profiles.md) §7.4).
 
 **Ostrzeżenie wynikające z `U-078`, wiążące dla resolvera:** dziedziczenie w `include` scala
-**pliki**, a wygrywa **ostatni** wpis (`docs/known-issues.md:388`). Resolver profili scala
+**pliki**, a wygrywa **ostatni** wpis (`docs/reference/known-issues.md`). Resolver profili scala
 **decyzje** i musi mieć blokady (`lock`) oraz deterministyczną, **udokumentowaną w wyjściu**
 kolejność. Reguła kontrolna: dla każdej rozstrzygniętej pozycji plik odpowiedzi zapisuje
 **pochodzenie** (`source`), więc „skąd się wzięła ta wartość" jest odpowiedzią z danych,
@@ -645,7 +645,7 @@ bo czytelnik, który się na nim oparł, założyłby dwie zbędne pozycje:
 - **i18n → `R-D13`**, rodzina `R-Dxx`, bo brak dotyczy całej powłoki, nie instalatora
   (`ROADMAP.md`).
 - **kanał komend do dysków → `R-815`**, rodzina `R-8xx`, bo dotyka `nvmed`/`ahcid`; numer
-  wybrany dlatego, że `R-812`–`R-814` rezerwuje `docs/driver-manager-design.md`
+  wybrany dlatego, że `R-812`–`R-814` rezerwuje `docs/architecture/driver-manager.md`
   (`ROADMAP.md`).
 
 `installer-wizard.md` §15 zamyka to zdaniem, które obowiązuje też tutaj: **„Żadnej z tych dwóch
@@ -664,10 +664,10 @@ nie wolno zakładać ponownie."**
 | Protokół `Screen`/`Diagnostics`/`Event`/`Progress` + `--record`/`--replay` | **DO ZBUDOWANIA** (`M`) | warunek bramki parytetu `R-601d` |
 | Bramka parytetu GUI ↔ TUI w CI | **DO ZBUDOWANIA** (`S`) | pozycja **`R-601d`** (`ROADMAP.md`); wymaga `R-D08` jako warunku wstępnego |
 | Uprzywilejowany pomocnik `eos-setup-apply` | **DO ZBUDOWANIA** (`M`) | wzorzec `eos-netcfg`/`eos-power` — **JEST** (`R-902`, `U-112`/`U-113`) |
-| Realna piaskownica dla frontendu i importu profili | **NOWY PODSYSTEM** | `contain` zakomentowany (`config/server.toml:14`), znalezisko `C-5` **[za briefem]**, `R-1010` / krok 10 `docs/plan.md:139` |
+| Realna piaskownica dla frontendu i importu profili | **NOWY PODSYSTEM** | `contain` zakomentowany (`config/server.toml:14`), znalezisko `C-5` **[za briefem]**, `R-1010` / krok 10 `docs/archive/plan.md` |
 | Format profilu w TOML-u | **JEST** | `config/base.toml`, `config/x86_64/eos.toml` |
 | Dziedziczenie i nadpisywanie profili | **JEST** | `include` — cztery skoki: `config/x86_64/eos.toml:7` → `desktop.toml:3` → `desktop-minimal.toml:3` / `server.toml:3` → `minimal.toml:3` → `base.toml` |
-| Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/known-issues.md:388`, `U-078`); pozycja `R-603c+` (`ROADMAP.md`) |
+| Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/reference/known-issues.md`, `U-078`); pozycja `R-603c+` (`ROADMAP.md`) |
 | Warstwa metadanych funkcji (opis, skutki, `stage`, zagrożenie, koszt) | **DO ZBUDOWANIA** (`L`) | nie istnieje; pozycja `R-603c`, walidator `R-609a` |
 | Semantyka profili Gamer / Business / Ghost | **DO ZBUDOWANIA** (`M`) | brak takich plików w `config/`; pozycja `R-609c` (`ROADMAP.md`) — z ostrzeżeniem stamtąd, że część treści tych profili to **NOWY PODSYSTEM** (Tor, VPN, zapora, dziennik audytu) albo **NIEREALNE DZIŚ** (tryb amnezyjny, domena/LDAP/MDM) |
 | Generowanie dokumentacji z tych samych danych | **DO ZBUDOWANIA** (`S`) | pozycja **`R-608a`** (`ROADMAP.md`); `R-608` nadrzędne zostaje przy *„popraw `docs/getting-started/install.md`"* |

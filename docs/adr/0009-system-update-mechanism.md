@@ -18,7 +18,7 @@
   w drzewie). Ten ADR jest jego następstwem, nie decyzją równoległą — patrz
   §„Zależność od ADR-0008".
 - **Powiązane:** `ADR-0004` (podpis manifestu), `ADR-0005` (Secure Boot bez Microsoftu),
-  `ADR-0007` (nośnik instalacyjny), `docs/encryption.md`
+  `ADR-0007` (nośnik instalacyjny), `docs/guides/encryption.md`
 
 ## Legenda znaczników
 
@@ -118,12 +118,12 @@ nieprawda i akurat na tym, co jest, stoi decyzja D1.
 |---|---|---|
 | **Sloty A/B (dwa roothy, przełączane przy restarcie)** | **NOWY PODSYSTEM** | wymaga drugiej partycji roota, wyboru slotu w bootloaderze i trwałego licznika prób rozruchu. Instalator tworzy dziś **dokładnie trzy** partycje i oddaje resztę dysku jednemu RedoxFS-owi (`installer.rs:565-660` — **cytat z drugiej ręki**, za `system-updates.md` §1.4; źródła instalatora nie ma w tym drzewie). To jest `R-710b` |
 | Licznik prób rozruchu + automatyczne wycofanie | **NOWY PODSYSTEM** | dzisiejszy bootloader **niczego nie zapisuje** — nadanie mu zdolności zapisu przed odszyfrowaniem roota jest zmianą jakościową (`system-updates.md` §4.3). Do tego dochodzi brak FAT-a po stronie systemu, wiersz wyżej |
-| **Migawki RedoxFS jako podstawa wycofania** | **NOWY PODSYSTEM**, a praktycznie **NIEREALNE DZIŚ** | RedoxFS jest wewnętrznie copy-on-write (`docs/architecture.md:82`), ale **nie eksponuje żadnego API migawek ani subwoluminów**; `clone.rs` to klon drzewa plików, nie tani punkt w czasie. Patrz §„Zależność od ADR-0008" |
+| **Migawki RedoxFS jako podstawa wycofania** | **NOWY PODSYSTEM**, a praktycznie **NIEREALNE DZIŚ** | RedoxFS jest wewnętrznie copy-on-write (`docs/architecture/overview.md`), ale **nie eksponuje żadnego API migawek ani subwoluminów**; `clone.rs` to klon drzewa plików, nie tani punkt w czasie. Patrz §„Zależność od ADR-0008" |
 | Nadzorca procesów (warunek klasy `service` z D6) | **NOWY PODSYSTEM** | `init` Redoksa ma **dokładnie dwa** typy usług, `oneshot` i `oneshot_async`, i nie nadzoruje niczego po starcie (`system-updates.md` §6.3). Nie ma pozycji w roadmapie; najbliższa, `R-805`, dotyczy wiązania urządzeń, nie cyklu życia procesu. Ten ADR numeru **nie zakłada** |
 | Migawki btrfs / ZFS | **NIEREALNE DZIŚ** | żaden z tych systemów plików nie istnieje na Redoksie — ani jako root, ani jako cel montowania, ani do odczytu (`installer.md` §5.3) |
 | ostree | **NIEREALNE DZIŚ** | biblioteka linuksowa na GLib/GIO, twardych dowiązaniach i `/ostree`; Redox nie ma żadnego z tych klocków. Port = przepisanie |
 | systemd-sysupdate | **NIEREALNE DZIŚ** | część systemd; E-OS używa `init` Redoksa. Systemd nie istnieje w obrazie |
-| Ponowne zapieczętowanie TPM po aktualizacji | **NIEREALNE DZIŚ** | **E-OS nie ma TPM** — nie ma czego pieczętować (`docs/encryption.md`, „Caveats": brak powiązania z TPM/Secure Bootem, hasło jest jedynym sekretem) |
+| Ponowne zapieczętowanie TPM po aktualizacji | **NIEREALNE DZIŚ** | **E-OS nie ma TPM** — nie ma czego pieczętować (`docs/guides/encryption.md`, „Caveats": brak powiązania z TPM/Secure Bootem, hasło jest jedynym sekretem) |
 | Odblokowanie aktualizacji kluczem FIDO2 / kartą | **NIEREALNE DZIŚ** | nie ma stosu FIDO2 ani CTAP w obrazie; nie ma też czego nimi odblokowywać poza hasłem woluminu (`ADR-0010`) |
 | Żywe łatanie jądra | **NIEREALNE DZIŚ** | brak `ftrace`, brak modułów ładowalnych, brak relokacji symboli w locie. Mikrojądrowy odpowiednik (restart sterownika) to **DO ZBUDOWANIA**, ale wymaga nadzorcy i należy do toru `R-8xx` |
 
@@ -190,7 +190,7 @@ FAT jako pakiet w obrazie czy crate wlinkowany w `eos-updated`. To samo dotyczy 
 `pending/` i licznika prób rozruchu, jeśli mają leżeć na ESP.
 
 **D8. Ten ADR nie tworzy żadnych nowych identyfikatorów** — ani `R-7xx`, ani `R-8xx` na
-nadzorcę z D6. Kolizja numeracji jest realna: `docs/update-system-design.md` (starszy, angielski,
+nadzorcę z D6. Kolizja numeracji jest realna: `docs/architecture/update-system.md` (starszy, angielski,
 21 396 B) używa przestrzeni `R-70x` **na inną pracę** — tam `R-704` znaczy „wycofanie",
 w rejestrze znaczy „**anti**-rollback"; znaczenia niemal przeciwne.
 
@@ -204,7 +204,7 @@ zamkniętej sprawy i sprzeczność z §12.1 D2. Poprawka jest tu widoczna, a nie
 (`CLAUDE.md` §2 reguła 4).
 
 **Stan wykonania, sprawdzony w drzewie 2026-08-30:** decyzja jest podjęta i **niewykonana**.
-`docs/update-system-design.md` nie ma nagłówka „NUMERACJA ARCHIWALNA" (`grep` → 0 trafień),
+`docs/architecture/update-system.md` nie ma nagłówka „NUMERACJA ARCHIWALNA" (`grep` → 0 trafień),
 a `scripts/ci-integrity.sh` nie ma bramki z §12.1 D5 — plik ma preflight i kontrole 7–11,
 żadna nie dotyczy identyfikatorów. Do czasu wykonania **każde zdanie z `R-704` w tym projekcie
 pozostaje dwuznaczne**, ten dokument włącznie.
@@ -319,7 +319,7 @@ ma. Każda pozycja jest konsekwencją decyzji, nie brakiem do nadrobienia w tym 
 
 - **Przed napastnikiem z fizycznym dostępem.** ESP jest jawny i firmware musi go czytać. Licznik
   prób rozruchu na nim broni przed **złą aktualizacją**, nie przed człowiekiem ze śrubokrętem
-  (`docs/encryption.md`, „Caveats").
+  (`docs/guides/encryption.md`, „Caveats").
 - **Przed lokalnym rootem.** Zapadki świeżości i `package_serial` leżą w zwykłych plikach
   w rootcie. Root je skasuje i straci historię. Kotwicy sprzętowej nie ma i **nie udajemy,
   że jest**.
@@ -376,7 +376,7 @@ ma. Każda pozycja jest konsekwencją decyzji, nie brakiem do nadrobienia w tym 
 2. **Licznik prób rozruchu na nieszyfrowanym ESP jest przestawialny przez napastnika
    z fizycznym dostępem.** Przyjmujemy to świadomie: licznik broni przed **złą aktualizacją**,
    a nie przed człowiekiem ze śrubokrętem, który i tak jest poza modelem zagrożeń
-   (`docs/encryption.md`). Alternatywa — licznik w RedoxFS-ie — wymagałaby od bootloadera
+   (`docs/guides/encryption.md`). Alternatywa — licznik w RedoxFS-ie — wymagałaby od bootloadera
    zapisu do zaszyfrowanego woluminu przed poznaniem hasła.
 3. **Kontrola zdrowia po restarcie może uznać za zdrowy system, który jest zepsuty w sposób
    przez nią niemierzony.** Zestaw kontroli jest celowo ubogi, bo bogaty sam staje się przyczyną

@@ -3,10 +3,10 @@
 - **Status:** Propozycja — do zatwierdzenia. Nic z tego nie jest zaimplementowane.
 - **Data:** 2026-08-30
 - **Dowód:** `U-162`/`R-F19`, `R-604`, `R-607`, `R-609`/`R-609d`, `R-615`, `R-707`,
-  `R-710b`, `docs/architecture.md:82`, `docs/update-system-design.md:104`,
+  `R-710b`, `docs/architecture/overview.md`, `docs/architecture/update-system.md`,
   `scripts/eos-sign-boot-payload.sh:32`, `scripts/eos-boot-verify-proof.sh:13`,
   `config/x86_64/eos.toml`, `config/aarch64/eos.toml`, `mk/config.mk:174`, `mk/fstools.mk:25`,
-  `docs/encryption.md`, `docs/architecture/installer.md` §5, §8,
+  `docs/guides/encryption.md`, `docs/architecture/installer.md` §5, §8,
   `docs/architecture/system-updates.md` §1.3–§1.5, §4.6 i §11, `ROADMAP.md`
 - **Zakres:** system plików korzenia i **układ partycji przy instalacji na goły sprzęt** —
   ESP, root, `/home`, swap, rezerwa pod sloty A/B, nazwy i typy wpisów GPT.
@@ -75,11 +75,11 @@ zapis tablic GPT — istotne tylko dla obrazów, nie dla instalacji na dysk.
 
 | cecha | stan w RedoxFS | dowód | znacznik |
 |---|---|---|---|
-| copy-on-write **wewnętrzny** | tak | `docs/architecture.md:82`; `src/transaction.rs` (za briefem) | **JEST** |
-| migawki / subwoluminy dla użytkownika | **nie** | `docs/update-system-design.md:104`: *„no mature snapshot/subvolume primitive"*; `grep -rni snapshot docs/ recipes/ mk/ scripts/ config/` daje **28 trafień w 14 plikach**, i żadne nie jest prymitywem: propozycje (`docs/feature-proposals.md:51`), plany (`update-system-design.md`, `system-updates.md`) oraz **trafienia bez związku** — aplikacja GNOME Snapshot (`recipes/wip/gnome/snapshot/recipe.toml:3`), adresy tarballi `git.zx2c4.com/*/snapshot/`, komentarze w `mk/fetch-sha256.txt:20`, `scripts/ci-integrity.sh:316`, `scripts/docs-pdf.sh:36` | **NOWY PODSYSTEM** |
+| copy-on-write **wewnętrzny** | tak | `docs/architecture/overview.md`; `src/transaction.rs` (za briefem) | **JEST** |
+| migawki / subwoluminy dla użytkownika | **nie** | `docs/architecture/update-system.md`: *„no mature snapshot/subvolume primitive"*; `grep -rni snapshot docs/ recipes/ mk/ scripts/ config/` daje **28 trafień w 14 plikach**, i żadne nie jest prymitywem: propozycje (`docs/archive/feature-proposals.md`), plany (`update-system-design.md`, `system-updates.md`) oraz **trafienia bez związku** — aplikacja GNOME Snapshot (`recipes/wip/gnome/snapshot/recipe.toml:3`), adresy tarballi `git.zx2c4.com/*/snapshot/`, komentarze w `mk/fetch-sha256.txt:20`, `scripts/ci-integrity.sh:316`, `scripts/docs-pdf.sh:36` | **NOWY PODSYSTEM** |
 | klon drzewa plików (`clone_at`) | tak, używany przez fast-clone instalatora | `src/clone.rs` (za briefem), z `//TODO: handle hard links` | **JEST**, ale to **kopia**, nie tani punkt w czasie |
 | sumy kontrolne danych | **seahash** — ani kryptograficzny, ani kluczowany | `scripts/eos-boot-verify-proof.sh:13`, cytowany w `installer.md` §5.3 | **NOWY PODSYSTEM** |
-| szyfrowanie natywne AES-XTS-128 | tak, wdrażane przy instalacji | `docs/encryption.md` | **JEST** |
+| szyfrowanie natywne AES-XTS-128 | tak, wdrażane przy instalacji | `docs/guides/encryption.md` | **JEST** |
 | KDF Argon2id, wyjście 16 B | tak, parametry **domyślne i niekonfigurowalne** | `src/key.rs` (za briefem) | **JEST** / konfigurowalność: **DO ZBUDOWANIA** |
 | 64 sloty kluczy w nagłówku | tak — format na dysku już dopuszcza wiele haseł i plik klucza | `src/header.rs:31` (za briefem) | **JEST** (format), narzędzia: **DO ZBUDOWANIA** |
 | `fsck` | **brak** — budowane są tylko `redoxfs-mkfs` i demon montujący `redoxfs` | `mk/fstools.mk:25` (buduje z `recipes/core/redoxfs/source`, nie wylicza binarek), `mk/config.mk:174` (`REDOXFS_MKFS=$(FSTOOLS)/bin/redoxfs-mkfs`); **pomiar** w `installer.md` §8.1: `build/fstools/bin/` ma te dwie i nic więcej | **NOWY PODSYSTEM**, pozycja `R-615` |
@@ -190,7 +190,7 @@ Skąd te liczby — każda z rachunku, nie z upodobania:
 - **Minimalny root 8 GiB.** Ładunek systemu to `filesystem_size = 1400` MiB dla obu architektur
   (`config/x86_64/eos.toml`, `config/aarch64/eos.toml`) ≈ 1,37 GiB. Staging pokoleniowy
   aktualizacji trzyma kopię zamienianych plików per pokolenie
-  (`docs/update-system-design.md` §4.2 → `/var/lib/eos-update/rollback/<index>/`), więc trzy
+  (`docs/architecture/update-system.md` §4.2 → `/var/lib/eos-update/rollback/<index>/`), więc trzy
   zachowane pokolenia to do ~4 GiB. Plus pamięć podręczna pkgar. 8 GiB to **minimum bez
   zapasu**, a nie rozmiar komfortowy.
 - **Root docelowy 24 GiB** ≈ 17× ładunek. Mieści system, kilka pokoleń wycofania, cache i
@@ -335,7 +335,7 @@ Uzasadnienie po kolei:
   i oszczędza pełną reinstalację.
 - **Dlaczego obszar nieprzydzielony, a nie gotowa pusta partycja `EOS-ROOT-B`.** Trzy powody:
   1. **Druga sygnatura RedoxFS na dysku może zdezorientować wykrywanie roota.** To nie jest
-     czysta niewiadoma i nie warto jej tak zostawiać: `docs/encryption.md` opisuje w
+     czysta niewiadoma i nie warto jej tak zostawiać: `docs/guides/encryption.md` opisuje w
      bootloaderze **skan partycji**, który przy zaszyfrowanym roocie połykał `ENOKEY`,
      logował go jako *„BlockIo error: Required key not available"* i **pomijał urządzenie**
      (naprawione w `eos-bootloader@083d9fae`). Bootloader **przechodzi więc po urządzeniach
@@ -445,7 +445,7 @@ o zasięgu porównywalnym z całą resztą tego dokumentu. **NIEREALNE DZIŚ.**
 ### 5. `raid1d` jako „A/B dla ubogich"
 
 Kuszące, bo `raid1d` **jest** w obrazie — RAID-1 w przestrzeni użytkownika, z trybem
-zdegradowanym i resyncem (`ROADMAP.md` §8.1). `docs/update-system-design.md:105` wprost nazywa
+zdegradowanym i resyncem (`ROADMAP.md` §8.1). `docs/architecture/update-system.md` wprost nazywa
 go *„poor-man's A/B substrate"* i **od razu zastrzega**, że nie jest zaprojektowany jako
 mechanizm wycofania.
 
@@ -547,7 +547,7 @@ zależności (§6.5), który zapisuje dokładnie tę zależność, którą ta AD
 „`R-710b` wymaga `R-609`, a nie tylko `R-707`". Ta ADR dokłada do tego **uzasadnienie
 geometryczne**, a nie nowy numer. `R-710a` (aktualizacje różnicowe) jest od niej niezależne.
 Nie dodaję nowych numerów `R-7xx`, bo przestrzeń `R-70x` jest dziś dwuznaczna między
-`ROADMAP.md` a `docs/update-system-design.md` (`system-updates.md` §11.2) i dołożenie trzeciego
+`ROADMAP.md` a `docs/architecture/update-system.md` (`system-updates.md` §11.2) i dołożenie trzeciego
 znaczenia pogorszyłoby sprawę.
 
 ---
@@ -587,12 +587,12 @@ do zamiatania pod dywan — to zakres, poza którym każde zdanie z tej ADR prze
   bo ma być czytelny bez E-OS-a, więc **każdy z dostępem do dysku go czyta i podmienia**.
   Stąd wymóg z tabeli kontroli: w dzienniku nie ma sekretów — nie dlatego, że tak ładniej,
   tylko dlatego, że ESP jest jawny.
-- **Brak powiązania z TPM i z Secure Bootem.** `docs/encryption.md` §„Caveats": *„No TPM /
+- **Brak powiązania z TPM i z Secure Bootem.** `docs/guides/encryption.md` §„Caveats": *„No TPM /
   Secure Boot binding — the password alone protects the disk; an attacker who can tamper with
   the (unencrypted) bootloader could attack the prompt."* Ten układ tego nie zmienia i nie ma
   jak: piąta warstwa zaufania jest pusta (`R-913` / `V2-N02`, **NIEREALNE DZIŚ**). „Dysk jest
   zaszyfrowany" nie znaczy „ten dysk w tej maszynie".
-- **Kryptografia nie ma audytu osoby trzeciej.** `docs/encryption.md`, tamże: *„E-OS has not
+- **Kryptografia nie ma audytu osoby trzeciej.** `docs/guides/encryption.md`, tamże: *„E-OS has not
   had a third-party cryptographic audit."*
 - **Osobne `/home` nie jest osobną domeną zaufania.** Plik klucza z D6 leży w roocie, więc
   przejęcie działającego roota daje `/home` za darmo. Ten podział kupuje **reinstalację
@@ -634,10 +634,10 @@ wprowadzaniem w błąd.
 | RedoxFS jako root | **JEST** | `mk/config.mk:174` (`REDOXFS_MKFS`), `mk/fstools.mk:25`; `U-162` |
 | GPT + ochronny MBR | **JEST** | `U-162` |
 | ESP + FAT (`redox-fatfs`) | **JEST** | `U-162` |
-| FDE AES-XTS-128 na roocie | **JEST** | `docs/encryption.md` |
+| FDE AES-XTS-128 na roocie | **JEST** | `docs/guides/encryption.md` |
 | Argon2id jako KDF woluminu | **JEST** | `src/key.rs` (za briefem) |
 | 64 sloty kluczy w formacie na dysku | **JEST** | `src/header.rs:31` (za briefem) |
-| CoW wewnętrzny w RedoxFS | **JEST** | `docs/architecture.md:82` |
+| CoW wewnętrzny w RedoxFS | **JEST** | `docs/architecture/overview.md` |
 | klon drzewa (`clone_at`, fast-clone) | **JEST** | `src/clone.rs` (za briefem) |
 | monitor integralności `eos-guard` (blake3) | **JEST** | `config/x86_64/eos.toml` |
 | `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP.md` §8.1 |

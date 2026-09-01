@@ -16,7 +16,7 @@ arch     = ["x86_64", "aarch64"]
 # Klasyfikacja zdolności (V-12). "JEST" wymaga niepustego `evidence`.
 stage    = "JEST"
 evidence = """
-docs/encryption.md — RedoxFS AES-XTS-128, klucz wyprowadzany z hasła (argon2).
+docs/guides/encryption.md — RedoxFS AES-XTS-128, klucz wyprowadzany z hasła (argon2).
 redox_installer 0.2.42: monit „redoxfs password (empty for none)” oraz
 `[general] encrypt_disk` w pliku konfiguracyjnym.
 Weryfikacja end-to-end 2026-07-11 na aarch64 i x86_64 pod UEFI: obraz zainstalowany
@@ -70,24 +70,24 @@ capabilities = ["installer.interactive_or_prompt"]
 features = []
 
 # ── Znaczenie dla modelu zagrożeń ─────────────────────────────────────────────────
-# `model` używa nazw przeciwników z docs/threat-model.md §3 — zamknięty słownik,
+# `model` używa nazw przeciwników z docs/security/threat-model.md §3 — zamknięty słownik,
 # nie własna taksonomia.
 [threat]
 model         = ["physical-lost-device"]
 severity_if_off = "wysokie"
 
 [threat.text.pl]
-protects = "Przeciwnik «fizyczny / zgubione urządzenie» z docs/threat-model.md §3 — dysk w stanie wyłączonym."
+protects = "Przeciwnik «fizyczny / zgubione urządzenie» z docs/security/threat-model.md §3 — dysk w stanie wyłączonym."
 does_not_protect = """
 Nie chroni przed nikim, kto ma dostęp do WŁĄCZONEJ maszyny — po odblokowaniu klucz jest w RAM.
 Nie ma powiązania z TPM ani Secure Boot: bootloader jest NIEZASZYFROWANY, więc przeciwnik
-z fizycznym dostępem może podmienić bootloader i zaatakować sam monit o hasło (docs/encryption.md,
-docs/threat-model.md §6, R-913). Kryptografia nie przeszła audytu osoby trzeciej.
+z fizycznym dostępem może podmienić bootloader i zaatakować sam monit o hasło (docs/guides/encryption.md,
+docs/security/threat-model.md §6, R-913). Kryptografia nie przeszła audytu osoby trzeciej.
 Nie chroni przed złym hasłem — hasło jest jedynym sekretem.
 """
 
 [threat.text.en]
-protects = "The physical / lost-device adversary from docs/threat-model.md §3 — a powered-off disk."
+protects = "The physical / lost-device adversary from docs/security/threat-model.md §3 — a powered-off disk."
 does_not_protect = """
 Nothing against an attacker at a RUNNING machine — once unlocked, the key is in RAM.
 No TPM/Secure Boot binding: the bootloader is UNENCRYPTED, so a physical attacker can

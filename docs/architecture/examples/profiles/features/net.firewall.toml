@@ -19,7 +19,7 @@ Nie istnieje żaden filtr pakietów. ROADMAP.md §8.4 `R-904`: „netstack wysta
 security-first". Znalezisko audytu C-10 (brak zapory).
 Co trzeba ZBUDOWAĆ, a czego Redox nie ma: warstwa filtrująca wewnątrz procesu netstacka
 (smoltcp) albo przed nim, język reguł, trwały magazyn reguł, interfejs sterujący i panel.
-Kolejność jest wymuszona: docs/plan.md §4 krok 5 — najpierw usunięcie `ip` z przestrzeni
+Kolejność jest wymuszona: docs/archive/plan.md §4 krok 5 — najpierw usunięcie `ip` z przestrzeni
 schematów użytkownika, bo zapora budowana przy dostępnych surowych gniazdach jest
 trywialnie omijalna. Ten krok JEST już wykonany w obrazie (config/x86_64/eos.toml, R-904a).
 Nie jest to port nftables/iptables — na Redoksie nie ma netfiltera i nie będzie.
@@ -49,7 +49,7 @@ description = "Cannot be enabled. The subsystem does not exist."
 
 [effects.off.text.pl]
 description   = "Stan faktyczny: brak filtrowania ruchu w obie strony."
-residual_risk = "Każda uruchomiona usługa jest osiągalna z całej sieci, do której maszyna jest podłączona. Nie ma sposobu ograniczenia źródła, portu ani tempa prób. Dla profilu serwerowego to jest P0 (docs/plan.md §2.3)."
+residual_risk = "Każda uruchomiona usługa jest osiągalna z całej sieci, do której maszyna jest podłączona. Nie ma sposobu ograniczenia źródła, portu ani tempa prób. Dla profilu serwerowego to jest P0 (docs/archive/plan.md §2.3)."
 
 [effects.off.text.en]
 description   = "The factual state: no filtering in either direction."
@@ -60,7 +60,7 @@ features     = ["user.schemes.minimal"]
 capabilities = []
 
 [requires.text.pl]
-reason = "Zapora nad przestrzenią schematów zawierającą surowe gniazda nie jest kontrolą — patrz docs/plan.md §4 krok 5. Zależność jest w schemacie po to, żeby kolejność wynikała z danych, a nie z pamięci autora."
+reason = "Zapora nad przestrzenią schematów zawierającą surowe gniazda nie jest kontrolą — patrz docs/archive/plan.md §4 krok 5. Zależność jest w schemacie po to, żeby kolejność wynikała z danych, a nie z pamięci autora."
 
 [requires.text.en]
 reason = "A firewall above a scheme namespace holding raw sockets is not a control — the ordering lives in the data, not in the author's memory."
@@ -73,7 +73,7 @@ model           = ["remote-network"]
 severity_if_off = "krytyczne"
 
 [threat.text.pl]
-protects = "Nic — funkcji nie ma. To pole opisuje, co BYŁOBY chronione: przeciwnik «zdalny sieciowy» (docs/threat-model.md §3)."
+protects = "Nic — funkcji nie ma. To pole opisuje, co BYŁOBY chronione: przeciwnik «zdalny sieciowy» (docs/security/threat-model.md §3)."
 does_not_protect = """
 Nie chroni przed niczym dzisiaj.
 Nawet po zbudowaniu nie chroniłaby przed: ruchem tunelowanym w ICMP (`icmp` świadomie ZOSTAJE

@@ -64,7 +64,7 @@ reason  = "Dziś KAŻDA instalacja E-OS nazywa się `eos` i nie ma machine-id (R
 [[select]]
 feature = "user.schemes.minimal"
 state   = "ask"
-reason  = "docs/hardening.md §7 opisuje, dlaczego NIE jest to domyślne: zmiany nie da się dziś zweryfikować przejściem pełnej sesji graficznej w bezgłowym stanowisku testowym. Pytanie z uczciwym opisem jest lepsze niż domyślne włączenie bez dowodu."
+reason  = "docs/security/hardening.md §7 opisuje, dlaczego NIE jest to domyślne: zmiany nie da się dziś zweryfikować przejściem pełnej sesji graficznej w bezgłowym stanowisku testowym. Pytanie z uczciwym opisem jest lepsze niż domyślne włączenie bez dowodu."
 
 [[select]]
 feature = "pkg.source.eos"
@@ -99,4 +99,4 @@ reason  = "Profil instalacji na dysk."
 [[select]]
 feature = "net.tor"
 state   = "off"
-reason  = "NIEREALNE DZIŚ. docs/plan.md §3.2 — obietnicy, której system nie może dotrzymać, nie składamy."
+reason  = "NIEREALNE DZIŚ. docs/archive/plan.md §3.2 — obietnicy, której system nie może dotrzymać, nie składamy."
