@@ -83,7 +83,11 @@ s.close()
 PY
 }
 
-"$QEMU" "${MACHINE_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m 2048 \
+# Memory is a variable because it is a diagnostic dial, not a constant: issue #15
+# turns on aarch64 asking for a fixed 5 GiB address, which only a RAM sweep exposes.
+# 2048 stays the default so every existing call site keeps its meaning; ci-install-
+# smoke.sh already read EOS_SMOKE_MEM, and the two harnesses now agree.
+"$QEMU" "${MACHINE_ARGS[@]}" -smp "${EOS_SMOKE_SMP:-4}" -m "${EOS_SMOKE_MEM:-2048}" \
   -drive "if=pflash,unit=0,format=raw,readonly=on,file=$FW_CODE" \
   -drive "if=pflash,unit=1,format=raw,file=$WORK/vars.fd" \
   -device qemu-xhci -device usb-kbd -device usb-tablet -device virtio-rng-pci \
