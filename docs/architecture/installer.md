@@ -48,7 +48,7 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 
 | element | dowód |
 |---|---|
-| silnik instalacji `redox_installer` 0.2.42 | `Cargo.lock:896-898`; fork `eos-installer` rev `c8d32ad39e5c` (`recipes/core/installer/recipe.toml`, `repos.toml:107-117`) |
+| silnik instalacji `redox_installer` 0.2.42 | `Cargo.lock:896-898`; fork `eos-installer` rev `74726c889bdf` (`recipes/core/installer/recipe.toml`, `repos.toml:107-117`) |
 | GPT + ochronny MBR + ESP + RedoxFS | `R-F19`/`U-162`: na dysku docelowym zmierzono **2 tablice GPT**, `BOOTAA64.EFI` na ESP i **11 sygnatur RedoxFS** |
 | FDE **przy instalacji** (AES-XTS-128) | `docs/guides/encryption.md`; `[general] encrypt_disk` albo monit `redoxfs password` |
 | weryfikacja pakietów ed25519 + blake3 | `pkgar`; `V2-MS13`/`V2-MS14` domknięte (`U-223`) |
@@ -68,21 +68,38 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 
 ### 1.2 Czego brakuje do instalacji na goły sprzęt — bez łagodzenia
 
-**1. Nośnik instalacyjny nie jest budowany przez CI, nie jest boot-smoke'owany, nie jest
-sumowany i nie jest podpisywany.**
-Zmierzone: `grep -c "redox-live" .gitlab-ci.yml` → **0**. Zadania `build-image` i
-`build-image-x86_64` budują wyłącznie `harddrive.img` (`.gitlab-ci.yml:383`, `:422`).
-`scripts/make-release.sh:21` pakuje tylko `build/$arch/eos/harddrive.img`, więc `SHA256SUMS`
-i `SHA256SUMS.minisig` **nie pokrywają artefaktu, który użytkownik faktycznie wypala na
-pendrive'a**. Podpisujemy obraz preinstalowany; wydajemy nośnik instalacyjny. To dwa różne pliki.
+**1. Nośnik instalacyjny jest budowany, boot-smoke'owany, sumowany i podpisywany — brakuje
+tylko publikacji go jako artefaktu do pobrania.**
+Zaktualizowane 2026-09-01; poprzednia wersja tego punktu mówiła „nie jest" o wszystkich czterech.
+Zmierzone: `.gitlab-ci.yml:430` i `:534` pytają `make -s print-installer-medium` i budują nośnik
+na obu architekturach; `ci-boot-smoke.sh` przechodzi na nim (`boot-smoke: PASS` w przebiegu
+nocnym 2026-09-01); `make-release.sh:67` pobiera jego nazwę tą samą komendą, `:94-96` kopiuje go
+do `release/` i dokłada `sha256` do **tego samego** `SHA256SUMS`, który `:115` podpisuje
+`minisign`. Podpis pokrywa więc artefakt, który użytkownik wypala.
 
-**2. `ci-install-smoke.sh` nie jest wpięty w CI i obsługuje jedną architekturę.**
-`grep -c "install-smoke" .gitlab-ci.yml` → **0**. Sam skrypt:
-`[ "$ARCH" = "aarch64" ] || { echo "install-smoke: only aarch64 is wired up"; exit 2; }`.
-Jedyny dowód instalacji, jaki projekt ma, jest uruchamiany ręcznie, na jednym Macu, dla jednej
-architektury. To dokładnie ta sytuacja, którą `V2-MS04` nazywa dla Secure Boota: *dowód
-przestaje zależeć od jednego laptopa* — tyle że tu nawet nie ma pozycji roadmapy, która by to
-mówiła o instalatorze. **Proponuję rozszerzyć `R-601`**, nie tworzyć nowej pozycji.
+Dawny pomiar `grep -c "redox-live" .gitlab-ci.yml` → **0** jest **nadal prawdziwy i już
+bezprzedmiotowy**: nośnik nie nazywa się `redox-live`, tylko `eos-<wersja>-<arch>-installer.img`
+(`R-611a`). Sonda mierzyła nazwę, która przestała istnieć — a zero wyglądało jak dowód braku.
+
+**Co zostaje otwarte:** `R-601a` (#4) — publikacja nośnika jako **artefaktu do pobrania**.
+Dziś zadanie publikuje `sha256sums-<arch>.txt` i SBOM, bo dwa obrazy po 1,4 GB nie mieszczą się
+w limicie 1 GB na zadanie, a nieudana wysyłka zamieniała w pełni zieloną weryfikację w czerwień.
+Jak to publikować — skompresowane, tylko na tagach, czy jako zasób wydania — jest decyzją, nie
+brakiem implementacji.
+
+**2. `ci-install-smoke.sh` jest wpięty w CI i obsługuje obie architektury; domknięty przebieg
+ma na razie tylko aarch64.**
+Zaktualizowane 2026-09-01. `grep -c "install-smoke" .gitlab-ci.yml` → **10**; harness jest
+wołany w `build-image` (`:459`) i `build-image-x86_64` (`:569`), a dawna bariera
+`only aarch64 is wired up` **nie występuje już w skrypcie** — jest jawna gałąź `x86_64)`
+(`ci-install-smoke.sh:46`), a `exit 2` zostało tylko dla nieznanej architektury.
+
+Dowód instalacji nie zależy już od ręcznego uruchomienia: nocny `build-image` przeszedł
+2026-09-01 z `install-smoke: PASS — installed to a second disk and booted it to a login prompt`.
+
+**Co zostaje otwarte:** sam **przebieg** x86_64. Dochodzi do menu wyboru dysku i tam wygasa —
+wejście szeregowe na tej architekturze gubi znaki (dwa odrzucone logowania, pusta linia zamiast
+numeru dysku). To jest realna treść `R-601c` (#6), a nie przełączenie architektury w wywołaniu.
 
 **3. Ścieżka graficzna nie była testowana od końca do końca ani razu.**
 `R-D08` mówi to wprost: *„zostaje pełny przepływ live → greeter → installer-gui → instalacja,
@@ -323,10 +340,18 @@ dla tego nowej pozycji.
 
 Do `.gitlab-ci.yml`, zadanie `build-image` (runner `eos-heavy`), po `make CI=1 all`:
 
-1. `make CI=1 ARCH=$ARCH CONFIG_NAME=eos live` — dziś CI **nigdy** nie buduje tego celu;
-2. `scripts/ci-boot-smoke.sh` na nośniku (nie tylko na `harddrive.img`);
-3. `scripts/ci-install-smoke.sh` z nośnika na pusty drugi dysk;
-4. eksport nośnika jako artefaktu obok `harddrive-*.img`.
+**Zaktualizowane 2026-09-01: pierwsze trzy pozycje są zrobione, została czwarta.**
+
+1. ~~budowa nośnika~~ — **jest**: `.gitlab-ci.yml:430` i `:534` pytają
+   `make -s print-installer-medium` i budują go na obu architekturach. Nośnik nie nazywa się
+   już `live` ani `redox-live`, tylko `eos-<wersja>-<arch>-installer.img` (`R-611a`);
+2. ~~`ci-boot-smoke.sh` na nośniku~~ — **jest**: `:441` i `:551`, obok przebiegu na
+   `harddrive.img`. Oba przeszły w nocnym `build-image` 2026-09-01;
+3. ~~`ci-install-smoke.sh` z nośnika~~ — **jest**: `:459` i `:569`. aarch64 przeszedł
+   end-to-end; x86_64 dochodzi do menu wyboru dysku i tam wygasa (#6);
+4. **eksport nośnika jako artefaktu — nadal brak** (`R-601a`, #4). Zadanie publikuje dziś
+   `sha256sums-<arch>.txt` i SBOM: dwa obrazy po 1,4 GB przekraczają limit 1 GB na zadanie,
+   a nieudana wysyłka zamieniała w pełni zieloną weryfikację w czerwień.
 
 Krok 3 jest ciężki: `EOS_SMOKE_MEM=4096`, emulacja TCG, ścieżka blokowa ~6 min plus rozruchy.
 Mieści się w `timeout: 6h` zadania. Uruchamiany na harmonogramie, nie na każdym commicie.
@@ -340,9 +365,11 @@ porażki, każdy z innym komunikatem, bo wymagają przeciwnych reakcji:
 | **fałszywe zielone** | harness startuje **ze starego** `harddrive.img`, bo ścieżka się nie zmieniła, i przechodzi | krok 2 wypisuje sumę SHA-256 pliku, który realnie uruchamia | podstaw obraz bez instalatora → **FAIL**, nie PASS |
 | **awaria przyrządu** | brak `qemu-system-*`, brak firmware'u edk2, padnięty runner | `FAIL (instrument):` — **inny** komunikat niż wykryta usterka | zdejmij QEMU z runnera → komunikat instrumentu, nie „nośnik nie bootuje" |
 
-Trzeci wiersz nie jest ostrożnością na wyrost: `ci-install-smoke.sh:32` kończy się dziś
-`exit 2` z komunikatem `install-smoke: only aarch64 is wired up`, czyli **pomija się cicho**
-na x86_64. To jest ten sam kształt awarii, tylko już obecny.
+Trzeci wiersz nie jest ostrożnością na wyrost, ale jego przykład jest już nieaktualny.
+Bariery `only aarch64 is wired up` **nie ma w skrypcie** (0 trafień): jest jawna gałąź
+`x86_64)` (`ci-install-smoke.sh:46`), a `exit 2` został dla **nieznanej** architektury.
+Kształt awarii przesunął się, ale nie zniknął: x86_64 nie pomija się już cicho — **pada
+głośno**, wygasając na wyborze dysku, bo wejście szeregowe gubi tam znaki (#6).
 
 ### 2.6 Klucze na maszynie budującej — ryzyko nazwane
 
@@ -1117,8 +1144,8 @@ GUI↔TUI) i `R-601e` (brakujące przypadki: FDE, przerwanie, dwa dyski, 4Kn, BI
 
 | brak | dowód | koszt |
 |---|---|---|
-| harness nie jest w CI | `grep -c install-smoke .gitlab-ci.yml` → 0 | S |
-| tylko aarch64 | `install-smoke: only aarch64 is wired up` | M |
+| nośnik nie jest publikowany jako artefakt do pobrania (`R-601a`, #4) | zadanie publikuje `sha256sums-<arch>.txt` i SBOM; dwa obrazy po 1,4 GB nie mieszczą się w limicie 1 GB | S |
+| przebieg x86_64 nie domyka się | harness ma gałąź `x86_64)` i jest w CI (`:569`), ale wygasa na wyborze dysku — wejście szeregowe gubi znaki (#6) | M |
 | tylko TUI; GUI nietestowane od końca do końca | `R-D08` | L (automatyzacja GUI przez zrzuty ekranu) |
 | brak przypadku z FDE | harness wysyła puste hasło: `con.send("")` z komentarzem *„Empty means an unencrypted install"* | S |
 | brak przypadku przerwania (zabicie w fazie 1/3) | — | M, ale to **jedyny** test transakcji z §6 |
@@ -1288,8 +1315,8 @@ Jeden znacznik na wiersz. Bez znacznika dokument byłby niekompletny.
 | panel sieciowy w instalatorze | **JEST** | `R-902`, `U-132` |
 | wymuszenie zmiany hasła przy pierwszym logowaniu | **JEST** | `R-602`, `U-076`/`U-077`/`U-079` |
 | `raid1d` (RAID-1 w przestrzeni użytkownika) | **JEST** | `ROADMAP.md` §8.1; instalacja na niego — nie |
-| nośnik instalacyjny w wydaniu (suma + podpis) | **DO ZBUDOWANIA** | rozszerzyć `make-release.sh` (§2.4) |
-| nośnik instalacyjny budowany i testowany w CI | **DO ZBUDOWANIA** | `grep` → 0 trafień; rozszerzenie `R-601` (§2.5) |
+| nośnik instalacyjny w wydaniu (suma + podpis) | **JEST** | `make-release.sh:67` bierze nazwę z `print-installer-medium`, `:94-96` kopiuje do `release/` i dopisuje `sha256` do tego samego `SHA256SUMS`, który `:115` podpisuje `minisign` |
+| nośnik instalacyjny budowany i testowany w CI | **JEST** | `.gitlab-ci.yml:430` (aarch64) i `:534` (x86_64) budują go, `:441`/`:551` boot-smoke'ują, `:459`/`:569` puszczają install-smoke; aarch64 przeszedł end-to-end 2026-09-01. Otwarte zostaje `R-601a` (§2.5) |
 | hybrydowe ISO (MBR + GPT + ISO 9660 + El Torito) | **JEST** | **[zmierzone]** §1.2 pkt 13; **korekta** — pierwsza wersja tabeli mówiła „DO ZBUDOWANIA, `xorriso`" i była błędna |
 | wpis El Torito dla platformy EFI wskazuje realny obraz | **DO ZBUDOWANIA** | dziś Load RBA 2 → same zera (§1.2 pkt 13); rozszerzenie `R-611d` |
 | sterownik napędu optycznego (ATAPI / SCSI MMC) | **NOWY PODSYSTEM** | brak w `recipes/` |
@@ -1349,7 +1376,8 @@ Lista jest częścią dokumentu, nie przypisem do niego.
    **Sprawdzić:** `scripts/eos-sync-buildtree.sh` i odczyt
    `recipes/core/installer/source/src/installer.rs` — a przed zaufaniem wynikowi negatywnemu
    potwierdzić rewizję: `git -C recipes/core/installer/source rev-parse HEAD` musi dać
-   `c8d32ad39e5c…` (`CLAUDE.md` §20.1).
+   `74726c889bdf…` (`CLAUDE.md` §20.1) — rewizja przypięta zarówno w
+   `recipes/core/installer/recipe.toml:5`, jak i w `repos.toml:116`.
 2. **`docs/audit/03-security-audit-2026-08-30.md`** (znaleziska `C-4`, `C-5`, `C-9`, `C-10`,
    `C-11`, `C-18`) — plik jest na gałęzi `fix/p0-audit-findings`, a polecenia `git` były w tym
    zadaniu zabronione. Cytuję je za briefem, nie za źródłem.
