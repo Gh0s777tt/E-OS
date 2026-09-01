@@ -461,12 +461,27 @@ build-image:
     # blake3 + source revs), deterministic via the commit timestamp, then export it.
     - podman exec "$EOS_CONTAINER" bash -lc "cd /work/redox && python3 scripts/gen-sbom.py --repo-dir repo/$ARCH-unknown-redox --target $ARCH-unknown-redox --eos-commit $CI_COMMIT_SHA --timestamp $CI_COMMIT_TIMESTAMP --out sbom/eos-$ARCH.cdx.json"
     - podman cp "$EOS_CONTAINER:/work/redox/sbom/eos-$ARCH.cdx.json" "sbom-$ARCH.cdx.json"
+    # Publish what identifies the images, not the images. Measured 2026-09-01: the job
+    # verified everything it exists to verify -- build, sign, esp-cert with its negative
+    # control, boot-smoke on both the installed disk and the medium, and install-smoke
+    # PASS through to booting the installed disk -- and then reported FAILED, because
+    # uploading two 1.4 GiB images exceeds the 1 GiB per-job artifact cap:
+    #     ERROR: Uploading artifacts as "archive" to coordinator... error  (x3)
+    #     FATAL: invalid argument
+    # A green verification that reports red is worse than no artifact at all: it hides the
+    # result it was run to produce. The images stay on the runner in ~/eos-artifacts.
+    # Publishing the medium as a downloadable artifact is #4 (R-601a) and needs a decision
+    # about HOW -- compressed, tag-only, or a release asset -- not a bigger paths list.
+    - |
+      for f in harddrive-aarch64.img eos-*-aarch64-installer.img; do
+        [ -f "$f" ] && shasum -a 256 "$f"
+      done > sha256sums-aarch64.txt
+      cat sha256sums-aarch64.txt
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
-      - harddrive-aarch64.img
-      - eos-*-aarch64-installer.img
+      - sha256sums-aarch64.txt
       - sbom-aarch64.cdx.json
 
 # x86_64 image — cross-compiles in the same container, but a full x86_64 boot on
@@ -552,12 +567,19 @@ build-image-x86_64:
       mkdir -p "$SMOKE_ROOT/ci-smoke"
       export EOS_SMOKE_WORK="$SMOKE_ROOT/ci-smoke"
     - bash scripts/ci-install-smoke.sh "$(basename "$MEDIUM")" 5400 --arch x86_64
+    # Same reason as the aarch64 job above: two 1.4 GiB images do not fit a 1 GiB cap, and
+    # a failed upload turns a green verification red. This job is manual and has never run,
+    # so this is corrected here rather than discovered the first time someone triggers it.
+    - |
+      for f in harddrive-x86_64.img eos-*-x86_64-installer.img; do
+        [ -f "$f" ] && shasum -a 256 "$f"
+      done > sha256sums-x86_64.txt
+      cat sha256sums-x86_64.txt
   artifacts:
     when: on_success
     expire_in: 1 week
     paths:
-      - harddrive-x86_64.img
-      - eos-*-x86_64-installer.img
+      - sha256sums-x86_64.txt
 
 # ──────────────────  Renovate (scheduled dependency updates)  ───────────────
 # Self-hosted Renovate opens MRs for dependency bumps (replaces Dependabot).
