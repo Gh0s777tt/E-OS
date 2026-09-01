@@ -311,6 +311,23 @@ docs-pdf:
   script:
     - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
     - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    # `podman machine start` returns once the VM is LAUNCHING, not once its socket accepts
+    # connections. Every scheduled run since at least 2026-08-25 died here, a tenth of a second
+    # after "Starting machine":
+    #     Error: unable to connect to Podman socket: ssh: handshake failed: EOF
+    #     ERROR: Job failed: exit status 125
+    # So the one gate that actually boots the OS has not run in over a week -- it was failing on
+    # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    - |
+      for i in $(seq 1 60); do
+        podman info >/dev/null 2>&1 && break
+        if [ "$i" -eq 60 ]; then
+          echo "podman machine '$EOS_MACHINE' did not accept connections within 120s" >&2
+          echo "  the VM may be starting, wedged, or absent: podman machine list" >&2
+          exit 1
+        fi
+        sleep 2
+      done
     - podman start "$EOS_CONTAINER" 2>/dev/null || true
     - podman exec "$EOS_CONTAINER" true
     - podman exec "$EOS_CONTAINER" rm -rf /tmp/eos-docs
@@ -375,6 +392,23 @@ build-image:
   script:
     - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"  # Homebrew podman/qemu/git
     - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    # `podman machine start` returns once the VM is LAUNCHING, not once its socket accepts
+    # connections. Every scheduled run since at least 2026-08-25 died here, a tenth of a second
+    # after "Starting machine":
+    #     Error: unable to connect to Podman socket: ssh: handshake failed: EOF
+    #     ERROR: Job failed: exit status 125
+    # So the one gate that actually boots the OS has not run in over a week -- it was failing on
+    # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    - |
+      for i in $(seq 1 60); do
+        podman info >/dev/null 2>&1 && break
+        if [ "$i" -eq 60 ]; then
+          echo "podman machine '$EOS_MACHINE' did not accept connections within 120s" >&2
+          echo "  the VM may be starting, wedged, or absent: podman machine list" >&2
+          exit 1
+        fi
+        sleep 2
+      done
     - podman start "$EOS_CONTAINER" 2>/dev/null || true
     - podman exec "$EOS_CONTAINER" true            # fail fast if container unreachable
     - echo "sync $CI_COMMIT_SHORT_SHA -> $EOS_CONTAINER:/work/redox (tracked sources only)"
@@ -430,6 +464,23 @@ build-image-x86_64:
   script:
     - export PATH="/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
     - podman machine start "$EOS_MACHINE" 2>/dev/null || true
+    # `podman machine start` returns once the VM is LAUNCHING, not once its socket accepts
+    # connections. Every scheduled run since at least 2026-08-25 died here, a tenth of a second
+    # after "Starting machine":
+    #     Error: unable to connect to Podman socket: ssh: handshake failed: EOF
+    #     ERROR: Job failed: exit status 125
+    # So the one gate that actually boots the OS has not run in over a week -- it was failing on
+    # a startup race, not on anything it was meant to check. Wait for the socket instead.
+    - |
+      for i in $(seq 1 60); do
+        podman info >/dev/null 2>&1 && break
+        if [ "$i" -eq 60 ]; then
+          echo "podman machine '$EOS_MACHINE' did not accept connections within 120s" >&2
+          echo "  the VM may be starting, wedged, or absent: podman machine list" >&2
+          exit 1
+        fi
+        sleep 2
+      done
     - podman start "$EOS_CONTAINER" 2>/dev/null || true
     - podman exec "$EOS_CONTAINER" true
     - git archive --format=tar HEAD | podman exec -i "$EOS_CONTAINER" tar -C /work/redox -xf -
