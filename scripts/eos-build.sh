@@ -78,6 +78,26 @@ podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-lim
   --env EOS_REPO_SERIAL="$serial" localhost/redox-base:latest \
   bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/$MEDIUM_NAME 2>&1 | tail -3"
 
+# Every pinned recipe must have been BUILT from the revision it is pinned to -- checked HERE,
+# immediately after make -- BEFORE the freshness guard below, not after it. Measured: placed
+# later, it never ran on a no-op build, because "make produced NOTHING" exits first. A source
+# sitting on the wrong revision is worth knowing about whether or not make did any work; on a
+# no-op build it is arguably MORE interesting, because nothing else will mention it.
+#
+# MEASURED 2026-09-01, and it shipped: the bootloader recipe was bumped to 4f230035e2, but
+# recipes/core/bootloader/source stayed at 87b214b -- `git checkout` had been refused because a
+# file there was modified (CLAUDE.md 20.4). cookbook built the old tree, this script printed
+# `Done.` and exported the image, and the change was simply absent from the artefact. Three
+# existing checks all stayed green, each correct in its own scope: pins --strict never looks in
+# the build tree, the freshness guard below compares image MTIMES and the image genuinely was
+# produced by that run, and eos-source-rules.sh proves a recipe is BUILT rather than downloaded
+# without saying which revision. This closes the gap between them.
+echo "==> verify every fetched recipe source sits on its pinned revision"
+inbox 'cd /work/redox && python3 scripts/eos-check-source-revs.py' || {
+  echo "!! refusing to export: the build tree does not match the pins (see above)"
+  exit 1
+}
+
 after="$(inbox "stat -c %Y $BUILD/harddrive.img $BUILD/$MEDIUM_NAME 2>/dev/null | tr '\n' ' '" || true)"
 if [ "$before" = "$after" ] && [ -n "$before" ]; then
   echo "!! make produced NOTHING: the images in the build tree are unchanged by this run."
