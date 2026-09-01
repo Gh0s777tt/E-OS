@@ -229,7 +229,7 @@ bash scripts/eos-repos.sh pins --strict
 eos-liborbital   | master       | 76ba2e79ac  | 76ba2e79ac  | OK(tip)
 eos-redox-fatfs  | master       | 26caa09089  | 26caa09089  | OK(tip)
 eos-redoxer      | master       | 974c1482c2  | 974c1482c2  | OK(tip)
----- pins ok=26 drift=0 (non-allowlisted=0) ----
+---- pins ok=25 drift=1 (non-allowlisted=0) split-pin=0 ----
 ```
 
 **Run the repository integrity gate** — the same checks CI runs:
