@@ -80,10 +80,31 @@ QPID=""; QLOG=""
 # do -- means a failure tells you THAT something broke and never what: R-F25 was chased for
 # three runs with no serial log, no qemu log and no exit status, because all three were
 # removed the moment the script exited.
+# WHERE it lands matters as much as WHETHER it is kept. The default used to be next to the
+# source image, which in CI is the runner's build directory on the BOOT volume -- measured
+# 2026-09-01 at 2.2 GiB free against a 1.7 GiB copy. A failure would then take the disk down
+# with it, and the next job would report "no space left on device" for something unrelated:
+# an error blamed on a place that had nothing to do with it. The scratch directory is already
+# pointed somewhere with room (EOS_SMOKE_WORK), so evidence follows it.
+#
+# WHAT is kept is trimmed for the same reason. src.img is a copy of an input that still exists,
+# and target.img is 4 GiB sparse; neither is what you read first. Logs, the monitor socket
+# transcript and the UEFI vars are what diagnose a run. Set EOS_SMOKE_KEEP_IMAGES=1 when the
+# disks themselves are the question -- e.g. checking what the installer actually wrote.
 keep_work() {
-  dest="${EOS_SMOKE_KEEP:-$(dirname "$IMG")}/install-smoke-failed"
+  dest="${EOS_SMOKE_KEEP:-${EOS_SMOKE_WORK:-$(dirname "$IMG")}}/install-smoke-failed"
   rm -rf "$dest" 2>/dev/null
-  cp -R "$WORK" "$dest" 2>/dev/null && echo "install-smoke: evidence kept in $dest"
+  mkdir -p "$dest" 2>/dev/null || return 0
+  if [ "${EOS_SMOKE_KEEP_IMAGES:-0}" = "1" ]; then
+    cp -R "$WORK"/. "$dest" 2>/dev/null
+  else
+    # everything except the two disk images
+    find "$WORK" -maxdepth 1 -type f ! -name 'src.img' ! -name 'target.img' \
+      -exec cp {} "$dest/" \; 2>/dev/null
+  fi
+  echo "install-smoke: evidence kept in $dest ($(du -sh "$dest" 2>/dev/null | cut -f1))"
+  [ "${EOS_SMOKE_KEEP_IMAGES:-0}" = "1" ] || \
+    echo "install-smoke:   disk images NOT kept — re-run with EOS_SMOKE_KEEP_IMAGES=1 for those"
 }
 cleanup() { [ -n "$QPID" ] && kill "$QPID" 2>/dev/null; rm -rf "$WORK"; }
 trap cleanup EXIT
