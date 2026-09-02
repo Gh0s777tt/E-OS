@@ -5,6 +5,13 @@ last-reviewed: 2026-08-30
 owner: Gh0s777tt
 ---
 
+> **Status, measured 2026-09-02 ([#28](https://gitlab.com/e-os/e-os/-/issues/28)):** this page describes what
+> the recipe *intends*. The `netsurf-fb` actually staged and shipped on both architectures is the **upstream
+> prebuilt** — `readelf -h` Type `EXEC`, first LOAD at `0x400000`, no PIE flag, no `about:welcome` string,
+> `stage.toml` `commit_identifier 34eb9f34…` (not this tree's HEAD). None of the patches below are in the image
+> until the build is forced to source; until then, read this as a design document, not a description.
+
+
 # NetSurf on E-OS: the PIE / host-toolchain story (R-D06)
 
 **What this is:** why E-OS builds NetSurf *from source as a PIE* instead of using

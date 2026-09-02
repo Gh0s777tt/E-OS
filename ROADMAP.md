@@ -1131,11 +1131,11 @@ other applications. The inventory (read-only, config TOML membership) says what 
 |---|---|---|---|
 | **Notes** — `eos-notes` | **yes** | type A, pinned in its recipe; `config/*/eos.toml` `[packages.eos-notes]` | a product |
 | **Control panel** — `eos-control` | **yes** | type A, pinned | Overview / processes / network pane (`R-902`) |
-| **Browser** — NetSurf 3.11 (`netsurf-fb`, framebuffer over Orbital) | **yes** | upstream recipe via `config/desktop.toml:21` | not an E-OS fork; `M-1` sandboxing starts here |
+| **Browser** — NetSurf 3.11 (`netsurf-fb`, framebuffer over Orbital) | **yes** | upstream recipe via `config/desktop.toml:21` | not an E-OS fork; the staged binary is the **upstream prebuilt** (`EXEC` at `0x400000`, no PIE, no E-OS patches — #28), so the recipe's PIE build is not what ships; `M-1` sandboxing starts here |
 | **Terminal** — `cosmic-term` | **yes** | `desktop.toml:15`; `orbterm` explicitly excluded | — |
 | **Editor / files** — `cosmic-edit`, `cosmic-files` | **yes** | `desktop.toml` | `cosmic-edit` is the recipe behind #26 |
-| **Integrity monitor** — `eos-guard` | **no** | type A in `repos.toml`, **not** an image package | exists as a repository, ships nowhere |
-| **System monitor** — `eos-sysmon` | **no** | type A, **not** an image package | same |
+| **Integrity monitor** — `eos-guard` | **no**, as an app | type A in `repos.toml`, **not** an image package | its blake3 baseline + permission audit were **ported into `eos-control`'s Security tab** (`src/security/mod.rs:1-3`, "Ported from the standalone eos-guard"), which does ship |
+| **System monitor** — `eos-sysmon` | **no**, as an app | type A, **not** an image package | same route: a tab in `eos-control` (`README.md:400-404`) |
 | **`eos-ui`** | n/a | type A library (`role = lib`), no recipe | consumed by the apps above |
 | **Antivirus** | **no** | nothing: no recipe, no plan, no row anywhere (`clamav`, `clamscan`, `rkhunter` — 0 hits) | see below |
 
@@ -1147,7 +1147,7 @@ as native apps while the config ships neither. Annotated in the same change as t
 |---|---|---|---|---|
 | `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C), and its pin | nothing | a generator reading `config/*/eos.toml` + `repos.toml`; a CI check that a shipped package without a page fails | S |
 | `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** | in `repos.toml`, not in the image | owner's call (§3.0 Q9); if they ship: a recipe, a pin, a boot-smoke row each | S |
-| `PR-003` | **"Antivirus" on E-OS** — a signature scanner is a Linux-shaped answer; on a capability system the equivalent is the package-bytes gate that already exists (`V2-MS13`: blake3 enforced from the signed index), per-process scheme sets (`M-1`), and a persistent audit log (`C-9`) | the first exists; the other two are planned | **do not** ship a product called "antivirus" until it does something a signed package channel does not; if the owner wants the word, `eos-guard` is the honest candidate to grow into it | L |
+| `PR-003` | **"Antivirus" on E-OS** — a signature scanner is a Linux-shaped answer; on a capability system the equivalent is the package-bytes gate that already exists (`V2-MS13`: blake3 enforced from the signed index), the file-integrity baseline that **already ships** in `eos-control`'s Security tab (blake3, ported from `eos-guard`), per-process scheme sets (`M-1`), and a persistent audit log (`C-9`) | the first two exist; the other two are planned | **do not** ship a product called "antivirus" until it does something a signed package channel does not; if the owner wants the word, `eos-guard` is the honest candidate to grow into it | L |
 
 ---
 
@@ -1546,8 +1546,16 @@ GitLab job has failed on quota since 2026-08-28, and the GitHub side was not con
 **What does not exist** — searched `package.json`, `*.tsx|vue|svelte`, `next|astro|nuxt|vite.config*`,
 `locales/`, `*.po|pot|ftl|mo|xliff`, `PRIVACY*|TERMS*|EULA*|TRADEMARK*|ACCESSIBILITY*`, `Dockerfile`/
 compose for a web service, across the repository: no frontend, no backend, no i18n infrastructure,
-no privacy policy, no terms, no accessibility statement, no E-OS trademark policy (only upstream
-Redox's), no accounts, no mail, no tickets, no search beyond mdBook's built-in.
+no privacy policy, no terms, no accessibility statement, no accounts, no mail, no tickets, no search
+beyond mdBook's built-in. Adversarial re-check (2026-09-02) narrowed three of the first pass's
+"missing" claims, and they are stated here as found: a root `NOTICE` (copyright, AGPL-3.0, Redox/MIT
+provenance, a **trademark reservation** for the E-OS name at `:33-35`) exists, so what is missing is a
+standalone trademark *policy*, not any trademark statement; a **support policy** exists twice —
+`SECURITY.md:29-52` (response commitments 72h/7d/30d/90d, supported versions) and
+`docs/reference/stability.md:37-45` (support lines: rolling / `lts/0.1` / checkpoint); and a public
+**download surface** exists without any gate — the signed package index on GitHub Pages
+(`gh0s777tt.github.io/eos-pkg-aarch64`, live, HTTP 200; x86_64 404) and the nightly images as
+1-week CI job artefacts (`.gitlab-ci.yml:517-522`, `:635-640`).
 
 **Two halves, because they have different homes.** The *static* half (content, changelog, docs,
 legal pages, product pages, download page) can be built now and served by `nginx` on `CS-001`.
@@ -1561,8 +1569,8 @@ sequenced after Tier 1, not alongside the static half.
 | `WS-001` | **Separate repository `eos-website`** (type A) with its own CI, lockfile-pinned toolchain, the same secret/supply-chain gates as here | nothing | the repository, a `verify.sh` for it, an entry in `repos.toml` | — | S |
 | `WS-002` | **i18n as the first commit, not the last** — every string in message catalogues, locale negotiation, RTL-ready layout, Polish and English as the first two locales | mdBook is single-language; docs are mixed PL/EN with no switch | a catalogue format and the build step that fails on an untranslated key | `WS-001` | M |
 | `WS-003` | **Static site: home, About, products, developers, changelog, downloads, legal** | mdBook covers docs only | pages generated from this repository's `CHANGELOG.md`, `README.md` and `ROADMAP.md` so the site cannot drift from them (the drift this file documents in §1.4 is the reason) | `WS-002` | M |
-| `WS-004` | **Legal pages that exist as documents first** — privacy policy, terms, trademark policy for the "E-OS" name, accessibility statement | none; trademark page is upstream Redox's | the owner writes or commissions them; the site renders them; not a coding task | owner | S |
-| `WS-005` | **Downloads with a real gate** — "developers only" until the owner flips it | release assets exist on GitHub for `v0.1.0` only | the switch must be **server-side** (`CS-004` identity): a client-side toggle on a static host is decoration, not access control | `CS-001`, `CS-004` | M |
+| `WS-004` | **Legal pages that exist as documents first** — privacy policy, terms, trademark policy for the "E-OS" name, accessibility statement | `NOTICE` reserves the trademark and states provenance; `SECURITY.md` and `stability.md` are the support policy; privacy, terms and accessibility do not exist | the owner writes or commissions them; the site renders them; not a coding task | owner | S |
+| `WS-005` | **Downloads with a real gate** — "developers only" until the owner flips it | ungated and public already: the package index on GitHub Pages (aarch64 live) and nightly images as CI artefacts; a GitHub Release object exists for `v0.1.0` only | the switch must be **server-side** (`CS-004` identity): a client-side toggle on a static host is decoration, not access control | `CS-001`, `CS-004` | M |
 | `WS-006` | **Search** across docs, changelog, products, support | mdBook's built-in only | a static index for the static half; a service for tickets/FAQ later | `WS-003` | S |
 | `WS-007` | **Accessibility** — keyboard, contrast, screen-reader landmarks, reduced motion, a published statement | nothing | built into `WS-002`'s layout system; audited with a real screen reader, not a linter alone | `WS-002` | M |
 | `WS-008` | **Accounts** — register, log in, delete, with the same credential rules as the OS (§6.6) | nothing | a service on `CS-001` with `CS-003`; passwords argon2id at the §6.6 parameters; deletion that actually deletes | `CS-003`, `CS-004` | L |
