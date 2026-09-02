@@ -34,11 +34,34 @@ count=$(printf '%s\n' "$files" | grep -c . || true)
 echo "repo: $count śledzonych plików do porównania"
 
 STAGE="$(mktemp -d)"; trap 'rm -rf "$STAGE"' EXIT
-printf '%s\n' "$files" | while IFS= read -r f; do
-  [ -n "$f" ] && [ -f "$f" ] || continue
-  mkdir -p "$STAGE/$(dirname "$f")"
-  cp -p "$f" "$STAGE/$f"
-done
+# `printf ... | while ...` ran this loop in a SUBSHELL of a pipeline, in a script without
+# `set -e`. Nothing here could report anything: a failed `cp` was ignored, and a tracked file
+# missing from the working tree (deleted, or a dangling symlink) was filtered out by the
+# `[ -f "$f" ]` test without a word. The container downstream then compared whatever had
+# actually been staged against the build tree and reported agreement -- over a smaller set than
+# the "$count śledzonych plików do porównania" line had just promised. Count what really got
+# staged, and say so when it differs.
+staged=0
+missing=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  if [ ! -f "$f" ]; then
+    missing="$missing
+  $f"
+    continue
+  fi
+  mkdir -p "$STAGE/$(dirname "$f")" || { echo "sync: nie mogę utworzyć katalogu dla $f"; exit 1; }
+  cp -p "$f" "$STAGE/$f" || { echo "sync: nie mogę skopiować $f do stagingu"; exit 1; }
+  staged=$((staged + 1))
+done <<< "$files"
+
+if [ -n "$missing" ]; then
+  echo "sync: UWAGA — $((count - staged)) z $count śledzonych plików NIE trafiło do stagingu"
+  echo "  (śledzone w gicie, ale nieobecne w katalogu roboczym — usunięte albo wiszące dowiązanie):"
+  printf '%s\n' "$missing"
+  echo "  Porównanie poniżej dotyczy $staged plików, nie $count."
+fi
+echo "sync: $staged plików w stagingu"
 
 podman run --rm -v eos-work:/work -v "$STAGE:/stage:ro" \
   ${APPLY:+--env APPLY=1} --env IMAGE="$IMAGE" "$IMAGE" bash -lc '
