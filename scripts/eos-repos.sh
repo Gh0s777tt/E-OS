@@ -98,7 +98,9 @@ cmd_pins() {
   local allow_file="$HERE/scripts/pin-allowlist.txt"
   printf "%-16s | %-12s | %-11s | %-11s | %s\n" "FORK" "BRANCH" "PIN" "FORK-TIP" "STATUS"
   local ok=0 drift=0 baddrift=0 split=0
+  local rows=0
   while IFS=$'\t' read -r name gh gl role pinned recipe br rev; do
+    rows=$((rows + 1))
     [ "$pinned" = "true" ] || continue
     local head
     head=$(git ls-remote "$gh" "refs/heads/$br" </dev/null 2>/dev/null | awk '{print $1}')
@@ -152,6 +154,18 @@ cmd_pins() {
     fi
     printf "%-16s | %-12s | %-11s | %-11s | %s\n" "$name" "$br" "${rev:0:10}" "${head:0:10}" "$st"
   done < <(_parse)
+  # The status of `_parse` inside a process substitution is not visible to this shell -- not to
+  # `set -e`, not to `$?`. So when it emitted NOTHING (repos.toml missing, moved, or unparseable)
+  # the loop ran zero times, every counter stayed 0, and `--strict` returned 0: a gate whose job
+  # is to compare every fork pin against its fork tip reported success having examined no forks
+  # at all. Count the rows and refuse an empty run -- "nothing to compare" is the failure here,
+  # not the happy path.
+  if [ "$rows" -eq 0 ]; then
+    echo "pin-check: FAIL — the manifest parser produced NO rows, so nothing was compared." >&2
+    echo "  repos.toml is expected to yield at least one repository. Check that it exists and" >&2
+    echo "  parses; an empty result is never a passing state for this gate." >&2
+    return 1
+  fi
   echo "---- pins ok=$ok drift=$drift (non-allowlisted=$baddrift) split-pin=$split ----"
   if [ "$strict" = "1" ] && [ "$split" -gt 0 ]; then
     echo "pin-check: FAIL — $split repo(s) carry TWO DIFFERENT pins: the recipe and repos.toml" >&2
