@@ -35,17 +35,17 @@ because the retraction record is the reason the register is worth reading.
 
 **The subject register — the single source of status**
 - [5. Trust chain: boot, package channel, keys](#5-trust-chain-boot-package-channel-keys)
-- [6. Installer, wizard and updates](#6-installer-wizard-and-updates)
-- [7. Desktop shell and applications](#7-desktop-shell-and-applications)
+- [6. Installer, wizard and updates](#6-installer-wizard-and-updates) — incl. [6.6 first-boot credentials: password quality and PIN](#66-first-boot-credentials-password-quality-and-pin--r-602ar-602f)
+- [7. Desktop shell and applications](#7-desktop-shell-and-applications) — incl. [7.5 products in the image](#75-products-in-the-image--what-notes-antivirus-browser-means-today--pr-)
 - [8. Drivers and hardware](#8-drivers-and-hardware)
 - [9. Security posture by audit finding](#9-security-posture-by-audit-finding)
 - [10. Correctness and regression register](#10-correctness-and-regression-register)
-- [11. Platform, process and release](#11-platform-process-and-release)
+- [11. Platform, process and release](#11-platform-process-and-release) — incl. [11.4 everything on E-OS](#114-everything-on-e-os-the-server-edition-and-the-cloud-platform--cs-), [11.5 the project website](#115-the-project-website--ws-), [11.6 a documented system API](#116-a-documented-system-api--api-)
 - [12. Standards and compliance](#12-standards-and-compliance)
 
 **What we do not claim**
 - [13. Dropped and refused](#13-dropped-and-refused)
-- [14. What this plan deliberately does NOT promise](#14-what-this-plan-deliberately-does-not-promise)
+- [14. What this plan deliberately does NOT promise](#14-what-this-plan-deliberately-does-not-promise) — incl. [14.7 about "everything on E-OS"](#147-about-everything-on-e-os-the-server-edition-the-cloud-platform-and-the-website)
 - [15. What has not been verified, and the command to verify it](#15-what-has-not-been-verified-and-the-command-to-verify-it)
 - [16. Vision and positioning](#16-vision-and-positioning)
 
@@ -353,6 +353,38 @@ The registers below are the source of truth for status; this list exists so the 
   E-OS package repository is decided. Named by the audit's completeness critic, round 2.
 - **`S-8`, `S-11`…`S-16`, `S-18`…`S-20`** in §3.1 remain as recorded on 2026-08-31; today's audit
   did not re-verify them, and they are not restated here as if it had.
+
+**New scope, 2026-09-02 — recorded, sized, not started.** The owner asked for four things the
+registers now hold: password quality and a PIN ([§6.6](#66-first-boot-credentials-password-quality-and-pin--r-602ar-602f),
+`R-602a`…`g`), a documented system API ([§11.6](#116-a-documented-system-api--api-), `API-*`), a
+Microsoft-style website ([§11.5](#115-the-project-website--ws-), `WS-*`), and an own cloud platform on
+E-OS as the host ([§11.4](#114-everything-on-e-os-the-server-edition-and-the-cloud-platform--cs-), `CS-*`,
+three tiers). What that cannot mean yet is in [§14.7](#147-about-everything-on-e-os-the-server-edition-the-cloud-platform-and-the-website).
+One item from that analysis is already a defect, not a plan: **#27** — passwords set in the running
+system are hashed argon2i m=4096 (`rust-argon2 0.8.3` default), not the argon2id m=19456 the README
+claimed; `R-602g` is its fix and is the cheapest row in the new scope.
+
+**Decisions only the owner can make before the new scope starts** (the numbering here *is* a list,
+not a sequence):
+
+1. **PIN and disk encryption.** Screen/greeter unlock only (recommended — a 4-digit PIN falls to an
+   offline search in 153 s at the shipped cost), or also for FDE? The second is refused in §14.7.
+2. **Where the website lives.** A separate `eos-website` repository (recommended: different release
+   cycle, secrets and toolchain) or a directory here.
+3. **Where the website is hosted.** The static half can sit on E-OS + `nginx` after `CS-001`; accounts,
+   mail, tickets and AI chat need `CS-003`/`CS-008`. Wait, or host the dynamic half elsewhere meanwhile?
+4. **AI chat in support.** A model on E-OS (no GPU stack — Tier 3) or an external API, which contradicts
+   "everything on E-OS"; one of the two, chosen knowingly.
+5. **The cloud platform's name** and its relation to the E-OS brand; `CS-*` until decided.
+6. **Hypervisor: fork or upstream?** `CS-201` without Redox upstream becomes an unrebaseable kernel
+   fork (§12, type C). Recommended: an upstream RFC before the first line.
+7. **Windows guests** — licensing and support are the owner's decision, not a technical one.
+8. **The download gate** — who holds the switch, and is it in the `CS-004` identity panel or in the
+   deployment configuration?
+9. **"Antivirus" and the two unshipped apps.** `eos-guard`/`eos-sysmon` ship or leave the product
+   list (`PR-002`); whether the word "antivirus" appears at all (`PR-003`).
+10. **Sequencing.** Does Tier 1 (`CS-001`…`CS-008`) precede M2–M4 or run as a parallel track? One
+    person cannot pull both at once — a constraint, not rhetoric.
 
 **What today's work does NOT change**
 
@@ -938,6 +970,45 @@ EP-3 updates (stages from system-updates.md §9):
 
 ---
 
+### 6.6 First-boot credentials: password quality and PIN — `R-602a`…`R-602f`
+
+Premise, owner's words (2026-09-02): passwords and PINs must never be stored in the clear.
+State today: they are not stored in the clear — but they are hashed on **two different paths with
+two different strengths** (#27, measured 2026-09-02). Image-build time (`installer`, `rust-argon2
+3.0.0`): argon2id, m=19456 KiB, t=2. Runtime — `passwd`, the forced first-boot enrolment, the
+`orblogin` greeter — all go through `redox_users 0.4.6` → `rust-argon2 0.8.3`, whose
+`Config::default()` is **argon2i, m=4096, t=3** (`lib.rs:271`, `config.rs:97-102`). What does not
+exist anywhere in `login.rs`, `passwd.rs`, `orblogin/main.rs` or `installer_tui.rs` is any judgement
+of the password itself:
+no length floor, no strength estimate, no blocklist, no PIN concept. Measured 2026-09-02:
+`grep -rn "strength|weak|entropy|zxcvbn|min_len|pin"` over the userutils and installer sources
+returns only comments about getty.
+
+**The number that shapes this whole section.** At the shipped argon2id parameters one hash costs
+**15.3 ms** on one core of the build container. Exhausting a 4-digit PIN space offline therefore
+takes **153 s**; 6 digits, **4.2 h**; the 10 000 most common passwords, **153 s** — on one core,
+so divide by the cores an attacker has. A PIN is not a password with fewer characters; it is a
+credential that only survives if the number of guesses is capped somewhere the attacker cannot
+copy. That means: **online only** (screen unlock, greeter), with a try counter and back-off in the
+OS, and **never** as the disk-encryption secret or as the sole credential on an unencrypted disk.
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `R-602g` | **One hashing strength on every path** — bump `redox_users`/`rust-argon2` in the `eos-userutils` and `eos-orbutils` forks to the 3.x default (argon2id, m=19456, t=2); negative control: a runtime-set hash must start with `$argon2id$` and carry `m=19456` | runtime is argon2i m=4096 (#27), **4.0 ms per guess against 14.1** | two fork bumps, two pin bumps, one test; §5.6 area (credentials) → risk analysis + rollback | S |
+| `R-602a` | **Strength estimate + time-to-crack shown while typing** (TUI `passwd`/first boot, `orblogin` greeter) | nothing; `read_passwd` returns the string, nobody scores it | a scoring library in the userutils fork (zxcvbn-style: dictionary, sequences, keyboard walks, repeats — not a regex checklist) and a time estimate **computed from the measured 15.3 ms/hash × cores**, so the number shown is this system's number, not a generic one | M |
+| `R-602b` | **Blocklist of common passwords** (`123456`, `qwerty`, `password`, keyboard rows, the hostname, the username) | nothing | a compressed list in the image under `/usr/share/eos/weak-passwords`, consulted by `passwd`, the installer and the greeter through **one** library so the three cannot disagree; refusal is fail-closed with the reason named | S |
+| `R-602c` | **Inline guidance: what a good password looks like and why** | nothing | one short text, one place (the shared library), rendered by TUI and GUI; says *length beats complexity*, *a phrase beats a word*, *never reuse*, and states the measured cost so the advice is arguable | S |
+| `R-602d` | **PIN as an unlock factor** | no concept; and no try counter or back-off exists in `login.rs:173-259` or `orblogin/main.rs:185-251` either | `redox_users`-compatible hash of the PIN (same argon2id), a **separate** credential slot so the password is never replaced, a per-account **try counter with exponential back-off** enforced by the login/greeter path, and a hard rule in the installer: a PIN cannot be set on an account whose disk is not encrypted with a real password | M |
+| `R-602e` | **Negative controls for all of the above** | — | mutation tests: a blocklisted password must be refused, a 3-character password must be refused, a PIN attempt counter must lock, the greeter must not accept a PIN over the network; each seen red once | S |
+| `R-602f` | **GUI ↔ TUI parity for credentials** — the same rules in the greeter and in `passwd` | three independent password paths with no shared policy: `passwd.rs`, `orblogin` (`eos-orbutils`), the sudo daemon | folds into `R-601d`; one library, two front-ends | S |
+
+Dependencies: `R-602g` first — it is the cheapest row and the one that makes the others honest.
+`R-602a`–`c` then need the userutils and orbutils forks and a rebuilt image; `R-602d` needs a
+decision from the owner (§3.0 questions) and touches `login_schemes.toml` — a §5.6 area, so it
+carries a risk analysis and a rollback plan. None of this is blocked on hardware.
+
+---
+
 ## 7. Desktop shell and applications
 
 ### 7.1 What the shipping session actually is
@@ -1048,6 +1119,35 @@ no encryption, no tags, no links, no attachments — none of them is started.
 | `V2-NT08` | **Advanced security**: recovery seed (BIP39), auto-lock, decoy vault, steganography, HMAC, audit log | a layer above `V2-NT02`; **anti-screenshot and anti-screen-recording are impossible from the application** until Orbital exposes an API, and they are listed here as OS-dependent rather than promised | 🔴 |
 | `V2-NT09` | **Encrypted attachments, export to PDF/HTML/MD, import from Notion/Evernote/CSV** | exchange with the outside world | 🔴 |
 | `V2-NT10` | **Plugin system** (Rust SDK, namespace sandbox) plus end-to-end-encrypted sync | extensibility and zero-knowledge synchronisation | 🔴 |
+
+---
+
+### 7.5 Products in the image — what "Notes, Antivirus, Browser" means today — `PR-*`
+
+Premise, owner's words (2026-09-02): product information for *"Notes, Antivirus, Browser"* and the
+other applications. The inventory (read-only, config TOML membership) says what the image holds:
+
+| product | in the image? | where it comes from | note |
+|---|---|---|---|
+| **Notes** — `eos-notes` | **yes** | type A, pinned in its recipe; `config/*/eos.toml` `[packages.eos-notes]` | a product |
+| **Control panel** — `eos-control` | **yes** | type A, pinned | Overview / processes / network pane (`R-902`) |
+| **Browser** — NetSurf 3.11 (`netsurf-fb`, framebuffer over Orbital) | **yes** | upstream recipe via `config/desktop.toml:21` | not an E-OS fork; `M-1` sandboxing starts here |
+| **Terminal** — `cosmic-term` | **yes** | `desktop.toml:15`; `orbterm` explicitly excluded | — |
+| **Editor / files** — `cosmic-edit`, `cosmic-files` | **yes** | `desktop.toml` | `cosmic-edit` is the recipe behind #26 |
+| **Integrity monitor** — `eos-guard` | **no** | type A in `repos.toml`, **not** an image package | exists as a repository, ships nowhere |
+| **System monitor** — `eos-sysmon` | **no** | type A, **not** an image package | same |
+| **`eos-ui`** | n/a | type A library (`role = lib`), no recipe | consumed by the apps above |
+| **Antivirus** | **no** | nothing: no recipe, no plan, no row anywhere (`clamav`, `clamscan`, `rkhunter` — 0 hits) | see below |
+
+Documentation drift found on the way: `docs/guides/screenshots.md` shows `eos-guard` and `eos-sysmon`
+as native apps while the config ships neither. Annotated in the same change as this section.
+(`README.md`'s *Shipped › Applications* row was checked against the config and is accurate.)
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C), and its pin | nothing | a generator reading `config/*/eos.toml` + `repos.toml`; a CI check that a shipped package without a page fails | S |
+| `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** | in `repos.toml`, not in the image | owner's call (§3.0 Q9); if they ship: a recipe, a pin, a boot-smoke row each | S |
+| `PR-003` | **"Antivirus" on E-OS** — a signature scanner is a Linux-shaped answer; on a capability system the equivalent is the package-bytes gate that already exists (`V2-MS13`: blake3 enforced from the signed index), per-process scheme sets (`M-1`), and a persistent audit log (`C-9`) | the first exists; the other two are planned | **do not** ship a product called "antivirus" until it does something a signed package channel does not; if the owner wants the word, `eos-guard` is the honest candidate to grow into it | L |
 
 ---
 
@@ -1364,6 +1464,159 @@ Not a new item; the standing context every row above is measured against.
 
 ---
 
+### 11.4 Everything on E-OS: the server edition and the cloud platform — `CS-*`
+
+Premise, owner's words (2026-09-02): *"I would like everything to be on Redox and E-OS — where it
+can be."* The register below takes that literally: E-OS is the **host**, not a guest managed by
+someone else's hypervisor. Where that is not possible today, the row says what has to exist first
+and does not pretend.
+
+**What the kernel has.** Measured 2026-09-02 on the `eos-kernel` fork: the only references to
+virtualisation are `cpu.rs:131` printing the CPUID `vmx` flag, ACPI GTDT timer fields, and
+`hvc #0` in `stop.rs` — a call into the **firmware's** PSCI to halt or reboot. No VMCS, no VMCB,
+no `vmlaunch`, no `vmrun`. **Redox has no hypervisor.** That single fact orders everything below.
+
+**What exists as a recipe.** In the image and building today: `nginx`, `openssh`, `curl`. Present
+only under `recipes/wip/` — a recipe exists but is excluded from every image and its build state is
+**unknown**: `postgresql16`, `sqlite3`, `mariadb`, `mysql-server`, `redis`, `postfix`, `opensmtpd`,
+`wireguard-rs`, `haproxy`, `caddy`, `docker`, `podman`, `nomad`, and `qemu` (a TCG-only port from
+`jackpot51/qemu`, with `#TODO: verify if the crash was fixed` as its first line). Absent entirely:
+`dovecot`, `exim`, `containerd`, `kubernetes`, `k3s`, `etcd`.
+
+**Three tiers, in the order they can be delivered.**
+
+*Tier 1 — a server edition that runs on E-OS now.* Everything here is user-space Rust or already a
+recipe; the gap is a config, a hardening pass and proof.
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `CS-001` | **An E-OS server edition** — headless: no Orbital, serial + ssh login, `nginx`, RAID-1, FDE, the first-boot password rules of §6.6 | upstream ships `config/server.toml` (includes `minimal.toml`; `bash`, `bottom`, `curl`, `git`, `installer`, `kibi`, `redoxfs`; `contain` commented out *"needs to update dependencies"*) — but CI and `eos-build.sh` build **only** `CONFIG_NAME=eos`, so it has never been built or booted here | an `eos-server.toml` layered on it with the E-OS trust chain, a `CONFIG_NAME` axis in CI, a boot-smoke row, and an install-smoke variant that boots to `ssh` instead of `eos login:` | M |
+| `CS-002` | **Object storage and backups** — an S3-compatible API in Rust over RedoxFS, versioning, server-side encryption with the repo-sign key hierarchy | nothing | a new type-A crate; the API surface is well specified upstream (S3), the storage engine is RedoxFS | L |
+| `CS-003` | **Managed SQL** — first `sqlite3` as a service (recipe exists in `wip/`), then `postgresql16` | both in `wip/`, unbuilt | prove the recipes build and survive `cargo test`-equivalent load; supervision, backup to `CS-002` | L |
+| `CS-004` | **Identity, RBAC and policies** — one IAM model for the console, the API and the OS accounts | `login_schemes.toml` is a per-user scheme allowlist — the kernel-side half already exists | a policy language, a token service, audit log (`C-9`, planned) | L |
+| `CS-005` | **Monitoring, logs, alerts** — `eos-sysmon` grown into a node agent; central log store; alert rules | `eos-sysmon` (type A) exists as a desktop monitor | agent mode, a wire format, a store, an alert path (mail via `CS-008`) | M |
+| `CS-006` | **Networking: VPN and load balancing** — `wireguard-rs` and `haproxy` are in `wip/` | recipes exist, unbuilt | prove them, then a control API; a **Rust** L4 balancer is a type-A candidate if `haproxy` will not port | L |
+| `CS-007` | **Usage metering and billing** — per-resource counters, invoices | nothing | needs `CS-004` and `CS-005` first; the numbers must be the same ones monitoring shows | M |
+| `CS-008` | **Mail** — `opensmtpd`/`postfix` are in `wip/`; there is **no** IMAP server anywhere (`dovecot` absent) | recipes for the MTA only | port one MTA, write or port an IMAP server; this is also what the website's built-in mail (`WS-*`) needs | L |
+
+*Tier 2 — isolation without a hypervisor.* Redox's own primitive is the scheme namespace:
+`Namespace::fork()` is unprivileged and can only **narrow** (`R-1010`, the `contain` package).
+That is the honest basis for "containers on E-OS" — and it is not Docker.
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `CS-101` | **E-OS containers** — a process tree with a narrowed scheme set, its own root, resource caps | `contain` exists upstream, disabled; `R-1010` | an image format (pkgar-based), a runtime, a CLI; this is the real "serverless" substrate too (`CS-103`) | XL |
+| `CS-102` | **An orchestrator in Rust** — scheduling `CS-101` containers across `CS-001` nodes, health, restarts, rolling updates | nothing; `nomad` is in `wip/` unbuilt, `kubernetes`/`etcd` absent | do **not** call it Kubernetes: it will not run Kubernetes workloads. A native scheduler with a compatible-enough API is a later, separate question | XL |
+| `CS-103` | **Functions** (run code without a server) | nothing | thin layer over `CS-101` with a trigger model | M |
+
+*Tier 3 — virtual machines, Windows and Linux guests, on E-OS as the host.* Blocked on the kernel.
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `CS-201` | **A hypervisor in the Redox kernel** — VMX and SVM on x86_64, EL2 on aarch64, an EPT/NPT-backed memory model, VM exits routed to a user-space VMM | **nothing** (measured above) | kernel work of a kind this project has never done; §5.6 area, upstream-facing; must be designed with Redox upstream or it becomes an unrebaseable fork | XL |
+| `CS-202` | **A user-space VMM in Rust** (virtio devices, a guest console) | nothing | after `CS-201`; a `firecracker`/`crosvm`-shaped crate | XL |
+| `CS-203` | **Linux and Windows guests** | not possible on E-OS today | after `CS-202`; Windows additionally needs UEFI + TPM emulation and licensing the owner must resolve | XL |
+| `CS-204` | **Interim: TCG emulation** — `recipes/wip/vm/qemu` ported without acceleration | unbuilt, `#TODO` crash | the only way to run a guest on E-OS before `CS-201`; **slow by construction**, useful for CI-style workloads, not for a product | L |
+| `CS-205` | **Big data, AI/ML services** | nothing; no GPU driver, no BLAS in the image | after `CS-101`/`CS-201`; a GPU driver is its own programme (§8) | XL |
+
+**Reading the tiers.** Tier 1 is buildable now and is what "server edition" means in 2026. Tier 2
+is real work on Redox's own primitives and is worth more than porting Docker. Tier 3 starts with a
+kernel hypervisor that does not exist, and everything the owner listed under VMs, Windows/Linux
+servers, Kubernetes, BigQuery-class analytics and AI sits behind it. `§14.7` says what this
+document therefore refuses to promise.
+
+---
+
+### 11.5 The project website — `WS-*`
+
+Premise, owner's words (2026-09-02): a Microsoft-style portal — multilingual with nothing
+hardcoded, a current toolchain, accounts (register, log in, delete), built-in e-mail, search,
+support with tickets / mail / AI chat / FAQ, a live changelog, a developer section, legal pages
+(contact, privacy, terms, trademarks), product pages, gated downloads with a switch, accessibility,
+a privacy-and-security section, About, and API information & settings. Hosted **on E-OS where it
+can be** (§11.4, `CS-001`).
+
+**What exists** (inventory 2026-09-02, read-only, `main` `e34a5188e`): an mdBook documentation site
+— `book.toml`, `docs/SUMMARY.md` (install, FAQ, known issues, security, ADRs), a GitLab `pages` job
+publishing to `https://e-os.gitlab.io/e-os/`, a GitHub Actions `docs.yml` building the same book
+plus rustdoc to GitHub Pages, and a `docs-pdf` job producing `eos-docs.pdf`. `SECURITY.md` states
+the disclosure process. The last successful publish date of either site is **[UNVERIFIED]**: every
+GitLab job has failed on quota since 2026-08-28, and the GitHub side was not confirmed.
+
+**What does not exist** — searched `package.json`, `*.tsx|vue|svelte`, `next|astro|nuxt|vite.config*`,
+`locales/`, `*.po|pot|ftl|mo|xliff`, `PRIVACY*|TERMS*|EULA*|TRADEMARK*|ACCESSIBILITY*`, `Dockerfile`/
+compose for a web service, across the repository: no frontend, no backend, no i18n infrastructure,
+no privacy policy, no terms, no accessibility statement, no E-OS trademark policy (only upstream
+Redox's), no accounts, no mail, no tickets, no search beyond mdBook's built-in.
+
+**Two halves, because they have different homes.** The *static* half (content, changelog, docs,
+legal pages, product pages, download page) can be built now and served by `nginx` on `CS-001`.
+The *dynamic* half (accounts, mail, tickets, AI chat, API settings) is a set of services with a
+database and secrets; it cannot live in this orchestration repository and cannot run on static
+Pages. On E-OS it needs `CS-003` (a database) and `CS-008` (mail) first — which is why it is
+sequenced after Tier 1, not alongside the static half.
+
+| id | item | today | to build | needs | size |
+|---|---|---|---|---|---|
+| `WS-001` | **Separate repository `eos-website`** (type A) with its own CI, lockfile-pinned toolchain, the same secret/supply-chain gates as here | nothing | the repository, a `verify.sh` for it, an entry in `repos.toml` | — | S |
+| `WS-002` | **i18n as the first commit, not the last** — every string in message catalogues, locale negotiation, RTL-ready layout, Polish and English as the first two locales | mdBook is single-language; docs are mixed PL/EN with no switch | a catalogue format and the build step that fails on an untranslated key | `WS-001` | M |
+| `WS-003` | **Static site: home, About, products, developers, changelog, downloads, legal** | mdBook covers docs only | pages generated from this repository's `CHANGELOG.md`, `README.md` and `ROADMAP.md` so the site cannot drift from them (the drift this file documents in §1.4 is the reason) | `WS-002` | M |
+| `WS-004` | **Legal pages that exist as documents first** — privacy policy, terms, trademark policy for the "E-OS" name, accessibility statement | none; trademark page is upstream Redox's | the owner writes or commissions them; the site renders them; not a coding task | owner | S |
+| `WS-005` | **Downloads with a real gate** — "developers only" until the owner flips it | release assets exist on GitHub for `v0.1.0` only | the switch must be **server-side** (`CS-004` identity): a client-side toggle on a static host is decoration, not access control | `CS-001`, `CS-004` | M |
+| `WS-006` | **Search** across docs, changelog, products, support | mdBook's built-in only | a static index for the static half; a service for tickets/FAQ later | `WS-003` | S |
+| `WS-007` | **Accessibility** — keyboard, contrast, screen-reader landmarks, reduced motion, a published statement | nothing | built into `WS-002`'s layout system; audited with a real screen reader, not a linter alone | `WS-002` | M |
+| `WS-008` | **Accounts** — register, log in, delete, with the same credential rules as the OS (§6.6) | nothing | a service on `CS-001` with `CS-003`; passwords argon2id at the §6.6 parameters; deletion that actually deletes | `CS-003`, `CS-004` | L |
+| `WS-009` | **Support: FAQ, tickets, e-mail** | `SECURITY.md` disclosure only | FAQ is static (`WS-003`); tickets and mail need `WS-008` and `CS-008` | `WS-008`, `CS-008` | L |
+| `WS-010` | **AI chat in support** | nothing | on E-OS this needs a model runtime the platform does not have (`CS-205`); an external API contradicts the premise — **owner's decision, §3.0 Q4** | decision | L |
+| `WS-011` | **Built-in e-mail for users** | nothing; no IMAP server exists on Redox | `CS-008` is the whole cost; the site only fronts it | `CS-008` | L |
+| `WS-012` | **API information & settings** — keys, quotas, docs | nothing | renders `API-*` documentation; settings need `WS-008` | `API-001`, `WS-008` | M |
+
+"Microsoft-style" is read as: a product-organised information architecture with a persistent
+global navigation, a support hub and a developer hub — not as a visual clone, which would also be a
+trademark problem `WS-004` exists to avoid.
+
+---
+
+### 11.6 A documented system API — `API-*`
+
+Premise, owner's words (2026-09-02): *"a full API for the system, described in detail."*
+
+**What "the system API" is here.** E-OS is a Redox downstream, so its programming surface is
+inherited: the kernel scheme namespace (`/scheme/*`), the syscall ABI, `relibc` / `libredox`, and
+`orbclient` for the desktop. On top of that sit E-OS's own crates (type A): `eos-ui` (a library),
+`eos-control`, `eos-notes`, `eos-guard`, `eos-sysmon`, and `tools/eos-repo-sign` in this repository.
+
+**What exists** (inventory 2026-09-02): `docs/reference/stability.md` — the only policy document,
+which says in so many words that `0.x` carries **no stability guarantees** and that the syscall /
+scheme ABI is *"inherited from upstream Redox, still evolving"*; a CI `rustdoc` job that documents
+**only** `tools/eos-repo-sign`, and even that as a crate front page with no public items; one
+developer guide, `docs/guides/creating-an-eos-app.md` (122 lines); and a partial, reconnaissance-
+grade description of the `netcfg:` scheme. **What does not exist**: any reference page for
+schemes, syscalls or the ABI; an enumeration of the `sys:` scheme's nodes (`uname`, `cpu`, `stat`,
+`iostat`, `context`, `irq`, `log`, …); rustdoc for any type-A crate; local sources for the type-A
+crates at all (they are fetched at build time); a versioning or stability statement for E-OS's own
+interfaces (`eos-ui`, `eos-control`'s panes, `eos-guard`'s reports).
+
+A promise of a "full, detailed API" is therefore two different promises, and only one of them is
+this project's to make: E-OS can **document** the inherited surface it ships, but it can only
+**stabilise** its own. `stability.md` already ties the 1.0 promise to upstream stabilisation; this
+register keeps that line.
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `API-001` | **Scheme reference** — every scheme the image mounts, its nodes, the operations each accepts, with the E-OS allowlist (`login_schemes.toml`) cross-referenced so a reader sees what an unprivileged user can reach | `netcfg:` sketched; nothing else | generated from a running image (`ls /scheme`, per-scheme probing) into `docs/reference/schemes.md`, with a CI check that the page and the image agree | M |
+| `API-002` | **Syscall / ABI reference for the shipped kernel revision** — pinned to the `eos-kernel` rev in `repos.toml`, regenerated on every bump | nothing | rustdoc of the kernel's `syscall` crate published as an artefact, plus a hand-written map from syscall to scheme operation | M |
+| `API-003` | **rustdoc for every type-A crate**, published, with `#![deny(missing_docs)]` on public items | only `eos-repo-sign`, and without public docs | fetch the type-A sources in CI (they are pinned), build docs, fail on undocumented public items | M |
+| `API-004` | **A stability contract for E-OS's own interfaces** — which crates and panes are public, what semver means for them, what `0.x` promises (nothing) and what 1.0 will | `stability.md` covers the inherited surface only | a section in `stability.md` and a CI gate that a public item cannot disappear in a MINOR without a deprecation | S |
+| `API-005` | **`libredox` / `relibc` coverage statement** — which POSIX.1-2024 interfaces are present, measured, not claimed | `V2-STD01` measured 4267/5650 | render that measurement as the reference page it already is | S |
+| `API-006` | **Developer hub on the website** | the one guide | `WS-012` renders `API-001`…`API-005`; nothing new is written twice | S |
+
+**What this does not promise.** A stable syscall ABI before upstream Redox stabilises it; a
+"complete" list of anything that is not generated from the image — a hand-written list drifts,
+and §1.4 shows what drift costs here.
+
+---
+
 ## 12. Standards and compliance
 
 The full standards list was analysed. The result is asymmetric and that has to be said plainly:
@@ -1619,6 +1872,47 @@ them. They are here, next to §13 and §15, so the document's honesty is checkab
 
 ---
 
+### 14.7 About "everything on E-OS": the server edition, the cloud platform and the website
+
+Written 2026-09-02 from the owner's premise *"everything on Redox and E-OS — where it can be"*.
+The refusals below are what makes the `CS-*` and `WS-*` registers honest.
+
+- **No virtual machines on an E-OS host until there is a hypervisor in the kernel.** Measured
+  on the `eos-kernel` fork: the only virtualisation references are a CPUID flag being printed,
+  ACPI timer fields, and `hvc #0` calling the firmware's PSCI to halt. There is no VMCS, no
+  VMCB, no `vmlaunch`, no `vmrun`. `CS-201` is a kernel programme, not a feature; nothing in
+  Tier 3 (`CS-201`–`CS-205`) has a date, and this document will not invent one.
+- **"Windows and Linux servers" means guests, and guests need `CS-201` first.** Windows
+  additionally needs UEFI and TPM emulation in the VMM and a licensing answer only the owner can
+  give. Until then the honest interim is TCG emulation (`CS-204`) — slow by construction.
+- **"Kubernetes" will not be Kubernetes.** `kubernetes`, `k3s`, `containerd` and `etcd` have no
+  recipe at all; `nomad` and `docker` sit in `wip/` unbuilt. What can be built on Redox's own
+  primitive (`Namespace::fork()`, `R-1010`) is an E-OS container runtime and a Rust orchestrator
+  (`CS-101`, `CS-102`). It will not run Kubernetes manifests, and it will not be called
+  Kubernetes here.
+- **No AI/ML or big-data services before there is a GPU driver and a compute stack.** There is
+  neither. `CS-205` stays behind §8 and Tier 2/3.
+- **A `wip/` recipe is not a port.** `postgresql16`, `sqlite3`, `redis`, `postfix`, `opensmtpd`,
+  `haproxy`, `caddy`, `wireguard-rs`, `qemu` exist as recipe files excluded from every image; their
+  build state is **unknown** until someone builds them. Rows that depend on them say "prove the
+  recipe" as the first step, and the first step is where the surprises live.
+- **Built-in e-mail needs an IMAP server that does not exist on Redox.** `dovecot` and `exim` have
+  no recipe; only two MTAs sit in `wip/`. `CS-008` and the website's mail (`WS-*`) are behind that.
+- **The website's accounts, tickets, AI chat and mail cannot live in this repository or on static
+  Pages.** They are services with a database and secrets. "On E-OS" means a `CS-001` server
+  edition hosting them — which is the right target and is also why the website's dynamic half
+  is sequenced after Tier 1, not before it.
+- **A PIN is not a shorter password.** At the shipped argon2id cost (15.3 ms/hash) a 4-digit PIN
+  falls to an offline search in 153 s on one core. `R-602d` therefore admits a PIN only as an
+  online unlock factor with a try counter, never as the disk-encryption secret, and never on an
+  unencrypted disk. Anyone asking for "PIN instead of password" for FDE is asking for something
+  this document refuses.
+- **"Latest stack" is a moving target and will be pinned, not promised.** Version numbers for the
+  website's toolchain are chosen at implementation time from lockfiles, with the same
+  supply-chain gates (`S-7`, `EOS_STRICT_FETCH`) this repository already applies to compilers.
+
+---
+
 ## 15. What has not been verified, and the command to verify it
 
 Written in the same breath as the rest, per `CLAUDE.md` §5.3. Items marked **[stale]** were true
@@ -1730,7 +2024,7 @@ register at the next review rather than maintained by hand.
 | `R-3xx` release pipeline | `R-301` (§5.4) · `R-303` (§11.2) | §5.4, §11.2 |
 | `R-4xx` kernel/ACPI cross-references | `R-401d` `R-401f` | §8.5 |
 | `R-5xx` crypto and storage scopes | `R-501b` `R-501c` (§8.5) · `R-502` `R-502b` `R-503` (§5.4) | §5.4, §8.5 |
-| `R-6xx` installer, wizard, medium | `R-601` `R-601a` `R-601b` `R-601c` `R-601d` `R-601e` `R-602` `R-603` `R-603a` `R-603b` `R-603c` `R-603d` `R-603e` `R-604` `R-604a` `R-604b` `R-604c` `R-604d` `R-605` `R-606` `R-607` `R-607a` `R-607b` `R-608` `R-608a` `R-609` `R-609d` `R-610` `R-611` `R-611a` `R-611b` `R-611c` `R-611d` `R-611e` `R-612` `R-612a` `R-612b` `R-612c` `R-612d` `R-613` `R-614` `R-614a` `R-614b` `R-614c` `R-615` `R-616` `R-616a` `R-616b` `R-616c` | §6.2 |
+| `R-6xx` installer, wizard, medium | `R-601` `R-601a` `R-601b` `R-601c` `R-601d` `R-601e` `R-602` `R-603` `R-603a` `R-603b` `R-603c` `R-603d` `R-603e` `R-604` `R-604a` `R-604b` `R-604c` `R-604d` `R-605` `R-606` `R-607` `R-607a` `R-607b` `R-608` `R-608a` `R-609` `R-609d` `R-610` `R-611` `R-611a` `R-611b` `R-611c` `R-611d` `R-611e` `R-612` `R-612a` `R-612b` `R-612c` `R-612d` `R-613` `R-614` `R-614a` `R-614b` `R-614c` `R-615` `R-616` `R-616a` `R-616b` `R-616c` `R-602a` `R-602b` `R-602c` `R-602d` `R-602e` `R-602f` `R-602g` | §6.2 |
 | `R-7xx` update system | `R-701` `R-701a` `R-702` `R-703` `R-704` `R-705` `R-706` `R-707` `R-708` `R-709` `R-710` `R-710a` `R-710b` `R-711` `R-712` | §5.3 |
 | `R-8xx` driver manager and services | `R-801` `R-802` `R-803` `R-804` `R-805` `R-806` `R-807` `R-808` `R-809` `R-810` `R-811` `R-815` `R-816` · non-items `R-800` `R-812` `R-814` | §8.2, §8.5 |
 | `R-9xx` connectivity and hardware tiers | `R-901` `R-902` `R-903` `R-904` `R-904a` `R-905` `R-906` `R-907` `R-910` `R-911` `R-912` `R-913` `R-914` `R-916` `R-917` `R-918` `R-920` `R-921` `R-922` `R-923` `R-924` `R-930` `R-931` `R-932` `R-933` `R-934` `R-935` `R-936` | §8.4 |
@@ -1774,6 +2068,15 @@ register at the next review rather than maintained by hand.
 | `R-0xx`, `R-10x`, `R-70x`, `R-80x`, `R-9xx`, `R-Dxx`, `R-Fxx`, `R-NNN` | — | family placeholders in headings, **not identifiers** |
 
 ---
+
+### A.5 Product registers added 2026-09-02
+
+| family | identifiers | section |
+|---|---|---|
+| `CS-*` everything on E-OS: server edition and cloud | `CS-001` … `CS-008` (tier 1) · `CS-101` `CS-102` `CS-103` (tier 2) · `CS-201` … `CS-205` (tier 3) | §11.4 |
+| `WS-*` project website | `WS-001` … `WS-012` | §11.5 |
+| `API-*` documented system API | `API-001` … `API-006` | §11.6 |
+| `PR-*` products in the image | `PR-001` `PR-002` `PR-003` | §7.5 |
 
 ## Annex B — identifier collisions and decisions D1–D7
 
