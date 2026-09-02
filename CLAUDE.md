@@ -335,6 +335,7 @@ Każda zmierzona, nie wydedukowana.
 | P-11 | **`grep -c` wypisuje `0` i zwraca status ≠ 0** | `\|\| echo 0` dokleja drugie zero i psuje arytmetykę | sprawdzaj status osobno |
 | P-12 | **Odczyt surowych urządzeń wymaga roota** | „błąd 5" z `fsck_apfs` **nie jest** dowodem uszkodzenia | nie diagnozuj na tej podstawie |
 | P-13 | **Powłoką hosta jest zsh, a on nie wypełnia `PIPESTATUS`** | `${PIPESTATUS[0]}` i `${PIPESTATUS[1]}` są **puste**, więc `EXIT=` wychodzi puste i wygląda jak sukces | w zsh użyj `${pipestatus[1]}` (od 1); w skryptach wołaj `bash`, gdzie `PIPESTATUS` działa |
+| P-14 | **`eos-build.sh:33` synchronizuje repozytorium do drzewa budowania przed KAŻDĄ budową** (`eos-sync-buildtree.sh --apply`) | łatka diagnostyczna wstawiona w `/work/redox/config/...` **znika** przed kompilacją, a przebieg wygląda na wykonany — 2026-09-02 dwa przebiegi „diagnostyczne" testowały niezmienioną konfigurację i niemal doprowadziły do fałszywego wniosku „to nie ten getty" | zmiany plików **śledzonych** (konfiguracja, skrypty) testuj w repozytorium; drzewo nadaje się tylko na łatki w miejscach, których sync nie dotyka (np. `recipes/*/source`). Po budowie sprawdź, że zmiana **jest** w drzewie, zanim uwierzysz w wynik |
 
 ---
 
