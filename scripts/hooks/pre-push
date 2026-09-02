@@ -1,8 +1,34 @@
 #!/usr/bin/env bash
-# E-OS pre-push gate (R-005). Enable once: git config core.hooksPath scripts/hooks
+# E-OS pre-push gate (R-005).
+#
+# ENABLING THIS REPLACES EVERY OTHER HOOK. `git config core.hooksPath scripts/hooks` does not
+# add to .git/hooks, it SUBSTITUTES for it -- and this directory holds exactly one file. So the
+# instruction that used to sit here, on its own, silently switched OFF lefthook's pre-commit
+# gates, including the fail-closed secret scan that lefthook.yml goes out of its way to get
+# right. Prefer lefthook (`lefthook install`), which covers pre-commit, pre-push and commit-msg.
+# Use this file only where lefthook is not available, and know what it costs:
+#
+#   git config core.hooksPath scripts/hooks   # replaces .git/hooks entirely
+#
 set -uo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 bash "$ROOT/scripts/ci-integrity.sh" || { echo "pre-push blocked: integrity gate failed"; exit 1; }
-if command -v gitleaks >/dev/null 2>&1; then
-  gitleaks detect --source "$ROOT" --no-banner --redact || { echo "pre-push blocked: gitleaks found secrets"; exit 1; }
+
+# The secret scan fails CLOSED, matching lefthook.yml's pre-commit gate word for word in intent:
+# "a missing gitleaks is also a failure: silently skipping a secret scan has the same outcome as
+# not having one". This hook used to do the opposite -- no gitleaks on PATH meant the whole `if`
+# was skipped, the script ended, and it exited 0. A push carrying a secret went through while
+# the gate reported success, which is worse than having no gate: it produces a green result that
+# nobody looks behind. Once pushed, the secret is mirrored, and the only real fix is a history
+# rewrite.
+if [ "${EOS_SKIP_SECRET_SCAN:-0}" = "1" ]; then
+  echo 'gitleaks: SKIPPED via EOS_SKIP_SECRET_SCAN=1 — say why in the push you are about to make'
+elif command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --source "$ROOT" --no-banner --redact \
+    || { echo "pre-push blocked: gitleaks found secrets"; exit 1; }
+else
+  echo 'pre-push blocked: gitleaks is not installed (brew install gitleaks).' >&2
+  echo 'Refusing to pass a push through an unrun secret scan.' >&2
+  echo 'Deliberate override: EOS_SKIP_SECRET_SCAN=1 git push ...' >&2
+  exit 1
 fi
