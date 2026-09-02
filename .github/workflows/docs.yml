@@ -3,7 +3,7 @@
 #
 # WHY THIS EXISTS NEXT TO .gitlab-ci.yml
 # GitLab is the source of truth and its `pages` job publishes the same book to
-# https://e-os.gitlab.io/e-os/ (docs/ci.md). Since 2026-08-28 every GitLab job has
+# https://e-os.gitlab.io/e-os/ (docs/operations/ci.md). Since 2026-08-28 every GitLab job has
 # failed in 0 s with `ci_quota_exceeded` (audit C-7), so nothing has rebuilt that site
 # since. GitHub Actions has no minute cap on a public repo, so this is the remediation
 # for that outage — not a second docs pipeline invented for its own sake.

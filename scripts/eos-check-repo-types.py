@@ -58,6 +58,16 @@ except ValueError:
     cannot_measure("CLAUDE.md: nie znaleziono sekcji 11 albo 12")
 
 bad = 0
+# A repository declared with any other `type` used to fall into no `expect` set at all: it was
+# never compared with anything, so it could not produce a mismatch -- while still counting as
+# checked. Name the unknown types first; a value this gate does not understand is not a value
+# it may quietly ignore.
+unknown_types = sorted({t for t in declared.values() if t not in "ABCD"})
+for t in unknown_types:
+    names = sorted(n for n, tt in declared.items() if tt == t)
+    print(f"  repos.toml deklaruje nieznany typ {t!r} dla: {', '.join(names)}")
+    print(f"  Ten skrypt porównuje wyłącznie typy A-D, więc te wpisy NIE zostały sprawdzone.")
+    bad += 1
 for typ in "ABCD":
     m = re.search(rf"### Typ {typ} .*?\n(.*?)\n\n", sec, re.S)
     listed = set(re.findall(r"`([A-Za-z0-9_-]+)`", m.group(1))) if m else set()
