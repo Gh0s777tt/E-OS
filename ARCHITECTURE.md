@@ -185,7 +185,7 @@ graph LR
   audited — recorded as an open question.
 - **In transit:** `pkg` uses rustls (currently carrying `rustls-webpki 0.103.4` with six advisories,
   finding `C-3`); `curl`, `git` and `wget` use OpenSSL 3.5.3.
-- **Passwords:** argon2id, `m=19456, t=2, p=1`, in `/etc/shadow`.
+- **Passwords:** two hashing paths in `/etc/shadow`, measured 2026-09-02 (#27) — image-build time argon2id `m=19456, t=2, p=1` (`rust-argon2 3.0.0`); runtime `passwd`/first-boot/`orblogin` argon2i `m=4096, t=3` (`redox_users 0.4.6` → `rust-argon2 0.8.3`, `Config::default()`). One strength on every path is `R-602g`.
 
 ---
 

@@ -551,7 +551,7 @@ To są dwie różne rzeczy i wcześniejsza wersja tej sekcji je myliła — pyta
   wymaga **i** zmiany w `key.rs`, **i** miejsca na nie w slocie — czyli dotyka formatu, ze
   wszystkim, co o zmianach formatu mówi akapit o `R-F10` poniżej.
 
-Hasła **kont** też używają `argon2id` (`redox_users`), ale to inny sekret i inna ścieżka —
+Hasła **kont** używają argon2 (`redox_users`) — **uwaga, zmierzone 2026-09-02 (#27):** hasła z czasu budowy obrazu to argon2id m=19456, ale te ustawiane w systemie (`passwd`, pierwsze uruchomienie, `orblogin`) to argon2i m=4096, bo `redox_users 0.4.6` ciągnie `rust-argon2 0.8.3`; wyrównanie to `R-602g`. To inny sekret i inna ścieżka —
 nie należy tego mieszać.
 
 Ekran kreatora **nie pokazuje suwaka parametrów KDF**, dopóki parametry nie trafią do slotu:

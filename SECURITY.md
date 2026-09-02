@@ -122,7 +122,7 @@ credited here by the name they choose, or anonymously on request. Credit is give
 
 | Purpose | Algorithm |
 |---|---|
-| Password hashing | argon2id (`m=19456, t=2, p=1`) |
+| Password hashing | Two paths, measured 2026-09-02 (#27): image-build time argon2id (`m=19456, t=2, p=1`); passwords set in the running system — `passwd`, first-boot enrolment, `orblogin` — argon2i (`m=4096, t=3`) via `redox_users 0.4.6` → `rust-argon2 0.8.3`. Fix tracked as `R-602g`. |
 | Package index signature | ed25519 **and** ML-DSA-65 (FIPS 204), hybrid |
 | Per-package signature | ed25519 (pkgar) |
 | Boot verification | ed25519 over SHA-512(role ‖ len_le ‖ data) |
