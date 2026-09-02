@@ -158,7 +158,7 @@ Everything in the **Shipped** table was verified on 2026-08-30 by mounting the b
 | **Per-user kernel-scheme allowlist** | `/etc/login_schemes.toml` grants `root` everything and the unprivileged user an explicit 25-scheme list. Raw IP sockets (`ip`) are **removed** from that list. |
 | **User-space drivers** | 16 drivers as ordinary processes — a driver fault does not take down the kernel. |
 | **RAID-1** | `raid1d`: write-both / read-fallback, degraded boot, resync of a re-added member. |
-| **Password hashing** | argon2id (`m=19456, t=2, p=1`). |
+| **Password hashing** | Two paths, measured 2026-09-02 ([#27](https://gitlab.com/e-os/e-os/-/issues/27)): passwords hashed **at image-build time** use argon2id (`m=19456, t=2, p=1`, `rust-argon2 3.0.0`); passwords set **in the running system** — `passwd`, the first-boot enrolment, the `orblogin` greeter — go through `redox_users 0.4.6` → `rust-argon2 0.8.3`, whose default is **argon2i, `m=4096, t=3`**: 4.0 ms per guess against 14.1 ms, on one core. This row used to state only the stronger of the two. |
 
 ### Planned
 

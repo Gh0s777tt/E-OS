@@ -67,10 +67,12 @@ shim, and the applied IP visibly flips the tile.*
 `eos-ui` Slint-on-Orbital backend.*
 
 ![eos-guard mid-scan](../img/eos-guard-scan.png)
-*eos-guard — the filesystem-integrity monitor.*
+*eos-guard — the filesystem-integrity monitor.* **Not in the image** as of 2026-09-02: the repository
+exists (type A, `repos.toml`) but no `[packages.eos-guard]` entry ships it — see `ROADMAP.md` `PR-002`.
 
 ![eos-sysmon system monitor](../img/eos-sysmon.png)
-*eos-sysmon — the system monitor.*
+*eos-sysmon — the system monitor.* **Not in the image** as of 2026-09-02, for the same reason —
+`ROADMAP.md` `PR-002` decides whether it ships or leaves the product list.
 
 ![NetSurf rendering a web page on E-OS](../img/eos-netsurf-web.png)
 *NetSurf built from source as a PIE (`U-103`–`U-105`) — real web browsing.*
