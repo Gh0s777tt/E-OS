@@ -296,6 +296,27 @@ jobs:
             --bundle SHA256SUMS.sigstore.json \
             SHA256SUMS
 
+      # A signature nobody verifies is a signature nobody can trust. Until 2026-09-02 the only
+      # `cosign verify-blob` in this file sat in the comment further down, addressed to whoever
+      # downloads the release -- the pipeline that PRODUCED the bundle never once opened it.
+      # That made signing a gate whose only evidence was "cosign exited 0", not "the bundle
+      # verifies against the identity we tell people to expect".
+      #
+      # The failure it could not catch is not hypothetical: rename this repository, move it to
+      # another organisation, or rename this workflow file, and cosign still signs happily with
+      # a valid OIDC token for the NEW identity. The run stays green, the release ships, and
+      # every downloader following the instructions below gets "none of the expected identities
+      # matched". The pin below is deliberately the SAME literal published in that comment, so
+      # if the two ever drift apart this step is what says so.
+      - name: verify the signature just made
+        run: |
+          set -euo pipefail
+          cd dist
+          cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+            --certificate-identity-regexp '^https://github\.com/Gh0s777tt/E-OS/\.github/workflows/release\.yml@' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            SHA256SUMS
+
       # ── SLSA: what this actually reaches, stated honestly ──────────────────
       # This produces a signed in-toto statement carrying a SLSA v1 provenance
       # predicate over SHA256SUMS. That is genuine Build L1 — provenance exists,
@@ -394,8 +415,22 @@ jobs:
             --bundle SHA256SUMS.provenance.sigstore.json \
             SHA256SUMS
 
+      # Same reasoning as the signature above: the attestation is verified here, with the same
+      # identity the comment below publishes, so "attested" means more than "the command exited 0".
+      - name: verify the attestation just made
+        run: |
+          set -euo pipefail
+          cd dist
+          cosign verify-blob-attestation --bundle SHA256SUMS.provenance.sigstore.json \
+            --type https://slsa.dev/provenance/v1 \
+            --certificate-identity-regexp '^https://github\.com/Gh0s777tt/E-OS/\.github/workflows/release\.yml@' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            SHA256SUMS
+
       # Verification, for whoever downloads this (no key to distribute — the
-      # workflow identity IS the check):
+      # workflow identity IS the check). Since 2026-09-02 the pipeline runs these two
+      # commands itself, right after producing each bundle, with this same identity —
+      # so the instructions below are executed, not merely published:
       #   sha256sum -c SHA256SUMS
       #   cosign verify-blob --bundle SHA256SUMS.sigstore.json \
       #     --certificate-identity-regexp '^https://github\.com/Gh0s777tt/E-OS/\.github/workflows/release\.yml@' \
