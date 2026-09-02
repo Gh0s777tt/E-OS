@@ -109,7 +109,7 @@ docs-currency:
         exit 1
       fi
       # Advisory (non-blocking): new public items should carry a doc-comment.
-      # The hard, precise gate is crate-level missing_docs (see CLAUDE.md §3);
+      # The hard, precise gate is crate-level missing_docs (the checklist line is `.gitlab/merge_request_templates/Default.md:19`, and CLAUDE.md §6 now carries the same Definition-of-Done item);
       # this is only a reminder, so it never fails the pipeline.
       undoc=$(git diff -U1 "$base"...HEAD -- '*.rs' | awk '
         /^\+.*\bpub (fn|struct|enum|trait|mod|const|type) / { if (prev !~ /\/\/\/|\/\/!|#\[/) print }
@@ -117,7 +117,7 @@ docs-currency:
       if [ -n "$undoc" ]; then
         echo "advisory: new public item(s) without an adjacent doc-comment (///):"
         echo "$undoc"
-        echo "  (reminder only — document what it does + why; see CLAUDE.md §3)"
+        echo "  (reminder only — document what it does + why; CLAUDE.md §6 Definition of Done, MR template line 19)"
       fi
       echo "docs-currency: OK"
 
