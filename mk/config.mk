@@ -14,6 +14,11 @@ PREFIX_BINARY?=1
 ## Enable to use up-to-date rust compiler (experimental, only available to Tier 2 targets)
 ## Even more experimental, add -Zbuild-std to cookbook.toml to allow compilation to Tier 3 targets
 PREFIX_USE_UPSTREAM_RUST_COMPILER?=0
+
+# Escalate the toolchain sha256 gate (mk/prefix.mk) from "warn about an unpinned download"
+# to "refuse it". Declared here so it has a value to forward into the container, where the
+# fetch actually happens -- see the note above PODMAN_ENV in mk/podman.mk.
+EOS_STRICT_FETCH?=0
 ## Enable to use binary packages (much faster)
 REPO_BINARY?=0
 ## Name of the configuration to include in the image name e.g. desktop or server
