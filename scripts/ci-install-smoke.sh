@@ -172,8 +172,11 @@ boot "$WORK/vars.fd" "$WORK/s1.sock" "$WORK/m1.sock" \
   -drive "file=$WORK/src.img,if=none,id=d0,format=raw" -device "nvme,drive=d0,serial=eos" \
   -drive "file=$WORK/target.img,if=none,id=d1,format=raw" -device "nvme,drive=d1,serial=tgt"
 
+# The 6th argument is the target disk. The driver stats it either side of the deliberate
+# wrong-name refusal, so "nothing was written" is measured rather than inferred from the
+# install starting afterwards (R-604a asked for both halves; only one was ever shown).
 python3 -u "$(dirname "$0")/install-smoke-drive.py" install \
-  "$WORK/m1.sock" "$WORK/s1.sock" "$BUDGET" "$WORK/stage1.log"
+  "$WORK/m1.sock" "$WORK/s1.sock" "$BUDGET" "$WORK/stage1.log" "$WORK/target.img"
 rc=$?
 # Report what happened to QEMU instead of inferring it from the process being gone. The
 # guest dying and the harness killing it look identical from outside; the exit status and
