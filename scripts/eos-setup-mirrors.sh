@@ -77,4 +77,10 @@ if [ "$APPLY" = "1" ]; then
 else
   echo "---- dry run: would create=$created skipped=$skipped ----"
 fi
-[ "$APPLY" = "0" ] && echo "(dry run — re-run with --apply to create the mirrors)"
+# Ostatnim wykonywanym poleceniem skryptu był `[ "$APPLY" = "0" ] && echo ...`. Przy --apply
+# test jest fałszywy, `&&` zwiera i statusem CAŁEGO skryptu było 1 — mimo pełnego powodzenia.
+# Wołający nie mógł odróżnić udanego utworzenia luster od awarii.
+if [ "$APPLY" = "0" ]; then
+  echo "(dry run — re-run with --apply to create the mirrors)"
+fi
+exit 0
