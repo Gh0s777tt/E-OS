@@ -243,11 +243,14 @@ install-smoke: PASS — installed to a second disk and booted it to a login prom
 ```
 
 This passes on **aarch64** and, since 2026-09-02, on **x86_64** as well
-([#6](https://gitlab.com/e-os/e-os/-/issues/6)): a clean build runs the harness through to
+([#6](https://gitlab.com/e-os/e-os/-/issues/6),
+[#24](https://gitlab.com/e-os/e-os/-/issues/24)): a clean build runs the harness through to
 *"PASS — installed to a second disk and booted it to a login prompt"*, stage 2 included.
-The earlier x86_64 stall was the `getty` terminal-size probe swallowing typed input, not a
-stray newline in `login`; reverting that one commit makes the harness fail again, which is
-how the cause was confirmed.
+Two separate causes had to go. The `getty` terminal-size probe was swallowing typed input —
+not, as first supposed, a stray newline left in `login`. That alone still left the x86_64 run
+**intermittent**, passing 2 runs out of 7, because a *second* getty on the same serial console
+answered the next line typed with "Login incorrect"; with one getty per console it passes 5 of
+5. Both causes were confirmed the same way: put them back, and the harness fails again.
 
 ---
 
