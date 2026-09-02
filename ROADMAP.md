@@ -1145,7 +1145,7 @@ as native apps while the config ships neither. Annotated in the same change as t
 
 | id | item | today | to build | size |
 |---|---|---|---|---|
-| `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C), and its pin | nothing | a generator reading `config/*/eos.toml` + `repos.toml`; a CI check that a shipped package without a page fails | S |
+| `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C), and its pin | three hand-written listings that already disagree with the config: `docs/architecture/ecosystem.md:51-61` ("Native apps" table), `docs/guides/screenshots.md:63-78`, and the README's mermaid graph — all listed `eos-guard`/`eos-sysmon` as shipped apps until 2026-09-02 | a generator reading `config/*/eos.toml` + `repos.toml`; a CI check that a shipped package without a page fails | S |
 | `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** | in `repos.toml`, not in the image | owner's call (§3.0 Q9); if they ship: a recipe, a pin, a boot-smoke row each | S |
 | `PR-003` | **"Antivirus" on E-OS** — a signature scanner is a Linux-shaped answer; on a capability system the equivalent is the package-bytes gate that already exists (`V2-MS13`: blake3 enforced from the signed index), the file-integrity baseline that **already ships** in `eos-control`'s Security tab (blake3, ported from `eos-guard`), per-process scheme sets (`M-1`), and a persistent audit log (`C-9`) | the first two exist; the other two are planned | **do not** ship a product called "antivirus" until it does something a signed package channel does not; if the owner wants the word, `eos-guard` is the honest candidate to grow into it | L |
 
@@ -1592,7 +1592,10 @@ Premise, owner's words (2026-09-02): *"a full API for the system, described in d
 **What "the system API" is here.** E-OS is a Redox downstream, so its programming surface is
 inherited: the kernel scheme namespace (`/scheme/*`), the syscall ABI, `relibc` / `libredox`, and
 `orbclient` for the desktop. On top of that sit E-OS's own crates (type A): `eos-ui` (a library),
-`eos-control`, `eos-notes`, `eos-guard`, `eos-sysmon`, and `tools/eos-repo-sign` in this repository.
+`eos-control`, `eos-notes`, `eos-guard`, `eos-sysmon`, and `tools/eos-repo-sign` in this repository
+(the only *tracked* first-party crate here; an untracked host build of `eos-control` sits under
+`build/hostbuild-eos-control/`, and the `.sig` format `eos-repo-sign` writes is described in
+`docs/adr/0004-hybrid-manifest-signature.md`, not only in code).
 
 **What exists** (inventory 2026-09-02): `docs/reference/stability.md` — the only policy document,
 which says in so many words that `0.x` carries **no stability guarantees** and that the syscall /

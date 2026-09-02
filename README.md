@@ -94,7 +94,7 @@ graph TD
     LO[eos-liborbital]:::b
   end
 
-  subgraph APPS["First-party applications"]
+  subgraph APPS["First-party applications (eos-guard, eos-sysmon: repositories, not shipped as apps — PR-002)"]
     UI[eos-ui]:::a
     CTL[eos-control]:::a
     NTS[eos-notes]:::a
@@ -175,7 +175,7 @@ Everything in the **Shipped** table was verified on 2026-08-30 by mounting the b
 
 No antivirus, no VPN/Tor, no backup tool, no SELinux/AppArmor. The access-control model is the
 per-user scheme allowlist above; file integrity monitoring lives inside `eos-control`. These are
-choices, not omissions — the reasoning is in
+choices, not omissions — the reasoning is in **Precision added 2026-09-02:** that sentence is true of antivirus and MAC (`ROADMAP.md` §13 refuses both). Backup tooling and VPN/Tor are **gaps, not choices** — the roadmap tracks them as `L-4` / `CS-002` (backup) and `R-616c` / `CS-006` (VPN, Tor as new subsystems). Listing them here as "deliberate" was drift, caught by the adversarial pass of the 2026-09-02 inventory.
 [`docs/audit/02-feature-inventory-2026-08-30.md`](docs/audit/02-feature-inventory-2026-08-30.md) §3.
 
 ---
