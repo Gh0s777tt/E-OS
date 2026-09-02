@@ -48,7 +48,7 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 
 | element | dowód |
 |---|---|
-| silnik instalacji `redox_installer` 0.2.42 | `Cargo.lock:896-898`; fork `eos-installer` rev `74726c889bdf` (`recipes/core/installer/recipe.toml`, `repos.toml:107-117`) |
+| silnik instalacji `redox_installer` 0.2.42 | `Cargo.lock:896-898`; fork `eos-installer` rev `2aae3ace0bbf` (`recipes/core/installer/recipe.toml`, `repos.toml:107-117`) |
 | GPT + ochronny MBR + ESP + RedoxFS | `R-F19`/`U-162`: na dysku docelowym zmierzono **2 tablice GPT**, `BOOTAA64.EFI` na ESP i **11 sygnatur RedoxFS** |
 | FDE **przy instalacji** (AES-XTS-128) | `docs/guides/encryption.md`; `[general] encrypt_disk` albo monit `redoxfs password` |
 | weryfikacja pakietów ed25519 + blake3 | `pkgar`; `V2-MS13`/`V2-MS14` domknięte (`U-223`) |
@@ -68,9 +68,10 @@ To jest najważniejsza sekcja dokumentu. Reszta jest projektem; ta część jest
 
 ### 1.2 Czego brakuje do instalacji na goły sprzęt — bez łagodzenia
 
-**1. Nośnik instalacyjny jest budowany, boot-smoke'owany, sumowany i podpisywany — brakuje
-tylko publikacji go jako artefaktu do pobrania.**
-Zaktualizowane 2026-09-01; poprzednia wersja tego punktu mówiła „nie jest" o wszystkich czterech.
+**1. Nośnik instalacyjny jest budowany, boot-smoke'owany, sumowany, podpisywany i publikowany
+jako artefakt — `R-601a` domknięte (#4).**
+Aktualizowane dwukrotnie 2026-09-01: rano ten punkt mówił „nie jest" o wszystkich czterech,
+wieczorem — że brakuje jeszcze publikacji. Publikacja doszła tego samego wieczora.
 Zmierzone: `.gitlab-ci.yml:430` i `:534` pytają `make -s print-installer-medium` i budują nośnik
 na obu architekturach; `ci-boot-smoke.sh` przechodzi na nim (`boot-smoke: PASS` w przebiegu
 nocnym 2026-09-01); `make-release.sh:67` pobiera jego nazwę tą samą komendą, `:94-96` kopiuje go
@@ -349,9 +350,12 @@ Do `.gitlab-ci.yml`, zadanie `build-image` (runner `eos-heavy`), po `make CI=1 a
    `harddrive.img`. Oba przeszły w nocnym `build-image` 2026-09-01;
 3. ~~`ci-install-smoke.sh` z nośnika~~ — **jest**: `:459` i `:569`. aarch64 przeszedł
    end-to-end; x86_64 dochodzi do menu wyboru dysku i tam wygasa (#6);
-4. **eksport nośnika jako artefaktu — nadal brak** (`R-601a`, #4). Zadanie publikuje dziś
-   `sha256sums-<arch>.txt` i SBOM: dwa obrazy po 1,4 GB przekraczają limit 1 GB na zadanie,
-   a nieudana wysyłka zamieniała w pełni zieloną weryfikację w czerwień.
+4. ~~eksport nośnika jako artefaktu~~ — **jest** (`R-601a`, #4, domknięte 2026-09-01). Oba
+   obrazy są kompresowane `zstd -3 -T0` i publikowane obok `sha256sums-<arch>.txt` i SBOM-u.
+   Zmierzone w przebiegu nocnym: `harddrive-aarch64.img` → **173 MB**,
+   `eos-0.2.0-aarch64-installer.img` → **173 MB**, artefakt **345 MB** przy limicie 1 GB,
+   `Uploading artifacts … 201 Created`. Sumy kontrolne zostają nad obrazami **surowymi** —
+   weryfikuje się plik, który się zapisuje na dysk, nie opakowanie transportowe.
 
 Krok 3 jest ciężki: `EOS_SMOKE_MEM=4096`, emulacja TCG, ścieżka blokowa ~6 min plus rozruchy.
 Mieści się w `timeout: 6h` zadania. Uruchamiany na harmonogramie, nie na każdym commicie.
@@ -1144,7 +1148,7 @@ GUI↔TUI) i `R-601e` (brakujące przypadki: FDE, przerwanie, dwa dyski, 4Kn, BI
 
 | brak | dowód | koszt |
 |---|---|---|
-| nośnik nie jest publikowany jako artefakt do pobrania (`R-601a`, #4) | zadanie publikuje `sha256sums-<arch>.txt` i SBOM; dwa obrazy po 1,4 GB nie mieszczą się w limicie 1 GB | S |
+| ~~nośnik nie jest publikowany jako artefakt~~ — **domknięte** (`R-601a`, #4) | oba obrazy `zstd -3`, 345 MB przy limicie 1 GB, `201 Created` w przebiegu nocnym 2026-09-01 | — |
 | przebieg x86_64 nie domyka się | harness ma gałąź `x86_64)` i jest w CI (`:569`), ale wygasa na wyborze dysku — wejście szeregowe gubi znaki (#6) | M |
 | tylko TUI; GUI nietestowane od końca do końca | `R-D08` | L (automatyzacja GUI przez zrzuty ekranu) |
 | brak przypadku z FDE | harness wysyła puste hasło: `con.send("")` z komentarzem *„Empty means an unencrypted install"* | S |
@@ -1376,8 +1380,9 @@ Lista jest częścią dokumentu, nie przypisem do niego.
    **Sprawdzić:** `scripts/eos-sync-buildtree.sh` i odczyt
    `recipes/core/installer/source/src/installer.rs` — a przed zaufaniem wynikowi negatywnemu
    potwierdzić rewizję: `git -C recipes/core/installer/source rev-parse HEAD` musi dać
-   `74726c889bdf…` (`CLAUDE.md` §20.1) — rewizja przypięta zarówno w
-   `recipes/core/installer/recipe.toml:5`, jak i w `repos.toml:116`.
+   `2aae3ace0bbf…` (`CLAUDE.md` §20.1) — rewizja przypięta zarówno w
+   `recipes/core/installer/recipe.toml:5`, jak i w `repos.toml:116`. Podbita 2026-09-01
+   wraz z `R-604a` (#9); wcześniej `74726c889bdf…`.
 2. **`docs/audit/03-security-audit-2026-08-30.md`** (znaleziska `C-4`, `C-5`, `C-9`, `C-10`,
    `C-11`, `C-18`) — plik jest na gałęzi `fix/p0-audit-findings`, a polecenia `git` były w tym
    zadaniu zabronione. Cytuję je za briefem, nie za źródłem.
