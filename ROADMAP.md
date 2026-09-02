@@ -28,9 +28,9 @@ because the retraction record is the reason the register is worth reading.
 - [0. Reading instructions](#0-reading-instructions)
 
 **The time view — scheduling only, no status of its own**
-- [1. Delivered](#1-delivered)
+- [1. Delivered](#1-delivered) — incl. [1.4 Gate-quality audit](#14-gate-quality-audit-2026-09-02)
 - [2. Release milestones ahead](#2-release-milestones-ahead)
-- [3. Now, next, later](#3-now-next-later)
+- [3. Now, next, later](#3-now-next-later) — starts with [3.0 What is left, in one place](#30-what-is-left-in-one-place)
 - [4. Where work can happen](#4-where-work-can-happen)
 
 **The subject register — the single source of status**
@@ -222,6 +222,10 @@ milestones appear as *delivered with evidence* rather than as design rows.
 | First non-Actions signed repository publish — 78 packages, 893 MB, live | `R-008` | `U-209` |
 | `50_eos` wired and active on aarch64, pinned key measured in the running image | `R-701` (half) | `U-210` |
 | M1 installer work merged and pinned: `eos-installer` → `74726c889b`, `eos-pkgutils` → `ec08f22aa6` | `R-611a`, `R-607a`, `R-612a` | 2026-08-30 |
+| `R-601c` proven on **x86_64**: install-smoke runs medium → install → boot, exit 0 | `R-601c` | #6, #24 |
+| Exactly one getty per serial console on both arches — the second `login` was eating typed input | — | #24 |
+| Encrypted-install case in the harness, with its own negative control | `R-601e` (part) | §1.4 |
+| **Gate-quality audit**: 328 agents over every script, CI file, hook and makefile; 34 confirmed defects fixed | — | §1.4 |
 
 > **Correction carried forward, not quietly dropped.** `ROADMAP-v2.md` §9 opened by stating that
 > `ROADMAP.md` "counted 143 items: 67 done, 16 in progress, 43 planned, 16 ideas, 1 withdrawn …
@@ -229,6 +233,63 @@ milestones appear as *delivered with evidence* rather than as design rows.
 > registry held **110** entries, 68 of them unfinished. `ROADMAP.md` had been rebuilt *after* v2
 > quoted it. That sentence is not carried forward; this document is its own census, and
 > [Annex A](#annex-a--full-identifier-index) is the proof.
+
+### 1.4 Gate-quality audit (2026-09-02)
+
+Two multi-agent rounds read **every** gate in the repository and asked one question of each:
+*can this check fail?* Round 1 covered all 65 scripts (7539 lines as they stood that morning; the fixes below have since
+lengthened them) and `.gitlab-ci.yml`;
+round 2 covered the eight GitHub Actions workflows, `.pre-commit-config.yaml`, `lefthook.yml`,
+`scripts/hooks/pre-push`, `Makefile` with `mk/*.mk`, and `tools/eos-repo-sign`.
+
+**328 agents · 101 raw findings · 34 confirmed** after three independent adversarial verifiers
+per finding (67 refuted). Each fix below carries a measurement in both directions — the state
+before, the state after, and a negative control showing the gate now goes red for the right
+reason. Two of the fixes were found by their own gate immediately after it started working.
+
+| gate | what it could not do | how it was measured |
+|---|---|---|
+| `scripts/hooks/pre-push` | secret scan **failed open**: no `gitleaks` on PATH skipped the whole `if`, exit 0 | before: status 0 and **zero** mentions of gitleaks in the output |
+| `ci-integrity.sh` check 9 (R-701a) | matched the config's own **comments**, so it could not fail on any config built from that template | replace the one real key pin with a decoy → still `ok`; after the fix → `FAIL` |
+| `release.yml` | signed and attested releases with **no executed verification** — `cosign verify-blob` existed only in a comment | cosign stub: signing with a drifted identity → 0; with the new step → 1 |
+| `eos-build.sh` Secure Boot gate | `for` over zero matches ran zero times, `rc` stayed 0 | directory hidden → status 0 and **zero lines of output**; after → status 1 |
+| `eos-sign-bootloader.sh` | printed the *selftest* message in **real signing** mode and exited 0 | real mode, no artefact: before 0, after 1 |
+| `ci-boot-smoke.sh` | its own documented invocation reported success **without entering the loop** | bash 3.2 exits a script **0** on `set -u` inside `$(( ))` — `echo "$UNSET"` → 1, `x=$(( 1 + UNSET ))` → **0** |
+| `eos-build.sh` make step | `make \| tail -3` across the container boundary returned `tail`'s status | `bash -lc "false \| tail -3"` → 0; with `pipefail` → 1 |
+| `ci-integrity.sh` checks 12–15 | nested inside check 11's `else`, so they ran only while check 11 passed | before: 10 `ok` lines and none of the four; after: 14 |
+| `eos-repos.sh` `pins --strict` | returned 0 having compared **no forks**, printing `pins ok=0` while doing it | empty manifest: before 0, after 1 |
+| `repro-intx-lines.sh` | the boot-regression GUARD ended in an unconditional `exit 0` | forced failure: before 0, after 1 |
+| `eos-check-tar-pins.py` | an unparseable recipe vanished from the closure through two compounding silences | broken TOML: 77 → 76 recipes walked, still `ok` |
+| `eos-check-doc-paths.py` | a URL anywhere in a line disabled the check for that whole line | narrowing it immediately found a real dead reference in `.github/workflows/docs.yml:6` |
+| `eos-check-repo-types.py` | a `type` outside `"ABCD"` was compared with nothing yet counted as checked | type `Z`: `OK — 31 repositories, types agree`, status 0 |
+| `eos-mirror-drift.sh` | repositories it could not measure did not affect the exit code | a permanent failure looked exactly like a transient network one: green |
+| `sync-forks.sh` | `git rev-parse` on a missing ref prints the **argument itself** on stdout, so `u` was two lines | an up-to-date fork was **never** reported as such |
+| `eos-sync-buildtree.sh` | staged in a pipeline subshell: failed `cp` ignored, missing files dropped silently | comparison ran on a smaller set than the count it had just printed |
+| `mk/prefix.mk` | `rm -f …/rust-src-install.tar.xz**:**` deleted a file that never existed | the real tarball survived every toolchain version change |
+| `mk/repo.mk` | `$(MAKE) mount; touch …` — the semicolon threw the mount's status away | a failed mount left the success tag behind |
+| `mk/podman.mk` | `EOS_STRICT_FETCH=1` never reached the container where the fetch happens | `podman run` without `--env`: `EOS_STRICT_FETCH=<unset>` |
+| `mk/config.mk` | capability detection lost to a command-line flag (GNU make precedence) | `make PREFIX_BINARY=1 SCCACHE_BUILD=1` left both at **1** despite both "not found" messages |
+| `make-release.sh`, `.gitlab-ci.yml` | a **signed** SBOM could list nothing; `ls -la` on a just-created directory cannot fail | `gen-sbom.py` on an empty dir: exit 0, valid CycloneDX, `"components": []` |
+
+**What this unblocks.** Not new features — the ability to believe the existing ones. Concretely:
+
+- **`R-601c` is closeable at all.** The x86_64 harness passed 2 runs in 7 before #24; 6 in 6 after.
+  Without that, no x86_64 row in M1 could rest on evidence.
+- **Nightly CI becomes worth reading.** `eos-build.sh` returning `tail`'s status meant a failed
+  build reported success; four `ci-integrity` checks ran only in one branch; the boot gate could
+  report success without starting. A green nightly now means more than it did.
+- **The release signature means what it says.** The pipeline verifies its own `cosign` bundles
+  against the identity it publishes, and refuses an SBOM with no components.
+- **The pre-push secret scan actually blocks.** It was the last line before a secret reached the
+  mirror, and it was failing open.
+- **`EOS_STRICT_FETCH=1` can now be set in CI** and will do something — closing the "Remaining"
+  note on `S-7`/toolchain pinning rather than leaving a flag that silently does nothing.
+
+**What this does not do.** It does not add a single feature, does not touch the kernel, and does
+not change what the images contain. Four host traps were recorded (`CLAUDE.md` P-12…P-15); the
+audit's own completeness critic named `tools/eos-repo-sign`'s `verify()` as still untested.
+
+---
 
 ---
 
@@ -253,6 +314,50 @@ in this document:** *each milestone leaves the system better even if the next on
 ## 3. Now, next, later
 
 Scheduling only. Status lives in the register; the **Item** column links there.
+
+### 3.0 What is left, in one place
+
+The registers below are the source of truth for status; this list exists so the question
+"what is actually left?" has one honest answer that fits on a screen. Written 2026-09-02.
+
+**Blocked on something other than work**
+
+- **`R-607b` — first run on real hardware.** One PC, the symptom form filled in, the result
+  recorded as the first metal evidence. It is the only open row in M1 and it cannot be closed
+  from QEMU. Everything upstream of it is done.
+- **Releases, signed tags, cosign attestation, docs-site publication.** Gated on a working CI
+  and on a signing key the owner holds. Generating that key is deliberately a human action and
+  is not automated: a signing key must never pass through tooling that logs.
+- **Shared-runner CI quota.** Every GitLab job has failed in 0 s with `ci_quota_exceeded` since
+  2026-08-28. Nothing in the pipeline has been *evaluated* since then; each merge today was made
+  after confirming all six jobs failed for quota and none had judged the code.
+
+**Open defects with evidence, ready to be worked**
+
+- **#26 — the x86_64 image does not assemble after a `cosmic-edit` re-cook.** `libonig` and
+  `libxkbcommon` have no recipe in this tree; the freshly generated `auto_deps.toml` requires
+  both. Not proven from a pristine tree, and said so in the issue.
+- **#25 — the installer's disk-password prompts are not flushed**, so a headless serial install
+  looks hung exactly where it asks about encryption. Fix is open as `eos-installer` !6,
+  compile- and package-verified, not yet exercised on a booted image (blocked by #26).
+
+**Named gaps, not yet defects**
+
+- **`R-601e` — the harness still lacks three cases**: interruption in phase 1/3 (the only test of
+  the M2 transaction), BIOS boot, and choosing the *wrong real disk* — `R-604a` tests a name that
+  matches **no** disk (`install-smoke-drive.py:390` sends `offered[0] + "-not-a-real-disk"`),
+  which is a different thing. FDE is now covered.
+- **`R-601d` — GUI ↔ TUI parity gate.** Both front-ends must cover the same state set; the
+  graphical path has never been exercised end to end.
+- **`tools/eos-repo-sign::verify()` has no test.** It is the single place where trust in the
+  E-OS package repository is decided. Named by the audit's completeness critic, round 2.
+- **`S-8`, `S-11`…`S-16`, `S-18`…`S-20`** in §3.1 remain as recorded on 2026-08-31; today's audit
+  did not re-verify them, and they are not restated here as if it had.
+
+**What today's work does NOT change**
+
+No feature was added, no kernel code touched, and the contents of the images are the same. What
+changed is whether the gates around them can fail — see [§1.4](#14-gate-quality-audit-2026-09-02).
 
 ### 3.1 Short term (1–3 months) — `S-1`…`S-20`
 
