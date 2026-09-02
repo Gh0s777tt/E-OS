@@ -348,6 +348,15 @@ if [ -n "$vendored" ]; then
   bad "fork source vendored into this repo (R-F02) — pin the fork instead:"; echo "$vendored"
 else
   ok "no fork source vendored into this repo"
+fi
+# ^ This `fi` used to sit at the very END of the file, so checks 12-15 below were nested
+# INSIDE this `else` branch and ran only while check 11 was passing. The moment a fork
+# source got vendored -- the one situation check 11 exists to report -- four unrelated
+# gates (tarball blake3 pins, unbound arrays, dead docs paths, tracked caches) would have
+# gone silently unrun, and the summary would still have printed "integrity: FAIL" for the
+# one failure without ever mentioning that the other four never executed. Found by the
+# 2026-09-02 audit; the nesting was invisible because the block is 70 lines long and every
+# check inside it is written at column 0, as if it were top level.
 
 # 12) Every recipe reachable from an image config -- INCLUDING the toolchain path, which is not
 # reachable from config/*/eos.toml -- must pin the blake3 of its tarball. fetch.rs warns and
@@ -412,7 +421,6 @@ if command -v python3 >/dev/null 2>&1; then
   fi
 else
   cannot "check 15 could not run: python3 is missing -- tracked artefacts are UNKNOWN"
-fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
