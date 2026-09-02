@@ -102,3 +102,9 @@ id_rsa
 !.env.example
 *.kdbx
 credentials.json
+
+# Python bytecode caches. Added 2026-09-01 after two .pyc files reached `main` in one day,
+# both through `git add -A` in commits of mine, and neither caught by any gate. CLAUDE.md
+# already forbade committing caches; nothing enforced it.
+__pycache__/
+*.py[cod]

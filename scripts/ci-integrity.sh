@@ -379,6 +379,22 @@ if command -v python3 >/dev/null 2>&1; then
 else
   cannot "check 14 could not run: python3 is missing -- docs paths are UNKNOWN, not proven live"
 fi
+
+# 15) No tracked build artefact or cache.
+# CLAUDE.md has always forbidden committing caches. Nothing enforced it, and on 2026-09-01 two
+# .pyc files reached `main` in a single day -- both swept in by `git add -A` in commits about
+# something else, and invisible to every existing gate: a compiled cache is neither a secret
+# nor a defect, so nothing was looking for one.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-no-caches.py 2>&1)"; then
+    printf '%s\n' "$out" | grep -E '^no-caches: ok' >/dev/null && ok "${out#no-caches: ok -- }"
+  else
+    printf '%s\n' "$out"
+    bad "a build artefact or cache is tracked in git"
+  fi
+else
+  cannot "check 15 could not run: python3 is missing -- tracked artefacts are UNKNOWN"
+fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
