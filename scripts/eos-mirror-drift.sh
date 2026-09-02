@@ -88,6 +88,21 @@ while IFS=$'\t' read -r name gh up branch declared; do
 done <<< "$entries"
 
 echo "---- sprawdzonych=$checked, nierozstrzygniętych=$unknown ----"
+# Repozytoria nierozstrzygnięte (nieudany clone albo fetch, wiersze 50-58) były zliczane
+# i wypisywane, ale NIE wpływały na kod wyjścia — a skrypt kończył się zdaniem "Każdy fork ma
+# typ zgodny z tym, co faktycznie niesie". To zdanie jest nieprawdziwe, gdy części forków
+# w ogóle nie zmierzono, a trwała awaria (repo skasowane, przemianowane, zepsute
+# uwierzytelnienie) wyglądała dokładnie tak samo jak chwilowy problem z siecią: zielono.
+#
+# Konwencja projektu jest tu ustalona: `cannot()` w ci-integrity.sh (U-177) wypisuje
+# "FAIL (instrument)" i ustawia fail=1. "Nie dało się zmierzyć" jest czerwone, tylko nazwane
+# inaczej niż "zmierzono i się nie zgadza".
+if [ "$unknown" -ne 0 ]; then
+  echo "FAIL (instrument): $unknown repozytorium/-ów nierozstrzygniętych — ich typu NIE zmierzono."
+  echo "  Nie mogę twierdzić, że każdy fork jest zgodny, skoro części nie sprawdziłem."
+  echo "  Bywa przejściowe (sieć); jeśli wraca, sprawdź czy fork istnieje i czy da się go sklonować."
+  fail=1
+fi
 if [ "$fail" -ne 0 ]; then
   cat <<'MSG'
 Zadeklarowany typ nie zgadza sie z pomiarem. To nie jest kosmetyka: repo opisane jako
