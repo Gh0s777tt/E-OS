@@ -138,6 +138,19 @@ why the dial exists. Before the fix, more RAM got aarch64 past the allocation an
 different, deterministic failure (same `ESR 0x9600000B`, same `0x140027FB0`, measured
 twice on 2026-09-01). It is a diagnostic dial, not a workaround.
 
+**A red nightly is not automatically a broken artefact.** The `eos-heavy` runner IS the
+developer's Mac, so a scheduled build competes with whatever that person is doing. Measured
+2026-09-01: `build-image` failed with `boot-smoke: FAIL — no login prompt before timeout` at
+420 s, while a local build and an `install-smoke` were running on the same machine. The serial
+log showed the guest reaching `virtio-netd` and then going quiet — starved, not broken. The
+identical image passed `boot-smoke` locally minutes later, and the job passed on a re-run with
+the machine idle, taking 2577 s.
+
+So before treating a red heavy job as a defect, check whether the machine was busy. The two look
+the same from the pipeline page and are not the same thing. This is also why a green
+`build-image` does not close `R-009`: the runner is a personal machine, and its results carry
+that machine's load with them.
+
 **The nightly heavy build had not run since at least 2026-08-25, and nothing said so.**
 `podman machine start` returns once the VM is *launching*, not once its socket accepts
 connections, so the very next `podman exec` lost a race one tenth of a second later:
