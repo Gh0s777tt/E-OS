@@ -37,7 +37,16 @@ for name in $MIRRORS; do
   git clone -q --bare "$ours" m.git 2>/dev/null || { printf '%-14s %s\n' "$name" "CLONE_FAIL"; continue; }
   o=$(git -C m.git rev-parse HEAD 2>/dev/null)
   git -C m.git remote add up "$up" && git -C m.git fetch -q up 2>/dev/null
-  u=$(git -C m.git rev-parse up/master 2>/dev/null || git -C m.git rev-parse up/main 2>/dev/null)
+  # `--verify -q`, not a bare rev-parse. MEASURED 2026-09-02: `git rev-parse up/master` on a
+  # repository whose default branch is `main` prints the STRING "up/master" to STDOUT and only
+  # then exits 128. The `|| ` fallback therefore appended the real sha to it and `u` came out as
+  # TWO lines -- "up/master\n<sha>". Every later comparison then misread the fork: `[ "$o" = "$u" ]`
+  # could never be true, so an up-to-date fork was never reported as such, and
+  # `merge-base --is-ancestor "$o" "$u"` was handed a malformed argument. `--verify -q` prints
+  # nothing when the ref does not resolve, which is what the `||` chain assumed all along.
+  u=$(git -C m.git rev-parse --verify -q up/master 2>/dev/null \
+      || git -C m.git rev-parse --verify -q up/main 2>/dev/null)
+  [ -n "$u" ] || { printf '%-14s %s\n' "$name" "NO_UPSTREAM_HEAD (ani up/master, ani up/main)"; continue; }
 
   if [ "$o" = "$u" ]; then st="up-to-date"
   elif git -C m.git merge-base --is-ancestor "$o" "$u" 2>/dev/null; then
