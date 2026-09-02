@@ -112,6 +112,17 @@ else:
 ' "$log" "$WAIT")"
   kill "$qpid" 2>/dev/null
   python3 -c "import time;time.sleep(1)"
+  # The verdict must follow what the poller FOUND, not merely what it printed. `secs` is the
+  # poller's stdout: it prints a number when "login:" appears and "-" when the budget runs out.
+  # A poller that dies (python3 missing, an exception, killed with the VM) prints NEITHER, and
+  # the old test `[ "$secs" != "-" ]` was TRUE for that empty string -- so a crashed poller was
+  # reported as a successful boot, in a script whose whole job is to notice a boot regression.
+  case "$secs" in
+    ''|*[!0-9]*)
+      echo "repro-intx: the boot poller produced no usable result -- treating as FAIL" >&2
+      printf 'repro-intx:   raw poller output: %s\n' "${secs:-<empty>}" >&2
+      secs="-" ;;
+  esac
   if [ "$secs" != "-" ]; then
     echo "boot:$secs"
   else
@@ -173,4 +184,8 @@ else
   echo "repro-intx: FAIL — a configuration that must boot did not. R-F16 has regressed,"
   echo "repro-intx:        or a new interrupt-routing defect has appeared. Read the logs."
 fi
-exit 0
+# `exit 0` stood here, immediately after printing FAIL. CLAUDE.md:644 calls this a
+# "10-konfiguracyjny strażnik regresji" and docs/architecture/build-path.md:37 draws it as the
+# GUARD node of the build pipeline -- but no caller could tell a regression from a clean run,
+# because the status was 0 either way. A guard that cannot fail its caller guards nothing.
+exit "$fail"
