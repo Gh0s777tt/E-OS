@@ -114,7 +114,7 @@ tutaj potwierdzić — powód i procedura sprawdzenia są w nagłówku.
 
 | Fakt | Dowód |
 |---|---|
-| Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `74726c889bdf` | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
+| Silnik: `redox_installer` **0.2.42**, fork `eos-installer` rev `2aae3ace0bbf` (podbity 2026-09-01, `R-604a`) | wersja: `repo/aarch64-unknown-redox/installer.toml:2` (`version = "0.2.42"`); fork i rewizja: `recipes/core/installer/recipe.toml:3-5`; nazwa binarki hosta: `mk/config.mk:172` |
 | Front-endy: `redox_installer_tui` i `redox_installer_gui` — **oba są w obrazie** | `config/server.toml:20` (`installer = {}`) i `config/desktop.toml:20` (`installer-gui = {}`), oba wciągane przez `config/{aarch64,x86_64}/eos.toml`; binarka GUI: `recipes/gui/installer-gui/manifest` (`binary=/usr/bin/redox_installer_gui`) |
 | Umie: GPT + EFI/BIOS, RedoxFS, pełne szyfrowanie AES-XTS, weryfikacja pkgar ed25519, fast-clone | `docs/getting-started/install.md` §2–3, `ROADMAP.md` `R-F24` |
 | Instalacja end-to-end **udowodniona 3× z rzędu** (partycja → instalacja → reboot → login) — **wyłącznie pod QEMU/TCG** | `R-601`, `scripts/ci-install-smoke.sh`, `ROADMAP.md` §14.1 |
@@ -1281,7 +1281,7 @@ włącza pełne szyfrowanie nieinteraktywnie.
 > `redox_installer <config.toml> <disk>`. To była przestarzała forma i przypadek `R-608`
 > (dokumentacja rozjechana z binarką), a nie druga dopuszczalna składnia. Kreator generuje plik
 > dla formy z `--config=`. **Poprawione 2026-08-31 w `R-608`**, po zmierzeniu w przypiętej
-> rewizji instalatora `74726c889b`: `src/bin/installer.rs:208` bierze `parser.args.first()`
+> rewizji instalatora `74726c889b` (pin do 2026-09-01; dziś `2aae3ace0bbf`): `src/bin/installer.rs:208` bierze `parser.args.first()`
 > jako ścieżkę przekazywaną do `install(config, path)`.
 
 **Rozróżnienie, które musi być trzymane konsekwentnie w całym dokumencie:** `redox_installer` to

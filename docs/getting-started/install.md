@@ -114,7 +114,7 @@ redox_installer /dev/sdX --config=install.toml     # disk is POSITIONAL, config 
 > Earlier versions of this page had these the other way round (`redox_installer
 > <config.toml> <disk>`). That was wrong, and not harmlessly: the first positional
 > argument is the **install target**, so following the old line would have pointed the
-> installer at your TOML file. Measured in the pinned installer revision `74726c889b` --
+> installer at your TOML file. Measured in installer revision `74726c889b`, which was the pin until 2026-09-01 (now `2aae3ace0bbf`) --
 > `src/bin/installer.rs:208` takes `parser.args.first()` as the path handed to
 > `redox_installer::install(config, path)`, while the config comes from `-c/--config`.
 
