@@ -28,8 +28,18 @@ def config_closure():
     """Package names declared across the include chain of every config/*/eos.toml."""
     names, seen = set(), set()
 
-    def load(path):
-        if path in seen or not os.path.exists(path):
+    missing = []
+
+    def load(path, referrer=None):
+        if path in seen:
+            return
+        if not os.path.exists(path):
+            # A silent `return` stood here. It made a MISSING config indistinguishable from a
+            # config that declares nothing: the closure came back empty, every recipe fell into
+            # the "not in the image closure" advisory bucket, and the gate printed
+            # "ok: ... (0 recipes walked)" and exited 0. This tree has been reorganised before,
+            # so "the config moved" is not a hypothetical. Record it and fail below instead.
+            missing.append((os.path.relpath(path, ROOT), referrer))
             return
         seen.add(path)
         with open(path, "rb") as fh:
@@ -38,10 +48,22 @@ def config_closure():
             if spec != "ignore":
                 names.add(name)
         for inc in data.get("include") or []:
-            load(os.path.normpath(os.path.join(os.path.dirname(path), inc)))
+            load(os.path.normpath(os.path.join(os.path.dirname(path), inc)),
+                 os.path.relpath(path, ROOT))
 
     for arch in ("x86_64", "aarch64"):
         load(os.path.join(ROOT, "config", arch, "eos.toml"))
+    if missing:
+        raise SystemExit(
+            "tar-pins: FAIL — the image config closure could not be read:\n"
+            + "\n".join(
+                f"  {rel} is missing"
+                + (f" (included from {ref})" if ref else " (top-level image config)")
+                for rel, ref in missing
+            )
+            + "\n  With the closure incomplete this gate cannot tell a pinned tarball from an\n"
+              "  unreachable one, so it refuses rather than reporting ok on nothing."
+        )
 
     # The toolchain is NOT reachable from the image configs, and it is exactly where the defect this
     # gate exists for was found: mpc is a dependency of gcc13, which mk/prefix.mk cooks directly.
