@@ -98,9 +98,13 @@ wołany w `build-image` (`:459`) i `build-image-x86_64` (`:569`), a dawna barier
 Dowód instalacji nie zależy już od ręcznego uruchomienia: nocny `build-image` przeszedł
 2026-09-01 z `install-smoke: PASS — installed to a second disk and booted it to a login prompt`.
 
-**Co zostaje otwarte:** sam **przebieg** x86_64. Dochodzi do menu wyboru dysku i tam wygasa —
-wejście szeregowe na tej architekturze gubi znaki (dwa odrzucone logowania, pusta linia zamiast
-numeru dysku). To jest realna treść `R-601c` (#6), a nie przełączenie architektury w wywołaniu.
+**Domknięte 2026-09-02 (#6).** Przebieg x86_64 przechodzi od nośnika po samodzielny rozruch
+zainstalowanego dysku: *„PASS — installed to a second disk and booted it to a login prompt"*,
+kod wyjścia 0, ze stage 2 włącznie. Przyczyną wcześniejszych odrzuconych logowań i pustej linii
+zamiast numeru dysku **nie było** zgubienie znaków przez łącze szeregowe: sonda rozmiaru
+terminala w `getty` czytała TTY i **połykała to, co użytkownik wpisał**. Poprawka to `266c4f4`
+w `eos-userutils` (!49); kontrola negatywna — cofnięcie tego jednego commitu wyłącznie w drzewie
+budowania przywraca awarię (*„saw a rejected login"*, FAIL).
 
 **3. Ścieżka graficzna nie była testowana od końca do końca ani razu.**
 `R-D08` mówi to wprost: *„zostaje pełny przepływ live → greeter → installer-gui → instalacja,
@@ -349,7 +353,7 @@ Do `.gitlab-ci.yml`, zadanie `build-image` (runner `eos-heavy`), po `make CI=1 a
 2. ~~`ci-boot-smoke.sh` na nośniku~~ — **jest**: `:441` i `:551`, obok przebiegu na
    `harddrive.img`. Oba przeszły w nocnym `build-image` 2026-09-01;
 3. ~~`ci-install-smoke.sh` z nośnika~~ — **jest**: `:459` i `:569`. aarch64 przeszedł
-   end-to-end; x86_64 dochodzi do menu wyboru dysku i tam wygasa (#6);
+   end-to-end; x86_64 również, od 2026-09-02 (#6);
 4. ~~eksport nośnika jako artefaktu~~ — **jest** (`R-601a`, #4, domknięte 2026-09-01). Oba
    obrazy są kompresowane `zstd -3 -T0` i publikowane obok `sha256sums-<arch>.txt` i SBOM-u.
    Zmierzone w przebiegu nocnym: `harddrive-aarch64.img` → **173 MB**,
@@ -372,8 +376,9 @@ porażki, każdy z innym komunikatem, bo wymagają przeciwnych reakcji:
 Trzeci wiersz nie jest ostrożnością na wyrost, ale jego przykład jest już nieaktualny.
 Bariery `only aarch64 is wired up` **nie ma w skrypcie** (0 trafień): jest jawna gałąź
 `x86_64)` (`ci-install-smoke.sh:46`), a `exit 2` został dla **nieznanej** architektury.
-Kształt awarii przesunął się, ale nie zniknął: x86_64 nie pomija się już cicho — **pada
-głośno**, wygasając na wyborze dysku, bo wejście szeregowe gubi tam znaki (#6).
+Od 2026-09-02 x86_64 nie tylko nie pomija się cicho — **przechodzi** (#6). Wygasanie na
+wyborze dysku brało się z sondy rozmiaru terminala w `getty`, która połykała wpisane znaki;
+po `266c4f4` harness domyka obie architektury.
 
 ### 2.6 Klucze na maszynie budującej — ryzyko nazwane
 
@@ -1149,7 +1154,7 @@ GUI↔TUI) i `R-601e` (brakujące przypadki: FDE, przerwanie, dwa dyski, 4Kn, BI
 | brak | dowód | koszt |
 |---|---|---|
 | ~~nośnik nie jest publikowany jako artefakt~~ — **domknięte** (`R-601a`, #4) | oba obrazy `zstd -3`, 345 MB przy limicie 1 GB, `201 Created` w przebiegu nocnym 2026-09-01 | — |
-| przebieg x86_64 nie domyka się | harness ma gałąź `x86_64)` i jest w CI (`:569`), ale wygasa na wyborze dysku — wejście szeregowe gubi znaki (#6) | M |
+| ~~przebieg x86_64 nie domyka się~~ — **domknięte** (#6, 2026-09-02) | *„PASS — installed to a second disk and booted it to a login prompt"*, kod 0; przyczyną była sonda `getty` połykająca wpisane znaki, nie łącze szeregowe. Kontrola negatywna: cofnięcie `266c4f4` przywraca FAIL | — |
 | tylko TUI; GUI nietestowane od końca do końca | `R-D08` | L (automatyzacja GUI przez zrzuty ekranu) |
 | brak przypadku z FDE | harness wysyła puste hasło: `con.send("")` z komentarzem *„Empty means an unencrypted install"* | S |
 | brak przypadku przerwania (zabicie w fazie 1/3) | — | M, ale to **jedyny** test transakcji z §6 |

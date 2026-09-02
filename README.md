@@ -242,9 +242,12 @@ install-smoke:   the target disk is byte-for-byte untouched by the refusal (0 bl
 install-smoke: PASS — installed to a second disk and booted it to a login prompt
 ```
 
-This passes on **aarch64**. On x86_64 it reaches the installer and stalls in the first-boot
-password exchange — tracked as [#6](https://gitlab.com/e-os/e-os/-/issues/6), with the cause
-narrowed to an empty line reaching `passwd` as the new password.
+This passes on **aarch64** and, since 2026-09-02, on **x86_64** as well
+([#6](https://gitlab.com/e-os/e-os/-/issues/6)): a clean build runs the harness through to
+*"PASS — installed to a second disk and booted it to a login prompt"*, stage 2 included.
+The earlier x86_64 stall was the `getty` terminal-size probe swallowing typed input, not a
+stray newline in `login`; reverting that one commit makes the harness fail again, which is
+how the cause was confirmed.
 
 ---
 
