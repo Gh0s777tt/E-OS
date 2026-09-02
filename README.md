@@ -252,6 +252,23 @@ not, as first supposed, a stray newline left in `login`. That alone still left t
 answered the next line typed with "Login incorrect"; with one getty per console it passes 5 of
 5. Both causes were confirmed the same way: put them back, and the harness fails again.
 
+`EOS_SMOKE_FDE=1` runs the same harness against an **encrypted** install. Stage 2 then proves
+the encryption in three steps, each of which can fail on its own: the bootloader must ask for
+the disk password, a deliberately wrong password must not unlock the disk, and only then may the
+right one reach `eos login:`. `EOS_SMOKE_FDE_NEGATIVE=1` is the negative control — it installs
+*without* encryption while still running stage 2 in FDE mode, so the first step has to fail, and
+be seen to fail for the right reason.
+
+### Do the gates work?
+
+On 2026-09-02 two multi-agent rounds read every gate in the repository — all 65 scripts,
+`.gitlab-ci.yml`, the eight GitHub Actions workflows, the git hooks, and `Makefile` with
+`mk/*.mk` — and asked one question of each: *can this check fail?* 34 defects were confirmed and
+fixed, among them a secret scan that failed **open** when `gitleaks` was absent, a release
+pipeline that signed without ever verifying what it signed, and a Secure Boot check that
+reported success having examined no files. Each fix carries a measurement in both directions;
+the register is [`ROADMAP.md` §1.4](ROADMAP.md#14-gate-quality-audit-2026-09-02).
+
 ---
 
 ## Usage
