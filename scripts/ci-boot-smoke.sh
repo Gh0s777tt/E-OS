@@ -24,7 +24,23 @@
 set -uo pipefail
 
 IMG="${1:?usage: ci-boot-smoke.sh <image> [timeout] [--arch aarch64|x86_64]}"
-TIMEOUT="${2:-360}"
+# The timeout is optional, so `$2` may legitimately be `--arch`. Validating it here is not
+# tidiness. Below, `deadline=$(( $(date +%s) + TIMEOUT ))` expands TIMEOUT inside ARITHMETIC,
+# and bash 3.2 -- the macOS system shell -- exits a SCRIPT with status 0 when an arithmetic
+# expansion hits an unset name under `set -u`. Measured 2026-09-02: `echo "$UNSET"` exits 1,
+# but `x=$(( 1 + UNSET ))` exits 0. So `ci-boot-smoke.sh img --arch x86_64` -- the form this
+# file's own usage line documents as valid -- printed "arch: unbound variable" and reported
+# SUCCESS to CI without ever entering the polling loop. A boot gate that cannot fail is not
+# a gate. CI always passes a positional timeout today, so this was latent there; it was not
+# latent for anyone following the usage line by hand.
+TIMEOUT=360
+case "${2:-}" in
+  ''|--arch) ;;                                  # no positional timeout given; keep the default
+  *[!0-9]*)  echo "boot-smoke: timeout must be a whole number of seconds, got: $2" >&2
+             echo "boot-smoke: usage: ci-boot-smoke.sh <image> [timeout] [--arch aarch64|x86_64]" >&2
+             exit 2 ;;
+  *)         TIMEOUT="$2" ;;
+esac
 [ -f "$IMG" ] || { echo "boot-smoke: image not found: $IMG"; exit 1; }
 
 # `--arch` may appear anywhere after the positionals; default stays aarch64 so
