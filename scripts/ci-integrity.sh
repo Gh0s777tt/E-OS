@@ -243,22 +243,40 @@ fi
 src_hits=""
 for f in config/*/eos*.toml; do
   [ -f "$f" ] || continue
-  if ! grep -q 'path = "/etc/pkg.d/50_redox"' "$f"; then
+
+  # ONE comment-stripped view of the file, used by EVERY test below. Reading the raw file was
+  # not a small inconsistency. The key-pin test on the next-but-one branch did a bare
+  # `grep -q 'etc/pkg/eos-repo-sign.pub.toml' "$f"`, and both configs mention that path twice
+  # in their own PROSE (aarch64: lines 721 and 740; x86_64: 749 and 768) before pinning it for
+  # real (819 / 848). So the assertion matched the file's comments and could not fail on any
+  # config that activates the E-OS repo using this template -- the template itself supplies the
+  # string being searched for. Reproduced 2026-09-02: replace the one real `path = ...` stanza
+  # with a bogus path and the gate still printed "ok"; delete the two comments as well and it
+  # immediately reported "active E-OS repo but no pinned key -- unauthenticated". The green
+  # light was coming from the prose, not from the artefact.
+  #
+  # The two tests three lines apart already disagreed about this: the "active URL" test stripped
+  # indentation and dropped `^#` lines, the key test did neither. A gate that cannot fail is not
+  # a gate (CLAUDE.md 4.1), and this one guards whether a shipped image trusts an
+  # unauthenticated package source (R-701a / U-210).
+  body=$(sed 's/^[[:space:]]*//' "$f" | grep -vE '^#')
+
+  if ! printf '%s\n' "$body" | grep -q 'path = "/etc/pkg.d/50_redox"'; then
     src_hits="$src_hits
     $f — does not override /etc/pkg.d/50_redox, so base.toml's upstream remote ships"
     continue
   fi
-  # Active = a non-comment line naming a package host. Leading whitespace is stripped first,
-  # so "  https://..." cannot slip past a test for a line-initial '#'.
-  hits=$(sed 's/^[[:space:]]*//' "$f" | grep -vE '^#' \
+  # Active = a non-comment line naming a package host.
+  hits=$(printf '%s\n' "$body" \
          | grep -nE 'https?://[^[:space:]"]*(static\.redox-os\.org|/pkg)' \
-           | grep -vE 'gh0s777tt\.github\.io/eos-pkg-' || true)
-    # Allowed only if it is our own signed repo (eos-pkg-<arch>, repo.toml.sig verified
-    # against the pinned key). If that source is active the config must pin the key too,
-    # else it is unauthenticated (U-210).
-    if [ -z "$hits" ] && sed 's/^[[:space:]]*//' "$f" | grep -vE '^#' | grep -qE 'gh0s777tt\.github\.io/eos-pkg-'; then
-      grep -q 'etc/pkg/eos-repo-sign.pub.toml' "$f" || hits="active E-OS repo but no pinned key -- unauthenticated"
-    fi
+         | grep -vE 'gh0s777tt\.github\.io/eos-pkg-' || true)
+  # Allowed only if it is our own signed repo (eos-pkg-<arch>, repo.toml.sig verified
+  # against the pinned key). If that source is active the config must pin the key too,
+  # else it is unauthenticated (U-210).
+  if [ -z "$hits" ] && printf '%s\n' "$body" | grep -qE 'gh0s777tt\.github\.io/eos-pkg-'; then
+    printf '%s\n' "$body" | grep -q 'etc/pkg/eos-repo-sign.pub.toml' \
+      || hits="active E-OS repo but no pinned key -- unauthenticated"
+  fi
   if [ -n "$hits" ]; then
     src_hits="$src_hits
     $f — active package remote:
@@ -330,6 +348,15 @@ if [ -n "$vendored" ]; then
   bad "fork source vendored into this repo (R-F02) — pin the fork instead:"; echo "$vendored"
 else
   ok "no fork source vendored into this repo"
+fi
+# ^ This `fi` used to sit at the very END of the file, so checks 12-15 below were nested
+# INSIDE this `else` branch and ran only while check 11 was passing. The moment a fork
+# source got vendored -- the one situation check 11 exists to report -- four unrelated
+# gates (tarball blake3 pins, unbound arrays, dead docs paths, tracked caches) would have
+# gone silently unrun, and the summary would still have printed "integrity: FAIL" for the
+# one failure without ever mentioning that the other four never executed. Found by the
+# 2026-09-02 audit; the nesting was invisible because the block is 70 lines long and every
+# check inside it is written at column 0, as if it were top level.
 
 # 12) Every recipe reachable from an image config -- INCLUDING the toolchain path, which is not
 # reachable from config/*/eos.toml -- must pin the blake3 of its tarball. fetch.rs warns and
@@ -394,7 +421,6 @@ if command -v python3 >/dev/null 2>&1; then
   fi
 else
   cannot "check 15 could not run: python3 is missing -- tracked artefacts are UNKNOWN"
-fi
 fi
 
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
