@@ -93,10 +93,22 @@ awk '/^---SIGNED-EFI-BASE64---/{skip=1} skip==0{print} /^---END---/{skip=0}' /tm
 [ "$rc" -eq 0 ] || { echo "FAIL: signing container errored"; tail -4 /tmp/eos-sb.err; exit 1; }
 
 # wyłuskaj podpisany EFI z markera
-awk '/^---SIGNED-EFI-BASE64---/{f=1;next}/^---END---/{f=0}f' /tmp/eos-sb.out | base64 -d > "$OUT" 2>/dev/null
+awk '/^---SIGNED-EFI-BASE64---/{f=1;next}/^---END---/{f=0}f' /tmp/eos-sb.out | base64 -d > "$OUT" 2>/tmp/eos-sb-base64.err || true
 if [ -s "$OUT" ]; then
   echo
   echo "    signed EFI -> $OUT ($(wc -c < "$OUT") B)"
-else
+elif [ -n "$SELFTEST" ]; then
+  # Expected in selftest mode: the throwaway key never leaves the container, and neither does
+  # the binary it signed. The proof happened inside.
   echo "    (selftest: podpisany EFI nie zapisany na host — dowód wykonany w kontenerze)"
+else
+  # REAL signing mode, and there is no signed bootloader on the host. The container exited 0
+  # -- checked above -- but an exit code is not an artefact. This branch used to print the
+  # selftest sentence regardless of mode, which is simply false here, and the script then
+  # ended 0: a caller could not tell successful signing from signing that produced nothing.
+  # A PC with Secure Boot on would find that out instead, as "Access Denied" (U-208).
+  echo "FAIL: signing reported success but no signed EFI was written to $OUT" >&2
+  echo "  The container exited 0, so the payload did not make it back to the host." >&2
+  echo "  The base64 marker block is in /tmp/eos-sb.out; stderr in /tmp/eos-sb.err." >&2
+  exit 1
 fi
