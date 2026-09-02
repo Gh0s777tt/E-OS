@@ -25,6 +25,8 @@ import time
 
 ESC = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 PASSWORD = "eos"
+DISK_PASSWORD = "eosdisk"        # only used when EOS_SMOKE_FDE=1
+FDE = os.environ.get("EOS_SMOKE_FDE") == "1"
 
 # One knob for "this guest is slower than the one these windows were measured on", instead
 # of editing eleven constants by hand and having them drift apart. MEASURED on x86_64 under
@@ -154,8 +156,15 @@ class Console:
         print("install-smoke: FAIL — timed out waiting for %s" % what)
         return None
 
-    def send(self, line):
-        self.sock.sendall((line + "\n").encode())
+    def send(self, line, end="\n"):
+        """`end` exists because the UEFI bootloader is not the OS.
+
+        MEASURED 2026-09-02: the bootloader's "RedoxFS password (n/10)" prompt does NOT treat
+        "\\n" as Enter -- it echoes it as one more character. Two sends of 11 and 7 characters
+        produced 20 asterisks on a single attempt (11 + 7 + 2 newlines) and nothing was ever
+        submitted. It needs a carriage return.
+        """
+        self.sock.sendall((line + end).encode())
         time.sleep(0.7)
 
     def dismiss_boot_menu(self, monitor_path, toggle_live=False):
@@ -412,13 +421,32 @@ def run_install(con, target_img=None):
     print("install-smoke:     erasing: " + target)
     con.send(target)
 
-    # The redoxfs password prompt is INVISIBLE on the serial console: it is a password
-    # prompt, so it echoes nothing, and waiting for it simply times out. An earlier
-    # version of this driver appeared to work only because its expect() matched the
-    # *stale* "[sudo] password" further up the buffer and sent the empty line by accident.
-    # Send it deliberately instead. Empty means an unencrypted install.
+    # The installer's password prompts are printed with `print!` on STDOUT and never
+    # flushed (installer.rs:83 prompt_password), while its progress messages go to STDERR
+    # with `eprintln!`. On a serial console that means the prompt is still sitting in the
+    # guest's buffer while the installer is already blocked reading -- MEASURED 2026-09-02:
+    # after sending the disk path the console produced ZERO bytes for a full 120s window,
+    # and the prompt text only appeared once another line was sent. So there is nothing to
+    # wait for here; the lines must be sent deliberately, and the proof that they landed is
+    # "Opening disk" further down (stderr, unbuffered).
+    #
+    # An EMPTY password short-circuits: prompt_password returns None without ever asking to
+    # confirm, which is why the unencrypted path sends exactly one line. A non-empty one is
+    # asked TWICE -- send only once and the installer waits forever (measured: run timed out
+    # at "opening the target disk" with the guest parked on the confirmation read).
     time.sleep(2)
-    con.send("")
+    #
+    # EOS_SMOKE_FDE_NEGATIVE=1 is the NEGATIVE CONTROL for the whole FDE case, not a back door:
+    # it runs stage 2 in verify-fde mode against a deliberately UNENCRYPTED install, so the
+    # three-step proof below has to fail -- and be seen to fail for the right reason. Without a
+    # way to reproduce that, "the encrypted disk asked for a password" would be a claim nobody
+    # could falsify. Measured 2026-09-02: it fails at step 1 with "never asked for one (the
+    # boot-mode menu with no password asked for). It is not encrypted."
+    if FDE and os.environ.get("EOS_SMOKE_FDE_NEGATIVE") != "1":
+        con.send(DISK_PASSWORD)
+        con.send(DISK_PASSWORD)
+    else:
+        con.send("")
 
     # The installer's last observable step is writing the EFI loader; the shell prompt
     # comes back after that. Both are matched only in output produced after the drive was
@@ -473,12 +501,73 @@ def run_install(con, target_img=None):
     return ok
 
 
+def verify_fde(con, monitor_path):
+    """Prove the installed disk is REALLY encrypted -- three falsifiable steps, not one.
+
+    Booting an encrypted disk and reaching a login prompt proves nothing on its own: it would
+    pass just as happily if the password had been ignored and the disk written in the clear.
+
+    This mode must NOT call dismiss_boot_menu() before it starts, and the order below is the
+    measured one, not the obvious one (2026-09-02):
+
+      * dismiss_boot_menu() sleeps a fixed 12s and then presses Enter through the QEMU
+        monitor. On an ENCRYPTED disk the bootloader is sitting on the password prompt at
+        that moment, so that Enter is submitted as an EMPTY password and burns an attempt --
+        visible in the console as "(1/10)" with ZERO asterisks followed at once by "(2/10)".
+      * The video-mode menu appears AFTER the disk is unlocked on this path, not before, and
+        it reads the emulated keyboard rather than the serial line. So it has to be dismissed
+        between the password and the login prompt, or the run simply never sees "login:".
+    """
+    # 1. The bootloader must ASK. Race the two outcomes rather than waiting one out, so
+    #    "it booted straight in" is reported as the wrong result it is, not as a timeout.
+    #    The boot-mode menu is raced too, and not as a nicety: on an UNENCRYPTED disk it is
+    #    what actually appears, and it BLOCKS -- it reads the emulated keyboard, so nothing
+    #    else is ever printed until something dismisses it. Without naming it here the
+    #    negative control still fails, but by timing out, and a timeout does not say WHY.
+    #    Measured order on an encrypted disk: banner, "Looking for RedoxFS:", the password
+    #    prompt, and only AFTER unlocking, this menu. So the menu arriving first is itself
+    #    the evidence that no disk password was ever asked for.
+    seen = con.expect_either(
+        {"the bootloader asking for the disk password": r"RedoxFS password \(",
+         "the boot-mode menu with no password asked for": r"Arrow keys and enter select mode",
+         "a login prompt with NO password asked for": r"login:"},
+        "the bootloader's first move on the installed disk", window=w(120))
+    if seen != "the bootloader asking for the disk password":
+        print("install-smoke: FAIL — the install took a disk password, but the installed disk")
+        print("install-smoke:        never asked for one (%s). It is not encrypted."
+              % (seen if seen else "nothing recognisable appeared"))
+        return False
+
+    # 2. A WRONG password must NOT unlock the disk. Asserting "the attempt counter moved on"
+    #    would be worthless here: the counter also moves when the bootloader retries by
+    #    itself, which it demonstrably does. Assert the thing that actually matters instead --
+    #    that no login prompt appears -- and race it against the disk staying locked.
+    con.send("nie-" + DISK_PASSWORD, end="\r")
+    seen = con.expect_either(
+        {"the disk staying locked after a deliberately wrong password": r"RedoxFS password \(",
+         "the disk UNLOCKING on a wrong password": r"login:"},
+        "what a wrong disk password does", window=w(90))
+    if seen != "the disk staying locked after a deliberately wrong password":
+        print("install-smoke: FAIL — a deliberately WRONG disk password unlocked the disk.")
+        return False
+
+    # 3. Only now does the right one mean anything.
+    con.send(DISK_PASSWORD, end="\r")
+    con.dismiss_boot_menu(monitor_path)
+    return con.expect(r"login:", "a login prompt after unlocking the encrypted disk",
+                      window=w(180))
+
+
 def main():
     mode, monitor_path, serial_path, budget, logfile = sys.argv[1:6]
     # Optional 6th argument: the target disk image, so the refusal can be shown to have
     # written nothing rather than assumed to have. Absent -> the check says so and skips.
     target_img = sys.argv[6] if len(sys.argv) > 6 else None
     con = Console(serial_path, int(budget), logfile)
+    # verify-fde dismisses the menu itself, AFTER unlocking -- see verify_fde().
+    if mode == "verify-fde":
+        return 0 if verify_fde(con, monitor_path) else 1
+
     con.dismiss_boot_menu(monitor_path, toggle_live=os.environ.get("EOS_SMOKE_TOGGLE_LIVE") == "1")
 
     if mode == "verify":

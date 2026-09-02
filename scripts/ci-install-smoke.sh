@@ -191,17 +191,32 @@ kill "$QPID" 2>/dev/null; QPID=""; sleep 1
 cp "$WORK/stage1.log" "$(dirname "$IMG")/install-smoke-stage1.log" 2>/dev/null
 [ "$rc" -eq 0 ] || { keep_work; echo "install-smoke: FAIL — install stage did not complete"; exit 1; }
 
-echo "install-smoke: stage 2 — boot the INSTALLED disk on its own"
+# EOS_SMOKE_FDE=1 installs onto an ENCRYPTED RedoxFS and makes stage 2 prove it: the
+# bootloader must ask for the disk password, must refuse a wrong one, and only then may a
+# login prompt count. Without that middle step "it booted" would pass on an unencrypted
+# disk too, which is exactly the hole this case exists to close.
+if [ "${EOS_SMOKE_FDE:-0}" = "1" ]; then
+  STAGE2_MODE=verify-fde
+  echo "install-smoke: stage 2 — boot the INSTALLED disk and prove it is ENCRYPTED"
+else
+  STAGE2_MODE=verify
+  echo "install-smoke: stage 2 — boot the INSTALLED disk on its own"
+fi
 cp "$FW_VARS" "$WORK/vars2.fd"
 boot "$WORK/vars2.fd" "$WORK/s2.sock" "$WORK/m2.sock" \
   -drive "file=$WORK/target.img,if=none,id=d0,format=raw" -device "nvme,drive=d0,serial=eos"
 
-python3 -u "$(dirname "$0")/install-smoke-drive.py" verify \
+python3 -u "$(dirname "$0")/install-smoke-drive.py" "$STAGE2_MODE" \
   "$WORK/m2.sock" "$WORK/s2.sock" "$BUDGET" "$WORK/stage2.log"
 rc=$?
 cp "$WORK/stage2.log" "$(dirname "$IMG")/install-smoke-stage2.log" 2>/dev/null
 if [ "$rc" -eq 0 ]; then
-  echo "install-smoke: PASS — installed to a second disk and booted it to a login prompt"
+  if [ "${EOS_SMOKE_FDE:-0}" = "1" ]; then
+    echo "install-smoke: PASS — installed to an ENCRYPTED second disk, which asked for the"
+    echo "install-smoke:        password, refused a wrong one, and booted to a login prompt"
+  else
+    echo "install-smoke: PASS — installed to a second disk and booted it to a login prompt"
+  fi
 else
   echo "install-smoke: FAIL — the installed disk did not reach a login prompt"
 fi
