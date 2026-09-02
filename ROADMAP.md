@@ -1505,7 +1505,7 @@ That is the honest basis for "containers on E-OS" — and it is not Docker.
 
 | id | item | today | to build | size |
 |---|---|---|---|---|
-| `CS-101` | **E-OS containers** — a process tree with a narrowed scheme set, its own root, resource caps | `contain` exists upstream, disabled; `R-1010` | an image format (pkgar-based), a runtime, a CLI; this is the real "serverless" substrate too (`CS-103`) | XL |
+| `CS-101` | **E-OS containers** — a process tree with a narrowed scheme set, its own root, resource caps | `recipes/core/contain/recipe.toml` is a 5-line **unpinned** stub with no `source/` or `target/` fetched anywhere in the tree; what does exist is the session side — `config/desktop-contain.toml` (`pass_schemes`, `sandbox_schemes`, `getty --contain`) and `-C/--contain` support in the `eos-userutils` fork's `getty.rs`; `R-1010` | an image format (pkgar-based), a runtime, a CLI; this is the real "serverless" substrate too (`CS-103`) | XL |
 | `CS-102` | **An orchestrator in Rust** — scheduling `CS-101` containers across `CS-001` nodes, health, restarts, rolling updates | nothing; `nomad` is in `wip/` unbuilt, `kubernetes`/`etcd` absent | do **not** call it Kubernetes: it will not run Kubernetes workloads. A native scheduler with a compatible-enough API is a later, separate question | XL |
 | `CS-103` | **Functions** (run code without a server) | nothing | thin layer over `CS-101` with a trigger model | M |
 
@@ -1602,11 +1602,19 @@ which says in so many words that `0.x` carries **no stability guarantees** and t
 scheme ABI is *"inherited from upstream Redox, still evolving"*; a CI `rustdoc` job that documents
 **only** `tools/eos-repo-sign`, and even that as a crate front page with no public items; one
 developer guide, `docs/guides/creating-an-eos-app.md` (122 lines); and a partial, reconnaissance-
-grade description of the `netcfg:` scheme. **What does not exist**: any reference page for
-schemes, syscalls or the ABI; an enumeration of the `sys:` scheme's nodes (`uname`, `cpu`, `stat`,
-`iostat`, `context`, `irq`, `log`, …); rustdoc for any type-A crate; local sources for the type-A
-crates at all (they are fetched at build time); a versioning or stability statement for E-OS's own
-interfaces (`eos-ui`, `eos-control`'s panes, `eos-guard`'s reports).
+grade description of the `netcfg:` scheme. Adversarial re-check (2026-09-02) added two things the
+first pass missed, and they change what "to build" means: `eos-ui` at its pinned rev already carries
+`#![warn(missing_docs)]` (`lib.rs:19`), crate-level `//!` docs with a doctest, and every public item
+documented — so the library's *source* is documented; what does not exist is a **published** rustdoc
+for it or for the four applications. And the MR template (`.gitlab/merge_request_templates/Default.md:19`)
+already requires `///` on new public items, with an advisory `docs-currency` job checking it —
+while `.gitlab-ci.yml:112` points at "CLAUDE.md §3" for the hard rule, which is not there (fixed in
+the same change as this section). **What does not exist**: any reference page for schemes, syscalls
+or the ABI; an enumeration of the `sys:` scheme's nodes (`uname`, `cpu`, `stat`, `iostat`, `context`,
+`irq`, `log`, …); published rustdoc for any type-A crate; tracked sources for the type-A crates (they
+are fetched at build time; an untracked host build of `eos-control` sits under `build/`); a
+versioning or stability statement for E-OS's own interfaces (`eos-ui`, `eos-control`'s panes,
+`eos-guard`'s reports).
 
 A promise of a "full, detailed API" is therefore two different promises, and only one of them is
 this project's to make: E-OS can **document** the inherited surface it ships, but it can only
@@ -1617,7 +1625,7 @@ register keeps that line.
 |---|---|---|---|---|
 | `API-001` | **Scheme reference** — every scheme the image mounts, its nodes, the operations each accepts, with the E-OS allowlist (`login_schemes.toml`) cross-referenced so a reader sees what an unprivileged user can reach | `netcfg:` sketched; nothing else | generated from a running image (`ls /scheme`, per-scheme probing) into `docs/reference/schemes.md`, with a CI check that the page and the image agree | M |
 | `API-002` | **Syscall / ABI reference for the shipped kernel revision** — pinned to the `eos-kernel` rev in `repos.toml`, regenerated on every bump | nothing | rustdoc of the kernel's `syscall` crate published as an artefact, plus a hand-written map from syscall to scheme operation | M |
-| `API-003` | **rustdoc for every type-A crate**, published, with `#![deny(missing_docs)]` on public items | only `eos-repo-sign`, and without public docs | fetch the type-A sources in CI (they are pinned), build docs, fail on undocumented public items | M |
+| `API-003` | **rustdoc for every type-A crate**, published, with `#![deny(missing_docs)]` on public items | `eos-ui` is documented at source with `warn(missing_docs)`; nothing is published; the four apps have no such lint; `eos-repo-sign`'s rustdoc has no public items | fetch the type-A sources in CI (they are pinned), build docs, fail on undocumented public items | M |
 | `API-004` | **A stability contract for E-OS's own interfaces** — which crates and panes are public, what semver means for them, what `0.x` promises (nothing) and what 1.0 will | `stability.md` covers the inherited surface only | a section in `stability.md` and a CI gate that a public item cannot disappear in a MINOR without a deprecation | S |
 | `API-005` | **`libredox` / `relibc` coverage statement** — which POSIX.1-2024 interfaces are present, measured, not claimed | `V2-STD01` measured 4267/5650 | render that measurement as the reference page it already is | S |
 | `API-006` | **Developer hub on the website** | the one guide | `WS-012` renders `API-001`…`API-005`; nothing new is written twice | S |

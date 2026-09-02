@@ -299,6 +299,7 @@ Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
 - [ ] Poziomy testowania z §5.9 przejrzane; każdy pominięty **uzasadniony**, nie przemilczany
 - [ ] Prawdziwe wyjście poleceń wklejone do opisu MR
 - [ ] Dokumentacja zaktualizowana w tym samym MR (§5.8)
+- [ ] **Doc-comments** — `//!`/`///` na każdym nowym elemencie publicznym (`pub fn/struct/enum/trait/mod`); ten sam punkt stoi w szablonie MR (`.gitlab/merge_request_templates/Default.md:19`), który twierdzi, że powtarza tę listę — do 2026-09-02 twierdził nieprawdę, bo tej pozycji tu nie było. `eos-ui` egzekwuje to lintem `#![warn(missing_docs)]`; pozostałe crate'y własne jeszcze nie (`API-003`)
 - [ ] Przy obszarach z §5.6 — analiza ryzyka i plan wycofania
 - [ ] `CHANGELOG.md` ma wpis z odniesieniem do commita
 - [ ] Commit podpisany, Conventional Commits, jedna zmiana logiczna
