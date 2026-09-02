@@ -56,6 +56,16 @@ if [ -n "${EOS_BOOT_SELFTEST:-}" ]; then
       | tail -c 32 > /work/redox/build/boot-signing/boot.pub.bin
     chmod 600 /work/redox/build/boot-signing/boot.key
     echo "throwaway boot key in place ($(wc -c < /work/redox/build/boot-signing/boot.pub.bin | tr -d " ") B public)"'
+  # `set -uo pipefail` has no -e, so a failed container used to fall through to force_recook
+  # and an unconditional "Done (throwaway)" -- claiming a boot-verification key was in place
+  # when none had been generated. And the exit code is not the artefact: the public key is the
+  # thing every later step reads, so check that it exists and is the right size.
+  podman run --rm -v "$VOL":/work "$DEB" bash -c '
+    test -s /work/redox/build/boot-signing/boot.key || exit 1
+    [ "$(wc -c < /work/redox/build/boot-signing/boot.pub.bin)" = "32" ]' || {
+    echo "FAIL: no usable throwaway boot key in build/boot-signing/ (expected a 32-byte ed25519 public key)" >&2
+    exit 1
+  }
   force_recook
   echo "Done (throwaway). Now: scripts/eos-build.sh x86_64"
   exit 0

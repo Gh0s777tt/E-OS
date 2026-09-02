@@ -59,6 +59,18 @@ podman run --rm -v "$VOL":/work -v "$(dirname "$EOS_SB_KEY")":/k:ro -v "$(dirnam
   cp "/k/'"$(basename "$EOS_SB_KEY")"'" /work/redox/build/sb-signing/mok.key
   cp "/c/'"$(basename "$EOS_SB_CERT")"'" /work/redox/build/sb-signing/mok.crt
   chmod 600 /work/redox/build/sb-signing/mok.key
-  echo "operator key in place"'
+  echo "operator key in place"' || {
+    echo "FAIL: the container that places the Secure Boot key errored -- key NOT installed" >&2
+    exit 1
+  }
+# The script runs under `set -uo pipefail` WITHOUT -e, so a failed `podman run` used to fall
+# straight through to force_recook and "Done." -- announcing that an operator key was in place
+# when it was not. And an exit code is not the artefact: check that the key and certificate
+# actually landed in the build tree, which is where every later step looks for them.
+podman run --rm -v "$VOL":/work "$DEB" bash -c '
+  test -s /work/redox/build/sb-signing/mok.key && test -s /work/redox/build/sb-signing/mok.crt' || {
+  echo "FAIL: the container reported success but build/sb-signing/ has no key+cert" >&2
+  exit 1
+}
 force_recook
 echo "Done. Now: make CI=1 ARCH=x86_64 CONFIG_NAME=eos all   (then scripts/eos-sb-setup-key.sh --clear)"
