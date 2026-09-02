@@ -105,8 +105,21 @@ for arch in $ARCHES; do
     commit="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
     python3 "$ROOT/scripts/gen-sbom.py" --repo-dir "$repo_dir" --target "${arch}-unknown-redox" \
       --eos-version "$VERSION" --eos-commit "$commit" --timestamp "$ts" --out "$OUT/$sbom"
+    # An exit code is not a bill of materials. MEASURED 2026-09-02: gen-sbom.py run against an
+    # EMPTY repo directory exits 0 and writes a valid 578-byte CycloneDX document whose
+    # "components" array is empty. Everything downstream then behaves normally -- the file is
+    # hashed into SHA256SUMS and covered by the release signature -- so the release would ship a
+    # SIGNED bill of materials that lists nothing at all. That is worse than shipping no SBOM:
+    # it is an assurance artefact asserting the absence of contents.
+    n_comp="$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("components") or []))' \
+              "$OUT/$sbom")"
+    if [ "$n_comp" -eq 0 ]; then
+      echo "FAIL: $sbom has ZERO components — refusing to sign a bill of materials that lists nothing." >&2
+      echo "  repo dir was: $repo_dir" >&2
+      exit 1
+    fi
     ( cd "$OUT" && sha256sum "$sbom" >> SHA256SUMS )
-    echo "packaged $sbom"
+    echo "packaged $sbom ($n_comp components)"
   else
     echo "note: no repo/${arch}-unknown-redox metadata — SBOM skipped for $arch"
   fi

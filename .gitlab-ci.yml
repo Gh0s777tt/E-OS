@@ -226,7 +226,26 @@ sbom:
     - cargo cyclonedx --manifest-path tools/eos-repo-sign/Cargo.toml --format json
     - cargo cyclonedx --manifest-path Cargo.toml --format json
     - mkdir -p sbom-out && find . -name '*.cdx.json' -not -path './sbom/*' -exec cp {} sbom-out/ \;
-    - ls -la sbom-out/
+    # `ls -la sbom-out/` stood here as the only check. It cannot fail: the directory was created
+    # by the `mkdir -p` on the line above, and `find ... -exec cp` with no matches also exits 0.
+    # The job would publish an EMPTY artefact directory and stay green, which is exactly the gap
+    # this job was added to close (audit C-14: sbom/ held documents only for 0.1.0).
+    - |
+      python3 - <<'PY'
+      import glob, json, sys
+      files = sorted(glob.glob("sbom-out/*.cdx.json"))
+      if not files:
+          sys.exit("sbom: FAIL — sbom-out/ is empty; cargo-cyclonedx produced no document")
+      total = 0
+      for f in files:
+          n = len(json.load(open(f)).get("components") or [])
+          print(f"  {f}: {n} components")
+          total += n
+      if total == 0:
+          sys.exit("sbom: FAIL — every document is empty; a bill of materials listing nothing "
+                   "is worse than none, because it asserts the absence of contents")
+      print(f"sbom: ok — {len(files)} document(s), {total} components")
+      PY
   artifacts:
     paths: [sbom-out/]
     expire_in: 30 days
