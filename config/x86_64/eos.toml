@@ -168,22 +168,21 @@ ids = { 0x8086 = [0x10D3] }
 command = ["e1000d"]
 """
 
-# Serial console login — a getty on /scheme/debug (the kernel serial/UART console),
-# so headless serial access gets a login prompt. getty treats a non-numeric TTY arg
-# as a literal scheme path (userutils getty.rs). Needs the ACPI PL011 RXE init fix
-# (eos-kernel). NOTE: interactive input over QEMU's macOS unix-socket serial isn't
-# delivered to the guest (verified: 0 RX interrupts) — this works on real hardware
-# or a serial backend that forwards input; for VMs, use the graphical greeter or ssh.
-[[files]]
-path = "/usr/lib/init.d/30_serial-getty.service"
-data = """
-[unit]
-description = "Serial console login"
-[service]
-cmd = "getty"
-args = ["/scheme/debug"]
-type = "oneshot_async"
-"""
+# Serial console login: there is EXACTLY ONE getty on the kernel serial console, the
+# `nowait getty /scheme/debug/no-preserve -J` in 30_console above. A second one used to be
+# declared here as 30_serial-getty.service (`getty /scheme/debug`), and both attached to the
+# same console. Removed 2026-09-02 (#24).
+#
+# Two gettys on one console means two `login` processes reading the same input. After the
+# first login hands the TTY to a shell, the second is still reading, so it swallows the next
+# line typed and answers "Login incorrect". Measured: every failing run printed the `issue`
+# banner TWICE (login prints it once per instance), and `ci-install-smoke.sh` on x86_64 passed
+# only 2 runs out of 7. With this entry removed: 5 runs, 5 passes.
+#
+# The note here also claimed that "interactive input over QEMU's macOS unix-socket serial
+# isn't delivered to the guest (verified: 0 RX interrupts)". That is not true: the whole
+# install-smoke harness drives this guest over exactly that serial console, typing the login,
+# the first-boot password and every installer answer.
 
 # ======================================================================
 # E-OS x86_64 parity with aarch64: theme + desktop icons + RAID-1 service.
