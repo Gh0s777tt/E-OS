@@ -73,10 +73,30 @@ echo "==> build ARCH=$ARCH in the eos-work volume (this is what make-from-here c
 # the same number and arm nothing. Empty if this is somehow not a checkout; the builder then says
 # so loudly rather than inventing a value.
 serial="$(git rev-list --count HEAD 2>/dev/null || true)"
-podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-limit=-1 \
+
+# `set -o pipefail` INSIDE the container, and the failure handled explicitly, because the
+# outer `set -euo pipefail` (line 15) governs THIS shell -- the pipeline below runs in a
+# fresh `bash -lc` inside the container, which starts without it. Measured 2026-09-02:
+#
+#   podman run ... bash -lc "false 2>&1 | tail -3"                  -> status 0
+#   podman run ... bash -lc "set -o pipefail; false 2>&1 | tail -3" -> status 1
+#
+# So a FAILED make returned 0 to this script for as long as the tail has been there. Nothing
+# aborted; the run continued to the guards below and reported whatever they happened to say.
+# On 2026-09-02 that was "make produced NOTHING ... A Secure Boot key IS in place, so these
+# cached images may carry an older signature" -- true, useless, and pointing away from the
+# actual cause, which was three Rust compile errors the tail had truncated away.
+if ! podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-limit=-1 \
   -v "$VOL":/work -v eos-root:/root --env PODMAN_BUILD=0 \
   --env EOS_REPO_SERIAL="$serial" localhost/redox-base:latest \
-  bash -lc "cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/$MEDIUM_NAME 2>&1 | tail -3"
+  bash -lc "set -o pipefail; cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/$MEDIUM_NAME 2>&1 | tail -3"; then
+  echo "!! make FAILED. Only its last 3 lines are above -- a compile error is usually further up."
+  echo "!! Re-run WITHOUT the tail to see all of it:"
+  echo "!!   podman run --rm --cap-add SYS_ADMIN --device /dev/fuse --network=host --pids-limit=-1 \\"
+  echo "!!     -v $VOL:/work -v eos-root:/root --env PODMAN_BUILD=0 localhost/redox-base:latest \\"
+  echo "!!     bash -lc 'cd /work/redox && make CI=1 ARCH=$ARCH CONFIG_NAME=eos all'"
+  exit 1
+fi
 
 # Every pinned recipe must have been BUILT from the revision it is pinned to -- checked HERE,
 # immediately after make -- BEFORE the freshness guard below, not after it. Measured: placed
