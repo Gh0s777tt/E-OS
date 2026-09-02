@@ -138,12 +138,30 @@ if [ "$key_present" = yes ]; then
     cd /work/redox; crt=build/sb-signing/mok.crt; rc=0
     command -v sbverify >/dev/null 2>&1 || { apt-get update -qq >/dev/null 2>&1
       apt-get install -y -qq sbsigntool >/dev/null 2>&1; }
-    for b in $(find recipes/core/bootloader/target -path "*stage/usr/lib/boot/bootloader*.efi" 2>/dev/null); do
+    # A `for` over no matches runs ZERO times, so `rc` stayed 0 and this gate reported success
+    # having verified NOTHING. `find ... 2>/dev/null` made that silent by turning "the tree is
+    # not there" into "no matches" -- the exact trap that has bitten this repo before. Count
+    # what was actually verified and refuse an empty verification: a key IS in place here, so a
+    # SIGNED bootloader was the point of the build (U-208). "Nothing to check" is the failure,
+    # not the happy path.
+    if [ ! -d recipes/core/bootloader/target ]; then
+      echo "    recipes/core/bootloader/target is MISSING -- the bootloader was not cooked,"
+      echo "    there is nothing to verify, and a Secure Boot key IS in place. Refusing."
+      exit 1
+    fi
+    n=0
+    for b in $(find recipes/core/bootloader/target -path "*stage/usr/lib/boot/bootloader*.efi"); do
+      n=$((n + 1))
       if sbverify --cert "$crt" "$b" >/dev/null 2>&1
         then echo "    signed by the current cert: ${b##*/}"
         else echo "    NOT signed by the current cert: $b"; rc=1
       fi
     done
+    if [ "$n" -eq 0 ]; then
+      echo "    no bootloader .efi under recipes/core/bootloader/target -- verified NOTHING."
+      echo "    A Secure Boot key is in place, so a signed bootloader was the point of this build."
+      rc=1
+    fi
     [ "$rc" = 0 ] || echo "    -> run scripts/eos-sb-setup-key.sh to invalidate the package, then rebuild"
     exit $rc' || exit 1
 fi
