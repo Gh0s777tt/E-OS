@@ -69,19 +69,34 @@ def config_closure():
     # gate exists for was found: mpc is a dependency of gcc13, which mk/prefix.mk cooks directly.
     # Seed those roots explicitly, parsed from the makefile so the list cannot rot silently.
     prefix = os.path.join(ROOT, "mk", "prefix.mk")
-    if os.path.exists(prefix):
-        text = open(prefix, encoding="utf-8", errors="replace").read()
-        for m in re.finditer(r"\$\(REPO_BIN\)\s+cook\s+([^\n]+)", text):
-            for token in m.group(1).split():
-                if token.startswith("$") or token.startswith("-"):
-                    continue
-                names.add(token.split(":", 1)[-1])
+    if not os.path.exists(prefix):
+        # Same silence as the config closure above used to have: without this file the toolchain
+        # roots are simply absent, and the gate would walk a smaller closure without saying so.
+        raise SystemExit(
+            "tar-pins: FAIL — mk/prefix.mk is missing, so the toolchain roots could not be\n"
+            "  seeded. Those are exactly where the defect this gate exists for was found\n"
+            "  (mpc, a dependency of gcc13). Refusing to report on a partial closure."
+        )
+    text = open(prefix, encoding="utf-8", errors="replace").read()
+    for m in re.finditer(r"\$\(REPO_BIN\)\s+cook\s+([^\n]+)", text):
+        for token in m.group(1).split():
+            if token.startswith("$") or token.startswith("-"):
+                continue
+            names.add(token.split(":", 1)[-1])
     return names
 
 
 def recipe_index():
-    """name -> (path, parsed recipe)."""
-    out = {}
+    """name -> (path, parsed recipe), plus the recipes that could not be parsed.
+
+    `except Exception: continue` stood here on its own. A recipe.toml that tomllib cannot read
+    fell out of the index, and main()'s `name not in index: continue` then dropped it silently
+    from the closure -- so the one gate that checks whether a fetched tarball is pinned never
+    looked at it. Two silences compounding: the parse error was swallowed here, and the absence
+    was read as "not part of the image" there. Collect the failures instead and let the caller
+    refuse; a recipe whose manifest cannot be read is not a recipe whose tarball can be judged.
+    """
+    out, unreadable = {}, []
     for base, dirs, files in os.walk(RECIPES):
         if "wip" in base.split(os.sep) or "recipe.toml" not in files:
             continue
@@ -89,13 +104,21 @@ def recipe_index():
         try:
             with open(path, "rb") as fh:
                 out[os.path.basename(base)] = (path, tomllib.load(fh))
-        except Exception:
-            continue
-    return out
+        except Exception as exc:
+            unreadable.append((os.path.relpath(path, ROOT), str(exc).splitlines()[0]))
+    return out, unreadable
 
 
 def main():
-    index = recipe_index()
+    index, unreadable = recipe_index()
+    if unreadable:
+        print("BAD: %d recipe manifest(s) could not be parsed, so their tarballs were never judged:"
+              % len(unreadable))
+        for rel, why in unreadable:
+            print(f"  {rel}: {why}")
+        print("  Fix the TOML. An unparseable recipe is invisible to this gate, which is worse")
+        print("  than an unpinned one: nothing reports it at all.")
+        return 1
     frontier, closure = list(config_closure()), set()
     while frontier:
         name = frontier.pop()

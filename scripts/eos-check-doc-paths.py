@@ -150,7 +150,14 @@ def main():
                 if path in tracked or path in ALLOW:
                     continue
                 before = line[:m.start()]
-                if "http://" in before or "https://" in before:
+                # Skip only when this match is the TAIL OF A URL, not merely when a URL happens
+                # to appear earlier in the same line. `"http" in before` skipped the whole line,
+                # so a dead docs path could not be reported at all on any line that also carried
+                # a link -- and in a docs tree, that is a lot of lines. Look at the token this
+                # match belongs to instead: everything back to the nearest separator.
+                cut = max(before.rfind(c) for c in " \t([<\"'`|") + 1
+                token = before[cut:]
+                if token.startswith("http://") or token.startswith("https://"):
                     continue
                 moved = [c for c in index.get(os.path.basename(path), []) if c != path]
                 if not moved:
