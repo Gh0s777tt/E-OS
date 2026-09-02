@@ -16,10 +16,13 @@ unsigned pre-history marker. Tag list: <https://github.com/Gh0s777tt/E-OS/tags>.
 
 ## [Unreleased]
 
-Work since `v0.2.0` (2026-08-22): 78 commits.
+Work since `v0.2.0` (2026-08-22): 242 commits, 54 of them on 2026-09-01–02.
 
 ### Added
 
+- **Nośnik instalacyjny jest publikowany jako artefakt** (`R-601a`, #4) — oba obrazy kompresowane `zstd -3 -T0` i wystawiane obok sum kontrolnych i SBOM-u. Zmierzone przed wyborem poziomu: `-19` daje 130 MB w 98 s, `-3` daje 173 MB w **1,5 s**, a rozpakowanie jest bajt w bajt identyczne. W przebiegu nocnym artefakt waży **345 MB** przy limicie 1 GB. Sumy kontrolne zostają nad obrazami **surowymi** — weryfikuje się plik, który się zapisuje na dysk, nie opakowanie transportowe.
+- **`ci-integrity` check 15: żaden artefakt budowania ani cache nie może być śledzony** — dodane po tym, jak sam wcommitowałem dwa pliki `.pyc` do `main` w jednym dniu, przez `git add -A`, i **żadna bramka tego nie zauważyła**: cache nie jest sekretem, więc gitleaks go ignoruje, i nie jest usterką, więc reszta też. `CLAUDE.md` zabraniał tego od zawsze — zakaz był całą egzekucją.
+- **`ci-integrity` check 14: żadne odwołanie `docs/*.md` nie może wskazywać na nieistniejący plik** (#17) — `lychee --offline` tego nie widzi, bo to wzmianki w backtickach, nie odsyłacze.
 - **U-161** — R-601` drives the installer end to end for the first time ([`d022574c6`](https://gitlab.com/e-os/e-os/-/commit/d022574c6), `test(install): drive the installer end to end; find R-F19 (U-161)`)
 - **U-169** — x86_64 zbudowany i zbootowany po raz pierwszy; typ repozytorium przestał być zdaniem w dokumencie, a stał się polem, które CI egzekwuje ([`dbee16183`](https://gitlab.com/e-os/e-os/-/commit/dbee16183), `feat(gates): enforce repo type from the manifest; first x86_64 build + boot (U-1`)
 - **U-176** — R-601` UDOWODNIONE ([`8bd2c79d6`](https://gitlab.com/e-os/e-os/-/commit/8bd2c79d6), `feat(R-601): partition -> install -> reboot -> login is PROVEN (U-176)`)
@@ -67,6 +70,14 @@ Work since `v0.2.0` (2026-08-22): 78 commits.
 
 ### Fixed
 
+- **aarch64 znowu bootuje** (#15) — przyczyną było `lto = true` w **globalnym** `[profile.release]` bootloadera: LTO scala ramki wywoływanych funkcji, więc zmienne żyjące dotąd po kolei żyją naraz, a ścieżka ładowania jądra przekraczała ~124 KiB stosu DXE firmware'u (`ESR 0x9600000B`, access-flag fault poziom 3). **Suma zapotrzebowania jest większa bez LTO** (235 456 B wobec 229 808 B) — liczy się szczyt, nie suma. Naprawione punktowo przez `CARGO_PROFILE_RELEASE_LTO=false` wyłącznie dla aarch64; BIOS i x86_64 zachowują dotychczasowe ustawienia.
+- **230 martwych odwołań `docs/*` naprawionych** (#17) — zgłoszenie mówiło o ~141 w ośmiu ścieżkach; pełny skan dał **230 w dwudziestu dwóch**. Surowy skan dawał 326: odjęte 16 ogonów cudzych URL-i, 66 zapisów datowanych i 7 pozycji, które nie są dryfem.
+- **`pin-check` widzi rozjazd receptura ↔ `repos.toml`** (#18) — bramka porównywała wyłącznie manifest z wierzchołkiem forka, więc receptura wskazująca gdzie indziej była niewidoczna, a to **recepturę czyta build**. Nowy stan `SPLIT-PIN` nie jest uciszalny listą wyjątków.
+- **Bramka rewizji źródeł receptur** (#19) — nic nie sprawdzało, czy pobrane źródła stoją na przypiętych rewizjach; build wypuścił stary bootloader i zameldował `Done.` Bramka **raportuje, ale nie usuwa** modyfikacji pod `source/`, bo receptura bootloadera legalnie wstrzykuje tam klucz operatora.
+- **Nocna budowa wykonuje się** (#5) — trzydzieści kolejnych przebiegów z harmonogramu padało od co najmniej 2026-08-25 na wyścigu: `podman machine start` wraca, gdy maszyna **się uruchamia**, a następny wiersz wołał `podman exec` jedną dziesiątą sekundy później. Jedyna bramka, która realnie bootuje system, nie wykonała się przez ponad tydzień — padając na czymś, czego nie miała sprawdzać.
+- **`R-604a`: wybór dysku pokazuje ścieżkę urządzenia i odrzuca błędną nazwę** (#9) — ekran po raz pierwszy uruchomiony na Redoksie, z kontrolą negatywną. Druga połowa kryterium — *zero zapisów przy odmowie* — jest teraz **mierzona**, a nie wnioskowana: driver bada dysk po obu stronach odmowy i wymaga zera przydzielonych bloków.
+- **`install-smoke` idzie szybką ścieżką** (#21) — kopiowanie plik po pliku (1292 z 13681 plików w 26 minut, ~4,5 h docelowo) brało się stąd, że harness startował z `harddrive.img`, a nie z nośnika. Szybka ścieżka wymaga startu **live**, bo kopiuje z obrazu wczytanego do RAM-u. Z nośnika: **11 minut**.
+- **Dowody z porażki nie zapychają dysku systemowego** (#22) — lądowały obok obrazu źródłowego, czyli w CI na dysku rozruchowym: 1,7 GB przy 2,2 GB wolnego. Idą teraz tam, gdzie wskazuje `EOS_SMOKE_WORK`, i ważą **64 MB**.
 - **`getty` nie pożera już wpisanych znaków** — sonda rozmiaru terminala czytała TTY przez 500 ms w poszukiwaniu odpowiedzi na `\x1B[6n` i **wyrzucała każdy bajt, który nią nie był**. Na konsoli szeregowej nikt nie odpowiada, więc robiła to zawsze, a `daemon()` woła ją tuż przed uruchomieniem `login`. Bajty wracają teraz do pty. **Nie naprawia to awarii `install-smoke` na x86_64** (#6) — sprawdzone, objaw został.
 - **Test vendorowanego cookbooka nie zależy już od kolejności testów** — `file_system_loop_no_infinite_loop` czytał globalną konfigurację, którą ustawiał **inny** test, więc przechodził pod `cargo test` i padał pod `cargo test --tests` z `Configuration is not initialized`. Jest teraz **jedna** konfiguracja testowa, inicjowana przez tego, kto pierwszy jej potrzebuje. Kontrola: w izolacji test bez poprawki pada, z poprawką przechodzi. #20
 - **`install-smoke` nie melduje już braku, którego nie ma** — wiersz `(not seen) the EFI bootloader being written` pojawiał się także w przebiegach zakończonych **sukcesem**, łącznie z etapem 2 bootującym zainstalowany dysk. Szybka ścieżka kopiuje obraz **blokowo, razem z ESP**, więc nazwa pliku nigdy nie pada — nieobecność jest tam regułą, nie usterką. Oczekiwanie nazywa się teraz tym, czego naprawdę pilnuje.

@@ -202,9 +202,14 @@ Ends with:
 ```
 ==> export image + live ISO
     /Users/<you>/eos-artifacts/eos-x86_64-harddrive.img (1400 MiB)
-    /Users/<you>/eos-artifacts/eos-x86_64-live.iso (1400 MiB)
+    /Users/<you>/eos-artifacts/eos-0.2.0-x86_64-installer.img (1400 MiB)
 Done.
 ```
+
+The second file is the **installation medium** — the one you write to a USB stick. It used to be
+called `eos-x86_64-live.iso`; `R-611a` renamed it to `eos-<version>-<arch>-installer.img`, and
+the name comes from `make print-installer-medium` rather than being spelled out in each caller.
+Both are raw GPT images.
 
 **Boot the image headlessly and assert it reaches userspace:**
 
@@ -218,6 +223,28 @@ Real output:
 boot-smoke: x86_64, qemu pid 13690, up to 300s to reach login (TCG: 19s measured)…
 boot-smoke: PASS — reached userspace login
 ```
+
+Both architectures reach a login prompt (measured 2026-09-01). aarch64 was broken for part of
+August and is fixed: the bootloader is now built without LTO on that target, because LTO merged
+callee stack frames into their caller and the kernel-load path overran the firmware's ~124 KiB
+DXE stack.
+
+**Install onto a second disk and boot the result** — the stronger claim, because booting a
+pre-built image proves nothing about installing:
+
+```bash
+bash scripts/ci-install-smoke.sh ~/eos-artifacts/eos-0.2.0-aarch64-installer.img 2400 --arch aarch64
+```
+
+```
+install-smoke:   saw the installer refusing a name that matches no disk
+install-smoke:   the target disk is byte-for-byte untouched by the refusal (0 blocks)
+install-smoke: PASS — installed to a second disk and booted it to a login prompt
+```
+
+This passes on **aarch64**. On x86_64 it reaches the installer and stalls in the first-boot
+password exchange — tracked as [#6](https://gitlab.com/e-os/e-os/-/issues/6), with the cause
+narrowed to an empty line reaching `passwd` as the new password.
 
 ---
 
