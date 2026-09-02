@@ -426,24 +426,28 @@ def run_install(con, target_img=None):
     if not con.expect(r"Opening disk", "the installer opening the target disk", window=w(90)):
         return False
 
-    # Order matters and mine was wrong at first: the ESP -- and therefore BOOTAA64.EFI --
-    # is written BEFORE the RedoxFS partition, so expecting it afterwards produced a false
-    # FAIL on a run that had got further than any before it.
-    # Absent on the FAST path by construction, and that is not a defect: try_fast_install block-
-    # copies the live image, ESP included, so no per-file name is ever printed. Measured
-    # 2026-09-01 on a run that PASSED end to end, including stage 2 booting the installed disk --
-    # the ESP was plainly written, and this line still said "(not seen)". Naming it for what it
-    # actually watches stops a green run reading as a partial one (CLAUDE.md 13: red must say
-    # WHAT is broken).
-    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI",
-               "the EFI bootloader named file-by-file (silent on the fast path)",
-               window=w(120), optional=True)
-    # Two install paths print two different things, and expecting only the slow one made a
-    # PASSING run print a FAIL line. The fast path (try_fast_install, block copy out of the
-    # live disk in RAM) announces itself and then reports percentages; the slow path walks
-    # files. Accept either, and say which was taken -- that is the interesting bit.
+    # These two arrive in a FIXED order, and the harness must ask for them in that same order
+    # or the first request consumes the stream past the second. Read off the guest's source
+    # (installer.rs, `with_whole_disk`): "Installing to RedoxFS partition" is printed at :770,
+    # and the ESP is written afterwards by `write_efi_partition` -- called after the
+    # `with_redoxfs` block returns, unconditionally on BOTH install paths -- which is where the
+    # "BOOTX64.EFI" / "BOOTAA64.EFI" name is printed.
+    #
+    # Corrected 2026-09-02. This pair used to be the other way round, under a comment asserting
+    # that the ESP is written BEFORE the RedoxFS partition. It is not. The cost was a dead
+    # check: a PASSING x86_64 run printed BOTH "saw the EFI bootloader ..." AND "(not seen) the
+    # install starting" -- impossible if the second check could ever match, since an install
+    # must start before an ESP can be written. It also burned a full 120s window (x3 under TCG)
+    # waiting for a line that had already gone past. A check that cannot pass is not a check.
+    #
+    # Two install paths print two different things: the fast path (try_fast_install, block copy
+    # out of the live disk in RAM) announces itself and then reports percentages; the slow path
+    # walks files. Accept either, and say which was taken -- that is the interesting bit.
     con.expect(r"fast install: live disk at|Installing to RedoxFS partition",
                "the install starting (fast or file-by-file)", window=w(120), optional=True)
+    con.expect(r"BOOTAA64\.EFI|BOOTX64\.EFI",
+               "the EFI bootloader written to the ESP",
+               window=w(120), optional=True)
 
     # Race the two outcomes instead of waiting out a failure window first. Once the copy
     # phase genuinely runs it moves 13679 files, so the old "expect failure for 180s, then
