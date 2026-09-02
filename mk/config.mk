@@ -77,13 +77,13 @@ ifeq ($(HOST_TARGET),aarch64-unknown-linux-gnu)
 	ifneq ($(ARCH),aarch64)
 	ifneq ($(ARCH),x86_64)
         $(info The $(ARCH) binary prefix is only built for x86_64 Linux hosts)
-		PREFIX_BINARY=0
+		override PREFIX_BINARY=0
 	endif
 	endif
 else ifeq ($(HOST_TARGET),x86_64-unknown-linux-gnu)
 else
     $(info The $(ARCH) binary prefix is only built for Linux hosts)
-	PREFIX_BINARY=0
+	override PREFIX_BINARY=0
 endif
 endif
 endif
@@ -91,7 +91,13 @@ endif
 ifeq ($(SCCACHE_BUILD),1)
 ifeq (,$(shell command -v sccache))
     $(info sccache not found in PATH)
-	SCCACHE_BUILD=0
+# `override`, bo to WYKRYWANIE MOŻLIWOŚCI, nie preferencja. Zwykłe przypisanie w pliku
+# make jest bezsilne wobec zmiennej podanej w LINII POLECEŃ — zmierzone 2026-09-02:
+#   make X=1  przy `X=0` w pliku  ->  X=1 (przypisanie zignorowane)
+#   make Y=1  przy `override Y=0` ->  Y=0
+# Bez tego komunikat powyżej pojawiał się, a flaga zostawała włączona: build szedł dalej,
+# licząc na coś, czego na tym hoście nie ma.
+	override SCCACHE_BUILD=0
 endif
 endif
 
