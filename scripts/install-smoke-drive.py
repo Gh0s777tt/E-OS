@@ -319,6 +319,25 @@ def _login_once(con):
     return False
 
 
+def _disk_fingerprint(path):
+    """Cheap, sensitive evidence that a file has not been written to.
+
+    st_blocks is what a sparse image grows by the moment anything lands in it, and mtime moves on
+    any write; opening a file changes neither. Together they cost a syscall, which matters because
+    this runs between two prompts the guest is waiting on -- hashing 4 GiB there would time the
+    installer out and turn a passing check into a harness failure.
+
+    Returns None when the path was not supplied, so an older call site keeps working.
+    """
+    if not path:
+        return None
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (st.st_blocks, st.st_size, st.st_mtime_ns)
+
+
 def _offered_size(listing, path):
     """Bytes for `path` as the installer printed them, or 0 when it did not say.
 
@@ -336,7 +355,7 @@ def _offered_size(listing, path):
         return 0
 
 
-def run_install(con):
+def run_install(con, target_img=None):
     con.send("redox_installer_tui")
 
     # R-604a changed this prompt deliberately: the installer no longer takes a NUMBER, because
@@ -364,11 +383,27 @@ def run_install(con):
     # does NOT name any offered disk and require the installer to refuse. If this ever stops
     # printing "refused", the confirmation has become decorative and the next wrong answer
     # erases a disk. A wrong name must cost nothing, so this runs before the real one.
+    # R-604a asks for two things: a wrong name is refused, and NOTHING is written. The first was
+    # observable in the guest's output; the second was only ever inferred from the install starting
+    # afterwards, which is not the same claim. Measure the target disk on both sides of the refusal.
+    before = _disk_fingerprint(target_img)
     con.send(offered[0] + "-not-a-real-disk")
     if not con.expect(r"refused:", "the installer refusing a name that matches no disk",
                       window=w(60)):
         print("install-smoke: FAIL -- a wrong disk name was NOT refused")
         return False
+
+    after = _disk_fingerprint(target_img)
+    if before is None or after is None:
+        print("install-smoke:   (target not measured -- no path given; refusal checked, writes NOT)")
+    elif before != after:
+        print("install-smoke: FAIL -- the target disk CHANGED while the name was being refused")
+        print("install-smoke:   before (blocks, size, mtime_ns): %r" % (before,))
+        print("install-smoke:   after                          : %r" % (after,))
+        return False
+    else:
+        print("install-smoke:   the target disk is byte-for-byte untouched by the refusal "
+              "(%d blocks, mtime unchanged)" % before[0])
 
     # The blank target is the largest offered disk: the live medium is 1.37 GiB and the target
     # created by the harness is 4 GiB. Chosen by SIZE rather than by position for exactly the
@@ -436,6 +471,9 @@ def run_install(con):
 
 def main():
     mode, monitor_path, serial_path, budget, logfile = sys.argv[1:6]
+    # Optional 6th argument: the target disk image, so the refusal can be shown to have
+    # written nothing rather than assumed to have. Absent -> the check says so and skips.
+    target_img = sys.argv[6] if len(sys.argv) > 6 else None
     con = Console(serial_path, int(budget), logfile)
     con.dismiss_boot_menu(monitor_path, toggle_live=os.environ.get("EOS_SMOKE_TOGGLE_LIVE") == "1")
 
@@ -444,7 +482,7 @@ def main():
 
     if not login(con):
         return 1
-    return 0 if run_install(con) else 1
+    return 0 if run_install(con, target_img) else 1
 
 
 if __name__ == "__main__":
