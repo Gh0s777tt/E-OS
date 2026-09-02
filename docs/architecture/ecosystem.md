@@ -57,8 +57,8 @@ shared [eos-ui](https://gitlab.com/e-os/eos-ui) Slint-on-Orbital backend.
 |------|--------|------------|
 | [eos-control](https://gitlab.com/e-os/eos-control) | `main` | unified Crimson control center — system, processes+capabilities, security, storage, power, sound, network |
 | [eos-notes](https://gitlab.com/e-os/eos-notes) | `main` | notes app (Slint + SQLite/WAL) |
-| [eos-guard](https://gitlab.com/e-os/eos-guard) | `main` | filesystem-integrity monitor |
-| [eos-sysmon](https://gitlab.com/e-os/eos-sysmon) | `main` | system monitor |
+| [eos-guard](https://gitlab.com/e-os/eos-guard) | `main` | filesystem-integrity monitor — **repository only, not shipped as an app** (2026-09-02): its blake3 baseline lives on as the Security tab of `eos-control`; `ROADMAP.md` `PR-002` decides whether it ships or leaves the list |
+| [eos-sysmon](https://gitlab.com/e-os/eos-sysmon) | `main` | system monitor — **repository only, not shipped as an app**; same route into `eos-control`, same `PR-002` decision |
 
 ## GUI / desktop
 
