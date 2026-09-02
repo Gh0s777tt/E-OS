@@ -347,7 +347,11 @@ $(PREFIX_RUST_VERSION_TAG):
 	rm -f "$(PREFIX)"/cargo-install.tar.xz
 	rm -f "$(PREFIX)"/rust-std-host-install.tar.xz
 	rm -f "$(PREFIX)"/rust-std-target-install.tar.xz
-	rm -f "$(PREFIX)"/rust-src-install.tar.xz:
+	# The trailing colon here removed 2026-09-02: `rm -f ".../rust-src-install.tar.xz:"`
+	# deleted a file that never existed and returned 0, so the real rust-src tarball
+	# survived every UPSTREAM_RUSTC_VERSION change while its five siblings above were
+	# cleared. Silent, because rm -f is silent about what is not there.
+	rm -f "$(PREFIX)"/rust-src-install.tar.xz
 	mkdir -p "$(@D)"
 	touch $@
 

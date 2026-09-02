@@ -35,7 +35,13 @@ PODMAN_HOME=$(ROOT)/build/podman
 ## Projekty/E-OS") isn't word-split by the shell — an unquoted --volume there
 ## made podman see stray args and fail (`accepts at most 1 arg(s)`).
 PODMAN_VOLUMES=--volume "$(ROOT):$(CONTAINER_WORKDIR)$(PODMAN_VOLUME_FLAG)" --volume "$(PODMAN_HOME):/root$(PODMAN_VOLUME_FLAG)"
-PODMAN_ENV=--env PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PODMAN_BUILD=0
+# EOS_STRICT_FETCH is forwarded because the toolchain fetch happens INSIDE the container:
+# with PODMAN_BUILD=1 (the default, mk/config.mk) the $(PREFIX)/%.tar.gz rule delegates to
+# `$(PODMAN_RUN) make $@`, and the sha256 gate in mk/prefix.mk then reads the variable in a
+# shell that never received it. Setting EOS_STRICT_FETCH=1 on the host therefore did nothing
+# at all in the default build mode -- the escalation from "warn about an unpinned toolchain
+# download" to "refuse it" was unreachable. Found by the 2026-09-02 audit.
+PODMAN_ENV=--env PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env PODMAN_BUILD=0 --env EOS_STRICT_FETCH=$(EOS_STRICT_FETCH)
 PODMAN_CONFIG=--env ARCH=$(ARCH) --env BOARD=$(BOARD) --env CONFIG_NAME=$(CONFIG_NAME) --env FILESYSTEM_CONFIG=$(FILESYSTEM_CONFIG) --env PREFIX_BINARY=$(PREFIX_BINARY) \
                --env CI=$(CI) --env COOKBOOK_MAKE_JOBS=$(COOKBOOK_MAKE_JOBS) --env COOKBOOK_LOGS=$(COOKBOOK_LOGS) --env COOKBOOK_VERBOSE=$(COOKBOOK_VERBOSE) --env COOKBOOK_COMPRESSED=$(COOKBOOK_COMPRESSED) \
                --env REPO_APPSTREAM=$(REPO_APPSTREAM) --env REPO_BINARY=$(REPO_BINARY) --env REPO_NONSTOP=$(REPO_NONSTOP) --env REPO_OFFLINE=$(REPO_OFFLINE) --env TESTBIN=$(TESTBIN) \

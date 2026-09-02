@@ -124,8 +124,12 @@ MOUNTED_TAG=$(MOUNT_DIR)~
 p.%: $(FSTOOLS_TAG) FORCE
 ifeq ($(ALLOW_FSTOOLS),1)
 	@rm -f $(MOUNTED_TAG)
+	# `$(MAKE) mount; touch ...` stood here. The semicolon threw the mount's status away and
+	# the whole `if` reported touch's, i.e. 0 -- a FAILED mount left the tag file behind and
+	# the step continued as though the filesystem were there. `&&` makes the tag mean what it
+	# says: the mount succeeded.
 	@if [ ! -d "$(MOUNT_DIR)" ]; then \
-		$(MAKE) mount; \
+		$(MAKE) mount && \
 		touch $(MOUNTED_TAG); \
 	fi
 endif
@@ -153,8 +157,12 @@ endif
 push: $(FSTOOLS_TAG) FORCE
 ifeq ($(ALLOW_FSTOOLS),1)
 	@rm -f $(MOUNTED_TAG)
+	# `$(MAKE) mount; touch ...` stood here. The semicolon threw the mount's status away and
+	# the whole `if` reported touch's, i.e. 0 -- a FAILED mount left the tag file behind and
+	# the step continued as though the filesystem were there. `&&` makes the tag mean what it
+	# says: the mount succeeded.
 	@if [ ! -d "$(MOUNT_DIR)" ]; then \
-		$(MAKE) mount; \
+		$(MAKE) mount && \
 		touch $(MOUNTED_TAG); \
 	fi
 endif
