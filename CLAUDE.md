@@ -241,6 +241,17 @@ w ścieżkach, których nikt nie przeszedł, bo wszyscy testowali sukces.
 przed i po wygląda tak samo, nie zmierzyłeś swojej zmiany. Przy `R-612a` dopiero to pokazało
 różnicę: stary kod → `FAT12, 1× BOOTX64`, nowy → `brak systemu plików, 0× BOOTX64`.
 
+> **Mierz to polecenie, które wykona się w produkcji, nie to, które wpisałeś ręcznie.** Zmierzone
+> 2026-09-03 (`PR-008`): ustaliłem ręcznie, że `cargo zigbuild --target x86_64-unknown-linux-gnu`
+> buduje produkt na Linuksa — i to była prawda. Potem napisałem `packaging/release.sh`, który dla
+> Linuksa wołał **zwykłe `cargo build`**, i ogłosiłem cel za udowodniony. Nagłówek skryptu twierdził
+> przy tym, że kros na Linuksa **nie działa** — co też kiedyś było prawdą i przestało nią być po
+> włączeniu `fontconfig-dlopen`. Cztery niezależne przebiegi wpadły w to samo: każdy skompilował
+> całość poprawnie i padł **na linkowaniu**, po ~20 minutach, na `ld: unknown options: --as-needed`.
+> Pomiar był prawdziwy, a mimo to fałszywie uzasadniał zdanie o **skrypcie**, bo skrypt robił coś
+> innego niż pomiar. Odtąd: dowodem na „cel X się buduje" jest **przebieg tej ścieżki, którą pójdzie
+> CI i operator**, a nie równoważnego polecenia wpisanego z palca.
+
 **Poziom 5 — integracja na prawdziwym poleceniu.** Nie na zastępniku. `make live`, nie „symulacja
 make". Jeżeli produkt buduje się w kontenerze z `--device /dev/fuse`, to test bez tego urządzenia
 mierzy inny system.
