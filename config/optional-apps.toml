@@ -1,0 +1,86 @@
+# Applications a person may decline while installing E-OS.
+#
+# WHY THIS FILE EXISTS. The owner asked that the bundled programs be "built into the system with
+# the ability to enable or disable them at install". The first half is done -- all seven ship in
+# the image (`PR-016`) -- and the second half needs the installer to know two things this file is
+# the only place that states: WHICH applications are optional, and WHICH FILES each one owns.
+#
+# It is not a list of packages. Removing a package name from the image config removes it from
+# every install; this is about one person, at one install, declining one application that is
+# already on the medium. The fast install path clones the live filesystem wholesale (R-F24), so
+# deselection is a REMOVAL after the clone, and a removal needs an exact file list -- guessing
+# from a package name would leave the launcher entry behind and the icon orphaned.
+#
+# WHAT IS DELIBERATELY NOT HERE. `eos-control` is the settings panel: declining it would leave a
+# system with no way to change its own settings, so it is not offered. `netsurf`, `cosmic-term`,
+# `cosmic-files` and `cosmic-edit` are upstream applications, not E-OS products, and their removal
+# is a different question with different owners.
+#
+# The file lists are checked against each application's recipe by integrity check 24: a recipe that
+# starts installing a new file, or stops installing one, turns this file red rather than letting
+# the installer delete a path that no longer exists (or leave one it never heard of).
+#
+# ONE OF THESE PATHS IS NOT IN THE IMAGE TODAY, AND IT IS LISTED ANYWAY. Measured 2026-09-03 on a
+# mounted copy: none of the six `.png` icons reaches the image, because `/usr/share/ui/icons` is a
+# symlink to `/usr/share/icons`, which has no `apps/` subdirectory -- so the path the recipes
+# install to resolves nowhere. Upstream launcher entries point at the same missing directory, so
+# it is not an E-OS regression; it is `PR-017`.
+#
+# They stay listed because the recipes DO install them and will land once `PR-017` is settled, and
+# because the consumer of this file must treat a missing path as ALREADY REMOVED rather than as an
+# error. Deleting something that is not there is the desired end state, not a failure -- and an
+# installer that stops on it would refuse to honour a person's choice over a file nobody can see.
+
+[eos-notes]
+title = "E-OS Notes"
+summary = "Notatnik z lokalną bazą i szyfrowaniem w spoczynku."
+files = [
+    "/usr/bin/eos-notes",
+    "/usr/share/ui/apps/30_eos-notes",
+    "/usr/share/ui/icons/apps/eos-notes.png",
+]
+
+[eos-guard]
+title = "E-OS Guard"
+summary = "Audyt uprawnień i integralności plików. Nie jest to antywirus."
+files = [
+    "/usr/bin/eos-guard",
+    "/usr/share/ui/apps/40_eos-guard",
+    "/usr/share/ui/icons/apps/eos-guard.png",
+]
+
+[eos-sheets]
+title = "E-OS Sheets"
+summary = "Arkusz kalkulacyjny — siatka, formuły, CSV."
+files = [
+    "/usr/bin/eos-sheets",
+    "/usr/share/ui/apps/30_eos-sheets",
+    "/usr/share/ui/icons/apps/eos-sheets.png",
+]
+
+[eos-slides]
+title = "E-OS Slides"
+summary = "Prezentacje multimedialne."
+files = [
+    "/usr/bin/eos-slides",
+    "/usr/share/ui/apps/30_eos-slides",
+    "/usr/share/ui/icons/apps/eos-slides.png",
+]
+
+[eos-drive]
+title = "E-OS Drive"
+summary = "Klient dysku chmurowego E-Cloud."
+files = [
+    "/usr/bin/eos-drive",
+    "/usr/share/ui/apps/30_eos-drive",
+    "/usr/share/ui/icons/apps/eos-drive.png",
+]
+
+[eos-store]
+title = "E-OS Store"
+summary = "Sklep z aplikacjami — instalacja i aktualizacje pakietów."
+files = [
+    "/usr/bin/eos-store",
+    "/usr/share/ui/apps/30_eos-store",
+    "/usr/share/ui/icons/apps/eos-store.png",
+]
