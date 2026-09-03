@@ -189,6 +189,31 @@ The shell executor runs as your login user, so it shares your `podman` machine a
 `eosbuild` container. The job prepends `/opt/homebrew/bin` to `PATH` so `podman`, `qemu`
 and `git` resolve under the service's minimal environment.
 
+**Shared with the other repositories in the group, 2026-09-03.** The runner was created as a
+*project* runner bound to `e-os/e-os`, and every other repository in the group inherited only the
+shared runners — the ones whose minutes are exhausted. The visible symptom was not a red pipeline
+but a stuck one: `eos-website`'s jobs sat at `stuck_pending_no_matching_runners`, because their
+`tags: [eos-heavy]` matched no runner *that project could see*, and its Pages site therefore had
+**zero deployments** while the repository looked healthy.
+
+```sh
+# The runner is unlocked and run_untagged=false, so enabling it elsewhere is additive:
+# only jobs that ASK for the tag land on this Mac.
+glab api -X POST projects/e-os%2Feos-website/runners -f runner_id=54369740
+glab api projects/e-os%2Feos-website/runners?type=project_type   # -> the runner is listed
+```
+
+Enabled for `eos-website`, `eos-support`, `eos-ui` and the seven product repositories
+(`eos-notes`, `eos-guard`, `eos-control`, `eos-sheets`, `eos-slides`, `eos-drive`, `eos-store`).
+Two properties make this safe to widen rather than a blanket grant: `locked = false` lets a project
+be added without re-registering, and `run_untagged = false` means an untagged job **never** lands
+here by accident. Reverse it per project with
+`glab api -X DELETE projects/<id>/runners/54369740`.
+
+The trade is worth stating plainly: CI for those repositories now executes on the owner's laptop.
+Every one of them is the owner's own, there are no outside contributors, and the alternative was
+measured — a pipeline that cannot run at all.
+
 #### Where the build state actually lives — two named volumes
 
 This is the single most important fact about the heavy runner, and getting it wrong is
