@@ -392,18 +392,27 @@ przed każdym commitem (§13.1). Poprawione 2026-09-03; to samo zdanie stoi w RO
 bash scripts/verify.sh              # 16 etapów; --fast pomija wolne skany i mówi o tym w podsumowaniu
 ```
 
-Haki lokalne są w `lefthook.yml` — **zmierzone 2026-09-03: na tym hoście nie były zainstalowane**
-(`.git/hooks` zawierał tylko pliki `*.sample`, `core.hooksPath` pusty), więc opisywany w README i
-`docs/security/index.md` „zamknięty na czerwono" skan sekretów przed commitem **nie chodził** na tej
-maszynie, a `scripts/hooks/pre-push` też nie. Zainstaluj raz i sprawdź artefakt, nie kod wyjścia:
+Haki lokalne są w `lefthook.yml`. **Zmierzone 2026-09-03 rano: na tym hoście nie były
+zainstalowane** (`.git/hooks` zawierał tylko pliki `*.sample`, `core.hooksPath` pusty), więc
+opisywany w README i `docs/security/index.md` „zamknięty na czerwono" skan sekretów przed commitem
+**nie chodził** na tej maszynie, a `scripts/hooks/pre-push` też nie. **Naprawione tego samego dnia**
+(`RH-006`): `lefthook install` + linia `hygiene`, której żąda nagłówek `.pre-commit-config.yaml`,
+więc dziesięć hooków z tego pliku wreszcie gdziekolwiek chodzi. Sprawdzaj artefakt, nie kod wyjścia:
 
 ```bash
-brew install lefthook && lefthook install && ls .git/hooks | grep -v sample
+brew install lefthook pre-commit && lefthook install && ls .git/hooks | grep -v sample
+bash scripts/verify.sh --fast   # etap `hooks` — pada, gdy w TEJ kopii roboczej haka nie ma
 ```
 
+**Dowód, że hak naprawdę odmawia**, a nie tylko istnieje: podstawiony token kształtu
+`glpat-<20 znaków>` daje `leaks found: 1`, `git commit` kończy się **kodem 1**, czubek gałęzi się
+nie zmienia. Uwaga na pułapkę pomiaru — pierwsza próba użyła **przykładowego klucza AWS
+z dokumentacji**, który reguły `gitleaks` mają na liście dozwolonych: wynik brzmiał
+`no leaks found`, commit przeszedł i wyglądało to **dokładnie jak zepsuty hak**. Mutacja, która
+chybia, jest nie do odróżnienia od bramki, która nie działa (§5.9 poziom 2).
+
 `.pre-commit-config.yaml` **nie jest** drugim menedżerem haków — jego własny nagłówek każe wywoływać
-go *z* lefthooka; dopóki ta linia nie stoi w `lefthook.yml`, dziesięć hooków z tego pliku nie
-istnieje (ROADMAP `RH-006`).
+go *z* lefthooka, i od 2026-09-03 ta linia w `lefthook.yml` stoi.
 
 Ma to znaczenie praktyczne, ale **nie tak jednoznaczne, jak tu wcześniej stało**. Limit minut
 współdzielonych GitLaba wyczerpuje się **z przerwami**, a nie na stałe od 2026-08-28: był
