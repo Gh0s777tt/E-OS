@@ -13,10 +13,22 @@ fsrule = "source"
 [recipes.eos-control]
 fsrule = "source"
 
+[recipes.eos-drive]
+fsrule = "source"
+
 [recipes.eos-guard]
 fsrule = "source"
 
 [recipes.eos-notes]
+fsrule = "source"
+
+[recipes.eos-sheets]
+fsrule = "source"
+
+[recipes.eos-slides]
+fsrule = "source"
+
+[recipes.eos-store]
 fsrule = "source"
 
 [recipes.eos-sysmon]

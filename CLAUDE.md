@@ -427,7 +427,7 @@ obowiązkiem człowieka, dopóki kontrola nie zostanie zaostrzona (ROADMAP, `S-4
 
 ## 11. Ekosystem — typy repozytoriów
 
-**30 repozytoriów** w `repos.toml`. GitLab jest źródłem prawdy, GitHub lustrem tylko do odczytu
+**37 repozytoriów** w `repos.toml`. GitLab jest źródłem prawdy, GitHub lustrem tylko do odczytu
 (`ADR-0001`). **Pomylenie typu repozytorium jest najkosztowniejszym błędem, jaki tu można popełnić.**
 
 Listy poniżej są **sprawdzane maszynowo** wobec `repos.toml` przez `scripts/eos-check-repo-types.py`
@@ -435,7 +435,7 @@ Listy poniżej są **sprawdzane maszynowo** wobec `repos.toml` przez `scripts/eo
 
 ### Typ A — komponenty własne E-OS
 
-`E-OS` · `eos-control` · `eos-guard` · `eos-notes` · `eos-sysmon` · `eos-ui`
+`E-OS` · `eos-control` · `eos-guard` · `eos-notes` · `eos-sysmon` · `eos-ui` · `eos-sheets` · `eos-slides` · `eos-drive` · `eos-store` · `eos-website` · `eos-support`
 
 ### Typ B — vendorowane lustra upstreamu *(READ-ONLY)*
 
@@ -443,7 +443,7 @@ Listy poniżej są **sprawdzane maszynowo** wobec `repos.toml` przez `scripts/eo
 
 ### Typ C — forki z łatkami E-OS
 
-`eos-base` · `eos-bootloader` · `eos-installer` · `eos-kernel` · `eos-orbdata` · `eos-orbital` · `eos-orbutils` · `eos-pkgar` · `eos-pkgutils` · `eos-redoxfs` · `eos-relibc` · `eos-userutils`
+`eos-base` · `eos-bootloader` · `eos-installer` · `eos-kernel` · `eos-orbdata` · `eos-orbital` · `eos-orbutils` · `eos-pkgar` · `eos-pkgutils` · `eos-redoxfs` · `eos-relibc` · `eos-userutils` · `eos-users`
 
 ### Typ D — repozytoria artefaktowe
 

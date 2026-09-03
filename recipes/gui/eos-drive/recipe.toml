@@ -1,0 +1,24 @@
+# Cookbook recipe for eos-drive (E-OS Drive).
+#
+# Install target in the E-OS meta-repo:
+#   recipes/gui/eos-drive/recipe.toml
+# and add "eos-drive" to the package list of the images that should ship it
+# (config/<arch>/eos.toml). Modelled on recipes/gui/eos-notes/recipe.toml.
+#
+# Pinned to the first commit of the repository, created 2026-09-03 (owner decision Q13).
+
+[source]
+git = "https://gitlab.com/e-os/eos-drive.git"
+branch = "main"
+rev = "83309eced44a25562464c78594adf9937358a9c1"
+
+[build]
+template = "custom"
+script = """
+# Default features only: `host-backend` pulls winit, which does not exist on
+# Redox. The Orbital platform comes from eos-ui, which the crate always links.
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/30_eos-drive" "${COOKBOOK_STAGE}/usr/share/ui/apps/30_eos-drive"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-drive.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-drive.png"
+"""

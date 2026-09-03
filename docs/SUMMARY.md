@@ -57,6 +57,7 @@
   - [ADR-0009 System update mechanism](adr/0009-system-update-mechanism.md)
   - [ADR-0010 Encryption stack](adr/0010-encryption-stack.md)
   - [ADR-0011 Installer wizard architecture](adr/0011-installer-wizard-architecture.md)
+- [RFC-0001 A hypervisor interface in the Redox kernel (draft, not submitted)](rfc/0001-hypervisor-in-redox.md)
 
 # Design & specifications
 

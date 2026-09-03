@@ -1,0 +1,24 @@
+# Cookbook recipe for eos-sheets (E-OS Sheets).
+#
+# Install target in the E-OS meta-repo:
+#   recipes/gui/eos-sheets/recipe.toml
+# and add "eos-sheets" to the package list of the images that should ship it
+# (config/<arch>/eos.toml). Modelled on recipes/gui/eos-notes/recipe.toml.
+#
+# Pinned to the first commit of the repository, created 2026-09-03 (owner decision Q13).
+
+[source]
+git = "https://gitlab.com/e-os/eos-sheets.git"
+branch = "main"
+rev = "373c12dbdc038052382f7185c65090715c10f991"
+
+[build]
+template = "custom"
+script = """
+# Default features only: `host-backend` pulls winit, which does not exist on
+# Redox. The Orbital platform comes from eos-ui, which the crate always links.
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/30_eos-sheets" "${COOKBOOK_STAGE}/usr/share/ui/apps/30_eos-sheets"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-sheets.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-sheets.png"
+"""

@@ -356,3 +356,82 @@ type   = "D"
 github = "https://github.com/Gh0s777tt/eos-pkg-x86_64.git"
 gitlab = "https://gitlab.com/e-os/eos-pkg-x86_64.git"
 pinned_in_recipe = false
+
+# ── added 2026-09-03 (owner decision Q13; §7.5.4 of the roadmap) ──
+[[repo]]
+name   = "eos-sheets"
+role   = "gui"
+type   = "A"
+github = "https://github.com/Gh0s777tt/eos-sheets.git"
+gitlab = "https://gitlab.com/e-os/eos-sheets.git"
+# Spreadsheet. Created 2026-09-03 (owner decision Q13); E-OS is the primary platform.
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-sheets"
+pinned_branch = "main"
+pinned_rev    = "373c12dbdc038052382f7185c65090715c10f991"
+
+[[repo]]
+name   = "eos-slides"
+role   = "gui"
+type   = "A"
+github = "https://github.com/Gh0s777tt/eos-slides.git"
+gitlab = "https://gitlab.com/e-os/eos-slides.git"
+# Presentations. Created 2026-09-03 (Q13).
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-slides"
+pinned_branch = "main"
+pinned_rev    = "57c6b46e015d14b9926138e3af8635589987b8ec"
+
+[[repo]]
+name   = "eos-drive"
+role   = "gui"
+type   = "A"
+github = "https://github.com/Gh0s777tt/eos-drive.git"
+gitlab = "https://gitlab.com/e-os/eos-drive.git"
+# Cloud-drive client; the server crate follows the E-Cloud server edition (CS-001).
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-drive"
+pinned_branch = "main"
+pinned_rev    = "83309eced44a25562464c78594adf9937358a9c1"
+
+[[repo]]
+name   = "eos-store"
+role   = "gui"
+type   = "A"
+github = "https://github.com/Gh0s777tt/eos-store.git"
+gitlab = "https://gitlab.com/e-os/eos-store.git"
+# App store client over the signed package index (V2-MS13..15).
+pinned_in_recipe = true
+recipe        = "recipes/gui/eos-store"
+pinned_branch = "main"
+pinned_rev    = "50a40edeb598b5fdd3c1b7215aeaada4591e1fad"
+
+[[repo]]
+name   = "eos-website"
+role   = "web"
+type   = "A"
+github = "https://github.com/Gh0s777tt/eos-website.git"
+gitlab = "https://gitlab.com/e-os/eos-website.git"
+# Project website, static, i18n-first, GitLab Pages (WS-001, WS-005).
+# Not pinned in a recipe: it is not an image package.
+pinned_in_recipe = false
+
+[[repo]]
+name   = "eos-support"
+role   = "support"
+type   = "A"
+gitlab = "https://gitlab.com/e-os/eos-support.git"
+# Ticket project — issues only, no code, no mirror (tickets are not mirrored).
+# Not pinned in a recipe (WS-009).
+pinned_in_recipe = false
+
+[[repo]]
+name   = "eos-users"
+role   = "core"
+type   = "C"
+github = "https://github.com/Gh0s777tt/eos-users.git"
+gitlab = "https://gitlab.com/e-os/eos-users.git"
+upstream = "https://gitlab.redox-os.org/redox-os/users.git"
+# Fork of the redox_users crate carrying the argon2id default (#27, R-602g).
+# Not pinned in a recipe: consumers take it through [patch.crates-io] by tag.
+pinned_in_recipe = false
