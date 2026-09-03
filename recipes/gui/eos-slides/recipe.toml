@@ -1,0 +1,24 @@
+# Cookbook recipe for eos-slides (E-OS Slides).
+#
+# Install target in the E-OS meta-repo:
+#   recipes/gui/eos-slides/recipe.toml
+# and add "eos-slides" to the package list of the images that should ship it
+# (config/<arch>/eos.toml). Modelled on recipes/gui/eos-notes/recipe.toml.
+#
+# Pinned to the first commit of the repository, created 2026-09-03 (owner decision Q13).
+
+[source]
+git = "https://gitlab.com/e-os/eos-slides.git"
+branch = "main"
+rev = "57c6b46e015d14b9926138e3af8635589987b8ec"
+
+[build]
+template = "custom"
+script = """
+# Default features only: `host-backend` pulls winit, which does not exist on
+# Redox. The Orbital platform comes from eos-ui, which the crate always links.
+cookbook_cargo
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/assets/30_eos-slides" "${COOKBOOK_STAGE}/usr/share/ui/apps/30_eos-slides"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-slides.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-slides.png"
+"""
