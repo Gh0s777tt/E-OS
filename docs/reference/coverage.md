@@ -21,5 +21,3 @@ the mutation score (`TQ-006`) and the security proxies (`TQ-002`) answer the oth
 |---|---|---|---|---|
 | `tools/eos-repo-sign` | 41.06 % | yes | 38 | ok |
 | `.` | 6.26 % | no | 0 | advisory — not gated |
-
-Commit: `49bf88274`
