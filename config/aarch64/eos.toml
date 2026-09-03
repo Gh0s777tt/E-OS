@@ -19,8 +19,29 @@ target = "aarch64-unknown-redox"
 [packages.eos-notes]
 # U-095: E-OS Control consolidates the system monitor (eos-sysmon)
 # and the integrity monitor (eos-guard) into one tabbed control center.
-# The standalone repos remain (archived); only eos-control ships.
 [packages.eos-control]
+
+# libonig — issue #26, fixed 2026-09-03. NOT a user-facing package: `cosmic-edit` links
+# oniguruma at RUNTIME, so its generated `auto_deps.toml` demands `libonig`, and the installer
+# refuses to assemble an image whose repository lacks it:
+#     Caused by: Package PackageName("libonig") not found
+# Nothing cooked it, because the cook closure follows BUILD dependencies and libonig is only a
+# runtime one (`libxkbcommon`, the sibling in the same auto_deps line, IS a build dependency of
+# cosmic-edit and was therefore always cooked — which is why only one of the two ever failed).
+# The recipe exists at recipes/wip/libs/other/libonig with `#TODO: promote` in its first line;
+# listing it here is what pulls it into the closure. Measured: #26 was recorded as x86_64-only
+# and "not proven from a pristine tree" — after forcing a re-cook (removing repo.tag, P-2)
+# aarch64 fails identically, so the defect was never architecture-specific.
+[packages.libonig]
+
+# PR-002, owner decision Q12 (2026-09-03): E-OS Guard ships as an application again.
+# The Security tab in eos-control keeps the same blake3 engine, but a monitor the user
+# cannot launch on its own is not a product, and the product list named one. eos-sysmon
+# stays archived — its whole surface is the eos-control Overview tab, and shipping two
+# process lists would be a second answer to one question.
+# The engine still exists twice (this binary and eos-control/src/security/); PR-004 makes
+# it one crate. That is debt, recorded, not hidden.
+[packages.eos-guard]
 
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
