@@ -308,33 +308,50 @@ rustdoc:
 # ──────────────────────────────  LIGHT: docs  ──────────────────────────────
 pages:
   stage: docs
-  image: debian:stable-slim
-  # Publishing the docs site is cosmetic and runs on budget-limited shared
-  # runners; when free-tier minutes are exhausted it fails with
-  # `stuck_pending_no_matching_runners`. Because `docs` sits before the `build`
-  # stage, a hard failure here used to SKIP the heavy `build-image` OS/boot-smoke
-  # job entirely. allow_failure keeps a docs hiccup from reddening the pipeline
-  # or blocking OS build verification (same rationale as the QEMU fork jobs).
-  allow_failure: true
+  # MOVED OFF THE SHARED RUNNERS 2026-09-03 (WS-005, owner decision Q7 "GitLab Pages for now").
+  # Measured before the move: Pages HAS a deployment, from 2026-09-01 16:31 UTC, and nothing since
+  # — every run after that died in ~0 s with `ci_quota_exceeded`, and `allow_failure: true` made
+  # that invisible in the pipeline badge. So the published site silently froze two days behind
+  # `main` while every pipeline looked as green as it ever looks. The eos-heavy runner consumes no
+  # shared minutes, which is the whole reason `local-gates` and `build-image` already live there.
+  tags: [eos-heavy]
+  # `needs: []` detaches this from stage ordering, exactly as `build-image` does: a docs failure
+  # must never skip the only job that boots the OS. That detachment — not `allow_failure` — is what
+  # protects the heavy build, so the failure is allowed to be a failure again. A publish step that
+  # cannot go red publishes silence (§13, `U-140`).
+  needs: []
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
-    MDBOOK_VER: "0.4.40"
-    MERMAID_VER: "0.14.0"
-    # U-118: SHA256 pins for the release binaries (bump alongside *_VER).
-    MDBOOK_SHA256: "9ef07fd288ba58ff3b99d1c94e6d414d431c9a61fdb20348e5beb74b823d546b"
-    MERMAID_SHA256: "37364965fb190cf9929d93c930c6b6c69b2fed05f7658ea2d312882ed59c645e"
+    # Pinned to the versions this book was actually built and read with on 2026-09-03, not to the
+    # versions of the old Linux tarballs (0.4.40 / 0.14.0): mdBook publishes no
+    # aarch64-apple-darwin archive for 0.4.40 (measured: HTTP 404), so the download-verify-extract
+    # path from `U-118` has nothing to fetch on this host. `cargo install --locked` verifies the
+    # registry checksum for every crate it builds, which is the same guarantee by another road.
+    MDBOOK_VER: "0.5.4"
+    MERMAID_VER: "0.17.1"
+    CARGO_HOME: "$CI_PROJECT_DIR/.cargo-pages"
+  cache:
+    key: "pages-tools-$MDBOOK_VER-$MERMAID_VER"
+    paths:
+      - .cargo-pages/
+      - .tools/
   script:
-    - apt-get update -qq && apt-get install -y -qq curl >/dev/null
-    # Download-verify-extract (never pipe straight into tar — U-118).
-    - curl -fsSL -o mdbook.tar.gz "https://github.com/rust-lang/mdBook/releases/download/v${MDBOOK_VER}/mdbook-v${MDBOOK_VER}-x86_64-unknown-linux-gnu.tar.gz"
-    - echo "${MDBOOK_SHA256}  mdbook.tar.gz" | sha256sum -c -
-    - tar xzf mdbook.tar.gz
-    - curl -fsSL -o mdbook-mermaid.tar.gz "https://github.com/badboy/mdbook-mermaid/releases/download/v${MERMAID_VER}/mdbook-mermaid-v${MERMAID_VER}-x86_64-unknown-linux-gnu.tar.gz"
-    - echo "${MERMAID_SHA256}  mdbook-mermaid.tar.gz" | sha256sum -c -
-    - tar xzf mdbook-mermaid.tar.gz
-    - ./mdbook-mermaid install .
-    - ./mdbook build -d public
+    - export PATH="$CI_PROJECT_DIR/.tools/bin:$HOME/.cargo/bin:/opt/homebrew/opt/rustup/bin:/opt/homebrew/bin:$PATH"
+    # Build the tools only when the cache does not already hold the pinned version.
+    - 'mdbook --version 2>/dev/null | grep -q "v${MDBOOK_VER}" || cargo install --locked --version "${MDBOOK_VER}" --root .tools mdbook'
+    - 'mdbook-mermaid --version 2>/dev/null | grep -q "${MERMAID_VER}" || cargo install --locked --version "${MERMAID_VER}" --root .tools mdbook-mermaid'
+    - mdbook --version
+    - mdbook-mermaid install .
+    - mdbook build -d public
+    # THE ARTEFACT IS CHECKED, NOT THE EXIT CODE (§5.3). `mdbook build` reports success for an empty
+    # book, and a `pages` job that publishes an empty site is the textbook false green: the badge is
+    # green, the URL is live, and the content is gone. These three lines are the negative test —
+    # break `src` in book.toml and the job goes red here rather than deploying silence.
+    - test -s public/index.html
+    - test -s public/roadmap/index.html
+    - 'grep -q ''data-roadmap="M1"'' public/roadmap/index.html'
+    - 'echo "pages: $(find public -name "*.html" | wc -l | tr -d " ") HTML pages built, roadmap view present"'
   artifacts:
     paths:
       - public
