@@ -73,10 +73,11 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (18 kontroli + sonda 0)
+bash scripts/ci-integrity.sh                    # bramka integralności (19 kontroli + sonda 0)
 python3 scripts/eos-check-roadmap.py            # kontrola 16: kotwice, numery, jeden status na ID, ✅ tylko z dowodem
 bash scripts/eos-check-assets.sh                # kontrola 17: duplikaty, > 5 MB, sieroty w assets/
 python3 scripts/eos-check-summary.py            # kontrola 18: docs/SUMMARY.md = drzewo docs/
+python3 scripts/eos-check-roadmap-page.py       # kontrola 19: strona roadmapy = ROADMAP.md §3.4
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -303,6 +304,7 @@ wyjście, nie „przeszło") wkleja się do opisu MR (§6).
 | `scripts/*.py` | `python3 -m py_compile`, kontrola 14 (ścieżki w dokumentach), `pyflakes` gdy jest | `bash scripts/ci-integrity.sh` | jak wyżej |
 | `.gitlab-ci.yml`, `.github/workflows/*.yml` | `yamllint`, `actionlint` (GitHub), `glab ci lint` (GitLab); żadne nowe `allow_failure: true` bez zdania *dlaczego* w komentarzu; każda nowa bramka ma `rules`, które **kiedyś są prawdziwe** | `bash scripts/verify.sh --fast` (etap `actionlint`) + `glab ci lint` | `allow_failure` przypadkowo `true` → recenzent ma to zobaczyć w diffie; dla joba: podmień polecenie na `false` na gałęzi i sprawdź, że pipeline jest czerwony |
 | dokumentacja (`*.md`, `docs/SUMMARY.md`) | kontrola 14 (`eos-check-doc-paths.py`), kotwice `](#...)` istnieją, **brak zdublowanych numerów podsekcji**, CRLF zachowane tam, gdzie przypięte (`CHANGELOG.md`), `lychee --offline` gdy jest, `mdbook build` gdy zmienia się `SUMMARY.md`; **ROADMAP:** każdy nowy ID unikalny w rodzinie (Annex A), status ✅ tylko z dowodem `U-NNN`/MR/#issue w tym samym wierszu | `python3 scripts/eos-check-doc-paths.py && bash scripts/ci-integrity.sh` + `scripts/eos-check-roadmap.py` (kotwice, duplikaty, ID) | wstaw ścieżkę do nieistniejącego pliku → kontrola 14 czerwona; zdubluj `### 6.3` → skrypt czerwony |
+| `docs/roadmap/index.html` (strona statusu) | kontrola 19 (`eos-check-roadmap-page.py`): każdy kafelek kamienia milowego **pokazuje** znacznik z `ROADMAP.md` §3.4, każdy cytowany identyfikator istnieje jako wiersz roadmapy, każdy `ADR-NNNN` jako plik w `docs/adr/`. Strona **nie jest** drugą roadmapą — jest jej widokiem | `python3 scripts/eos-check-roadmap-page.py && bash scripts/ci-integrity.sh` | przestaw znacznik po jednej ze stron → czerwono z nazwą kamienia; ukryj `ROADMAP.md` → **exit 2**, nie 1 |
 | `CHANGELOG.md` | wpis `U-NNN`/MR z **czym zweryfikowano**; CRLF; numer nie użyty wcześniej | `bash scripts/ci-integrity.sh` (CRLF) | — |
 | `CLAUDE.md` | każde nazwane polecenie/skrypt/sekcja istnieje (kontrola 14 + `grep -n 'CLAUDE.md §'` w repo, gdy zmieniasz numerację) | jak dokumentacja | usuń nazwany skrypt → kontrola 14 czerwona |
 | `keys/`, `.gitleaks.toml`, `osv-scanner.toml`, `deny.toml` | `gitleaks detect` na drzewie, `pins --strict`, dla kluczy: **wyłącznie publiczne** i opisane w `keys/README.md` | `bash scripts/verify.sh` (etapy `gitleaks`, `cargo-deny`, `osv-scanner`) | podłóż fałszywy klucz prywatny w tymczasowym pliku → `gitleaks` czerwony (i usuń go) |
@@ -496,7 +498,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (18 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (19 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·

@@ -468,5 +468,26 @@ else
   cannot "check 18 could not run: python3 is missing -- SUMMARY.md coverage is UNKNOWN"
 fi
 
+# 19) The published roadmap page says what ROADMAP.md says. The owner asked for ONE plan file and
+# got it -- eight documents merged into one. A rendered page re-creates the second place where the
+# state is written down, so something has to compare them; this does. It reads the mark out of the
+# tile's VISIBLE text, not out of an attribute, because a hidden attribute can stay right while the
+# tile a person reads goes wrong (§5.4). Negative test:
+# `python3 scripts/eos-check-roadmap-page.py --selftest` -- six mutations, each rejected by the rule
+# it breaks.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-roadmap-page.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*roadmap-page: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 19 could not run: ${out##*FAIL (instrument): }"
+  else
+    printf '%s\n' "$out"
+    bad "docs/roadmap/index.html disagrees with ROADMAP.md"
+  fi
+else
+  cannot "check 19 could not run: python3 is missing -- the roadmap page is UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

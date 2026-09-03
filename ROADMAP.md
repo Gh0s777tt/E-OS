@@ -1,9 +1,16 @@
 # E-OS Roadmap
 
-**Last reviewed:** 2026-08-31 · **Owner:** Gh0s777tt · **Status:** current · **Language:** English
-**Tree state:** branch `main` = `821b30fd6`. All 14 merge requests merged, none open.
-`scripts/verify.sh` on `main`: 16 stages, 16 PASS, 0 FAIL, 0 SKIPPED.
-`scripts/eos-repos.sh pins --strict`: 26 OK, 0 drift.
+**Last reviewed:** 2026-09-03 · **Owner:** Gh0s777tt · **Status:** current · **Language:** English
+**Tree state, measured 2026-09-03:** branch `main` = `02cfbb283`. 85 merge requests merged, none open.
+`scripts/verify.sh`: **18 stages, 18 PASS, 0 FAIL, 0 SKIPPED** — on the `eos-heavy` runner as the
+`local-gates` job, not only on a laptop (`TQ-011`).
+`scripts/eos-repos.sh pins --strict`: **30 OK, 0 drift** (was 26 — seven repositories were added on
+2026-09-03 and one fork pin moved).
+`scripts/ci-integrity.sh`: **19 checks** plus the instrument probe as check 0.
+
+> **A rendered view of this file lives at [`docs/roadmap/index.html`](docs/roadmap/index.html)** and is
+> published by the `pages` job at `/roadmap/`. It is a *view*, not a second plan: check 19 compares the
+> marks it shows against §3.4 at every integrity run, so the two cannot drift apart in silence.
 
 > **This file replaces both predecessors: the time-ordered `ROADMAP.md` and the subject-ordered,
 > Polish-language `ROADMAP-v2.md`.** Each of those two documents declared the *other* retired —
@@ -1786,7 +1793,7 @@ sequenced after Tier 1, not alongside the static half.
 |---|---|---|---|---|---|
 | `WS-001` | **Separate repository `eos-website`** *(✅ **done 2026-09-03** — `e-os/eos-website` created and pushed with a GitHub mirror: Astro, static, twelve pages in `pl` and `en`, every string from message catalogues, gates that can go red (`check-i18n`, `check-contrast`, `check-changelog`, `check-built`, `check-ci`) plus `negative-tests.sh`, which breaks each of them on purpose in a throwaway copy and asserts both the exit code and the message)* *(decided 2026-09-03: repository `e-os/eos-website` + mirror created 2026-09-03 — Q6, Q13)* (type A) with its own CI, lockfile-pinned toolchain, the same secret/supply-chain gates as here | nothing | the repository, a `verify.sh` for it, an entry in `repos.toml` | — | S |
 | `WS-002` | **i18n as the first commit, not the last** — every string in message catalogues, locale negotiation, RTL-ready layout, Polish and English as the first two locales | mdBook is single-language; docs are mixed PL/EN with no switch | a catalogue format and the build step that fails on an untranslated key | `WS-001` | M |
-| `WS-003` | **Static site: home, About, products, developers, changelog, downloads, legal** | mdBook covers docs only | pages generated from this repository's `CHANGELOG.md`, `README.md` and `ROADMAP.md` so the site cannot drift from them (the drift this file documents in §1.4 is the reason) | `WS-002` | M |
+| `WS-003` | **Static site: home, About, products, developers, changelog, downloads, legal** *(the roadmap page half **done 2026-09-03**: `docs/roadmap/index.html` ships inside the mdBook tree, so the existing `pages` job publishes it at `/roadmap/` with no CI change. It is a **view**, not a second plan — the eight milestone tiles show the marks from §3.4 and check 19 (`eos-check-roadmap-page.py`) compares them at every `ci-integrity` run. The mark is read out of the tile's **visible text**, because §5.4 says a gate on presence is not a gate: a hidden attribute can stay right while the tile a person reads goes wrong. Four controls measured, not assumed — flip the mark in the plan → red naming M1; flip it on the page → red naming M2; cite `R-607z` → red naming the identifier; hide `ROADMAP.md` → **exit 2**, the instrument code, not exit 1)* | mdBook covers docs only | the remaining pages generated from this repository's `CHANGELOG.md` and `README.md` the same way, so the site cannot drift from them (the drift this file documents in §1.4 is the reason) | `WS-002` | M |
 | `WS-004` | **Legal pages that exist as documents first** — privacy policy, terms, trademark policy for the "E-OS" name, accessibility statement | `NOTICE` reserves the trademark and states provenance; `SECURITY.md` and `stability.md` are the support policy; privacy, terms and accessibility do not exist | the owner writes or commissions them; the site renders them; not a coding task | owner | S |
 | `WS-005` | **Downloads with a real gate** *(decided 2026-09-03: hosted on GitLab Pages for now, the `pages` job on the `eos-heavy` runner; the static host cannot enforce the gate server-side, so artefact links are simply not published until the flag flips — Q7)* — "developers only" until the owner flips it | ungated and public already: the package index on GitHub Pages (aarch64 live) and nightly images as CI artefacts; a GitHub Release object exists for `v0.1.0` only | the switch must be **server-side** (`CS-004` identity): a client-side toggle on a static host is decoration, not access control | `CS-001`, `CS-004` | M |
 | `WS-006` | **Search** across docs, changelog, products, support | mdBook's built-in only | a static index for the static half; a service for tickets/FAQ later | `WS-003` | S |
