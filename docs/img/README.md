@@ -10,7 +10,7 @@ owner: Gh0s777tt
 **Canonical screenshots live in [`assets/screenshots/`](../../assets/screenshots)**
 (full-resolution, as captured from QEMU). mdBook only ships files under `docs/`,
 so the handful of images the documentation embeds are kept here as
-**web-optimized copies** (≤1100 px wide, 256-colour quantized PNG — ~20× smaller
+**web-optimized copies** (≤1100 px wide, 256-colour quantized PNG — 1.2–2.6× smaller (measured 2026-09-03 over 16 pairs; `eos-bootloader.png` here is 6.2× *larger* than its source and has different dimensions — regenerate it)
 than the originals, text still crisp).
 
 When you add or refresh a screenshot in the docs:

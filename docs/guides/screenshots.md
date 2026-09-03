@@ -87,3 +87,13 @@ Both architectures boot to the desktop; aarch64 is the primary dev loop
 
 ![The aarch64 desktop](../img/eos-aarch64-desktop.png)
 *The aarch64 Crimson desktop.*
+
+## Brand assets (sources, not screenshots)
+
+The seven files below are the brand sources, kept in `assets/` on purpose and cited here so that
+`scripts/eos-check-assets.sh` (integrity check 17) can refuse an *uncited* asset without refusing
+these: `assets/eos-logo.svg` (the mark), `assets/eos-wallpaper.svg` and its raster
+`assets/eos-wallpaper.jpg` (the desktop wallpaper shipped by the image), `assets/eos-login.svg` /
+`assets/eos-login.png` (the greeter backdrop), `assets/eos-starticon.svg` / `assets/eos-starticon.png`
+(the launcher icon). Screenshots that no page cited were removed on 2026-09-03 at the owner's request
+and archived outside the repository (`ROADMAP.md` §11.7, `RH-003`).
