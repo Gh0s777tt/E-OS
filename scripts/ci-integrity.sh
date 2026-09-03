@@ -489,5 +489,26 @@ else
   cannot "check 19 could not run: python3 is missing -- the roadmap page is UNCHECKED"
 fi
 
+# 20) No CHANGELOG entry is filed under a release that had already shipped when it happened.
+# Measured 2026-09-03: six top-level entries describing that day's work sat under
+# `## [0.2.0] - 2026-08-22`. Every other gate was green -- the Markdown is valid, the CRLF endings
+# were intact, and the entries were accurate. Only their POSITION lied, and a reader asking "what
+# shipped in 0.2.0?" would have been told about work that did not exist yet. Counter-control run
+# before the rule was written: 6 hits on the tree before the fix, 0 after. Negative test:
+# `python3 scripts/eos-check-changelog-sections.py --selftest`.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-changelog-sections.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*changelog-sections: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 20 could not run: ${out##*FAIL (instrument): }"
+  else
+    printf '%s\n' "$out"
+    bad "a CHANGELOG entry sits under a release that had already shipped"
+  fi
+else
+  cannot "check 20 could not run: python3 is missing -- CHANGELOG sections are UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
