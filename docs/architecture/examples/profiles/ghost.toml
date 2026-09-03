@@ -38,7 +38,7 @@ Nie daje żadnej z poniższych, których ludzie po takim profilu oczekują:
 
   * NIE daje anonimowości sieciowej. Twój adres IP i MAC są widoczne. Nie ma Tora
     (nie ma portu, nie ma zapory, która mogłaby wymusić ruch przez proxy), nie ma VPN
-    w obrazie, nie ma Wi-Fi. docs/archive/plan.md §3.2: „Do NOT promise this.”
+    w obrazie, nie ma Wi-Fi. ROADMAP.md §17.3.2: „Do NOT promise this.”
   * NIE randomizuje adresu MAC. `ifaces/<if>/mac` jest zapisywalny i istnieje pośrednik
     `eos-netcfg`, ale podkomendy `randomize-mac` NIE MA, a nazwa interfejsu jest zaszyta.
   * NIE izoluje aplikacji od siebie. Piaskownicy nie ma (znalezisko C-5): `recipes/core/contain`

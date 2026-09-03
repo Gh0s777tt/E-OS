@@ -46,7 +46,7 @@ description = "Starts `raid1d` after `00_base.target`. The daemon exits quietly 
 
 [effects.off.text.pl]
 description   = "Brak demona lustra."
-residual_risk = "Awaria jednego dysku to utrata systemu. Nie ma kopii zapasowej ani ścieżki odtworzenia w obrazie (docs/archive/plan.md §2.1 wymienia backup/restore jako brakujące, bez pozycji roadmapy)."
+residual_risk = "Awaria jednego dysku to utrata systemu. Nie ma kopii zapasowej ani ścieżki odtworzenia w obrazie (ROADMAP.md §17.2.1 wymienia backup/restore jako brakujące, bez pozycji roadmapy)."
 
 [effects.off.text.en]
 description   = "No mirror daemon."

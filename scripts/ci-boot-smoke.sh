@@ -62,6 +62,7 @@ case "$ARCH" in
   # trustworthy run. MEASURED, not estimated: boot to login is 19s under TCG and 10s under
 # hvf -- about 1.9x, not the order of magnitude the raw speed of the copy suggested.
     if [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
+      # shellcheck disable=SC2054  # the comma is inside ONE qemu argument (virt,accel=hvf), not a separator
       MACHINE_ARGS=(-machine virt,accel=hvf -cpu host -device ramfb)
     else
       MACHINE_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)

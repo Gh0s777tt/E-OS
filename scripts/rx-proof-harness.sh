@@ -52,6 +52,11 @@ case "$ARCH" in
     ;;
   *) echo "rx-proof: unknown arch '$ARCH' (use aarch64|x86_64)" >&2; exit 2 ;;
 esac
+# P-15 (CLAUDE.md §8): on bash 3.2 a non-numeric value inside $(( )) ends the script with status 0,
+# so an unvalidated TIMEOUT/SETTLE could truncate the proof and report success. Validate first.
+for v in TIMEOUT SETTLE; do
+  case "$(eval "printf %s \"\$$v\"")" in ''|*[!0-9]*) echo "rx-proof: $v must be seconds (digits), got '$(eval "printf %s \"\$$v\"")'" >&2; exit 2 ;; esac
+done
 [ -x "$QEMU" ] || { echo "rx-proof: qemu not found: $QEMU" >&2; exit 2; }
 [ -f "$FW_CODE" ] || { echo "rx-proof: firmware not found: $FW_CODE" >&2; exit 2; }
 
@@ -168,6 +173,7 @@ PY
   }
 
   # canonical SLIRP user-net + explicit NIC + filter-dump pcap (mk/qemu.mk:232 pattern)
+  # shellcheck disable=SC2054  # commas are inside single qemu arguments (user,id=net0), not separators
   local NET=(-netdev user,id=net0 -device "${dev},netdev=net0"
              -object "filter-dump,id=f0,netdev=net0,file=$PCAP")
   local A=()

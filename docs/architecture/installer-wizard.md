@@ -419,7 +419,7 @@ Trzy różne rzeczy, które zamówienie zlewa w jedną:
 |---|---|---|
 | **Wypalenie nośnika instalacyjnego na USB przez `dd`** | **JEST** | `docs/getting-started/install.md` §4 — `harddrive.img` i `redox-live.iso` |
 | **Wypalenie przez `popsicle`** | **[NIEZWERYFIKOWANE]** | cel istnieje — `Makefile:16-17`: `popsicle: $(BUILD)/redox-live.iso` → `popsicle-gtk …` — ale wywołuje **linuksowe narzędzie GTK po stronie hosta**, którego na hoście budowania tego projektu (macOS/Apple Silicon, `CLAUDE.md` §9) nie ma; `installer.md:94` mówi wprost, że ta ścieżka **nigdy nie była testowana przez E-OS**. Istnienie celu Make nie jest dowodem na „JEST" |
-| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `docs/archive/hardware-plan.md`). Kreator nie może się na to powoływać |
+| **Wypalenie przez Ventoy (`scripts/ventoy.sh`)** | **NIE DZIAŁA dziś** | `R-F28`: skrypt ma zaszyte `ARCHS=(i686 x86_64)` i `CONFIGS=(demo desktop)`, a `CONFIG_NAME=eos` w nim **nie występuje** — zbuduje i skopiuje cudzy obraz (`ROADMAP.md`, `installer.md:142`, `ROADMAP.md` §18). Kreator nie może się na to powoływać |
 | **Instalacja E-OS *na* pendrive jako cel** | **DO ZBUDOWANIA** (`S`) | silnik pisze na dowolne `/scheme/disk/...`; brakuje wykrycia „to jest wymienne" i ostrzeżenia |
 | **Instalacja z USB na USB** (źródło i cel wymienne) | **DO ZBUDOWANIA** (`M`) | wymaga rozróżnienia źródła od celu — patrz pierwsza reguła odmowy w §4.6 (`R-604c`) |
 

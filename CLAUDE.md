@@ -73,7 +73,10 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (14 kontroli)
+bash scripts/ci-integrity.sh                    # bramka integralności (18 kontroli + sonda 0)
+python3 scripts/eos-check-roadmap.py            # kontrola 16: kotwice, numery, jeden status na ID, ✅ tylko z dowodem
+bash scripts/eos-check-assets.sh                # kontrola 17: duplikaty, > 5 MB, sieroty w assets/
+python3 scripts/eos-check-summary.py            # kontrola 18: docs/SUMMARY.md = drzewo docs/
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -280,6 +283,39 @@ Bieżący stan, zmierzony 2026-08-31 (`cargo llvm-cov --summary-only`): `tools/e
 próg 38. Vendorowany
 cookbook — 9 testów, bez progu.
 
+### 5.11 Każda zmiana jest weryfikowana, zanim nazwie się skończoną — tabela: rodzaj zmiany → kontrola
+
+Reguły §5.1–§5.10 mówią *jak* weryfikować kod. Ta tabela mówi, **co uruchomić dla każdego rodzaju
+zmiany**, żeby żadna klasa plików nie wchodziła do `main` bez kontroli, która potrafi zaświecić na
+czerwono. Zasada: **nie ma zmiany „tylko w dokumentacji", „tylko w konfiguracji" ani „tylko w
+skrypcie" — jest zmiana, która ma swoją bramkę, albo zmiana, której nie wolno scalić.** Jeśli dla
+rodzaju zmiany bramki nie ma, pierwszym krokiem jest ją dopisać (do `scripts/verify.sh` albo
+`scripts/ci-integrity.sh`), a dopiero drugim — zrobić zmianę. Wynik każdej kontroli (prawdziwe
+wyjście, nie „przeszło") wkleja się do opisu MR (§6).
+
+| co zmieniasz | co musi przejść przed commitem | polecenie | test negatywny (§5.4) |
+|---|---|---|---|
+| kod własny (`tools/`, forki typu A) | fmt, clippy `-D warnings`, `cargo test`, pokrycie ≥ podłoga (§5.10), `cargo-deny`, `osv-scanner` | `bash scripts/verify.sh` | jeden test, który pada bez zmiany — pokazany na czerwono |
+| kod vendorowany (typ B, `src/`, `recipes/**`) | forma upstreamu (`ADR-0003`), `ci-integrity.sh` kontrole 1/4/5, `cargo test` na manifeście głównym; pin blake3 dla tarballi (kontrola 12) | `bash scripts/verify.sh --fast && bash scripts/ci-integrity.sh` | zepsuty TOML receptury → `eos-check-tar-pins.py` BAD |
+| `config/**/*.toml` | składnia TOML, kontrola 9 (`50_redox`/klucz), lista pakietów istnieje w `recipes/` (`eos-check-tar-pins.py`), boot-smoke tej architektury, gdy zmienia się zestaw pakietów lub init | `bash scripts/ci-integrity.sh && bash scripts/ci-boot-smoke.sh <arch>` | wpis pakietu bez receptury → czerwono |
+| `mk/*.mk`, `Makefile`, `podman/*` | `make -n <cel>` na czysto, `hadolint` na containerfile'ach, `actionlint`/`yamllint` nie dotyczą; **każdy cel z `$(MAKE)` propaguje status** (P-14 nie dotyczy, ale `mk/repo.mk` — pułapka `;` vs `&&`) | `bash scripts/verify.sh --fast` + jeden pełny `eos-build.sh <arch>` przy zmianie ścieżki budowania | wymuszony błąd w celu podrzędnym → `make` kończy się ≠ 0 |
+| `scripts/*.sh`, `scripts/hooks/*` | `shellcheck -S error` (blokuje) i `-S warning` (doradczo, ale nowe trafienia w skryptach **własnych** się usuwa), kontrole 5/13 (`set -u` w `$(( ))`, tablice pod `set -u`), **nagłówek z opisem i `--help`**, kod wyjścia 1 ≠ 2 (§11.3) | `bash scripts/verify.sh --fast` | uruchom skrypt na wejściu, na którym ma paść — musi paść, a nie zakończyć się 0 (§5.9, poziom 2) |
+| `scripts/*.py` | `python3 -m py_compile`, kontrola 14 (ścieżki w dokumentach), `pyflakes` gdy jest | `bash scripts/ci-integrity.sh` | jak wyżej |
+| `.gitlab-ci.yml`, `.github/workflows/*.yml` | `yamllint`, `actionlint` (GitHub), `glab ci lint` (GitLab); żadne nowe `allow_failure: true` bez zdania *dlaczego* w komentarzu; każda nowa bramka ma `rules`, które **kiedyś są prawdziwe** | `bash scripts/verify.sh --fast` (etap `actionlint`) + `glab ci lint` | `allow_failure` przypadkowo `true` → recenzent ma to zobaczyć w diffie; dla joba: podmień polecenie na `false` na gałęzi i sprawdź, że pipeline jest czerwony |
+| dokumentacja (`*.md`, `docs/SUMMARY.md`) | kontrola 14 (`eos-check-doc-paths.py`), kotwice `](#...)` istnieją, **brak zdublowanych numerów podsekcji**, CRLF zachowane tam, gdzie przypięte (`CHANGELOG.md`), `lychee --offline` gdy jest, `mdbook build` gdy zmienia się `SUMMARY.md`; **ROADMAP:** każdy nowy ID unikalny w rodzinie (Annex A), status ✅ tylko z dowodem `U-NNN`/MR/#issue w tym samym wierszu | `python3 scripts/eos-check-doc-paths.py && bash scripts/ci-integrity.sh` + `scripts/eos-check-roadmap.py` (kotwice, duplikaty, ID) | wstaw ścieżkę do nieistniejącego pliku → kontrola 14 czerwona; zdubluj `### 6.3` → skrypt czerwony |
+| `CHANGELOG.md` | wpis `U-NNN`/MR z **czym zweryfikowano**; CRLF; numer nie użyty wcześniej | `bash scripts/ci-integrity.sh` (CRLF) | — |
+| `CLAUDE.md` | każde nazwane polecenie/skrypt/sekcja istnieje (kontrola 14 + `grep -n 'CLAUDE.md §'` w repo, gdy zmieniasz numerację) | jak dokumentacja | usuń nazwany skrypt → kontrola 14 czerwona |
+| `keys/`, `.gitleaks.toml`, `osv-scanner.toml`, `deny.toml` | `gitleaks detect` na drzewie, `pins --strict`, dla kluczy: **wyłącznie publiczne** i opisane w `keys/README.md` | `bash scripts/verify.sh` (etapy `gitleaks`, `cargo-deny`, `osv-scanner`) | podłóż fałszywy klucz prywatny w tymczasowym pliku → `gitleaks` czerwony (i usuń go) |
+| `assets/`, `docs/img/` | żaden plik > 5 MB bez pytania (§7); brak duplikatów (ta sama suma w dwóch katalogach); każdy obraz cytowany z dokumentu | `scripts/eos-check-assets.sh` | duplikat → czerwono |
+| receptura nowego produktu / repozytorium typu A | pin w `repos.toml` **i** w recepturze zgodny (`pins --strict`), lustro GitHub zsynchronizowane, boot-smoke z nowym pakietem, wiersz w README *Shipped* | `bash scripts/eos-repos.sh pins --strict && bash scripts/ci-boot-smoke.sh <arch>` | rozjazd pinów → `pins --strict` ≠ 0 |
+
+**Trzy pułapki, przez które ta tabela istnieje.** (1) Zmiana „tylko w dokumentacji" scaliła
+`docs/architecture/overview.md` jako drugi punkt wejścia obok `ARCHITECTURE.md` i przez rok nikt nie
+wiedział, który jest pierwszy (Annex C.2 roadmapy). (2) `ROADMAP.md` dostał dwa razy `### 6.3`
+(2026-09-02) — kotwica wskazywała pierwszy, treść była w drugim; żadna bramka tego nie widziała.
+(3) `.github/workflows/docs.yml:6` przez tygodnie wskazywał nieistniejącą ścieżkę, bo kontrola 14
+wyłączała się na całej linii z URL-em (§1.4 roadmapy). Każda z tych trzech była „zmianą bez ryzyka".
+
 ---
 
 ## 6. Definicja ukończenia
@@ -290,6 +326,7 @@ Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
 - [ ] Testy przechodzą — pełny zestaw, nie wybrany podzbiór
 - [ ] `shellcheck` bez błędów, `clippy` bez ostrzeżeń w kodzie własnym
 - [ ] `bash scripts/ci-integrity.sh` → `integrity: PASS`
+- [ ] **Kontrola z tabeli §5.11 dla każdego rodzaju zmienionego pliku** uruchomiona, wynik wklejony; brak bramki dla rodzaju = najpierw bramka
 - [ ] `gitleaks`, `osv-scanner`, `hadolint` bez nowych trafień
 - [ ] **Artefakt sprawdzony** — nie tylko kod wyjścia (§5.3)
 - [ ] Test **negatywny** istnieje dla każdej dodanej kontroli (§5.4)
@@ -343,18 +380,26 @@ Każda zmierzona, nie wydedukowana.
 
 ## 9. Skrypt weryfikacyjny
 
-Docelowo jedno polecenie uruchamiające cały §5.2:
+Jedno polecenie uruchamiające cały §5.2 **istnieje** — ta sekcja przez tygodnie twierdziła, że nie
+(nazywała je `eos-verify.sh` i „PENDING"), podczas gdy `scripts/verify.sh` miał 16 etapów i chodził
+przed każdym commitem (§13.1). Poprawione 2026-09-03; to samo zdanie stoi w ROADMAP §11.3.
 
 ```bash
-bash scripts/eos-verify.sh          # PENDING — patrz ROADMAP, PROMPT 4
+bash scripts/verify.sh              # 16 etapów; --fast pomija wolne skany i mówi o tym w podsumowaniu
 ```
 
-**Ten skrypt jeszcze nie istnieje.** Do czasu jego powstania uruchamiaj kontrole z §2 pojedynczo.
-Lokalna siatka zastępcza jest w `lefthook.yml` — zainstaluj raz:
+Haki lokalne są w `lefthook.yml` — **zmierzone 2026-09-03: na tym hoście nie były zainstalowane**
+(`.git/hooks` zawierał tylko pliki `*.sample`, `core.hooksPath` pusty), więc opisywany w README i
+`docs/security/index.md` „zamknięty na czerwono" skan sekretów przed commitem **nie chodził** na tej
+maszynie, a `scripts/hooks/pre-push` też nie. Zainstaluj raz i sprawdź artefakt, nie kod wyjścia:
 
 ```bash
-brew install lefthook && lefthook install
+brew install lefthook && lefthook install && ls .git/hooks | grep -v sample
 ```
+
+`.pre-commit-config.yaml` **nie jest** drugim menedżerem haków — jego własny nagłówek każe wywoływać
+go *z* lefthooka; dopóki ta linia nie stoi w `lefthook.yml`, dziesięć hooków z tego pliku nie
+istnieje (ROADMAP `RH-006`).
 
 Ma to znaczenie praktyczne, ale **nie tak jednoznaczne, jak tu wcześniej stało**. Limit minut
 współdzielonych GitLaba wyczerpuje się **z przerwami**, a nie na stałe od 2026-08-28: był
@@ -450,7 +495,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (14 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (18 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·

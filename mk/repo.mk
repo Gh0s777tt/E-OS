@@ -385,7 +385,7 @@ export DEBUG_BIN?=
 # Experimental, may not work if ARCH is different with what host is running
 debug.%: $(FSTOOLS_TAG) FORCE
 ifeq ($(PODMAN_BUILD),1)
-	@cd $(shell make find.$* | grep ^recipes) && \
+	@dir="$$($(MAKE) -s find.$* 2>/dev/null | grep ^recipes)"; [ -n "$$dir" ] || { echo "recipe $* not found (find.$* printed no recipes/ path)"; exit 1; }; cd "$$dir" && \
 		export RECIPE_STAGE=target/$(TARGET)/stage && \
 		export BIN_PATH=$$(find $$RECIPE_STAGE -type f -name "$(DEBUG_BIN)" -or -type f -name "$*") && \
 		file $$BIN_PATH 2> /dev/null || ( echo "Binary is not found, please set DEBUG_BIN" && exit 1 ) && \
@@ -398,7 +398,7 @@ ifeq ($(PODMAN_BUILD),1)
 			-ex 'add-symbol-file /binary' \
 			-ex 'target remote host.containers.internal:1234'"
 else
-	@cd $(shell make find.$* | grep ^recipes) && \
+	@dir="$$($(MAKE) -s find.$* 2>/dev/null | grep ^recipes)"; [ -n "$$dir" ] || { echo "recipe $* not found (find.$* printed no recipes/ path)"; exit 1; }; cd "$$dir" && \
 		export RECIPE_STAGE=target/$(TARGET)/stage && \
 		export BIN_PATH=$$(find $$RECIPE_STAGE -type f -name "$(DEBUG_BIN)" -or -type f -name "$*") && \
 		file $$BIN_PATH 2> /dev/null || ( echo "Binary is not found, please set DEBUG_BIN" && exit 1 ) && \

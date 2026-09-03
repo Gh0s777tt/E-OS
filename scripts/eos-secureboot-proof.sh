@@ -21,7 +21,8 @@
 # ~/eos-artifacts/sbproof) and are throwaway.
 set -uo pipefail
 
-ARCH=x86_64
+# (ARCH was assigned here and never read -- SC2034; the proof is x86_64-only by construction,
+#  see the qemu binary and the edk2 firmware paths below.)
 VOL="${EOS_BUILD_VOLUME:-eos-work}"
 DIR="${EOS_SB_DIR:-$HOME/eos-artifacts/sbproof}"
 QEMU="$(command -v qemu-system-x86_64 || echo /opt/homebrew/bin/qemu-system-x86_64)"

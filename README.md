@@ -174,9 +174,22 @@ Everything in the **Shipped** table was verified on 2026-08-30 by mounting the b
 ### Deliberately absent
 
 No antivirus, no VPN/Tor, no backup tool, no SELinux/AppArmor. The access-control model is the
-per-user scheme allowlist above; file integrity monitoring lives inside `eos-control`. These are
-choices, not omissions — the reasoning is in **Precision added 2026-09-02:** that sentence is true of antivirus and MAC (`ROADMAP.md` §13 refuses both). Backup tooling and VPN/Tor are **gaps, not choices** — the roadmap tracks them as `L-4` / `CS-002` (backup) and `R-616c` / `CS-006` (VPN, Tor as new subsystems). Listing them here as "deliberate" was drift, caught by the adversarial pass of the 2026-09-02 inventory.
+per-user scheme allowlist above; file integrity monitoring lives inside `eos-control`.
+
+Two of those four are **choices** and two are **gaps**, and the earlier wording blurred them
+(caught by the adversarial pass of the 2026-09-02 inventory): antivirus and MAC are refused with
+reasons (`ROADMAP.md` §13; the antivirus answer in full is [§7.5.3](ROADMAP.md#753-the-antivirus-answer) —
+the security product is **E-OS Guard**, integrity and permission monitoring, and the word
+"antivirus" is not used until an on-access engine exists). Backup tooling and VPN/Tor are gaps the
+roadmap tracks as `L-4` / `CS-002` (backup) and `R-616c` / `CS-006` (VPN, Tor as new subsystems).
+The inventory behind this paragraph is
 [`docs/audit/02-feature-inventory-2026-08-30.md`](docs/audit/02-feature-inventory-2026-08-30.md) §3.
+
+**Products beyond E-OS.** The Slint applications (`eos-notes`, `eos-control`, `eos-ui`) type-check
+on a non-Redox host today (`cargo check` clean on macOS, measured 2026-09-03) but have no host window
+backend yet; Windows and Linux builds, the four new products (spreadsheet, presentations, cloud
+drive, app store) and the install-time on/off switch are `PR-*` rows in
+[`ROADMAP.md` §7.5](ROADMAP.md#75-products--in-the-image-on-windows-and-linux-and-the-four-new-ones--pr-).
 
 ---
 
@@ -268,6 +281,13 @@ fixed, among them a secret scan that failed **open** when `gitleaks` was absent,
 pipeline that signed without ever verifying what it signed, and a Secure Boot check that
 reported success having examined no files. Each fix carries a measurement in both directions;
 the register is [`ROADMAP.md` §1.4](ROADMAP.md#14-gate-quality-audit-2026-09-02).
+
+Three gates were added on 2026-09-03, each with a negative self-test, and each found something on
+its first run: `eos-check-roadmap.py` (two ✅ rows with no evidence), `eos-check-assets.sh` (one
+byte-identical screenshot under two names, 26 images no document cites) and `eos-check-summary.py`
+(fourteen documentation pages that were never listed in the book). The hygiene ledger is
+[`ROADMAP.md` §11.7](ROADMAP.md#117-repository-hygiene--what-left-the-tree-what-waits-for-the-owner-what-keeps-it-clean--rh-);
+the rule that every kind of change has a named check is `CLAUDE.md` §5.11.
 
 ---
 
@@ -411,7 +431,7 @@ The full documentation set lives in [`docs/`](docs/) and is published as an mdBo
 
 | Document | Purpose |
 |---|---|
-| [`ROADMAP.md`](ROADMAP.md) | delivered work, planned work, security roadmap, installer epics |
+| [`ROADMAP.md`](ROADMAP.md) | **the single plan** — delivered work, every open item ordered from the quickest to the heaviest (§3.0), the subject registers, and the six plans merged from `docs/archive/` (§17–§21) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | environment, branch strategy, commit format, PR checklist, release process |
 | [`SECURITY.md`](SECURITY.md) | supported versions, private reporting, disclosure policy, scope |
 | [`CHANGELOG.md`](CHANGELOG.md) | Keep a Changelog history grouped by release |

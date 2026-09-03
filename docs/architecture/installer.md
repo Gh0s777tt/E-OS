@@ -128,7 +128,7 @@ persystowanego dziennika**, a stan wznawiania jest wyłącznie w pamięci.
 kasowanie całego dysku"*. Brak partycjonowania ręcznego, brak instalacji obok, brak zmiany
 rozmiaru. `scripts/dual-boot.sh` **nie jest tego obejściem**: to skrypt upstreamowy, uruchamiany
 na **hoście linuksowym**, wymagający `bootctl --print-esp-path` (czyli systemd-boot) i
-`popsicle`, i — jak mówi `docs/archive/hardware-plan.md` ETAP 3 — **nigdy nie testowany przez E-OS**.
+`popsicle`, i — jak mówi `ROADMAP.md` §18.3 — **nigdy nie testowany przez E-OS**.
 
 **7. Wybór dysku to gołe menu numeryczne.** `R-604`: *„Whole-disk-erase hides behind a bare
 numeric menu / single 'Confirm' button with no disk identification"*. Harness potwierdza kształt:
@@ -225,7 +225,7 @@ skoro obraz jest hybrydowy; **nikt tego nie sprawdził**, więc do czasu przebie
 **14. `scripts/ventoy.sh` nie zna konfiguracji `eos`.** Ma zaszyte `CONFIGS=(demo desktop)`
 i `ARCHS=(i686 x86_64)` — `R-F28`. Zbuduje i skopiuje cudze obrazy.
 
-**15. Zero pomiarów ze sprzętu.** `docs/archive/hardware-plan.md`: *„Nic w tym repozytorium nigdy nie
+**15. Zero pomiarów ze sprzętu.** `ROADMAP.md` §18: *„Nic w tym repozytorium nigdy nie
 działało na fizycznym sprzęcie — każda weryfikacja to QEMU"*. `ROADMAP.md` §14.1 powtarza:
 *„`R-601` udowodnione wyłącznie pod QEMU/TCG"*.
 
@@ -300,7 +300,7 @@ pozycję. Napisanie tego wprost w `docs/getting-started/install.md` jest tańsze
 | `CI=1` przy budowaniu nieinteraktywnym | **JEST** (`docs/getting-started/building.md`, panika `repo.rs:1693`) |
 | narzędzie do złożenia hybrydy ISO | **JEST** — składa ją sam instalator przy `--live`; `xorriso` **nie jest** do tego potrzebny na hoście. (`recipes/wip/tools/xorriso` i `recipes/wip/tools/mkisofs-rs` to receptury **dla Redoksa**, obie z `#TODO` w pierwszej linii, poza ścieżką budowania obrazu) |
 | reprodukowalność bajtowa obrazu i binarki EFI | **DO ZBUDOWANIA** — `R-303` / `V2-MS07`, otwarte |
-| architektura budowania: `.config` ustawia `ARCH?=aarch64` | **JEST** — `make CI=1 all` buduje aarch64, mimo że `docs/getting-started/building.md` twierdzi `x86_64`; ARCH trzeba podać jawnie (`docs/archive/hardware-plan.md` §0.1) |
+| architektura budowania: `.config` ustawia `ARCH?=aarch64` | **JEST** — `make CI=1 all` buduje aarch64, mimo że `docs/getting-started/building.md` twierdzi `x86_64`; ARCH trzeba podać jawnie (`ROADMAP.md` §18 §0.1) |
 
 ### 2.4 Decyzja B3 — sumy kontrolne i podpisy: wepnij się, nie wymyślaj
 
@@ -599,14 +599,14 @@ dadzą zgłoszenia typu *„nie działa"* zamiast danych. **Znacznik: DO ZBUDOWA
 
 Uzasadnienie nie jest ideologiczne, tylko rachunkowe: (a) mechanizmu ładowania firmware
 w E-OS **nie ma** — `firmware-loader` istnieje u Red Bear OS i jest wymieniony jako materiał do
-zapożyczenia (`docs/archive/hardware-plan.md`), nie jako nasz komponent; (b) licencyjnie blob
+zapożyczenia (`ROADMAP.md` §18), nie jako nasz komponent; (b) licencyjnie blob
 w AGPL-owym obrazie wymagałby osobnej ścieżki dystrybucji; (c) sprzęt, który realnie by na tym
 zyskał (NVIDIA GSP, Wi-Fi) jest i tak poza zasięgiem z innych powodów.
 
 | przypadek | znacznik |
 |---|---|
 | mechanizm ładowania firmware w przestrzeni użytkownika | **NOWY PODSYSTEM** |
-| firmware GPU NVIDIA (GSP) | **NIEREALNE DZIŚ** — `docs/archive/hardware-plan.md` §5: *„czego nie robić na start"* |
+| firmware GPU NVIDIA (GSP) | **NIEREALNE DZIŚ** — `ROADMAP.md` §18 §5: *„czego nie robić na start"* |
 | firmware Wi-Fi | **NIEREALNE DZIŚ** — nie ma stosu Wi-Fi w ogóle |
 | mikrokod CPU | **NIEREALNE DZIŚ** — aktualizacja mikrokodu wymaga wsparcia jądra, którego nie ma `[NIEZWERYFIKOWANE]`; sprawdzić w `eos-kernel`, `src/arch/x86_64` |
 
@@ -1193,7 +1193,7 @@ na prawdziwym firmware i jest `[P2·M·metal]`. Poniżej jej proponowana treść
 przy włączonym SB po wgraniu certyfikatu.
 
 **Kryterium raportowania:** nawet nieudany przebieg jest wynikiem, jeśli zapisze, **gdzie
-stanął**. Tabela objawów z `docs/archive/hardware-plan.md` §0.5 jest gotowym formularzem — firmware
+stanął**. Tabela objawów z `ROADMAP.md` §18 §0.5 jest gotowym formularzem — firmware
 nie widzi nośnika / bootloader startuje bez obrazu / brak roota / brak klawiatury / brak sieci.
 
 ### 9.3 Czego QEMU nie udowodni — lista, nie zastrzeżenie
@@ -1500,7 +1500,7 @@ budującej, i nie ma żadnego przebiegu na prawdziwym sprzęcie za sobą.
 - Budowanie: [`Ścieżka budowania`](build-path.md), [`../building.md`](../getting-started/building.md)
 - Szyfrowanie: [`../encryption.md`](../guides/encryption.md)
 - Aktualizacje: [`../update-system-design.md`](update-system.md), epik `R-7xx`
-- Droga na sprzęt: [`../plan-do-sprzetu.md`](../archive/hardware-plan.md),
+- Droga na sprzęt: `ROADMAP.md` §18,
   [`../hardware-matrix.md`](../reference/hardware-matrix.md)
 - Klucze: [`../keys-and-tokens.md`](../reference/keys-and-tokens.md) §6a
 - Model zagrożeń: [`../threat-model.md`](../security/threat-model.md)

@@ -744,7 +744,7 @@ type = "oneshot_async"
 # which fails with RepoPathInvalid. Keeping a parseable file is the graceful degrade.
 #
 # The E-OS source (/etc/pkg.d/50_eos) lands with R-008 once the repo is signed and published,
-# and only then does R-702 pin the key. Order matters: see docs/archive/plan.md §4.
+# and only then does R-702 pin the key. Order matters: see ROADMAP.md §17.4.
 # ────────────────────  R-701: the E-OS package source  ────────────────────
 # The E-OS repo, signed with the key pinned above at /etc/pkg/eos-repo-sign.pub.toml.
 # Same shape as 50_redox below: pkg-lib's update_remotes() reads one URL per line and skips
@@ -785,7 +785,7 @@ data = """
 # unprivileged program send arbitrary IP packets: spoofed sources, crafted headers,
 # and a complete bypass of any packet filter that works above the raw layer. Building
 # the firewall (R-904) while this is granted would produce protection anyone can step
-# around, so the removal has to come first (docs/archive/plan.md §4, step 5).
+# around, so the removal has to come first (ROADMAP.md §17.4, step 5).
 #
 # `icmp` deliberately STAYS. `ping` ships in netutils and opens `icmp:echo/<host>/ttl`;
 # dropping it would take ping away from ordinary users to close a hole far narrower

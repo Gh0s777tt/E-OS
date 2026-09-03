@@ -99,4 +99,4 @@ reason  = "Profil instalacji na dysk."
 [[select]]
 feature = "net.tor"
 state   = "off"
-reason  = "NIEREALNE DZIŚ. docs/archive/plan.md §3.2 — obietnicy, której system nie może dotrzymać, nie składamy."
+reason  = "NIEREALNE DZIŚ. ROADMAP.md §17.3.2 — obietnicy, której system nie może dotrzymać, nie składamy."

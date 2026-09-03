@@ -145,7 +145,7 @@ systemie desygnatu.
   funkcja użytkownika.
 - W całym drzewie nie ma narzędzia, wywołania ani schematu do robienia migawek:
   `grep -rni snapshot docs/ recipes/ mk/ scripts/ config/` daje wyłącznie **propozycje**
-  (`docs/archive/feature-proposals.md`) i **plany** (`docs/architecture/update-system.md`), zero
+  (`ROADMAP.md` §21) i **plany** (`docs/architecture/update-system.md`), zero
   implementacji. Z RedoxFS-a budowane są tylko dwie binarki: `redoxfs-mkfs` i demon
   montujący `redoxfs` (`mk/fstools.mk:25`).
 - Nie ma też subwoluminów, więc nie ma czego wskazywać bootloaderowi jako „inny root".

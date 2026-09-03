@@ -80,7 +80,7 @@ does_not_protect = """
 Nie chroni przed niczym, co działa jako root ani przed złośliwym sterownikiem: bez IOMMU
 sterownik programuje DMA gdziekolwiek (docs/security/threat-model.md §3, R-F13).
 Nie jest piaskownicą aplikacji — przestrzeń schematów ustawiana jest RAZ na sesję w `login.rs`,
-więc KAŻDA aplikacja użytkownika dziedziczy pełne uprawnienia tego konta (docs/archive/plan.md §3.2).
+więc KAŻDA aplikacja użytkownika dziedziczy pełne uprawnienia tego konta (ROADMAP.md §17.3.2).
 Zaznaczenie tej funkcji nie oddziela przeglądarki od portfela.
 NIE jest zweryfikowane przejściem pełnej sesji graficznej — patrz `evidence`.
 """
@@ -108,7 +108,7 @@ runtime = "A program needing raw hardware access stops working for that account.
 
 [recommend.class]
 desktop = "ask"
-gaming  = "off"      # gamepad/wejście przez USB HID — patrz docs/archive/plan.md §2.2
+gaming  = "off"      # gamepad/wejście przez USB HID — patrz ROADMAP.md §17.2.2
 server  = "on"
 amnesic = "on"
 

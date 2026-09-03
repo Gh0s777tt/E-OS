@@ -27,6 +27,11 @@ PUSH=0; [ "${1:-}" = "--push" ] && PUSH=1
 TOK="${EOS_GH_TOKEN:-}"
 WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 cd "$WORK" || exit 1
+# Exit status. Measured 2026-09-03: the script ended at the loop's `done` with no `exit`, so
+# CLONE_FAIL, NO_UPSTREAM_HEAD and push_fail were visible only as table text -- status 0 in all
+# four failure states. A caller (CLAUDE.md names this script twice) could not tell. rc=1 on any
+# of them; "diverged(manual)" stays 0 because it is a report, not a failure of this script.
+rc=0
 
 printf '%-14s %-12s %-12s %s\n' COMPONENT OURS UPSTREAM STATUS
 for name in $MIRRORS; do
@@ -34,7 +39,7 @@ for name in $MIRRORS; do
   ours="https://github.com/Gh0s777tt/eos-${name}.git"
   [ -n "$TOK" ] && ourspush="https://x-access-token:${TOK}@github.com/Gh0s777tt/eos-${name}.git" || ourspush="$ours"
 
-  git clone -q --bare "$ours" m.git 2>/dev/null || { printf '%-14s %s\n' "$name" "CLONE_FAIL"; continue; }
+  git clone -q --bare "$ours" m.git 2>/dev/null || { printf '%-14s %s\n' "$name" "CLONE_FAIL"; rc=1; continue; }
   o=$(git -C m.git rev-parse HEAD 2>/dev/null)
   git -C m.git remote add up "$up" && git -C m.git fetch -q up 2>/dev/null
   # `--verify -q`, not a bare rev-parse. MEASURED 2026-09-02: `git rev-parse up/master` on a
@@ -46,16 +51,18 @@ for name in $MIRRORS; do
   # nothing when the ref does not resolve, which is what the `||` chain assumed all along.
   u=$(git -C m.git rev-parse --verify -q up/master 2>/dev/null \
       || git -C m.git rev-parse --verify -q up/main 2>/dev/null)
-  [ -n "$u" ] || { printf '%-14s %s\n' "$name" "NO_UPSTREAM_HEAD (ani up/master, ani up/main)"; continue; }
+  [ -n "$u" ] || { printf '%-14s %s\n' "$name" "NO_UPSTREAM_HEAD (ani up/master, ani up/main)"; rc=1; rm -rf m.git; continue; }
 
   if [ "$o" = "$u" ]; then st="up-to-date"
   elif git -C m.git merge-base --is-ancestor "$o" "$u" 2>/dev/null; then
     st="behind"
     if [ "$PUSH" = 1 ]; then
-      git -C m.git push -q "$ourspush" "$u:refs/heads/master" 2>/dev/null && st="pushed" || st="push_fail"
+      git -C m.git push -q "$ourspush" "$u:refs/heads/master" 2>/dev/null && st="pushed" || { st="push_fail"; rc=1; }
     fi
   else st="diverged(manual)"; fi
 
   printf '%-14s %-12.12s %-12.12s %s\n' "$name" "$o" "$u" "$st"
   rm -rf m.git
 done
+[ "$rc" -eq 0 ] && echo "sync-forks: ok" || echo "sync-forks: FAIL -- see CLONE_FAIL / NO_UPSTREAM_HEAD / push_fail rows above" >&2
+exit "$rc"

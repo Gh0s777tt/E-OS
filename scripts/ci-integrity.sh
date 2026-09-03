@@ -423,5 +423,49 @@ else
   cannot "check 15 could not run: python3 is missing -- tracked artefacts are UNKNOWN"
 fi
 
+# 16) The roadmap's structure: every in-document anchor resolves, no heading number is used
+# twice, one status per identifier, and a ✅ row carries an evidence token. Added 2026-09-03 after
+# the file briefly held two `### 6.3` (anchor on one, content in the other) and nine ✅ rows with no
+# pointer -- seven of them cross-references that the checker now understands, two real
+# (`R-301`, `R-502b`). Negative test: `python3 scripts/eos-check-roadmap.py --selftest`.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-roadmap.py ROADMAP.md 2>&1)"; then
+    ok "${out##*roadmap-check: }"
+  else
+    printf '%s\n' "$out"
+    bad "ROADMAP.md has a dead anchor, a duplicate heading number, a two-status identifier or a ✅ with no evidence"
+  fi
+else
+  cannot "check 16 could not run: python3 is missing -- roadmap structure is UNKNOWN"
+fi
+
+# 17) Tracked assets: no byte-identical file under two paths, nothing over 5 MB (CLAUDE.md §7),
+# and every image referenced by at least one tracked document. Orphans are reported as warnings
+# until the 26 measured on 2026-09-03 (assets/*, 1.7 MB) have an owner decision (ROADMAP §11.7,
+# `RH-003`); the duplicate and size rules fail closed from day one. Negative test:
+# `EOS_ASSETS_SELFTEST=1 bash scripts/eos-check-assets.sh`.
+if out="$(bash scripts/eos-check-assets.sh --warn-orphans 2>&1)"; then
+  ok "${out##*assets-check: }"
+else
+  rc=$?
+  printf '%s\n' "$out"
+  if [ "$rc" -eq 2 ]; then cannot "check 17 could not run: ${out##*CANNOT RUN: }"; else bad "a tracked asset is duplicated or over the size limit"; fi
+fi
+
+# 18) docs/SUMMARY.md mirrors the docs tree. mdBook renders only what SUMMARY.md lists; on
+# 2026-09-03 fourteen tracked pages (ADR-0007..0011, the four installer/update specifications,
+# five reference/security pages) were written, linked and unpublished. Negative test:
+# `python3 scripts/eos-check-summary.py --selftest`.
+if command -v python3 >/dev/null 2>&1; then
+  if out="$(python3 scripts/eos-check-summary.py 2>&1)"; then
+    ok "${out##*summary-check: }"
+  else
+    printf '%s\n' "$out"
+    bad "docs/SUMMARY.md does not list every tracked docs page, or links to a missing one"
+  fi
+else
+  cannot "check 18 could not run: python3 is missing -- SUMMARY.md coverage is UNKNOWN"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

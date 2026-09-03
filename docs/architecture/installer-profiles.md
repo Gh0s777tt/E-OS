@@ -18,7 +18,7 @@
   `R-610` (zależności builda instalatora na źródła E-OS), **`R-D13`** (katalog łańcuchów i18n —
   założona w rejestrze na wniosek §9 tego dokumentu). Rejestr rozpisał ten dokument na
   `R-603c`, `R-604d`, `R-608a`, `R-609a`, `R-609b` — `ROADMAP.md` §6.2 i §6.4 („M4").
-- **Powiązane:** [`docs/archive/plan.md`](../archive/plan.md) §2 (trzy edycje, jedna baza) · [`docs/getting-started/install.md`](../getting-started/install.md) ·
+- **Powiązane:** `ROADMAP.md` §17.2 (trzy edycje, jedna baza) · [`docs/getting-started/install.md`](../getting-started/install.md) ·
   [`docs/guides/encryption.md`](../guides/encryption.md) · [`docs/security/hardening.md`](../security/hardening.md) ·
   [`docs/security/threat-model.md`](../security/threat-model.md) · [`ADR-0004`](../adr/0004-hybrid-manifest-signature.md) ·
   [`ADR-0005`](../adr/0005-secure-boot-without-microsoft.md) ·
@@ -252,7 +252,7 @@ to jest celowe: zdolność, której nikt nie umie zmierzyć, byłaby warunkiem z
 
 ### 3.4 i18n
 
-**Stan faktyczny, bez upiększeń:** infrastruktury i18n w projekcie **nie ma**. `docs/archive/plan.md` §2.1
+**Stan faktyczny, bez upiększeń:** infrastruktury i18n w projekcie **nie ma**. `ROADMAP.md` §17.2.1
 wymienia „katalog łańcuchów i18n" wśród braków, które w chwili pisania planu nie miały pozycji
 roadmapy; rejestr założył ją **później** jako `R-D13` (`ROADMAP.md`, **NOWY PODSYSTEM**).
 `eos-control` ma polskie napisy **zaszyte w kodzie** (`settings.rs`), a dokumentacja jest po
@@ -645,7 +645,7 @@ sam brak: `recipes/core/contain` **istnieje**, `config/desktop-contain.toml` jes
 sesją piaskownicową (`contain_orblogin`, `getty --contain`, `/etc/contain.toml` z wąskim
 zestawem schematów i **pośredniczonym** schematem plików), a mimo to pakiet jest **wyłączony**:
 `config/server.toml:14` to `#contain = {} # needs to update dependencies`, receptura nie ma
-`rev`, a `contain.pkgar` nie ma w zbudowanym repozytorium. `docs/archive/plan.md` §3.1 nazywa to
+`rev`, a `contain.pkgar` nie ma w zbudowanym repozytorium. `ROADMAP.md` §17.3.1 nazywa to
 „największym niewykorzystanym zasobem, jaki znalazł audyt". Włączenie i polityka per aplikacja
 to `R-1010` / krok 10 planu.
 
@@ -741,7 +741,7 @@ Nowa flaga trzyma kształt istniejących (`--config=`, `--write-bootloader=`), z
 drugą konwencję wiersza poleceń. **Ten sam resolver, ta sama walidacja.** Jedyna różnica: każda reguła, która
 w kreatorze otworzyłaby pytanie, tutaj **przerywa** z kodem ≠ 0 i powodem czytelnym maszynowo.
 
-`docs/archive/plan.md` §2.3 dodaje warunek, którego nie wolno przeoczyć: **edycja serwerowa nie
+`ROADMAP.md` §17.2.3 dodaje warunek, którego nie wolno przeoczyć: **edycja serwerowa nie
 istnieje**, a OOBE (`R-602`) wymusza `passwd` przed powłoką na *każdej* ścieżce — co jest
 poprawne dla pulpitu i **zabójcze dla serwera**, który ma wstać bez człowieka przy konsoli.
 Reguła do dopisania: **konto zasilone kluczem publicznym z zablokowanym hasłem spełnia `R-602`**.
@@ -770,10 +770,10 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | 5 | Podpis pliku profilu (host) | **JEST** | `tools/eos-repo-sign` (ed25519 + ML-DSA-65), ADR-0004, klucz przypięty `U-224` |
 | 6 | **Weryfikacja podpisu profilu na urządzeniu** | **DO ZBUDOWANIA** | ADR-0004: narzędzie jest hostowe. Klient weryfikuje manifest przez `pkg-lib`, nie profile. **M** |
 | 7 | Keyring + unieważnianie kluczy na urządzeniu | **NOWY PODSYSTEM** | `R-711` otwarte. pkgar wiąże artefakt z **jednym** kluczem; nie ma keyringu ani CRL. Ta sama praca co `R-711` |
-| 8 | Import w piaskownicy | **DO ZBUDOWANIA** *(zablokowane)* | `contain` istnieje i jest **wyłączony** (`config/server.toml:14`, brak `rev`, brak pakietu). Ta sama praca co `R-1010` / krok 10 `docs/archive/plan.md`. Do tego czasu — §6.6 |
+| 8 | Import w piaskownicy | **DO ZBUDOWANIA** *(zablokowane)* | `contain` istnieje i jest **wyłączony** (`config/server.toml:14`, brak `rev`, brak pakietu). Ta sama praca co `R-1010` / krok 10 `ROADMAP.md` §17. Do tego czasu — §6.6 |
 | 9 | Ekran różnicy z potwierdzeniem per osłabienie | **DO ZBUDOWANIA** | Rozszerzenie `R-604` (dziś: gołe menu numeryczne bez identyfikacji dysku). **M** |
 | 10 | Generowanie dokumentacji z tego samego źródła | **DO ZBUDOWANIA** | mdBook + `docs/SUMMARY.md` są; brakuje generatora. Rozszerzenie `R-608`. **S** |
-| 11 | Tryb nienadzorowany z pliku odpowiedzi | **DO ZBUDOWANIA** | Połowa **JEST**: `redox_installer <diskpath.img> --config=plik.toml` to już instalacja nienadzorowana sterowana plikiem. Brakuje resolvera, **zapisania pliku odpowiedzi przez kreator**, wczytania go przez TUI/GUI i reguły OOBE z `docs/archive/plan.md` §2.3 (`R-602`, `R-603`). Ta sama praca co `R-609b` |
+| 11 | Tryb nienadzorowany z pliku odpowiedzi | **DO ZBUDOWANIA** | Połowa **JEST**: `redox_installer <diskpath.img> --config=plik.toml` to już instalacja nienadzorowana sterowana plikiem. Brakuje resolvera, **zapisania pliku odpowiedzi przez kreator**, wczytania go przez TUI/GUI i reguły OOBE z `ROADMAP.md` §17.2.3 (`R-602`, `R-603`). Ta sama praca co `R-609b` |
 | 12a | Łańcuchy w samym pliku profilu/funkcji (`[…text.<lang>]`, §3.4) | **DO ZBUDOWANIA** | Schemat działa bez katalogu zewnętrznego: `en` obowiązkowy (V-16), reszta opcjonalna, awaria wyszukania degraduje do widocznego identyfikatora z `⚠`. **S** |
 | 12b | Katalog łańcuchów i18n (zewnętrzny) + bramka parytetu kluczy | **NOWY PODSYSTEM** — poz. **`R-D13`** | **Nie istnieje żadna infrastruktura i18n.** `eos-control` ma napisy zaszyte w kodzie (`settings.rs`); wcześniejsze twierdzenie o bramce i18n w `CLAUDE.md` było zmyślone (`U-126`). Rejestr **założył już na to pozycję**: `ROADMAP.md` → `R-D13`, rodzina `R-Dxx`, bo brak dotyczy całej powłoki. **Cytuj `R-D13`, nie zakładaj drugiej pozycji** |
 | 13 | Funkcja: szyfrowanie dysku (`disk.encrypt`) | **JEST** | RedoxFS AES-XTS-128, `[general] encrypt_disk`, zweryfikowane end-to-end 2026-07-11 na obu architekturach |
@@ -785,11 +785,11 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | 16 | Funkcja: źródło pakietów E-OS (`pkg.source.eos`) | **JEST** na aarch64 · **DO ZBUDOWANIA** na x86_64 | `R-701` ✅ publikacja `U-209`, `50_eos` aktywne na aarch64 `U-210`; x86_64 to znalezisko **C-4** |
 | 17 | Funkcja: tożsamość per-maszyna (`sys.identity`) | **DO ZBUDOWANIA** | `R-606` + `R-603`. Dziś każda instalacja to hostname `eos`, brak machine-id |
 | 18 | Funkcja: serwer SSH (`net.sshd`) | **DO ZBUDOWANIA** | `openssh` jest w obrazie; brakuje usługi, kluczy hosta i twardej konfiguracji |
-| 19 | Funkcja: klucz publiczny konta (`user.authorized-key`) | **DO ZBUDOWANIA** | Instalator umie `[[files]]` z `uid`/`gid`/`mode` i `[users.<nazwa>]`, ale front-endy **nie zbierają danych kont** — `R-603`. Nośnik dla reguły OOBE z `docs/archive/plan.md` §2.3 |
+| 19 | Funkcja: klucz publiczny konta (`user.authorized-key`) | **DO ZBUDOWANIA** | Instalator umie `[[files]]` z `uid`/`gid`/`mode` i `[users.<nazwa>]`, ale front-endy **nie zbierają danych kont** — `R-603`. Nośnik dla reguły OOBE z `ROADMAP.md` §17.2.3 |
 | 20 | Funkcja: upstreamowe repo Redoksa (`pkg.source.redox-upstream`) | **JEST** | `/etc/pkg.d/50_redox` w obrazie, świadomie zakomentowany (`R-701a`); check 9 w `scripts/ci-integrity.sh` pilnuje, żeby żaden obraz nie wysyłał aktywnego, nieuwierzytelnionego źródła |
-| 21 | Funkcja: tryb amnezyjny (`sys.amnesia`) | **DO ZBUDOWANIA** | Rozruch z RAM **udowodniony** (`U-133`); brakuje wariantu, który nie montuje dysków hosta i mówi o tym na greeterze. `docs/archive/plan.md` §3.2: „high value, low cost" |
+| 21 | Funkcja: tryb amnezyjny (`sys.amnesia`) | **DO ZBUDOWANIA** | Rozruch z RAM **udowodniony** (`U-133`); brakuje wariantu, który nie montuje dysków hosta i mówi o tym na greeterze. `ROADMAP.md` §17.3.2: „high value, low cost" |
 | 22 | Funkcja: zapora (`net.firewall`) | **NOWY PODSYSTEM** | `R-904`, znalezisko **C-10**. Netstack wystawia `ip`/`udp`/`tcp`/`raw` z zerowym filtrowaniem. Na Redoksie nie ma netfiltera |
-| 23 | Funkcja: cały ruch przez Tor (`net.tor`) | **NIEREALNE DZIŚ** | Brak portu, brak zapory zdolnej wymusić proxy, brak Wi-Fi/VPN. `docs/archive/plan.md` §3.2: „Do NOT promise this" |
+| 23 | Funkcja: cały ruch przez Tor (`net.tor`) | **NIEREALNE DZIŚ** | Brak portu, brak zapory zdolnej wymusić proxy, brak Wi-Fi/VPN. `ROADMAP.md` §17.3.2: „Do NOT promise this" |
 | 24 | Wiązanie profilu z TPM / measured boot | **NIEREALNE DZIŚ** | `R-913`. Brak TPM w obrazie; non-goal w ADR-0005 i `docs/security/threat-model.md` §6 |
 | 25 | Dziennik audytu importów i instalacji | **NOWY PODSYSTEM** | Znalezisko **C-9**: brak trwałego dziennika audytu w ogóle |
 | 26 | Ręczne partycjonowanie / instalacja obok | **DO ZBUDOWANIA** | `R-609` 💡. Nie jest przedmiotem tego dokumentu, ale profil będzie musiał umieć to wyrazić — patrz §10 |
@@ -813,10 +813,10 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 > dwuznaczne — ten sam rodzaj wady co kolizja `R-70x` opisana w `ROADMAP.md` Annex B.
 >
 > - `net.tor` **w tym schemacie** znaczy *cały ruch przez Tor* — gwarancja, która wymaga zapory,
->   a zapory nie ma (`R-904`, `C-10`); stąd **NIEREALNE DZIŚ** i `docs/archive/plan.md` §3.2:
+>   a zapory nie ma (`R-904`, `C-10`); stąd **NIEREALNE DZIŚ** i `ROADMAP.md` §17.3.2:
 >   *„**Do not promise this**"*. Sam **port** Tora to inna, węższa praca i tam **NOWY PODSYSTEM**
 >   jest właściwym znacznikiem.
-> - `sys.amnesia` **w tym schemacie** znaczy *nie zostawiaj śladu na dysku*. `docs/archive/plan.md` §3.2
+> - `sys.amnesia` **w tym schemacie** znaczy *nie zostawiaj śladu na dysku*. `ROADMAP.md` §17.3.2
 >   podaje dla tego wiersza blokadę: *„**none — high value, low cost**"* (rozruch z RAM
 >   zweryfikowany, `U-133`); stąd **DO ZBUDOWANIA**. „Anonimowość systemowa" z wiersza kreatora to
 >   **inna zdolność** i ta rzeczywiście jest **NIEREALNE DZIŚ** — `examples/profiles/ghost.toml`
@@ -838,9 +838,9 @@ Każda zdolność potrzebna do tego, żeby ten dokument stał się działającym
 | `R-607` | **warunek wstępny** | dopóki `DiskWrapper::open` raportuje 512 bajtów, `capabilities` dotyczące geometrii dysku są niewiarygodne (§3.3) |
 | `R-608` | **rozszerzenie** | z „popraw dokumentację" na „dokument generowany z tego samego pliku, więc rozjazd jest niemożliwy" (§7.2) |
 | `R-609` 💡 | **nie objęte**, ale schemat musi zostawić miejsce | partycjonowanie ręczne to nie jest przełącznik boolowski; §10 |
-| `R-602` | **styk** | reguła „konto z kluczem + zablokowane hasło spełnia OOBE" (`docs/archive/plan.md` §2.3) jest warunkiem trybu nienadzorowanego (§7.3) |
+| `R-602` | **styk** | reguła „konto z kluczem + zablokowane hasło spełnia OOBE" (`ROADMAP.md` §17.2.3) jest warunkiem trybu nienadzorowanego (§7.3) |
 | `R-711` | **ta sama praca** | keyring i unieważnianie kluczy — bez tego podpis profilu jest nieodwoływalny (§6.3) |
-| `R-1010` / krok 10 `docs/archive/plan.md` | **zależność** | włączenie `contain`; do tego czasu import nie ma piaskownicy (§6.6) |
+| `R-1010` / krok 10 `ROADMAP.md` §17 | **zależność** | włączenie `contain`; do tego czasu import nie ma piaskownicy (§6.6) |
 | `R-904` | **reprezentowane jako brak** | funkcja `net.firewall` ze `stage = NOWY PODSYSTEM` istnieje po to, żeby brak był w spisie widoczny |
 | `R-913` | **granica** | wiązanie z TPM poza zasięgiem; §6.7 |
 | `R-D08` | **ryzyko** | pełny przepływ live → greeter → `installer-gui` → instalacja nigdy nie był przejechany od końca do końca |
@@ -853,7 +853,7 @@ w rejestrze jako **`R-D13`** (`ROADMAP.md`; rodzina `R-Dxx`, bo brak dotyczy ca�
 powłoki, nie samego instalatora, i pozycja cytuje ten dokument z nazwiska). Zdanie *„roadmapa go
 nie ma"* było prawdziwe w chwili pisania i **jest już nieaktualne**; zostało zastąpione
 odsyłaczem, dokładnie po to, żeby nikt nie założył drugiej pozycji na tę samą pracę.
-`docs/archive/plan.md` §2.1 nadal wymienia ten brak po stronie produktu.
+`ROADMAP.md` §17.2.1 nadal wymienia ten brak po stronie produktu.
 
 Rejestr prowadzi swoją stronę tego przypięcia w `ROADMAP.md` §6.2. Gdy te dwie tabele się
 rozjadą, **wiążąca jest roadmapa** — ona jest rejestrem projektu, ten plik jest specyfikacją.

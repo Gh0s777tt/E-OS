@@ -305,7 +305,7 @@ else
 	rm -rf "$@.partial" "$@-build.partial" "$@"
 	if [ ! -d "$(ROOT)/$(GCC_TARGET)" ]; then \
 		echo "\033[1;38;5;196m Incomplete build stages. Please re-run the build\033[0m"; \
-		rm -rf "$(PREFIX)"/gcc-freestanding-install && "$(PREFIX)"/relibc-freestanding-install && \
+		rm -rf "$(PREFIX)"/gcc-freestanding-install "$(PREFIX)"/relibc-freestanding-install; \
 		exit 1; fi
 	mkdir -p "$@.partial" "$@-build.partial"
 	cp -r "$(PREFIX)/gcc-freestanding-install/". "$@.partial"

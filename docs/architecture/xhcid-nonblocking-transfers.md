@@ -13,7 +13,7 @@ owner: Gh0s777tt
 > bulk-OUT write). Verified under QEMU: a full DHCP handshake flows through `usbnetd` concurrently
 > with a `usb-storage` device, `login`, 0 exceptions; `usbscsid` still reaches `SCSI initialized`
 > (blocking path untouched). Interactive HID input remains to be confirmed on an x86 rig.
-> Companion to `U-056`/`U-057` (`docs/archive/roadmap-connectivity.md`, `CHANGELOG`).
+> Companion to `U-056`/`U-057` (`ROADMAP.md` §19, `CHANGELOG`).
 
 ## The problem (proven)
 

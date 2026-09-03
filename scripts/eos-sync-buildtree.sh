@@ -23,7 +23,8 @@
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+# exit 2 = the check could not run (CLAUDE.md §11.3 split), not "the tree drifted".
+cd "$ROOT" || { echo "cannot cd to $ROOT" >&2; exit 2; }
 APPLY=""; [ "${1:-}" = "--apply" ] && APPLY=1
 IMAGE="${EOS_BUILD_IMAGE:-localhost/redox-base:latest}"
 

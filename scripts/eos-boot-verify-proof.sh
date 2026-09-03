@@ -16,6 +16,8 @@ set -uo pipefail
 GOOD="${1:?usage: $0 <good.img> <tampered.img>}"
 BAD="${2:?need the tampered image too -- one case is not a proof}"
 TIMEOUT="${EOS_PROOF_TIMEOUT:-300}"
+# P-15: a non-numeric EOS_PROOF_TIMEOUT inside $(( )) exits 0 on bash 3.2 -- refuse it up front.
+case "$TIMEOUT" in ''|*[!0-9]*) echo "eos-boot-verify-proof: EOS_PROOF_TIMEOUT must be seconds, got '$TIMEOUT'" >&2; exit 2 ;; esac
 
 QEMU="$(command -v qemu-system-x86_64 || echo /opt/homebrew/bin/qemu-system-x86_64)"
 FW_CODE="/opt/homebrew/share/qemu/edk2-x86_64-code.fd"

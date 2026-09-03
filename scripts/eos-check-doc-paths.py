@@ -49,6 +49,17 @@ DATED_EXACT = {
 }
 # path -> why it is allowed to look dead. Every entry must say what would retire it.
 ALLOW = {
+    # The six plans merged into ROADMAP.md §17-§21 on 2026-09-03 and deleted. ROADMAP.md names
+    # them as history (§11.7.1, the §17-§21 headers, §16, Annex C.2) -- exactly where a dead path
+    # belongs. Every LIVE citation was rewritten (48 in 23 files, cite-rewrite) and check 14 now
+    # sees nested paths, so a new mention anywhere else still fails. Retire these six entries when
+    # Annex C.2 is pruned.
+    "docs/archive/plan.md": "merged into ROADMAP §17, removed 2026-09-03; retire with Annex C.2",
+    "docs/archive/hardware-plan.md": "merged into ROADMAP §18, removed 2026-09-03; retire with Annex C.2",
+    "docs/archive/roadmap-connectivity.md": "merged into ROADMAP §19, removed 2026-09-03; retire with Annex C.2",
+    "docs/archive/hardware-capabilities-roadmap.md": "merged into ROADMAP §20, removed 2026-09-03; retire with Annex C.2",
+    "docs/archive/acpi-off-removal-plan.md": "merged into ROADMAP §20.5, removed 2026-09-03; retire with Annex C.2",
+    "docs/archive/feature-proposals.md": "merged into ROADMAP §21, removed 2026-09-03; retire with Annex C.2",
     "docs/THREAT_MODEL.md":
         "recorded decision, CLAUDE.md; retire when that row goes",
     "docs/setup-features.md":
@@ -62,7 +73,9 @@ ALLOW = {
 # The filename must START with an alphanumeric, so prose like `docs/...md` in a comment
 # is not mistaken for a path. This gate flagged its own description in ci-integrity.sh
 # before that anchor was added.
-REF = re.compile(r"docs/[A-Za-z0-9][A-Za-z0-9_.\-]*\.md")
+# `/` is in the class since 2026-09-03: without it the gate saw `docs/foo.md` but not
+# `docs/security/foo.md` -- 69 nested references in the tree were never checked (DOC-04).
+REF = re.compile(r"docs/[A-Za-z0-9][A-Za-z0-9_./\-]*\.md")
 
 
 def tracked_files():
