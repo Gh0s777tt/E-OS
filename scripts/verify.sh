@@ -113,6 +113,7 @@ there maps to exactly one row here:
   coverage     cargo llvm-cov floor                (E-OS-owned crate only)   [slow]
   integrity    scripts/ci-integrity.sh
   tar-pins     scripts/eos-check-tar-pins.py       (every tar source in the image closure has a blake3)
+  hooks        lefthook's hooks are installed in THIS working copy (RH-006)
   release-pack scripts/eos-test-make-release.sh    (make-release.sh packs the install medium, and can refuse)
   gitleaks     gitleaks detect over the full history
   cargo-deny   advisories/licences/bans/sources                              [slow]
@@ -509,6 +510,37 @@ stage_release_pack() {
   bash "$RELEASE_TEST" || return 1
 }
 
+# ══ local hooks ═══════════════════════════════════════════════════════════════════════
+# ROADMAP `RH-006`. Measured 2026-09-03 on the development host: `.git/hooks` held only the
+# `*.sample` files and `core.hooksPath` was unset, so NEITHER lefthook's fail-closed gitleaks
+# pre-commit NOR `scripts/hooks/pre-push` ran on this machine -- while README.md and
+# docs/security/index.md both described that scan as the thing standing between a secret and the
+# mirror. The documentation was describing a clone that had run `lefthook install`, and nobody had.
+#
+# WHY THIS STAGE CAN PASS ON CI WITHOUT BEING A LOOPHOLE. The invariant is "this WORKING COPY runs
+# its hooks". An ephemeral CI checkout has no developer to protect and no hooks by design, so the
+# invariant is not violated there -- it is inapplicable, and saying so is honest where pretending to
+# measure it would not be. Off CI the stage fails closed. Negative test: `mv .git/hooks/pre-commit`
+# aside with CI unset -> FAIL naming the file; put it back -> PASS.
+stage_hooks() {
+  local hook
+  if [ -n "${CI:-}" ]; then
+    STAGE_NOTE="not applicable: an ephemeral CI checkout has no developer hooks"
+    return 0
+  fi
+  [ -d .git ] || { STAGE_NOTE="no .git directory here -- cannot tell whether hooks are installed"; return "$CANNOT"; }
+  hook=".git/hooks/pre-commit"
+  if [ ! -f "$hook" ]; then
+    STAGE_NOTE="$hook does not exist -- run: brew install lefthook && lefthook install"
+    return 1
+  fi
+  if ! grep -q lefthook "$hook"; then
+    STAGE_NOTE="$hook exists but is not lefthook's -- two hook managers race for this file (see .pre-commit-config.yaml)"
+    return 1
+  fi
+  STAGE_NOTE="lefthook hooks installed: $(ls .git/hooks | grep -v '\.sample$' | tr '\n' ' ')"
+}
+
 stage_tar_pins() {
   if [ ! -f "$TAR_PIN_GATE" ]; then
     STAGE_NOTE="$TAR_PIN_GATE does not exist in this tree — the gate is unwritten, not passing"
@@ -627,6 +659,7 @@ run_stage coverage    stage_coverage
 run_stage coverage-report stage_coverage_report
 run_stage sec-coverage  stage_security_coverage
 run_stage integrity   stage_integrity
+run_stage hooks       stage_hooks
 run_stage tar-pins    stage_tar_pins
 run_stage release-pack stage_release_pack
 run_stage gitleaks    stage_gitleaks
