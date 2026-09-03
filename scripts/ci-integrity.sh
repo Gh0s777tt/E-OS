@@ -532,5 +532,21 @@ else
   cannot "check 21 could not run: python3 is missing -- the contract's references are UNCHECKED"
 fi
 
+# 22) Every E-OS-authored shell script sets -u and pipefail. NOT -e: fifteen owned scripts run
+# `set -uo pipefail` deliberately because they are gates and harnesses that INSPECT exit codes
+# (`ci-integrity.sh` collects failures rather than dying on the first; `ci-boot-smoke.sh` reads
+# a timeout's status), and demanding -e would break exactly the scripts whose job is to keep
+# going and report. Inherited upstream scripts are exempt by name (ADR-0003). Negative test:
+# `bash scripts/eos-check-shell-strict.sh --selftest` -- 11 cases, six on the settings and five
+# on the ownership rule, since half this gate is deciding whose script it is.
+if out="$(bash scripts/eos-check-shell-strict.sh 2>&1)"; then
+  ok "${out##*shell-strict: }"
+else
+  rc=$?
+  printf '%s\n' "$out"
+  if [ "$rc" -eq 2 ]; then cannot "check 22 could not run: ${out##*cannot run -- }"
+  else bad "an E-OS-authored shell script does not set -u and pipefail"; fi
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
