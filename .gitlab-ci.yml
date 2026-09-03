@@ -55,6 +55,11 @@ local-gates:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
   variables:
     GIT_DEPTH: "0"
+    # The coverage stages build a cargo-llvm-cov target of ~1.5 GiB for two manifests. Left to
+    # itself it lands on the internal disk (CLAUDE.md P-16: a default TMPDIR resolves there), which
+    # on this runner has hit 96-99 % more than once. A coverage run that dies on ENOSPC reports
+    # nothing and looks exactly like a run that found nothing, so point it at the volume with room.
+    EOS_COV_TARGET: "/Volumes/EOS-Podman/cov"
   script:
     # rustup on this host is Homebrew's: cargo lives in /opt/homebrew/opt/rustup/bin, NOT in
     # ~/.cargo/bin (measured on the job's first run: "cargo: command not found", 6 stages SKIPPED).
