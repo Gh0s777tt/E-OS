@@ -154,9 +154,9 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
   z nich daje. Każda liczba niżej pochodzi z pomiaru, nie z planu.</p>
   <div class="stats">
     <div class="stat"><div class="n ok">1</div><div class="l">plik planu<br>(było 8: roadmapa, stub v2, 6 archiwalnych)</div></div>
-    <div class="stat"><div class="n ok">7</div><div class="l">repozytoriów utworzonych<br>i zapełnionych</div></div>
+    <div class="stat"><div class="n ok">2</div><div class="l">systemy, na które produkty<br>budują się z macOS (zmierzone)</div></div>
     <div class="stat"><div class="n cr">26</div><div class="l">plików usuniętych z repo<br>(kopie lokalnie, 0 sierot)</div></div>
-    <div class="stat"><div class="n cr">14</div><div class="l">stron docs nigdy<br>nieopublikowanych — dodane</div></div>
+    <div class="stat"><div class="n ok">20</div><div class="l">kontroli integralności<br>(było 14) · 19 etapów verify</div></div>
     <div class="stat"><div class="n ok">3/3</div><div class="l">produkty Slint kompilują się<br>poza Redoksem (zmierzone)</div></div>
     <div class="stat"><div class="n ok">15/15</div><div class="l">decyzji właściciela<br>odpowiedzianych 3 września</div></div>
   </div>
@@ -345,6 +345,11 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
   <div class="tw"><table>
     <thead><tr><th>bramka</th><th>czego nie potrafiła</th><th>jak to zmierzono</th></tr></thead>
     <tbody>
+      <tr><td class="g">release.sh (mój błąd)</td><td>zmierzyłem <b>polecenie</b>, a napisałem <b>skrypt</b>, który robił coś innego</td><td class="m">ręczny <code>cargo zigbuild</code> na Linuksa: <b>działa</b>. Skrypt kierował tam wyłącznie Windows → <b>cztery</b> niezależne przebiegi skompilowały całość i padły na linkowaniu po ~20 min: <b>ld: unknown options: --as-needed</b>. Prawdziwy pomiar, fałszywy dowód</td></tr>
+      <tr><td class="g">package-* w 3 repo</td><td>zadania nie były czerwone — były <b>pominięte</b></td><td class="m">etap po niedostępnych runnerach: <b>skipped</b> czyta się jak „nie miało do czego się przyczepić". <code>needs: []</code> odczepia od kolejności etapów</td></tr>
+      <tr><td class="g">hak gitleaks</td><td>mój test negatywny użył klucza <b>z dokumentacji AWS</b></td><td class="m">reguły gitleaks mają go na liście dozwolonych: <b>no leaks found</b>, commit przeszedł, wyglądało jak zepsuty hak. Z <code>glpat-&lt;20&gt;</code>: <b>leaks found: 1</b>, exit 1</td></tr>
+      <tr><td class="g">eos-website</td><td>potok <b>zawieszony</b>, nie czerwony — zero wdrożeń Pages</td><td class="m">runner był przypięty do jednego repozytorium; zadania siedziały w <b>stuck_pending_no_matching_runners</b>. Nic nie alarmuje</td></tr>
+      <tr><td class="g">pages (meta-repo)</td><td><code>allow_failure: true</code> ukrywał dwa dni zastoju</td><td class="m">jedno wdrożenie z <b>2026-09-01 16:31 UTC</b> i nic potem. <code>mdbook build</code> na <b>pustej</b> książce kończy się <b>0</b></td></tr>
       <tr><td class="g">hooks/pre-push</td><td>skan sekretów zawodził <b>otwarcie</b> przy braku gitleaks</td><td class="m">przed: status <b>0</b> i <b>zero</b> wzmianek o gitleaks w wyjściu</td></tr>
       <tr><td class="g">ci-integrity 9</td><td>trafiała we własne komentarze konfiguracji</td><td class="m">podmiana jedynego realnego pinu → nadal <b>ok</b>; po poprawce → <b>FAIL</b></td></tr>
       <tr><td class="g">release.yml</td><td>podpisywała wydanie i nigdy nie sprawdzała, co podpisała</td><td class="m">atrapa cosign: rozjechana tożsamość → <b>0</b>; z nowym krokiem → <b>1</b></td></tr>
