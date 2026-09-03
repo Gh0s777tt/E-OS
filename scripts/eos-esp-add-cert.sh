@@ -27,7 +27,32 @@ VOL="${EOS_BUILD_VOLUME:-eos-work}"
 DEB="${EOS_DEB_IMAGE:-docker.io/library/debian:trixie}"
 [ -f "$IMG" ] || { echo "esp-cert: image not found: $IMG" >&2; exit 1; }
 
-WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+# WHERE THE SCRATCH COPY GOES, and why this is not just `mktemp -d`.
+# MEASURED 2026-09-03 (CLAUDE.md P-16): on macOS, `mktemp -d` WITHOUT a template ignores $TMPDIR
+# and asks the system for the per-user temp dir --
+#   TMPDIR=/Volumes/EOS-Podman/tmp bash -c 'mktemp -d'  ->  /var/folders/.../tmp.Sri6BifKTz
+# so the 1400 MiB copy below landed on the INTERNAL disk no matter what the caller exported. With
+# 578 MiB free there, a 40-minute build died at its very last step, after both images had been
+# assembled correctly: `cp: ... fcopyfile failed: No space left on device`. An explicit template
+# fixes the redirection; the space check below makes the failure honest and EARLY, which is the
+# half that actually saves the build (CLAUDE.md §21.1: measure which disk hurts, and say so).
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/eos-esp-add-cert.XXXXXX")" || {
+  echo "esp-cert: cannot create a work directory under ${TMPDIR:-/tmp}" >&2; exit 2; }
+trap 'rm -rf "$WORK"' EXIT
+
+need_kib=$(( ( $(wc -c < "$IMG") / 1024 ) + 65536 ))   # the copy, plus 64 MiB of headroom
+free_kib=$(df -k "$WORK" | awk 'NR==2 {print $4}')
+case "$free_kib" in ''|*[!0-9]*)
+  echo "esp-cert: cannot read free space for $WORK (df said: $(df -k "$WORK" | tail -1))" >&2; exit 2 ;;
+esac
+if [ "$free_kib" -lt "$need_kib" ]; then
+  echo "esp-cert: not enough room for the scratch copy." >&2
+  echo "          $WORK is on $(df -h "$WORK" | awk 'NR==2 {print $1" mounted on "$NF}')" >&2
+  echo "          need $(( need_kib / 1024 )) MiB, have $(( free_kib / 1024 )) MiB." >&2
+  echo "          Point TMPDIR at a filesystem with room -- and note P-16: this script honours" >&2
+  echo "          TMPDIR because it passes mktemp an explicit template; plain \`mktemp -d\` does not." >&2
+  exit 2
+fi
 cp "$IMG" "$WORK/medium.img"
 
 # The certificate this build was signed with. Taken from the build tree rather than from a
