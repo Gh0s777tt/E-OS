@@ -49,7 +49,10 @@ for repo in "${REPOS[@]}"; do
     fi
 
     echo "==================== $repo ===================="
-    rm -rf "$WORKDIR/$repo"
+    # `${var:?}` and not `$var`: an empty $repo would make this `rm -rf "$WORKDIR/"` and
+    # take the whole work directory with it. SC2115, found the day the lint scope was
+    # widened to cover this file at all (ROADMAP `RH-014`).
+    rm -rf "${WORKDIR:?}/${repo:?}"
     git clone --quiet "https://gitlab.redox-os.org/redox-os/$repo.git" "$WORKDIR/$repo"
     cd "$WORKDIR/$repo"
 

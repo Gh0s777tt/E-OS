@@ -258,12 +258,55 @@ stage_clippy() {
 # Running the linter over one of those yields SC2148 -- a failure about a macOS metadata
 # file, not about the tree. (Written without the linter's own directive keyword at the start
 # of a comment line, because that is parsed as a directive and is itself an error.)
+# WIDENED 2026-09-03 (ROADMAP `RH-014`). The scope used to be the literal glob
+# `scripts/*.sh`, which meant fourteen tracked shell files were linted by NOTHING --
+# `scripts/hooks/pre-push` (the secret-scan hook), the three `examples/*.sh` a reader is
+# invited to run, and `upstream/prepare-mrs.sh`, which deletes directories. Measured on
+# that set: 0 errors, 1 warning -- and the warning was `SC2115` on `rm -rf "$WORKDIR/$repo"`,
+# where an empty `$repo` deletes the whole work directory. Widening the gate cost nothing
+# and found something, which is the usual shape.
+#
+# THE VENDORED FILES ARE EXCLUDED ON PURPOSE, NOT OVERLOOKED. `build.sh`,
+# `native_bootstrap.sh`, `podman_bootstrap.sh`, `podman/rustinstall.sh` and the five
+# `bin/*-pkg-config` wrappers come from upstream Redox and carry 15 errors between them,
+# all `SC2068`. ADR-0003 says vendored code keeps upstream form: "fixing" them would create
+# a divergence this project has to carry through every future sync, in exchange for style.
+# They are listed by name rather than by a pattern so that adding one is a visible act.
+#
+# The set is COMPUTED, not written down, so a new shell script is linted the day it lands.
+# A leading-dot skip is kept: macOS AppleDouble sidecars (`._foo.sh`, gitignored, binary)
+# otherwise yield SC2148 -- a failure about a metadata file, not about the tree.
+eos_shell_files() {
+  git ls-files -z 2>/dev/null | while IFS= read -r -d "" f; do
+    case "$f" in
+      */.*|.*) continue ;;
+      build.sh|native_bootstrap.sh|podman_bootstrap.sh|podman/rustinstall.sh) continue ;;
+      bin/*-pkg-config) continue ;;
+      # Cookbook recipe fragments are SOURCED by the cookbook, not executed: they carry no
+      # shebang by design, so every one of them yields SC2148 and the finding says nothing
+      # about the tree. Measured when the scope was first widened: 4 such errors, all
+      # SC2148, all in `recipes/wip/**`. They are also upstream-shaped (ADR-0003).
+      recipes/*|src/*) continue ;;
+    esac
+    [ -f "$f" ] || continue
+    case "$f" in
+      *.sh) printf '%s\n' "$f" ;;
+      *) head -c 80 "$f" 2>/dev/null | grep -qE '^#!.*(bash|sh)([[:space:]]|$)' \
+           && printf '%s\n' "$f" ;;
+    esac
+  done
+}
+
 stage_shell_lint() {
   have shellcheck || { missing_tool shellcheck "brew install shellcheck"; return "$CANNOT"; }
+  local files
+  files="$(eos_shell_files)"
+  [ -n "$files" ] || { echo "shell-lint: no shell files found -- the instrument, not the tree"; return 2; }
+  echo "--- scope: $(printf '%s\n' "$files" | wc -l | tr -d ' ') E-OS-owned shell files ---"
   echo "--- advisory (warnings and above) ---"
-  shellcheck -f gcc -S warning scripts/*.sh || true
+  printf '%s\n' "$files" | xargs shellcheck -f gcc -S warning || true
   echo "--- blocking (errors only) ---"
-  shellcheck -f gcc -S error scripts/*.sh || return 1
+  printf '%s\n' "$files" | xargs shellcheck -f gcc -S error || return 1
 }
 
 # No CI job runs actionlint, so this is the one stage here with no twin in a pipeline. It
