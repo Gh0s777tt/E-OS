@@ -13,6 +13,15 @@ cp -rv "${COOKBOOK_SOURCE}/apps" "${COOKBOOK_STAGE}/usr/share/ui/apps"
 mkdir -pv "${COOKBOOK_STAGE}/usr/share/icons/status"
 cp -v "${COOKBOOK_SOURCE}/status/"*.png "${COOKBOOK_STAGE}/usr/share/icons/status/"
 
+# PR-017: the fork ships `eos-icons/eos-settings.png` and its own launcher entry
+# `apps/15_eos-settings` pointing at `/ui/icons/apps/eos-settings.png` -- and this recipe
+# never installed the icon, so that entry was the one launcher tile in the image whose icon
+# resolved to nothing. Measured after the symlink fix: 13 of 14 entries resolved, and this
+# was the fourteenth. The icon goes to the REAL directory for the same reason as every other
+# one here -- `/usr/share/ui/icons` is a symlink, and a package may not write through it.
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/icons/apps"
+cp -v "${COOKBOOK_SOURCE}/eos-icons/eos-settings.png" "${COOKBOOK_STAGE}/usr/share/icons/apps/eos-settings.png"
+
 COOKBOOK_CARGO_PATH="orbutils" cookbook_cargo
 COOKBOOK_CARGO_PATH="launcher" cookbook_cargo
 """

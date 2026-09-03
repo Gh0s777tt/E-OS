@@ -20,16 +20,18 @@
 # starts installing a new file, or stops installing one, turns this file red rather than letting
 # the installer delete a path that no longer exists (or leave one it never heard of).
 #
-# ONE OF THESE PATHS IS NOT IN THE IMAGE TODAY, AND IT IS LISTED ANYWAY. Measured 2026-09-03 on a
-# mounted copy: none of the six `.png` icons reaches the image, because `/usr/share/ui/icons` is a
-# symlink to `/usr/share/icons`, which has no `apps/` subdirectory -- so the path the recipes
-# install to resolves nowhere. Upstream launcher entries point at the same missing directory, so
-# it is not an E-OS regression; it is `PR-017`.
+# THE ICON PATHS CHANGED WITH `PR-017`, and the old ones are why. Until 2026-09-03 the recipes
+# staged icons into `/usr/share/ui/icons/apps/`, which is a symlink into `/usr/share/icons` -- and
+# a package extractor that refuses to write through a symlink is doing the right thing, because
+# that is how a package is stopped from planting files outside its own tree. The consequence was
+# silent: the icon was in the .pkgar, staged correctly, and never appeared in the image. Measured
+# on a mounted copy, `find / -name "eos-*.png"` returned nothing at all. The real directory is
+# named here now; the runtime path `/ui/icons/apps/x.png` still resolves to it when something
+# READS it, which is why the launcher entries did not have to change.
 #
-# They stay listed because the recipes DO install them and will land once `PR-017` is settled, and
-# because the consumer of this file must treat a missing path as ALREADY REMOVED rather than as an
+# The consumer of this file must still treat a missing path as ALREADY REMOVED rather than as an
 # error. Deleting something that is not there is the desired end state, not a failure -- and an
-# installer that stops on it would refuse to honour a person's choice over a file nobody can see.
+# installer that stopped on it would refuse to honour a person's choice over a file nobody sees.
 
 [eos-notes]
 title = "E-OS Notes"
@@ -37,7 +39,7 @@ summary = "Notatnik z lokalną bazą i szyfrowaniem w spoczynku."
 files = [
     "/usr/bin/eos-notes",
     "/usr/share/ui/apps/30_eos-notes",
-    "/usr/share/ui/icons/apps/eos-notes.png",
+    "/usr/share/icons/apps/eos-notes.png",
 ]
 
 [eos-guard]
@@ -46,7 +48,7 @@ summary = "Audyt uprawnień i integralności plików. Nie jest to antywirus."
 files = [
     "/usr/bin/eos-guard",
     "/usr/share/ui/apps/40_eos-guard",
-    "/usr/share/ui/icons/apps/eos-guard.png",
+    "/usr/share/icons/apps/eos-guard.png",
 ]
 
 [eos-sheets]
@@ -55,7 +57,7 @@ summary = "Arkusz kalkulacyjny — siatka, formuły, CSV."
 files = [
     "/usr/bin/eos-sheets",
     "/usr/share/ui/apps/30_eos-sheets",
-    "/usr/share/ui/icons/apps/eos-sheets.png",
+    "/usr/share/icons/apps/eos-sheets.png",
 ]
 
 [eos-slides]
@@ -64,7 +66,7 @@ summary = "Prezentacje multimedialne."
 files = [
     "/usr/bin/eos-slides",
     "/usr/share/ui/apps/30_eos-slides",
-    "/usr/share/ui/icons/apps/eos-slides.png",
+    "/usr/share/icons/apps/eos-slides.png",
 ]
 
 [eos-drive]
@@ -73,7 +75,7 @@ summary = "Klient dysku chmurowego E-Cloud."
 files = [
     "/usr/bin/eos-drive",
     "/usr/share/ui/apps/30_eos-drive",
-    "/usr/share/ui/icons/apps/eos-drive.png",
+    "/usr/share/icons/apps/eos-drive.png",
 ]
 
 [eos-store]
@@ -82,5 +84,5 @@ summary = "Sklep z aplikacjami — instalacja i aktualizacje pakietów."
 files = [
     "/usr/bin/eos-store",
     "/usr/share/ui/apps/30_eos-store",
-    "/usr/share/ui/icons/apps/eos-store.png",
+    "/usr/share/icons/apps/eos-store.png",
 ]
