@@ -257,7 +257,7 @@ gitlab = "https://gitlab.com/e-os/eos-guard.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-guard"
 pinned_branch = "main"
-pinned_rev    = "06263607526b0d47eb77147f149aa17f00d8e0e3"
+pinned_rev    = "5e1d57479a956474a5fd6994f2913b81bf3ab913"
 
 [[repo]]
 name   = "eos-notes"
@@ -268,7 +268,7 @@ gitlab = "https://gitlab.com/e-os/eos-notes.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-notes"
 pinned_branch = "main"
-pinned_rev    = "9f9eae6e7a03adba07fa6dc577b1074b2a6cc8ff"
+pinned_rev    = "53a31baf8cefd567a197cfbd339585771d424439"
 
 [[repo]]
 name   = "eos-ui"
@@ -300,7 +300,7 @@ gitlab = "https://gitlab.com/e-os/eos-control.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-control"
 pinned_branch = "main"
-pinned_rev    = "40dc67fde3b48ddf945a84840e1d4d788f359119"
+pinned_rev    = "5857f2e3702366b7bdf96a40f60daeac9d1b044f"
 
 # ── lib ─────────────────────────────────────────────────────────
 [[repo]]
@@ -368,7 +368,7 @@ gitlab = "https://gitlab.com/e-os/eos-sheets.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-sheets"
 pinned_branch = "main"
-pinned_rev    = "373c12dbdc038052382f7185c65090715c10f991"
+pinned_rev    = "92439eacd9e12a8912e9364faaebddd938bc870c"
 
 [[repo]]
 name   = "eos-slides"
@@ -380,7 +380,7 @@ gitlab = "https://gitlab.com/e-os/eos-slides.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-slides"
 pinned_branch = "main"
-pinned_rev    = "57c6b46e015d14b9926138e3af8635589987b8ec"
+pinned_rev    = "2f64e9a86e5c81bec31dd59f945798bdae7b0887"
 
 [[repo]]
 name   = "eos-drive"
@@ -392,7 +392,7 @@ gitlab = "https://gitlab.com/e-os/eos-drive.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-drive"
 pinned_branch = "main"
-pinned_rev    = "83309eced44a25562464c78594adf9937358a9c1"
+pinned_rev    = "e14d72bbda806ecd98eb06df08390029688f4953"
 
 [[repo]]
 name   = "eos-store"
@@ -404,7 +404,7 @@ gitlab = "https://gitlab.com/e-os/eos-store.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-store"
 pinned_branch = "main"
-pinned_rev    = "50a40edeb598b5fdd3c1b7215aeaada4591e1fad"
+pinned_rev    = "0efce520190603031af59bf301e2fd15bc881e43"
 
 [[repo]]
 name   = "eos-website"
