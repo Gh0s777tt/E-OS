@@ -572,5 +572,28 @@ else
   cannot "check 23 could not run: python3 is missing -- the checklist copies are UNCHECKED"
 fi
 
+# 24) The optional-application manifest tells the truth. The installer will DELETE the files it
+# names when a person declines an application, so a manifest that has drifted from its recipe
+# either leaves a launcher entry pointing at a binary that is gone, or tries to remove a path
+# that no longer exists. Five rules: every optional app is a package in BOTH configs, has a
+# recipe, claims exactly the files its recipe installs (both directions -- rule 4 is the one that
+# catches a recipe growing a file the manifest never hears about), and the copy embedded in each
+# image config is byte-for-byte `config/optional-apps.toml`, because the gate checking one copy
+# while the installer reads the other is worse than having no gate. Negative test:
+# `python3 scripts/eos-check-optional-apps.py --selftest` -- 9 cases.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-optional-apps.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*optional-apps: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 24 could not run: ${out##*FAIL (instrument): }"
+  else
+    printf '%s\n' "$out"
+    bad "the optional-application manifest disagrees with a recipe or with the image config"
+  fi
+else
+  cannot "check 24 could not run: python3 is missing -- the optional-app manifest is UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

@@ -73,7 +73,7 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (23 kontroli + sonda 0)
+bash scripts/ci-integrity.sh                    # bramka integralności (24 kontroli + sonda 0)
 python3 scripts/eos-check-roadmap.py            # kontrola 16: kotwice, numery, jeden status na ID, ✅ tylko z dowodem
 bash scripts/eos-check-assets.sh                # kontrola 17: duplikaty, > 5 MB, sieroty w assets/
 python3 scripts/eos-check-summary.py            # kontrola 18: docs/SUMMARY.md = drzewo docs/
@@ -82,6 +82,7 @@ python3 scripts/eos-check-changelog-sections.py # kontrola 20: wpis nie stoi pod
 python3 scripts/eos-check-claude-refs.py        # kontrola 21: każdy §N w tym pliku istnieje; sekcje po kolei
 bash scripts/eos-check-shell-strict.sh          # kontrola 22: skrypty własne mają -u i pipefail (nie -e)
 python3 scripts/eos-check-dod-refs.py           # kontrola 23: kopie listy z §6 wskazują na §6
+python3 scripts/eos-check-optional-apps.py      # kontrola 24: manifest aplikacji opcjonalnych = receptury + obraz
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
 bash scripts/verify.sh --fast                   # etap `shell-lint`: skrypty własne, nie jeden glob
 osv-scanner scan source --lockfile Cargo.lock
@@ -529,7 +530,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (23 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (24 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
