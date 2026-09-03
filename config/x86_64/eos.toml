@@ -45,6 +45,29 @@ target = "x86_64-unknown-redox"
 # it one crate. That is debt, recorded, not hidden.
 [packages.eos-guard]
 
+# ─────────────────────  The four products that shipped nowhere  ─────────────────────
+# Added 2026-09-03 (ROADMAP `PR-016`). These four have had repositories, recipes, per-OS
+# packaging and CI since earlier today, and were in NEITHER image config -- so nothing
+# pulled them into the package closure and no build had ever compiled them for Redox.
+# The gap was found by a rebuild, not by reading the config: after clearing all seven
+# product recipe trees, only three came back with a `source/` at all.
+#
+# WHETHER THEY COMPILE FOR REDOX WAS MEASURED BEFORE THIS LINE WAS WRITTEN, because
+# "add a package name" and "port a Slint GUI application" are very different amounts of
+# work and the config file cannot tell you which one you are doing:
+#
+#     cook eos-sheets - successful      cook eos-drive - successful
+#     cook eos-slides - successful      cook eos-store - successful
+#
+# `eos-drive` looked like a failure first -- `binary already exists in destination` --
+# and was not: it had compiled in 2m 12s, and the install step tripped over a stale
+# `stage.tmp` from an interrupted run of my own. The exit code said no; the log said the
+# compile was fine.
+[packages.eos-sheets]
+[packages.eos-slides]
+[packages.eos-drive]
+[packages.eos-store]
+
 # ────────────────────────────  E-OS packages  ────────────────────────────
 # R-206: the `eos` meta-package ships /usr/bin/eos-welcome (quick start) and
 # /usr/share/eos/eos-release. Recipe: recipes/other/eos.
