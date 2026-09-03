@@ -191,7 +191,7 @@ missing_tool() {  # tool install-hint
 
 is_slow() {
   case "$1" in
-    coverage|cargo-deny|osv-scanner|semgrep) return 0 ;;
+    coverage|coverage-report|cargo-deny|osv-scanner|semgrep) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -448,6 +448,33 @@ stage_coverage() {
 # ══ the project's own gates ═══════════════════════════════════════════════════════════
 # Called, never reimplemented: these scripts ARE the rules, and a YAML or bash paraphrase
 # of them is a second definition that drifts out of step in silence.
+stage_coverage_report() {
+  # TQ-001. The `coverage` stage above measures and gates; this one PUBLISHES, so the number stops
+  # living only in a terminal log that scrolls away. A measurement nobody can look up is a
+  # measurement that drifts -- README and CLAUDE.md both quoted coverage figures a human had typed
+  # months earlier. Floors are in coverage-floors.toml, not in the script (CLAUDE.md 5.10 rule 1).
+  # Negative test: `bash scripts/eos-coverage-report.sh --selftest`.
+  bash scripts/eos-coverage-report.sh --write=docs/reference/coverage.md
+  local rc=$?
+  [ "$rc" -eq 2 ] && return "$CANNOT"
+  return "$rc"
+}
+
+stage_security_coverage() {
+  # TQ-002. Line coverage says which lines RAN. It says nothing about whether the dangerous ones
+  # were CHECKED, or whether the dependency graph is known-bad. Five proxies (SC-1..SC-5) with
+  # floors that can go red; a proxy whose tool is absent is SKIPPED and the script exits 2 -- never
+  # a silent 0 %, never a silent 100 %. Negative test: `--selftest` plants an unsafe block with no
+  # SAFETY note and asserts SC-1 goes under its floor.
+  # --allow-missing is passed deliberately: cargo-fuzz and cargo-mutants are not installed on this
+  # host (TQ-004 installs them), and the summary NAMES what was not measured rather than pretending
+  # it was. The day those two land, drop this flag and the stage tightens by itself.
+  python3 scripts/eos-security-coverage.py --allow-missing --write docs/reference/security-coverage.md
+  local rc=$?
+  [ "$rc" -eq 2 ] && return "$CANNOT"
+  return "$rc"
+}
+
 stage_integrity() {
   bash scripts/ci-integrity.sh || return 1
 }
@@ -597,6 +624,8 @@ run_stage typecheck   stage_typecheck
 run_stage build       stage_build
 run_stage test        stage_test
 run_stage coverage    stage_coverage
+run_stage coverage-report stage_coverage_report
+run_stage sec-coverage  stage_security_coverage
 run_stage integrity   stage_integrity
 run_stage tar-pins    stage_tar_pins
 run_stage release-pack stage_release_pack

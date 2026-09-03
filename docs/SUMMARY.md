@@ -31,6 +31,8 @@
 # Stability
 
 - [Stability policy](reference/stability.md)
+- [Test coverage (generated)](reference/coverage.md)
+- [Security coverage (generated)](reference/security-coverage.md)
 - [Semantic-versioning decisions (2026-08-30)](reference/semver-decisions-2026-08-30.md)
 - [Third-party licences](reference/third-party-licenses.md)
 
