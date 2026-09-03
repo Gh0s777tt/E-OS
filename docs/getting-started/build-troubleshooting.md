@@ -8,7 +8,7 @@ owner: Gh0s777tt
 # 🔧 Build & boot troubleshooting
 
 Practical fixes for issues hit while building and testing E-OS in the containerised
-(Podman) WSL2 environment described in [EOS_BUILD_STATE.md](../../EOS_BUILD_STATE.md).
+(Podman) WSL2 environment described in [EOS_BUILD_STATE.md](../archive/EOS_BUILD_STATE.md).
 
 ## Apple-Silicon macOS + Podman: the build dies at the first `cargo build` (`Input/output error (os error 5)`)
 

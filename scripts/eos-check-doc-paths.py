@@ -60,6 +60,11 @@ ALLOW = {
     "docs/archive/hardware-capabilities-roadmap.md": "merged into ROADMAP §20, removed 2026-09-03; retire with Annex C.2",
     "docs/archive/acpi-off-removal-plan.md": "merged into ROADMAP §20.5, removed 2026-09-03; retire with Annex C.2",
     "docs/archive/feature-proposals.md": "merged into ROADMAP §21, removed 2026-09-03; retire with Annex C.2",
+    # Removed 2026-09-03 at the owner's decision (ROADMAP §3.0.7 Q15), archived locally under
+    # ~/eos-artifacts/repo-archive-2026-09-03/; named in the §11.7.1 ledger and Annex C.2 only.
+    "docs/archive/readme-snapshot-archive.md": "removed 2026-09-03 (Q15), 0 references; retire with the §11.7.1 ledger",
+    "docs/archive/eos-pkg-aarch64-readme-pre-publication.md": "removed 2026-09-03 (Q15), 0 references; retire with the §11.7.1 ledger",
+    "docs/audit/05-restructure-analysis-2026-08-30.md": "removed 2026-09-03 (Q15), 0 references, its decisions D-5/D-7/D-8 executed; retire with the §11.7.1 ledger",
     "docs/THREAT_MODEL.md":
         "recorded decision, CLAUDE.md; retire when that row goes",
     "docs/setup-features.md":

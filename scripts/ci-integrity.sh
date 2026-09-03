@@ -440,16 +440,17 @@ else
 fi
 
 # 17) Tracked assets: no byte-identical file under two paths, nothing over 5 MB (CLAUDE.md §7),
-# and every image referenced by at least one tracked document. Orphans are reported as warnings
-# until the 26 measured on 2026-09-03 (assets/*, 1.7 MB) have an owner decision (ROADMAP §11.7,
-# `RH-003`); the duplicate and size rules fail closed from day one. Negative test:
+# and every image referenced by at least one tracked document. Orphans were warnings for one day
+# (26 measured on 2026-09-03); the owner decided the same day: 18 uncited screenshots left the tree
+# (archived locally), the seven brand sources are cited from docs/guides/screenshots.md, and the
+# rule fails closed (ROADMAP §11.7, `RH-003`). Negative test:
 # `EOS_ASSETS_SELFTEST=1 bash scripts/eos-check-assets.sh`.
-if out="$(bash scripts/eos-check-assets.sh --warn-orphans 2>&1)"; then
+if out="$(bash scripts/eos-check-assets.sh 2>&1)"; then
   ok "${out##*assets-check: }"
 else
   rc=$?
   printf '%s\n' "$out"
-  if [ "$rc" -eq 2 ]; then cannot "check 17 could not run: ${out##*CANNOT RUN: }"; else bad "a tracked asset is duplicated or over the size limit"; fi
+  if [ "$rc" -eq 2 ]; then cannot "check 17 could not run: ${out##*CANNOT RUN: }"; else bad "a tracked asset is duplicated, over the size limit, or cited by no document"; fi
 fi
 
 # 18) docs/SUMMARY.md mirrors the docs tree. mdBook renders only what SUMMARY.md lists; on

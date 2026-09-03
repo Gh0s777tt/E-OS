@@ -66,7 +66,7 @@ correctly. This is the single most common first-build failure.
 ## Reproducible base
 
 The exact verified base (commit, toolchain, config, byte sizes, boot log) is
-pinned in **[`../EOS_BUILD_STATE.md`](../../EOS_BUILD_STATE.md)**. To reproduce a
+pinned in **[`../EOS_BUILD_STATE.md`](../archive/EOS_BUILD_STATE.md)**. To reproduce a
 known-good build, check out tag `eos-base-2026-06-06`.
 
 ## Headless boot test

@@ -7,6 +7,11 @@ owner: Gh0s777tt
 
 # Architecture
 
+> **Entry point.** This file is where a reader starts: the repository and component map, the layer
+> diagram, how the project is assembled and hosted. The *internals* (boot flow, schemes, the trusted
+> computing base) are the book chapter [`docs/architecture/overview.md`](docs/architecture/overview.md);
+> it links back here. Two documents, one declared order — recorded as `RH-008` in the roadmap.
+
 This document describes what the code does, verified against the built image on 2026-08-30. Where a
 diagram shows a boundary, that boundary exists in the source and the file:line is given.
 
