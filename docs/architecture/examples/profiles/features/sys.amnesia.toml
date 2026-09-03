@@ -13,7 +13,7 @@ evidence = """
 Połowa JEST i jest zweryfikowana: obraz live kopiuje ~1,4 GB systemu plików do RAM i bootuje
 z niego na obu architekturach (U-133; docs/getting-started/install.md — „bootloader oferuje `l` do wyłączenia
 trybu live, pozostawiony sam kopiuje system do RAM i ląduje na `eos login:`").
-docs/archive/plan.md §3.2 nazywa to wprost: „Tails: amnesia — JUŻ ZBUDOWANE, jako efekt uboczny obrazu
+ROADMAP.md §17.3.2 nazywa to wprost: „Tails: amnesia — JUŻ ZBUDOWANE, jako efekt uboczny obrazu
 live. Brakuje uczynienia z tego PRODUKTU: wariantu `eos-live-amnesic`, który nie montuje
 żadnego dysku hosta, mówi o tym na ekranie logowania i używa efemerycznego klucza dla `/tmp`
 i `$HOME`." Blokerów: „none — high value, low cost”.
@@ -95,7 +95,7 @@ NIE daje anonimowości sieciowej. Adres IP i adres MAC są widoczne. Nie ma Tora
 NIEREALNE DZIŚ), nie ma zapory (R-904), nie ma VPN w obrazie.
 Randomizacja MAC NIE jest zaimplementowana — `ifaces/<if>/mac` jest zapisywalny i istnieje
 uprzywilejowany pośrednik `eos-netcfg`, ale podkomendy `randomize-mac` nie ma, a nazwa
-interfejsu jest zaszyta na sztywno (docs/archive/plan.md §3.2).
+interfejsu jest zaszyta na sztywno (ROADMAP.md §17.3.2).
 NIE chroni przed przeciwnikiem obecnym W TRAKCIE sesji — zawartość RAM jest dostępna dla
 każdego procesu tego użytkownika, bo nie ma piaskownicy (C-5).
 NIE gwarantuje wymazania RAM po wyłączeniu — nie ma wymuszonego czyszczenia pamięci ani

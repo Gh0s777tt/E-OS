@@ -61,7 +61,23 @@ On a schedule (once you enable it): **Renovate** opens dependency-bump MRs (patc
 auto-merge when green). On tags/schedules on your **self-hosted** runner: `build-image`.
 
 Locally, if you `lefthook install`: fmt/gitleaks on commit, clippy/integrity on push,
-Conventional-Commits enforcement on the message.
+Conventional-Commits enforcement on the message. **Check that it is installed** — on 2026-09-03 the
+reference host had only the `*.sample` files in `.git/hooks` and no `core.hooksPath`, so none of
+the hooks this paragraph describes were running (`ROADMAP.md` `RH-006`):
+
+```bash
+lefthook install && ls .git/hooks | grep -v '\.sample$'   # expect pre-commit, pre-push, commit-msg
+```
+
+**AppleDouble sidecars.** The checkout lives on exFAT; macOS writes a `._name` file beside every
+file it touches (28 025 of them on 2026-09-03, plus 308 inside `.git/objects`). None is tracked
+(`.gitignore` has `._*` and `.DS_Store`), but they break `cargo llvm-cov` and make `git
+count-objects` warn. Sweep them any time; they come back, and the real fix is a checkout on APFS
+(`RH-004`):
+
+```bash
+find . -name '._*' -type f -delete && find . -name '.DS_Store' -delete
+```
 
 ## What needs your decision / one-time action
 

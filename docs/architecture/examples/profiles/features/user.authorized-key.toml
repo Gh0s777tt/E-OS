@@ -16,7 +16,7 @@ config/x86_64/eos.toml używa tego dla `/home/user/.config`) oraz zakładać kon
 Czego NIE MA: front-endy instalatora NIE zbierają danych kont — to otwarta pozycja R-603
 (docs/getting-started/install.md: „nie tworzy kont i nie pozwala wybrać pakietów”).
 Do zbudowania: pole na klucz publiczny w kreatorze + zapis pliku + reguła OOBE opisana
-w docs/archive/plan.md §2.3 („konto zasilone kluczem publicznym z zablokowanym hasłem SPEŁNIA R-602”).
+w ROADMAP.md §17.2.3 („konto zasilone kluczem publicznym z zablokowanym hasłem SPEŁNIA R-602”).
 """
 roadmap = ["R-602", "R-603"]
 

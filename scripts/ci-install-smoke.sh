@@ -139,6 +139,7 @@ if [ "$ARCH" = "x86_64" ]; then
   # REJECTS it, so passing it on both arches would fail to start the guest.
   ACCEL_ARGS=(-machine q35 -cpu max)
 elif [ "${EOS_SMOKE_ACCEL:-}" = "hvf" ] && [ "$(uname -m)" = "arm64" ]; then
+  # shellcheck disable=SC2054  # the comma is inside ONE qemu argument (virt,accel=hvf), not a separator
   ACCEL_ARGS=(-machine virt,accel=hvf -cpu host -device ramfb)
 else
   ACCEL_ARGS=(-machine virt -cpu cortex-a72 -device ramfb)

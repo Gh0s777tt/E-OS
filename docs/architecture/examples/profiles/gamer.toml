@@ -1,7 +1,7 @@
 # E-OS — profil instalacyjny.  Schemat: docs/architecture/installer-profiles.md
 #
 # UWAGA DLA CZYTAJĄCEGO KOD, NIE TYLKO TEKST: ten profil NIE sprawia, że E-OS uruchamia gry.
-# docs/archive/plan.md §2.2 nazywa to wprost — „E-OS nie uruchamia gier i roadmapa powinna to mówić
+# ROADMAP.md §17.2.2 nazywa to wprost — „E-OS nie uruchamia gier i roadmapa powinna to mówić
 # na głos". Brakuje CAŁEGO łańcucha, nie jednego ogniwa: zgodności z ABI Linuksa lub portów
 # natywnych (brak, brak pozycji), akceleracji GPU (brak — R-930 dokumentuje nieobecność),
 # wejścia z gamepada (brak — `usbhidd` obsługuje klawiaturę i mysz) i dźwięku o niskim
@@ -43,14 +43,14 @@ E-OS NIE URUCHAMIA GIER. Brakuje wszystkich czterech ogniw naraz:
   * wejście z gamepada — nie ma; `usbhidd` pokrywa klawiaturę i mysz,
   * dźwięk o niskim opóźnieniu — `ihdad` przekracza czas oczekiwania na RIRB, `audiod` kończy pracę.
 Ten profil daje wygodne domyślne ustawienia stacji roboczej. Nie daje grania.
-Źródło: docs/archive/plan.md §2.2.
+Źródło: ROADMAP.md §17.2.2.
 """
 
 [notice.text.en]
 body = """
 E-OS DOES NOT RUN GAMES. All four links are missing at once: Linux ABI compatibility or
 native ports, GPU acceleration, gamepad input, and low-latency audio. This profile gives
-convenient workstation defaults. It does not give gaming. Source: docs/archive/plan.md §2.2.
+convenient workstation defaults. It does not give gaming. Source: ROADMAP.md §17.2.2.
 """
 
 # ── Wybory ────────────────────────────────────────────────────────────────────────

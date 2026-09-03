@@ -35,6 +35,11 @@ REPO_DEBUG?=0
 ifeq ($(ARCH),i686)
 	ARCH=i586
 endif
+## macOS reports the host as arm64; the tree knows only aarch64 (config/aarch64, build/aarch64).
+## Without this, a bare `make` on the reference host looks for config/arm64/eos.toml (SQ-04).
+ifeq ($(ARCH),arm64)
+	ARCH=aarch64
+endif
 ## Select filesystem config
 ifeq ($(BOARD),)
 ifeq ($(wildcard config/$(ARCH)/$(CONFIG_NAME).toml),)

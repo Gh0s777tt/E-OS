@@ -272,7 +272,7 @@ bez izolacji kupuje serializację, nie ochronę. Deklarowanie inaczej byłoby oz
 **Co protokół kupuje na pewno:** zapis i odtworzenie przebiegu (`--record` / `--replay`), czyli
 materiał, na którym stoi bramka parytetu (D5) i test trybu nienadzorowanego.
 **Znacznik: DO ZBUDOWANIA** (`M`). Prawdziwa piaskownica dla frontendu: **NOWY PODSYSTEM**,
-ta sama praca co `R-1010` / krok 10 `docs/archive/plan.md` (za [`installer-profiles.md`](../architecture/installer-profiles.md) §8 poz. 8).
+ta sama praca co `R-1010` / krok 10 `ROADMAP.md` §17 (za [`installer-profiles.md`](../architecture/installer-profiles.md) §8 poz. 8).
 
 ### D5 — Parytet jest bramką, nie deklaracją
 
@@ -664,7 +664,7 @@ nie wolno zakładać ponownie."**
 | Protokół `Screen`/`Diagnostics`/`Event`/`Progress` + `--record`/`--replay` | **DO ZBUDOWANIA** (`M`) | warunek bramki parytetu `R-601d` |
 | Bramka parytetu GUI ↔ TUI w CI | **DO ZBUDOWANIA** (`S`) | pozycja **`R-601d`** (`ROADMAP.md`); wymaga `R-D08` jako warunku wstępnego |
 | Uprzywilejowany pomocnik `eos-setup-apply` | **DO ZBUDOWANIA** (`M`) | wzorzec `eos-netcfg`/`eos-power` — **JEST** (`R-902`, `U-112`/`U-113`) |
-| Realna piaskownica dla frontendu i importu profili | **NOWY PODSYSTEM** | `contain` zakomentowany (`config/server.toml:14`), znalezisko `C-5` **[za briefem]**, `R-1010` / krok 10 `docs/archive/plan.md` |
+| Realna piaskownica dla frontendu i importu profili | **NOWY PODSYSTEM** | `contain` zakomentowany (`config/server.toml:14`), znalezisko `C-5` **[za briefem]**, `R-1010` / krok 10 `ROADMAP.md` §17 |
 | Format profilu w TOML-u | **JEST** | `config/base.toml`, `config/x86_64/eos.toml` |
 | Dziedziczenie i nadpisywanie profili | **JEST** | `include` — cztery skoki: `config/x86_64/eos.toml:7` → `desktop.toml:3` → `desktop-minimal.toml:3` / `server.toml:3` → `minimal.toml:3` → `base.toml` |
 | Scalanie **decyzji** z blokadami i zapisem pochodzenia | **DO ZBUDOWANIA** (`M`) | dziś scala **pliki**, wygrywa ostatni (`docs/reference/known-issues.md`, `U-078`); pozycja `R-603c+` (`ROADMAP.md`) |

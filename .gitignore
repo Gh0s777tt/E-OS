@@ -108,3 +108,10 @@ credentials.json
 # already forbade committing caches; nothing enforced it.
 __pycache__/
 *.py[cod]
+
+# Guard AFTER every negation above (CL-09, 2026-09-03): `!keys/**/*.pub` at line ~95 re-admitted
+# `keys/._eos-release.pub` -- measured with `git check-ignore -v --no-index`. A negation must be
+# narrowed again straight afterwards, or it lets the junk back in.
+keys/**/._*
+**/._*
+**/.DS_Store

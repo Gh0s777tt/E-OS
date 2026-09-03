@@ -9,9 +9,9 @@
 > Polish-language `ROADMAP-v2.md`.** Each of those two documents declared the *other* retired —
 > a loop that made both unciteable. The loop is closed here: this is the single roadmap and the
 > single place where the status of an identifier is maintained. Its Polish substance is
-> **translated** into this file, not summarised. As of 2026-08-31 `ROADMAP-v2.md` is a short
-> redirect stub pointing here — kept in the tree rather than deleted, because removing a document
-> is the owner's decision ([Annex C](#annex-c--retired-documents-and-retired-identifiers)); its
+> **translated** into this file, not summarised. From 2026-08-31 `ROADMAP-v2.md` was a short
+> redirect stub pointing here; on 2026-09-03 the owner asked for **one** roadmap file and the stub
+> was removed ([Annex C](#annex-c--retired-documents-and-retired-identifiers)); its
 > full text remains in git at `87e8194b1`.
 
 This project's own rule applies to its own roadmap: **a control that cannot fail is not a control,
@@ -30,24 +30,32 @@ because the retraction record is the reason the register is worth reading.
 **The time view — scheduling only, no status of its own**
 - [1. Delivered](#1-delivered) — incl. [1.4 Gate-quality audit](#14-gate-quality-audit-2026-09-02)
 - [2. Release milestones ahead](#2-release-milestones-ahead)
-- [3. Now, next, later](#3-now-next-later) — starts with [3.0 What is left, in one place](#30-what-is-left-in-one-place)
+- [3. Now, next, later](#3-now-next-later) — starts with [3.0 What is left, ordered from the quickest to the heaviest](#30-what-is-left--every-open-item-ordered-from-the-quickest-to-the-heaviest)
 - [4. Where work can happen](#4-where-work-can-happen)
 
 **The subject register — the single source of status**
 - [5. Trust chain: boot, package channel, keys](#5-trust-chain-boot-package-channel-keys)
 - [6. Installer, wizard and updates](#6-installer-wizard-and-updates) — incl. [6.6 first-boot credentials: password quality and PIN](#66-first-boot-credentials-password-quality-and-pin--r-602ar-602f)
-- [7. Desktop shell and applications](#7-desktop-shell-and-applications) — incl. [7.5 products in the image](#75-products-in-the-image--what-notes-antivirus-browser-means-today--pr-)
+- [7. Desktop shell and applications](#7-desktop-shell-and-applications) — incl. [7.5 products: in the image, on Windows and Linux, and the four new ones](#75-products--in-the-image-on-windows-and-linux-and-the-four-new-ones--pr-)
 - [8. Drivers and hardware](#8-drivers-and-hardware)
 - [9. Security posture by audit finding](#9-security-posture-by-audit-finding)
 - [10. Correctness and regression register](#10-correctness-and-regression-register)
 - [11. Platform, process and release](#11-platform-process-and-release) — incl. [11.4 everything on E-OS](#114-everything-on-e-os-the-server-edition-and-the-cloud-platform--cs-), [11.5 the project website](#115-the-project-website--ws-), [11.6 a documented system API](#116-a-documented-system-api--api-)
 - [12. Standards and compliance](#12-standards-and-compliance)
+  - also in 11: [11.3 testing, coverage and the automation to add](#113-testing-coverage-and-gates--the-standing-state-and-the-automation-to-add--tq-) · [11.7 repository hygiene](#117-repository-hygiene--what-left-the-tree-what-waits-for-the-owner-what-keeps-it-clean--rh-)
 
 **What we do not claim**
 - [13. Dropped and refused](#13-dropped-and-refused)
 - [14. What this plan deliberately does NOT promise](#14-what-this-plan-deliberately-does-not-promise) — incl. [14.7 about "everything on E-OS"](#147-about-everything-on-e-os-the-server-edition-the-cloud-platform-and-the-website)
 - [15. What has not been verified, and the command to verify it](#15-what-has-not-been-verified-and-the-command-to-verify-it)
 - [16. Vision and positioning](#16-vision-and-positioning)
+
+**Merged plans — carried in full from `docs/archive/` on 2026-09-03**
+- [17. Who E-OS is for, what security model it builds, and the order of work](#17-who-e-os-is-for-what-security-model-it-builds-and-the-order-of-work)
+- [18. The road from QEMU to a physical computer](#18-the-road-from-qemu-to-a-physical-computer)
+- [19. Connectivity: USB, wired LAN, Bluetooth](#19-connectivity-usb-wired-lan-bluetooth)
+- [20. Delivered capability plans, kept for their scope](#20-delivered-capability-plans-kept-for-their-scope--r-50x-and-the-acpi-off-removal)
+- [21. The fourteen feature proposals of 2026-07-13, and what became of each](#21-the-fourteen-feature-proposals-of-2026-07-13-and-what-became-of-each)
 
 **Annexes**
 - [Annex A — full identifier index](#annex-a--full-identifier-index)
@@ -114,7 +122,7 @@ cannot recur in a document with one register.
 
 ### 0.3 Identifier namespaces, and the three collisions
 
-Five namespaces are live in this project. Two of them collide with documents outside the register,
+Eleven namespaces are live in this project (five were listed here until 2026-09-03). Two of them collide with documents outside the register,
 and one collides with the audit. **A reader who meets `R-704` or `R-802` without knowing this will
 misread it**, so this is a reading instruction, not a footnote.
 
@@ -125,6 +133,9 @@ misread it**, so this is a reading instruction, not a footnote.
 | `S-*` / `M-*` / `L-*` | scheduling rows on the time axis, traced to audit findings | this file (§3.1–§3.3) |
 | `EA-*` / `EB-*` / `EC-*` | installer / wizard / live-update epic backlog (**renamed this merge**) | this file (§3.5) |
 | `C-*` / `G-*` / `A §…` | audit findings | [`docs/audit/`](docs/audit/) |
+| `CS-*` / `WS-*` / `API-*` / `PR-*` | cloud and server edition · website · system API · products | this file (§11.4, §11.5, §11.6, §7.5) |
+| `TQ-*` / `RH-*` | test and security-coverage automation · repository hygiene | this file (§11.3, §11.7) |
+| `M1`…`M8` · `EP-*` · `E0`…`E8` · `D1`…`D7` · `T2`…`T4` · `Q1`…`Q15` | installer milestones (no hyphen — §3.4) · installer epics (§6.1) · update-system stages (§6.4) · Annex B decisions · hardware tiers (§8.4) · owner decisions (§3.0.7) | tokens, not register rows: they carry no status of their own |
 
 **The three collisions, all confirmed in the tree this session:**
 
@@ -193,7 +204,7 @@ milestones appear as *delivered with evidence* rather than as design rows.
 | **eos-control** — unified control centre; supersedes guard + sysmon as shipped apps | `U-095` |
 | Control centre panes: processes, storage, network, power, sound | `U-096`–`U-113` |
 | Desktop: launcher search, clock, status tray, notifications, screenshot | `U-098`–`U-102` |
-| NetSurf built from source as PIE | `U-103`, `U-105` |
+| NetSurf built from source as PIE — **regressed in the shipped artefact**, see `R-D06` / #28; the row stays as the v0.2.0 record | `U-103`, `U-105` |
 | Graphical and text OOBE forcing a password on first boot | `U-076`, `U-077`, `U-079` |
 | Secure Boot: bootloader signed, live ISO and installed system proven | `U-206`–`U-208` |
 | Supply chain: every fetched build binary SHA256-pinned | `U-118` |
@@ -226,6 +237,10 @@ milestones appear as *delivered with evidence* rather than as design rows.
 | Exactly one getty per serial console on both arches — the second `login` was eating typed input | — | #24 |
 | Encrypted-install case in the harness, with its own negative control | `R-601e` (part) | §1.4 |
 | **Gate-quality audit**: 328 agents over every script, CI file, hook and makefile; 34 confirmed defects fixed | — | §1.4 |
+| **One roadmap file**: six archived plans merged in full (§17–§21), `ROADMAP-v2.md` removed, 48 citations rewritten | `RH-001`, `RH-002` | 2026-09-03, §11.7 |
+| Three new integrity gates, each red on its first run: roadmap structure (16), assets (17), `SUMMARY.md` (18) | — | §11.3.1 |
+| `CLAUDE.md` §5.11: every change kind has a named check; §9 corrected (`verify.sh` exists) | — | 2026-09-03 |
+| Products measured off-Redox: `eos-ui`/`eos-notes`/`eos-control` `cargo check` clean on macOS; no host window backend; `eos-ui` pinned from the GitHub mirror | `PR-006`, `PR-007` | §7.5.2 |
 
 > **Correction carried forward, not quietly dropped.** `ROADMAP-v2.md` §9 opened by stating that
 > `ROADMAP.md` "counted 143 items: 67 done, 16 in progress, 43 planned, 16 ideas, 1 withdrawn …
@@ -315,90 +330,158 @@ in this document:** *each milestone leaves the system better even if the next on
 
 Scheduling only. Status lives in the register; the **Item** column links there.
 
-### 3.0 What is left, in one place
+### 3.0 What is left — every open item, ordered from the quickest to the heaviest
 
-The registers below are the source of truth for status; this list exists so the question
-"what is actually left?" has one honest answer that fits on a screen. Written 2026-09-02.
+The registers below are the source of truth for status; this list exists so the question "what is
+actually left, and what do I get for each piece?" has one answer that reads top to bottom. **Order =
+cost, rising.** Within a band, the row that unblocks more comes first. Each row says what the change
+**adds or changes** — not what it is called. Rewritten 2026-09-03; the previous version (2026-09-02)
+listed the blocked items and the owner's decisions, which are now §3.0.6 and §3.0.7.
 
-**Blocked on something other than work**
+Bands: **A** minutes to a day · **B** days · **C** weeks · **D** a quarter or more · **E** blocked on
+something other than work. Owner marks: 🖥️ doable on this Mac · 🐧 needs Linux · ⚙️ needs hardware ·
+🔑 the operator, never a tool.
 
-- **`R-607b` — first run on real hardware.** One PC, the symptom form filled in, the result
-  recorded as the first metal evidence. It is the only open row in M1 and it cannot be closed
-  from QEMU. Everything upstream of it is done.
-- **Releases, signed tags, cosign attestation, docs-site publication.** Gated on a working CI
-  and on a signing key the owner holds. Generating that key is deliberately a human action and
-  is not automated: a signing key must never pass through tooling that logs.
-- **Shared-runner CI quota.** Every GitLab job has failed in 0 s with `ci_quota_exceeded` since
-  2026-08-28. Nothing in the pipeline has been *evaluated* since then; each merge today was made
-  after confirming all six jobs failed for quota and none had judged the code.
+#### 3.0.1 Band A — minutes to a day
 
-**Open defects with evidence, ready to be worked**
+| # | id | what it adds or changes | unlocks | who |
+|---|---|---|---|---|
+| A1 | `PR-006` | products pin `eos-ui` from GitLab instead of the GitHub mirror; a `ci-integrity` line refuses `github.com/Gh0s777tt` in any type-A manifest | `ADR-0001` holds for the products, not only the recipes | 🖥️ |
+| A2 | `TQ-004` | `cargo-audit` and `cargo-geiger` installed and wired into `verify.sh` with install hints | SC-1 and an offline advisory scan; every later `TQ` row | 🖥️ |
+| A3 | `TQ-008` | security lints as errors per own crate (`unsafe_op_in_unsafe_fn`, `undocumented_unsafe_blocks`, `missing_docs`, `unwrap_used` in trust code) | `API-003`; SC-1 enforced at compile time | 🖥️ |
+| A4 | `PR-007` | a host window backend behind `cfg(not(target_os = "redox"))` in `eos-ui`; Notes and Control open a window on Linux and macOS | `PR-008`; the first product download that is not E-OS | 🖥️ |
+| A5 | `RH-006` | hooks actually installed on the development host; `.pre-commit-config.yaml` invoked by lefthook as its header prescribes; a `verify.sh` stage that goes red when they are not | the fail-closed secret scan runs *before* a push, on this machine | 🖥️ |
+| A6 | `RH-005` | a lefthook command that refuses a staged cache/sidecar/artefact | `git add -A` cannot sweep a `.pyc` in again | 🖥️ |
+| A7 | `RH-003` | the 25 orphan assets cited or moved out; check 17 fails closed on orphans | 1.6 MB of unowned files stop accumulating | 🔑 then 🖥️ |
+| A8 | `RH-008` | `docs/architecture/overview.md` folded into `ARCHITECTURE.md`, twelve links rewritten | one architecture entry point | 🖥️ |
+| A9 | `S-12` | `eos-pkgutils` bumped for `rustls-webpki`, `ring`, `rand` (six advisories inside `/usr/bin/pkg`) | a clean `osv-scanner` on the package manager | 🖥️ |
+| A10 | `S-14` | `osv-scanner` in `.gitlab-ci.yml` and `lefthook.yml`, not only `verify.sh` and GitHub | the same scan in every runner | 🖥️ |
+| A11 | `S-20` | SBOM regenerated and committed per tag (`sbom/` holds only 0.1.0) | `V2-MS08`'s "ageing" note closes; releases carry a current bill of materials | 🖥️ |
+| A12 | `S-18` | one source of the product version (three disagree: `mk/config.mk:189`, `config/*/eos.toml`, the tag) | `S-20`, `R-611a` naming, the website's "what's new" | 🖥️ |
+| A13 | `R-602g` (decision Q2 first) | `redox_users` forked as a type-C repo with `[patch.crates-io]` so runtime hashing is argon2id at the installer's cost — or an upstream MR | #27 closed; `R-602a` can quote one cost | 🖥️ |
+| A14 | `R-F28` | `scripts/ventoy.sh` knows `eos` | a repeatable USB medium instead of `dd` | 🖥️ |
+| A15 | `PR-001` | product pages generated from `config/*/eos.toml` + `repos.toml` | `WS-008`, `PR-005`; three hand lists stop disagreeing | 🖥️ |
+| A16 | `S-15` | apt versions pinned in the three containerfiles | one reproducibility obstacle (`L-3`) fewer | 🖥️ |
+| A17 | `M-5` | `semgrep` gating in CI (it is a `verify.sh` stage and a GitHub job; not in `.gitlab-ci.yml`) | SAST in the runner that gates merges, once quota returns | 🖥️ |
 
-- **#26 — the x86_64 image does not assemble after a `cosmic-edit` re-cook.** `libonig` and
-  `libxkbcommon` have no recipe in this tree; the freshly generated `auto_deps.toml` requires
-  both. Not proven from a pristine tree, and said so in the issue.
-- **#25 — the installer's disk-password prompts are not flushed**, so a headless serial install
-  looks hung exactly where it asks about encryption. Fix is open as `eos-installer` !6,
-  compile- and package-verified, not yet exercised on a booted image (blocked by #26).
+#### 3.0.2 Band B — days
 
-**Named gaps, not yet defects**
+| # | id | what it adds or changes | unlocks | who |
+|---|---|---|---|---|
+| B1 | `TQ-001` | one coverage page for every own crate, generated; floors that can fail | `TQ-010`; the README stops typing numbers | 🖥️ |
+| B2 | `TQ-002` | the security-coverage script: SC-1, SC-3, SC-4 measured from the tree; SC-2/SC-5 `SKIPPED` with exit 2 until their tools exist | "security coverage" becomes a number with a floor | 🖥️ |
+| B3 | `TQ-003` + `PR-009` | first tests in `eos-ui`, `eos-notes`, `eos-control` (0 today) with `llvm-cov` floors at the first measured value | products enter the coverage page; regressions visible | 🖥️ |
+| B4 | `TQ-009` | the scripts' negative tests collected in one suite `verify.sh` runs | every gate's "can it fail?" proof re-runs on every commit | 🖥️ |
+| B5 | `R-602a`, `R-602b`, `R-602c` (decisions Q3, Q4) | password meter from the measured hash cost, a blocklist, guidance text in installer, greeter and `passwd` — one policy crate | the owner's password request; `WS-*` account pages reuse the same crate | 🖥️ |
+| B6 | `R-602d`, `R-602e`, `R-602f` (Q1, Q5) | PIN as a separate slot for screen unlock with a persisted try counter; encrypted at rest under the FDE key; harness password changed with the floor | the owner's PIN request without weakening FDE | 🖥️ |
+| B7 | `PR-005` | the wizard's package-selection screen writing the chosen `[packages.*]` set; the answer file carries it | products switchable at install; server edition installs without a desktop | 🖥️ |
+| B8 | `PR-008` | per-OS packages for Notes (Linux tar+checksum, Windows zip+checksum, macOS app zip) and a Linux developer build of Control, signed, listed behind the developer-only toggle, built on the `eos-heavy` runner | the first Windows/Linux downloads | 🖥️/🐧 |
+| B8a | `TQ-011` | a `local-gates` job on the `eos-heavy` runner running `verify.sh` on every MR and on `main` — the only runner that has executed anything since 2026-09-01 | the 16 stages judge every merge again instead of failing on quota in 0 s | 🖥️ |
+| B9 | `S-8` | `blake3` verified regardless of `is_deps` (`src/cook/fetch.rs:541`) | dependency tarballs stop bypassing the integrity check | 🖥️ |
+| B10 | `S-13` | tests for `repo_builder.rs` and `cook/package.rs` (the code that writes and signs the index has zero) | `TQ-006`'s mutation run has something to kill | 🖥️ |
+| B11 | `S-16` | a current `git` built for the image (ships 2.13.1 from 2017) | `CS-005`, developer use of the image | 🖥️ |
+| B12 | `S-11` + `EC-2` | aarch64 index republished with `serial`/`expires` | freeze protection live on the one published channel | 🔑 |
+| B13 | `TQ-007` | negative-input manifests for the three trust crates and the check that reads them | SC-4 with a floor | 🖥️ |
+| B14 | `M-9` | mirror-head parity check (`eos-pkg-aarch64` already diverged) | a fork that silently builds stale code is caught | 🖥️ |
+| B15 | `M-6` | semantics of `debug`, `memory`, `irq`, `serio`, `sys` for unprivileged users settled; the unnecessary dropped | `M-1` has a defined user namespace to narrow from | 🖥️ |
+| B16 | `API-001`, `API-002` | the inherited scheme surface documented from the kernel tree; `.sig`/manifest format written down from `main.rs:193-202` | the "full system API" the owner asked for starts with what exists | 🖥️ |
+| B17 | `R-D06`/`R-F30` | NetSurf built from source as a PIE with a gate on the shipped artefact | #28 closed; the browser row stops being an upstream prebuilt | 🖥️ |
+| B18 | `R-807` | the persisted "device present, no driver" inventory | the first metal run (E1) produces a list, not a guess | 🖥️ |
 
-- **`R-601e` — the harness still lacks three cases**: interruption in phase 1/3 (the only test of
-  the M2 transaction), BIOS boot, and choosing the *wrong real disk* — `R-604a` tests a name that
-  matches **no** disk (`install-smoke-drive.py:390` sends `offered[0] + "-not-a-real-disk"`),
-  which is a different thing. FDE is now covered.
-- **`R-601d` — GUI ↔ TUI parity gate.** Both front-ends must cover the same state set; the
-  graphical path has never been exercised end to end.
-- **`tools/eos-repo-sign::verify()` has no test.** It is the single place where trust in the
-  E-OS package repository is decided. Named by the audit's completeness critic, round 2.
-- **`S-8`, `S-11`…`S-16`, `S-18`…`S-20`** in §3.1 remain as recorded on 2026-08-31; today's audit
-  did not re-verify them, and they are not restated here as if it had.
+#### 3.0.3 Band C — weeks
 
-**New scope, 2026-09-02 — recorded, sized, not started.** The owner asked for four things the
-registers now hold: password quality and a PIN ([§6.6](#66-first-boot-credentials-password-quality-and-pin--r-602ar-602f),
-`R-602a`…`g`), a documented system API ([§11.6](#116-a-documented-system-api--api-), `API-*`), a
-Microsoft-style website ([§11.5](#115-the-project-website--ws-), `WS-*`), and an own cloud platform on
-E-OS as the host ([§11.4](#114-everything-on-e-os-the-server-edition-and-the-cloud-platform--cs-), `CS-*`,
-three tiers). What that cannot mean yet is in [§14.7](#147-about-everything-on-e-os-the-server-edition-the-cloud-platform-and-the-website).
-One item from that analysis is already a defect, not a plan: **#27** — passwords set in the running
-system are hashed argon2i m=4096 (`rust-argon2 0.8.3` default), not the argon2id m=19456 the README
-claimed; `R-602g` is its fix and is the cheapest row in the new scope.
+| # | id | what it adds or changes | unlocks | who |
+|---|---|---|---|---|
+| C1 | `TQ-005`, `TQ-006` | fuzz targets for the trust parsers on a scheduled runner; mutation score on `verify()` | the audit's last named untested function measured | 🖥️ |
+| C2 | `PR-004` | E-OS Guard as one crate (`lib` + `bin`) shipped as an app and used by `eos-control`; FDE/RAID/repo status lines | the security product the owner asked to name; §21 proposal 3 finished | 🖥️ |
+| C3 | `PR-013` | the app store: metadata in the signed index, a generator in `cookbook`, a browse/install/remove pane | the owner's store request on the trust channel that exists | 🖥️ |
+| C4 | `WS-001`…`WS-007` (Q6, Q7) | the static half of the website in a new repo: i18n from the first commit, product pages from `PR-001`, changelog, legal, the developer-only download gate, search, accessibility; hosted locally first, as the owner said | a site that can be shown before any server exists | 🖥️ |
+| C5 | `CS-009` → `CS-001` | the `wip/` build gate answers per recipe; a `config/*/eos-server.toml` that installs unattended with a key, no greeter, headless smoke (`CS-010`) | Tier 1 of the cloud plan; `PR-012`'s server | 🖥️ |
+| C6 | `M-2` | a persistent audit log daemon with rotation | there is something to read after an incident | 🖥️ |
+| C7 | `M-3` / `R-904` | a packet-filter layer over the netstack, or an explicit decision to disable `sshd` by default | the server edition's P0; `WS-005`'s exposure bounded | 🖥️ |
+| C8 | `R-801`, `R-802`, `R-804`, `R-805`, `R-806` | `eos-devd`, the signed driver catalogue, per-driver `pkgar`, spawn-on-demand, the Drivers pane | the Driver Manager (§18.4, §21 rows 1/4/10/11) | 🖥️ |
+| C9 | `R-706`, `R-707`, `EC-4`…`EC-6`, M5–M7 | staged transactional apply with rollback; kernel/base on reboot with fallback; the Update pane | `L-1`; a bad update no longer bricks a real install | 🖥️ |
+| C10 | `R-601d`, `R-601e`, M2–M4 | GUI↔TUI parity gate; interruption, BIOS and wrong-disk cases; the wizard state machine; profiles and unattended mode | the installer programme's software half closed | 🖥️ |
+| C11 | `R-903` | IPv6 end to end (`proto-ipv6`, netcfg, SLAAC, DHCPv6) | modern networks; `CS-004` | 🖥️ |
+| C12 | `R-D13` | an i18n catalogue with a pl/en key-parity gate | `WS-002` shares it; the Polish-only strings go | 🖥️ |
+| C13 | `PR-010`, `PR-011` | `eos-sheets` (grid, ~40 functions, CSV) and `eos-slides` (boxes, presenter view, PDF export) as new repos on `eos-ui` | the owner's office request, MVP-sized | 🖥️ |
+| C14 | `V2-MS04`, `V2-MS09` | the Secure Boot proof as a CI job; the lockdown statement for user-space | shim-review readiness that is code, not paperwork | 🖥️/🐧 |
+| C15 | `R-911` | `usbaudiod` (UAC1 out → in → UAC2) | USB headsets; §19.1 row 4 | 🖥️ |
+| C16 | `API-003`…`API-006` | rustdoc/pages that actually run; the stability policy; the E-OS-owned API stabilised for 1.0 | `R-1002` | 🖥️ |
 
-**Decisions only the owner can make before the new scope starts** (the numbering here *is* a list,
-not a sequence; refined 2026-09-02 evening after the adversarial pass and the architect's synthesis):
+#### 3.0.4 Band D — a quarter or more
 
-1. **PIN and disk encryption.** Screen/greeter unlock only (recommended — a 4-digit PIN falls to an
-   offline search in ~150 s at the shipped cost), or also for `sudo`/`passwd`? FDE is refused in §14.7.
+| # | id | what it adds or changes | unlocks | who |
+|---|---|---|---|---|
+| D1 | `PR-012` | the cloud drive: WebDAV server in Rust on the server edition with quota and server-side encryption; sync client for E-OS, Linux, Windows | the owner's drive request; the first E-OS-hosted service | 🖥️ then ⚙️ |
+| D2 | `CS-002`…`CS-008` | object storage, managed SQL, networking/VPN/LB, monitoring, IAM, billing, serverless — Tier 1 on E-OS | the cloud platform's usable core | 🖥️/⚙️ |
+| D3 | `M-1`, `R-1010`, `CS-101`…`CS-103` | per-application scheme policy; `contain` enabled and given a lifecycle; an orchestrator | application isolation; Tier 2 | 🖥️ |
+| D4 | `L-1`, `M8`, `R-609` | A/B slots, deltas, key rotation; repartitioning in the installer | atomic updates on real disks | 🖥️ |
+| D5 | `L-3`, `V2-MS07` | byte reproducibility of image and EFI binary | any external review; shim submission | 🐧 |
+| D6 | `PR-004b` | a signature engine for Guard on Linux (`fanotify`, `yara-x`) — and, separately, Windows (a signed kernel driver, not Rust-only) | the word "antivirus" earns its place | 🐧 / 🔑 |
+| D7 | `R-910`, `R-916`, `R-912`, `V2-D02` | multi-gig NICs, the I2C bus and I2C-HID, RAID beyond mirror, NVMe depth | laptops (touchpads), modern desktops, real SSDs | ⚙️ |
+| D8 | `R-920` (B0–B5), `R-921`, `L-2`, `L-6` | Bluetooth from HCI to A2DP; the first Wi-Fi chipset | wireless at all | ⚙️ |
+| D9 | `R-930`, §18.5 | virtio-gpu 3D, Intel modesetting, an acceleration substrate | graphics beyond the framebuffer; the gaming chain's second link | 🖥️ then ⚙️ |
+| D10 | `CS-201`…`CS-205` (Q11) | a hypervisor for Redox — an upstream RFC first; interim TCG | VMs, Windows/Linux guests, Tier 3 | 🖥️ then ⚙️ |
+| D11 | `WS-008`…`WS-012` (Q8) | the dynamic half of the website on E-OS: accounts, mail, tickets, AI chat — after `CS-001` and TLS on E-OS | the Microsoft-style site the owner described, on E-OS | 🖥️/⚙️ |
+
+#### 3.0.5 Band E — blocked on something other than work
+
+| # | id | what it adds or changes | blocked by | who |
+|---|---|---|---|---|
+| E1 | `R-607b`, §18.0 | the first boot on a physical PC and the symptom form filled in — the only open row in M1 | one desktop computer | ⚙️ 🔑 |
+| E2 | `S-1` | branch protection: no direct pushes to `main` | the operator's click | 🔑 |
+| E3 | `S-19` | a second maintainer or a written recovery procedure | a person | 🔑 |
+| E4 | `R-009` | GitLab CI that runs — shared minutes are exhausted intermittently; the GitHub mirror's workflows execute | quota or an own runner | 🔑 |
+| E5 | `V2-MS06`, `M-4`, `V2-MS12b` | keys on a hardware token; signing separated from the build host; package-key custody | tokens and a second machine | 🔑 |
+| E6 | `V2-MS10`, `V2-MS11`, `L-5` | a legal entity, an EV certificate, chainload through shim | money and paperwork | 🔑 |
+| E7 | `L-7` | OpenSSF Scorecard registration | the operator | 🔑 |
+| E8 | `RH-004` | the checkout leaves exFAT | the operator moves the tree | 🔑 |
+| E9 | #26 | the x86_64 image assembles after a `cosmic-edit` re-cook (`libonig`, `libxkbcommon` have no recipe) | a pristine-tree reproduction, then two recipes | 🖥️ |
+| E10 | #25 (`eos-installer` !6) | flushed disk-password prompts in the installer | #26 (needs a booted x86_64 image to exercise) | 🖥️ |
+
+#### 3.0.6 Open defects with evidence, ready to be worked
+
+- **#26** and **#25** — above, E9/E10.
+- **#27** — passwords set in the running system are hashed argon2i m=4096 (`rust-argon2 0.8.3`
+  default), not the argon2id m=19456 the README claimed; `R-602g` (A14) is its fix.
+- **#28** — the shipped NetSurf is the upstream prebuilt, no PIE; `R-D06` 🟡 until `R-F30` (B17).
+- **`tools/eos-repo-sign::verify()` has no test** — named by the audit's completeness critic; `TQ-006` (C1).
+- **Two roadmap rows carried ✅ with no evidence** (`R-301`, `R-502b`) — found by check 16 on its first
+  run and fixed in the same change.
+- **One byte-identical screenshot under two names** — found by check 17, the unreferenced copy removed.
+- **Fourteen documentation pages were never published** — found by check 18, listed in `SUMMARY.md`.
+- **No git hook is installed on the development host** — `RH-006` (A5).
+
+#### 3.0.7 Decisions only the owner can make (the numbering is a list, not a sequence)
+
+1. **PIN and disk encryption** — screen/greeter unlock only (recommended; a 4-digit PIN falls to an
+   offline search in ~150 s at the shipped cost), or also `sudo`/`passwd`? FDE is refused in §14.7.
 2. **`R-602g` — the fix path.** A version bump does **not** fix it (`redox_users 0.5.2` still pins
-   `rust-argon2 0.8`). Fork `redox_users` as a 31st type-C repository with `[patch.crates-io]`, or an
-   upstream MR and a wait for a release?
-3. **Where the credential-policy library lives.** A `lib` target inside the `eos-userutils` fork
-   (type C, rebased with upstream) or a new type-A crate `eos-credpolicy` — it must build on the host
-   (the installer is a host tool, `mk/fstools.mk:40`) *and* for `*-unknown-redox`.
-4. **Length floor and blocklist source** — how many characters; `include_str!` in the crate or a
-   file under `/usr/share/eos/`; and agreement that the harness password `eos` changes in the same MR,
-   or `R-601c` goes red.
-5. **Try counter (`R-602d`) — home and persistence.** In the sudo daemon or a per-account file;
-   reset on reboot or not; acceptance that root can delete it.
-6. **Where the website lives.** A separate `eos-website` repository (recommended) or a directory here.
-7. **Where the website's static half is hosted *today*.** GitHub Pages while GitLab CI is dead
-   (`R-009`), then E-OS + `nginx` after `CS-001` — or wait?
-8. **AI chat in support.** A model on E-OS (no GPU stack — Tier 3) or an external API, which
-   contradicts "everything on E-OS"; one of the two, chosen knowingly.
-9. **The cloud platform's name** and its relation to the E-OS brand; `CS-*` until decided.
-10. **`CS-009` before any Tier 1 row.** Agreement that the `wip/` build gate may answer "does not
-    build" and push `CS-003`/`CS-006`/`CS-008` back.
-11. **Hypervisor: fork or upstream?** `CS-201` without Redox upstream becomes an unrebaseable kernel
-    fork (§12, type C). Recommended: an upstream RFC before the first line. **Windows guests** —
-    licensing and support are the owner's decision, not a technical one.
-12. **Products.** `eos-guard`/`eos-sysmon` ship or leave the list (`PR-002`); whether the word
-    "antivirus" appears at all (`PR-003`); and `R-D06` stays 🟡 until a gate on the NetSurf artefact
-    (`R-F30`, #28) is green.
-
-**What today's work does NOT change**
-
-No feature was added, no kernel code touched, and the contents of the images are the same. What
-changed is whether the gates around them can fail — see [§1.4](#14-gate-quality-audit-2026-09-02).
+   `rust-argon2 0.8`). Fork `redox_users` as a type-C repository with `[patch.crates-io]`, or an
+   upstream MR and a wait?
+3. **Where the credential-policy library lives** — a `lib` in the `eos-userutils` fork or a new
+   type-A crate; it must build on the host and for `*-unknown-redox`.
+4. **Length floor and blocklist source**, and agreement that the harness password `eos` changes in
+   the same MR.
+5. **Try counter (`R-602d`) — home and persistence.**
+6. **Where the website lives** — a separate `eos-website` repository (recommended).
+7. **Where the static half is hosted today** — locally, as the owner said on 2026-09-03; GitHub
+   Pages as the first public step while GitLab CI is dead; E-OS + `nginx` after `CS-001`.
+8. **AI chat in support** — a model on E-OS (no GPU stack) or an external API; one of the two.
+9. **The cloud platform's name.**
+10. **`CS-009` before any Tier 1 row** — the `wip/` gate may answer "does not build".
+11. **Hypervisor: fork or upstream?** Upstream RFC first (recommended); Windows guests are a
+    licensing decision.
+12. **Products:** `eos-guard`/`eos-sysmon` ship or leave (`PR-002`); the word "antivirus"
+    (`PR-003`, §7.5.3 recommends *E-OS Guard, integrity and permission monitoring*); `R-D06` stays 🟡
+    until `R-F30`.
+13. **Four new repositories** — `eos-sheets`, `eos-slides`, `eos-drive`, `eos-store` (§7.5.4):
+    create now from the `eos-notes` skeleton, or only when their first milestone starts?
+14. **`docs/prompts/`** — the owner's untracked prompt library: tracked with a README, or moved out
+    of the tree (`RH-009`).
+15. **The owner's deletion list** in §11.7.2 — 25 orphan assets, `EOS_BUILD_STATE.md`, two
+    reference-free archive files, `05-restructure-analysis`.
 
 ### 3.1 Short term (1–3 months) — `S-1`…`S-20`
 
@@ -416,7 +499,7 @@ eight false claims into a fresh document. Their evidence is in the *Verified* co
 | S-6 | **Point the README bootstrap at the in-repo script** | **done** — `README.md` quick start is `git clone https://gitlab.com/e-os/e-os.git && cd e-os`; no `curl … \| bash` remains | **High** | Gh0s777tt | 15 min | `A §2.3` |
 | S-7 | **Pin `blake3` for `mpc`; unpinned tarball a hard error** | **done** — `recipes/libs/mpc/recipe.toml:19` pins `86d083c4…` with its chain of trust; the hard-error half is `ci-integrity.sh` **check 12** → `scripts/eos-check-tar-pins.py` | **High** | Gh0s777tt | 1 h | `C-1b`, `A §5.4b` |
 | S-8 | **Verify `blake3` regardless of `is_deps`** | open — `src/cook/fetch.rs:541` `let check_source = !recipe.is_deps;` unchanged | **High** | Gh0s777tt | 3 h | `C-1c`, `A §5.4c` |
-| S-9 | **Pin the upstream package key** → [`R-701a`](#53-package-channel-and-update-trust--r-7xx), [`V2-MS13`](#52-secure-boot-milestones--v2-ms) | open | **High** | Gh0s777tt | 4 h | `C-1`, `G-2` |
+| S-9 | **Pin the upstream package key** → [`R-701a`](#53-package-channel-and-update-trust--r-7xx), [`V2-MS13`](#52-secure-boot-milestones--v2-ms) | **done** — `R-701a` ✅ (`U-143`, `U-183`, `ci-integrity.sh` check 9) and `V2-MS13` ✅ (`U-223`); the row said "open" until 2026-09-03 while both targets were closed | **High** | Gh0s777tt | 4 h | `C-1`, `G-2` |
 | S-10 | **Publish the x86_64 package repository and enable `50_eos`** → [`R-701`](#53-package-channel-and-update-trust--r-7xx) | open — `config/x86_64/eos.toml:767` ships `50_eos` with the URL **commented out**; aarch64 is active | **High** | operator 🔑 | 1 d | `C-4`, `G-1` |
 | S-11 | **Republish the aarch64 index with `serial`/`expires`** | open — the live index predates `V2-MS15` | Medium | operator 🔑 | 1 d | `C-12` |
 | S-12 | **Bump `eos-pkgutils`** for `rustls-webpki`, `ring`, `rand` | open — `rustls-webpki 0.103.4` with six advisories ships inside `/usr/bin/pkg` | **High** | Gh0s777tt | 2 h | `C-3`, `G-13` |
@@ -440,7 +523,7 @@ eight false claims into a fresh document. Their evidence is in the *Verified* co
 | M-5 | **SAST in CI** (`semgrep`) — clippy is a linter, not a SAST | Medium | Gh0s777tt | 4 h | `C-15`, `G-19` |
 | M-6 | **Settle the semantics of `debug`, `memory`, `irq`, `serio`, `sys`** for unprivileged users and drop what is unnecessary | **High** | Gh0s777tt | 2 d | `C-21` |
 | M-7 | **`linked_list_allocator` ≥ 0.10.2** — `RUSTSEC-2022-0063`; none of its three paths is reachable in this usage, so this is debt, **not** a reachable exploit. The audit argues this finding *down* and that is carried over unchanged | Medium | Gh0s777tt | 2 h | `C-16` |
-| M-8 | **`V2-MS04`, `V2-MS06`, `V2-MS07`, `V2-MS08`, `V2-MS09`** — remaining shim-review preparation. *Listed individually here on purpose:* the old range notation "`V2-MS06`–`V2-MS09`" left `V2-MS07` and `V2-MS08` with no owner and no horizon | Medium | Gh0s777tt | — | `ADR-0006` |
+| M-8 | **`V2-MS04`, `V2-MS06`, `V2-MS08`, `V2-MS09`** — remaining shim-review preparation. *Listed individually here on purpose:* the old range notation "`V2-MS06`–`V2-MS09`" left `V2-MS07` and `V2-MS08` with no owner and no horizon. `V2-MS07` (byte reproducibility) sat in this row **and** in `L-3` until 2026-09-03 — two horizons for one item; it is `L-3` only now, with `R-303` | Medium | Gh0s777tt | — | `ADR-0006` |
 | M-9 | **Mirror-head parity check** — nothing compares GitLab and GitHub heads; one live divergence already exists (`eos-pkg-aarch64`, disjoint histories) | Medium | Gh0s777tt | 4 h | audit `00 §5.2` |
 
 ### 3.3 Long term (6–12+ months) — `L-1`…`L-7`
@@ -490,7 +573,7 @@ named here rather than left to be discovered.
 written to a USB stick with `dd` starts from firmware, the installer sees the internal disk and
 identifies it by more than a number, the installation succeeds, and the machine **with the stick
 removed** boots to `eos login:`. A failed run is also a result **if it records where it stopped**;
-the symptom form is in [`docs/archive/hardware-plan.md`](docs/archive/hardware-plan.md) §0.5.
+the symptom form is in [§18.0.5](#180-stage-0--first-boot-on-metal--one-evening--do-this-first-r-607b).
 
 **M1 status, measured 2026-08-31:** 11 tasks tracked as GitLab issues, **6 closed** (#1 `R-611a`, #2 `R-611b`, #3 `R-611c`, #7 `R-607a`, #8 `R-612a`, #10 `R-608` part), 5 open. Tasks 1 (`R-611a`), 7 (`R-607a`) and 8
 (`R-612a`) are ✅ — the merge requests are merged and the pins are bumped (`eos-installer` →
@@ -652,7 +735,7 @@ August 2026. Nothing in the predecessor English roadmap corresponded to this.
 | Revocation mechanism | *"strong revocation mechanism for everything the shim loads, directly and subsequently"* — hashes of old binaries into DBX | L |
 | Byte reproducibility | a hard threshold: *"nobody will trust and sign a binary that is not reproducible"*. `R-303` states plainly that image timestamps still differ — `V2-MS07` | M |
 | Secure Boot gate in CI | no job in `.gitlab-ci.yml` calls `eos-secureboot-proof.sh`; the proof exists only on the maintainer's laptop — `V2-MS04` | M |
-| Three documents contradicted the code | `docs/security/threat-model.md`, `docs/security/hardening.md` and `docs/archive/hardware-plan.md` still claimed nothing signs the bootloader. A reviewer reads the security documents, and a contradiction with the code is a maturity warning. **Since fixed as `V2-MS03`** (`U-211`, `U-216`) | XS |
+| Three documents contradicted the code | `docs/security/threat-model.md`, `docs/security/hardening.md` and the hardware plan (now §18) still claimed nothing signs the bootloader. A reviewer reads the security documents, and a contradiction with the code is a maturity warning. **Since fixed as `V2-MS03`** (`U-211`, `U-216`) | XS |
 
 #### 5.1.3 What is missing beyond engineering — the real blocker
 
@@ -765,8 +848,8 @@ ed25519 + blake3 before commit). What sits above it is the open work.
 |---|---|---|
 | `R-503` | **Hybrid post-quantum package signing, ed25519 + ML-DSA-65.** Delivered; `tools/eos-repo-sign` is E-OS's own code (9 tests, 41.06 % line coverage against a 38 % floor). Cross-referenced from many places; **remaining scope is promoting ML-DSA-65 from advisory to required at the client**, which is tracked in `R-703` | ✅ (with the named remainder) |
 | `R-502` | **RedoxFS AES-XTS full-disk encryption** with ARMv8 crypto-extension acceleration. Delivered; referenced as the engine several "notebook features" should be wired to rather than rewritten (§7.4) | ✅ |
-| `R-502b` | **Hardware SHA acceleration** — parent scope of `R-914`; kept as a cross-reference, not re-minted | ✅ (scope), `R-914` open |
-| `R-301` | **Signed release checksums for `harddrive.img`.** Closed in an earlier roadmap generation. Kept here because `R-611` cites it to prove it is not a duplicate: `R-301` covers the **pre-installed image**, `R-611` covers the **installation medium** — two different files | ✅ |
+| `R-502b` | **Hardware SHA acceleration** — parent scope of `R-914`; kept as a cross-reference, not re-minted (Annex C.1) | cross-reference only — the work is `R-914`, open |
+| `R-301` | **Signed release checksums for `harddrive.img`.** Closed in an earlier roadmap generation. Kept here because `R-611` cites it to prove it is not a duplicate: `R-301` covers the **pre-installed image**, `R-611` covers the **installation medium** — two different files | ✅ `f17427863`, `630d98e40` (v0.3.0 "Fortify" commits) |
 | `R-F26` | **Release signing key rotated** — see §10 | ✅ |
 | `V2-MS12b` | **Package-key custody** — see §5.2 | 🟡 |
 | `V2-MS06` | **Boot-signing key on a hardware token** — see §5.2 | 🔴 |
@@ -822,7 +905,7 @@ and service lifecycle, not installation.
 | `R-601b` | `scripts/ci-install-smoke.sh` starts **from the medium**, not from `harddrive.img`, and is wired into scheduled CI. ✅ **done 2026-09-01** (#5): `grep -c "install-smoke" .gitlab-ci.yml` → **10**; the harness starts from `$MEDIUM` in the nightly `build-image` (`:459`, `:569`) and passed end to end on aarch64 — `install-smoke: PASS — installed to a second disk and booted it to a login prompt`. Negative control: run the harness against an image with no installer → FAIL, not "PASS out of silence" `[P1·M·🐧]` | **WORKS TODAY** | ✅ |
 | `R-601c` | The same harness runs on **x86_64**. ✅ **done 2026-09-02** (#6, #24): a clean x86_64 build runs `scripts/ci-install-smoke.sh` through to *"PASS — installed to a second disk and booted it to a login prompt"*, exit code 0, including stage 2 (the installed disk boots on its own). Two causes, both confirmed by reverting them: (a) the `getty` terminal-size probe swallowed typed input — `266c4f4` in `eos-userutils` (!49); (b) a **second** getty on the same serial console, so a second `login` ate the next line typed and answered *"Login incorrect"* — with it the run passed **2 times out of 7**, without it **5 out of 5** (#24). The earlier stall was **not** a stray newline left by `login`: instrumentation that drained stdin immediately before `passwd` found the queue **empty** `[P0·M·🖥️]` | **WORKS TODAY** | ✅ |
 | `R-601d` | GUI ↔ TUI parity gate: both front-ends must cover the same state set `[P2·S·🖥️]` | **BUILDABLE** | 🔴 |
-| `R-601e` | Missing harness cases: FDE (the harness sends an empty password today), interruption in phase 1/3, two disks with the wrong one chosen, a 4Kn disk, BIOS boot. **The interruption case is the only test of the M2 transaction** `[P1·M·🖥️]` | **BUILDABLE** | 🔴 |
+| `R-601e` | Missing harness cases — **FDE ✅ 2026-09-02** (`EOS_SMOKE_FDE=1`: prompt → wrong password refused → right password → `eos login:`, with `EOS_SMOKE_FDE_NEGATIVE=1` as the control, §1.4); still missing: interruption in phase 1/3, two disks with the wrong one chosen, a 4Kn disk, BIOS boot. **The interruption case is the only test of the M2 transaction** `[P1·M·🖥️]` | **BUILDABLE** | 🟡 |
 | `R-602` | **First-boot OOBE wizard.** Password enforcement is **done and verified on every login path**. Text/getty and serial (`U-076`, `U-077`): a shared `force_first_boot_passwd` helper forces `passwd` before the shell for the passwordless `user` **and** any account still on the shipped default, order-independent so it catches `root/password`. Graphical greeter (`U-079`): `orblogin` — the default path since `R-F08` — no longer lets a default-credential account reach the desktop; it switches in-window to New password → Confirm, `set_passwd`+`save` (`Config::writeable(true)`, else EBADF), then starts the session. The live P0 default-credentials exposure is closed on both paths. **Remaining: per-machine identity** (hostname, locale, keymap, machine-id, SSH host keys) → `R-606` `[P0·L·🖥️]` | **WORKS TODAY** | 🟡 |
 | `R-603` | **Enrich the installer front-ends: account, hostname, locale.** Both GUI and TUI clone `base.toml` defaults and create no accounts (`installer_tui` TODO#3 unimplemented). Collect username+password, hostname, timezone, locale and keyboard, and feed `config.users`/`hostname` instead of the baked defaults `[P1·L·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-603a` | **Move disk-selection logic out of the front-end into the library.** `installer_tui` has its own `disk_paths()` and `choose_disk()`, so GUI and TUI can diverge — a measured debt, not a hypothesis. The engine-with-two-front-ends shape already **exists** (`src/lib.rs` + `src/bin/installer.rs` + `src/bin/installer_tui.rs`, with the GUI a separate crate depending on `redox_installer` by path) `[P1·L·🖥️]` | **BUILDABLE** | 🔴 |
@@ -831,7 +914,7 @@ and service lifecycle, not installation.
 | `R-603d` | Account, hostname, timezone and keyboard layout collected by **both** front-ends and fed to `config.users`/`hostname`. A timezone **database is a NEW SUBSYSTEM** — today `/etc/tz-offset` is a constant number. Keyboard layouts `[UNVERIFIED]`: check `eos-orbital`, `eos-orbdata` `[P1·L·🖥️]` | **BUILDABLE** + **NEW SUBSYSTEM** (tz db) | 🔴 |
 | `R-603e` | On-device verification of the **profile** signature. Needs `R-711`: without a keyring a profile signature is irrevocable `[P2·M·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-604` | **Destructive-action guardrails.** Whole-disk erase hides behind a bare numeric menu with no disk identification. Parent of `R-604a`–`R-604d` `[P1·M·🖥️]` | **BUILDABLE** | 🔴 |
-| `R-604a` | Disk picker shows **device path, size, interface type and removability**; erase is confirmed by **retyping the device path**, not by picking a number. Negative control: two disks in QEMU, type the wrong name → refusal, zero writes. Today the harness expects the literal `Select a drive from 1 to`, and **the number in that menu changes between runs** if PCI enumeration order changes `[P0·M·🖥️]` | **BUILDABLE** | 🔴 ✅ **done 2026-09-01** (#9): the screen ran on Redox for the first time and refused a name matching no disk. Both halves of the negative control are now MEASURED, not inferred — the driver stats the target either side of the refusal and requires zero allocated blocks. Pinned at `eos-installer 2aae3ace0bbf`; `pin-allowlist.txt` is empty again. |
+| `R-604a` | Disk picker shows **device path, size, interface type and removability**; erase is confirmed by **retyping the device path**, not by picking a number. Negative control: two disks in QEMU, type the wrong name → refusal, zero writes. Today the harness expects the literal `Select a drive from 1 to`, and **the number in that menu changes between runs** if PCI enumeration order changes `[P0·M·🖥️]` | **BUILDABLE** | ✅ **done 2026-09-01** (#9): the screen ran on Redox for the first time and refused a name matching no disk. Both halves of the negative control are now MEASURED, not inferred — the driver stats the target either side of the refusal and requires zero allocated blocks. Pinned at `eos-installer 2aae3ace0bbf`; `pin-allowlist.txt` is empty again. |
 | `R-604b` | Diff screen before any write: the exact list of operations; writing starts only after it `[P1·M·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-604c` | Refuse dangerous targets — the disk carrying the medium, or the only disk holding another OS — without an explicit override. Needs `R-607a` `[P1·M·🖥️]` | **BUILDABLE** | 🔴 |
 | `R-604d` | Per-policy-weakening confirmation: extend the erase barrier to hardening downgrades on the same screen `[P2·M·🖥️]` | **BUILDABLE** | 🔴 |
@@ -1133,32 +1216,106 @@ no encryption, no tags, no links, no attachments — none of them is started.
 
 ---
 
-### 7.5 Products in the image — what "Notes, Antivirus, Browser" means today — `PR-*`
+### 7.5 Products — in the image, on Windows and Linux, and the four new ones — `PR-*`
 
-Premise, owner's words (2026-09-02): product information for *"Notes, Antivirus, Browser"* and the
-other applications. The inventory (read-only, config TOML membership) says what the image holds:
+Premise, owner's words (2026-09-02 and 2026-09-03): product information for *"Notes, Antivirus,
+Browser"*; those products **also downloadable separately for Windows and Linux**; **new products** —
+a spreadsheet, a presentation tool, a cloud drive (OneDrive/Mega/Drive-like) and an app store
+(Microsoft-Store-like); every product **built into E-OS with an enable/disable switch at install**;
+**E-OS is the primary platform** for all of them; new repositories where a product needs one; and the
+question *"is the antivirus going to be `eos-guard`?"* answered.
+
+#### 7.5.1 What the image holds today (read-only inventory, config TOML membership)
 
 | product | in the image? | where it comes from | note |
 |---|---|---|---|
 | **Notes** — `eos-notes` | **yes** | type A, pinned in its recipe; `config/*/eos.toml` `[packages.eos-notes]` | a product |
-| **Control panel** — `eos-control` | **yes** | type A, pinned | Overview / processes / network pane (`R-902`) |
-| **Browser** — NetSurf 3.11 (`netsurf-fb`, framebuffer over Orbital) | **yes** | upstream recipe via `config/desktop.toml:21` | not an E-OS fork; the staged binary is the **upstream prebuilt** (`EXEC` at `0x400000`, no PIE, no E-OS patches — #28), so the recipe's PIE build is not what ships; `M-1` sandboxing starts here |
-| **Terminal** — `cosmic-term` | **yes** | `desktop.toml:15`; `orbterm` explicitly excluded | — |
+| **Control panel** — `eos-control` | **yes** | type A, pinned | Overview / processes / network pane (`R-902`) / Security tab |
+| **Browser** — NetSurf 3.11 (`netsurf-fb`) | **yes** | upstream recipe via `config/desktop.toml:21` | not an E-OS fork; the staged binary is the **upstream prebuilt** (`EXEC` at `0x400000`, no PIE — #28, `R-F30`) |
+| **Terminal** — `cosmic-term` | **yes** | `desktop.toml:15` | — |
 | **Editor / files** — `cosmic-edit`, `cosmic-files` | **yes** | `desktop.toml` | `cosmic-edit` is the recipe behind #26 |
-| **Integrity monitor** — `eos-guard` | **no**, as an app | type A in `repos.toml`, **not** an image package | its blake3 baseline + permission audit were **ported into `eos-control`'s Security tab** (`src/security/mod.rs:1-3`, "Ported from the standalone eos-guard"), which does ship |
-| **System monitor** — `eos-sysmon` | **no**, as an app | type A, **not** an image package | same route: a tab in `eos-control` (`README.md:400-404`) |
-| **`eos-ui`** | n/a | type A library (`role = lib`), no recipe | consumed by the apps above |
-| **Antivirus** | **no** | nothing: no recipe, no plan, no row anywhere (`clamav`, `clamscan`, `rkhunter` — 0 hits) | see below |
+| **Integrity monitor** — `eos-guard` | **no**, as an app | type A in `repos.toml`, not an image package | blake3 baseline + permission audit **ported into `eos-control`'s Security tab** |
+| **System monitor** — `eos-sysmon` | **no**, as an app | type A, not an image package | same route: a tab in `eos-control` |
+| **`eos-ui`** | n/a | type A library (`role = lib`), no recipe | the Slint-on-Orbital backend every product above uses |
+| **Antivirus** | **no** | nothing: no recipe, no plan, no row anywhere | §7.5.3 |
 
-Documentation drift found on the way: `docs/guides/screenshots.md` shows `eos-guard` and `eos-sysmon`
-as native apps while the config ships neither. Annotated in the same change as this section.
-(`README.md`'s *Shipped › Applications* row was checked against the config and is accurate.)
+#### 7.5.2 Cross-platform: what was measured on 2026-09-03, not assumed
+
+- **The three Slint products type-check on a non-Redox host.** Clean clones of `eos-ui`, `eos-notes`
+  and `eos-control` at their `main` heads: `cargo check` on `aarch64-apple-darwin` — **rc 0, 0
+  errors** each (30 s, 32 s, 23 s). `eos-ui` selects the Orbital platform only under
+  `cfg(target_os = "redox")` (`lib.rs:101-110`) and documents the non-Redox branch as *"the app runs
+  on Slint's own backend (useful for host-side development builds)"*; `eos-control` already carries a
+  `cfg(not(target_os = "redox"))` dependency block (`libc`). The code was written to build elsewhere.
+- **They do not yet *open a window* elsewhere.** All three pin `slint` with `default-features =
+  false` and only `renderer-software` (`eos-notes/Cargo.toml:17`, `eos-control/Cargo.toml:35`,
+  `eos-ui/Cargo.toml`): no `backend-winit`, so on macOS/Linux/Windows `slint::run` has no platform to
+  start. That is a Cargo feature per crate plus one `BackendSelector` call, not a port — **S** — but
+  it is unmeasured until run, so it is a row, not a claim. **[UNVERIFIED]:** whether Slint's winit
+  backend still compiles on Windows and Linux at the pinned `slint 1.17`.
+- **Both products pin `eos-ui` from the GitHub mirror**, not from the GitLab source of truth:
+  `eos-notes/Cargo.toml:18` and `eos-control/Cargo.toml:36` say
+  `git = "https://github.com/Gh0s777tt/eos-ui.git"`. `ADR-0001` and `S-17` (recipes repointed) did
+  not reach the products' own manifests. Recorded as `PR-006`.
+- **Zero tests.** `#[test]` count: `eos-ui` 0 (648 lines), `eos-notes` 0 (762), `eos-control` 0
+  (4 976). Coverage automation for products (§11.3, `TQ-*`) therefore starts from a measured zero, and
+  the first floor can only be "does not fall below what the first test suite reaches".
+- **Not every product travels equally.** `eos-notes` has no platform-specific code at all — the best
+  candidate. `eos-control` reads `/proc` on a host (`src/sys.rs:4-9`, 23 `cfg(target_os)` lines) and
+  its capability inspector (`sys:iostat`) has no meaning off Redox: a **Linux** build is a developer
+  aid, a **Windows** build would be a rewrite of `sys.rs` for a feature that cannot exist there — so it
+  is not a product row. `eos-orbutils` is Orbital chrome and stays Redox-only by design.
+- **A precedent exists.** `redox_installer_gui` already compiles for Linux *and* Redox through a
+  `sys/` shim (`gui/src/sys.rs`: `cfg(linux)` / `cfg(redox)` / `compile_error!` elsewhere) — the
+  pattern every product that must run off-Redox should copy.
+- **One stale comment hides the answer.** `eos-notes/.gitlab-ci.yml:20-23` skips the host GUI build
+  citing "Slint 1.1.1 + winit 0.28 … no longer compiles"; the crate pins Slint 1.17. The belief that
+  the host build is broken is two major versions old and unmeasured (`PR-007` measures it).
+
+#### 7.5.3 The antivirus answer
+
+**Yes and no, and the distinction is the product.** `eos-guard` *is* the security product: a
+file-integrity monitor (blake3 baseline in SQLite, Ok/New/Modified/Removed classification, setuid
+warnings, self-tamper detection — §7.3) whose engine already lives in `eos-control`'s Security tab.
+What it is **not** is an antivirus in the Windows sense: it has no on-access scan hook, no signature
+engine, no quarantine, no update channel for signatures. On E-OS the honest equivalent of "antivirus"
+is the package-bytes gate that exists (`V2-MS13`: blake3 enforced from the signed index) plus the
+integrity baseline; the missing primitive for on-access scanning is a file-event bus, which Redox
+does not have (§7.3 table: *no hot-plug/uevent event bus*). **Recommendation:** ship the product as
+**E-OS Guard**, describe it as *integrity and permission monitoring*, and never print the word
+"antivirus" on a page until `PR-004b` below exists. On Windows/Linux, where on-access hooks exist
+(minifilter, `fanotify`), a Guard build could add a signature engine — `yara-x` (BSD-3, Rust) is the
+candidate; ClamAV bindings drag GPL-2 C into an AGPL tree and are refused here.
+
+#### 7.5.4 The register
 
 | id | item | today | to build | size |
 |---|---|---|---|---|
-| `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C), and its pin | three hand-written listings that already disagree with the config: `docs/architecture/ecosystem.md:51-61` ("Native apps" table), `docs/guides/screenshots.md:63-78`, and the README's mermaid graph — all listed `eos-guard`/`eos-sysmon` as shipped apps until 2026-09-02 | a generator reading `config/*/eos.toml` + `repos.toml`; a CI check that a shipped package without a page fails | S |
-| `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** | in `repos.toml`, not in the image | owner's call (§3.0 Q9); if they ship: a recipe, a pin, a boot-smoke row each | S |
-| `PR-003` | **"Antivirus" on E-OS** — a signature scanner is a Linux-shaped answer; on a capability system the equivalent is the package-bytes gate that already exists (`V2-MS13`: blake3 enforced from the signed index), the file-integrity baseline that **already ships** in `eos-control`'s Security tab (blake3, ported from `eos-guard`), per-process scheme sets (`M-1`), and a persistent audit log (`C-9`) | the first two exist; the other two are planned | **do not** ship a product called "antivirus" until it does something a signed package channel does not; if the owner wants the word, `eos-guard` is the honest candidate to grow into it | L |
+| `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C) and its pin | three hand-written lists that disagree (README, `docs/reference/packages.md`, `WS-*` product pages) | a generator over `config/*/eos.toml` + `repos.toml`; `WS-008` consumes it | S |
+| `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** | in `repos.toml`, not in the image | owner's call (§3.0 Q12); if they ship: a recipe, a pin, a boot-smoke row each | S |
+| `PR-003` | **"Antivirus" on E-OS** — see §7.5.3; the row is the *decision*, not a scanner | no engine, no hook, no row | either the word disappears from every page, or `PR-004b` is scheduled | S (decision) |
+| `PR-004` | **E-OS Guard as a standalone product** — `eos-guard` repo back in the image as an app (`PR-002`) *and* its engine kept in `eos-control`'s Security tab from one crate, not two copies | the engine exists twice (guard binary; `eos-control/src/security/`) | make `eos-guard` a `lib` + `bin`; `eos-control` depends on the lib; FDE/RAID/repo-status lines from §21 proposal 3 | M |
+| `PR-004b` | **Signature engine for Guard on hosts with on-access hooks** (Windows minifilter / Linux `fanotify`) — `yara-x` rules, quarantine directory, signed rule bundle over the `R-703` channel | nothing | Windows kernel-side hook is **not Rust-only** and is ⚙️/🔑 (a signed driver); Linux `fanotify` is user-space | L (Linux) / XL (Windows) |
+| `PR-005` | **Enable/disable products at install time** — the wizard's package-selection screen writes the chosen `[packages.*]` set; the installer already takes a package list (`eos-installer` `src/config/package.rs` `PackageConfig`) | the installer *has* a package model; no screen chooses from it; `installer_tui.rs:17` lists "preconfigured packages" as a prompt to add | M3 wizard screen (§6.4) with a product list read from `PR-001`'s generator; unattended answer file (`R-616b`) carries the same set | M |
+| `PR-006` | **Products pin `eos-ui` from GitLab, not the GitHub mirror** (`eos-notes/Cargo.toml:18`, `eos-control/Cargo.toml:36`) | mirror pinned | repoint, bump, `pins --strict`; add a `ci-integrity` check: no `github.com/Gh0s777tt` in any type-A `Cargo.toml` | S |
+| `PR-007` | **Host window backend for the Slint products** — `backend-winit` feature per crate behind `cfg(not(target_os = "redox"))`, `BackendSelector` in `eos-ui::init` | `cargo check` clean on macOS; `run` has no platform | one feature line + one call per crate; measure by launching Notes on Linux and macOS; Windows **[UNVERIFIED]** | S |
+| `PR-008` | **Per-OS packaging and a download page** — `eos-notes` for Linux (`.tar.gz` + signed checksum, AppImage later), Windows (zip + signed checksum first, an installer later) and macOS (`.app` zip); `eos-control` for **Linux only**, as a developer build (§7.5.2); all signed with the release key (`R-F26`) and listed by `WS-005` behind the same developer-only toggle as the OS download | nothing; no runner executes GitHub workflows today (§11.3.1) | a `release-products` job on the `eos-heavy` runner (macOS host: the macOS and Linux-cross builds; Windows needs a Windows runner or `cargo-xwin` — **[UNVERIFIED]** for Slint); `cosign`/minisign as for images | M |
+| `PR-009` | **Product test suites and coverage floors** — first tests in `eos-ui` (platform init), `eos-notes` (storage, Markdown), `eos-control` (security baseline, process list) | 0 / 0 / 0 tests | see `TQ-003`; a floor is set only after the first measurement | M |
+| `PR-010` | **Spreadsheet — `eos-sheets`** (new type-A repo) — cells, formulas with a small expression engine, CSV/TSV import-export, Slint grid on `eos-ui`; no macros, no VBA-class scripting | nothing in the tree; `recipes/` has no spreadsheet (`sc-im`, `gnumeric`: 0 hits) | MVP: grid + 40 functions + CSV; file format: a documented TOML/JSON container, `.xlsx` **import** later via `calamine` (MIT) | L |
+| `PR-011` | **Presentations — `eos-slides`** (new type-A repo) — slide list, text/image/shape boxes, a presenter view on a second Orbital window, export to PDF | nothing; no `office` recipe | MVP on `eos-ui`; PDF export through `printpdf` (MIT); `.pptx` import **not** promised | L |
+| `PR-012` | **Cloud drive — `eos-drive`** (new type-A repo; client + server) — server: a WebDAV endpoint in Rust over RedoxFS on the `CS-001` server edition, with per-user quota and server-side encryption from `CS-002`; client: a sync daemon + a folder in `cosmic-files`, conflict copies, and an `eos-control` pane; Windows/Linux clients from the same crate | nginx/openssh in the image; `rustls` + the redox-os `ring` fork already link on Redox through the installer's `reqwest` path and bundled SQLite builds in-app (`eos-notes` recipe) — the server-side stack exists in pieces; no sync client builds (`rclone` needs Go, `recipes/wip/tools/rclone`), no DB server is outside `wip/` (`CS-001`, `CS-008`; the website's dynamic half has the same dependency, §11.5) | **order:** `CS-001` → a TLS-terminating service proven on E-OS → server → client; the client on Windows/Linux can ship *first* against a Linux-hosted server if the owner accepts a non-E-OS host for the interim (§14.7) | XL (server on E-OS) / L (clients) |
+| `PR-013` | **App store — `eos-store`** (new type-A repo; catalogue + client) — catalogue = a signed index of `pkgar` packages with metadata (name, description, screenshots, licence, permissions = scheme list) served by the same channel as updates (`R-703`); client = an `eos-control` pane or a standalone Slint app: browse, install, remove, update; **no accounts, no payments** in v1 | `pkg` + a signed index exist (`V2-MS13`–`15`); no metadata, no screenshots, no client UI; `cosmic-store` is deferred (`eos.toml:38`) | metadata schema in the index (`repo.toml` extension), a generator in `cookbook`, the pane; on Windows/Linux the "store" is the download page (`PR-008`), not a package manager | L |
+| `PR-014` | **Browser** — E-OS ships NetSurf; a *downloadable* browser for Windows/Linux is **not** an E-OS product: NetSurf already has upstream builds for both, and a fork adds nothing but maintenance. The product row is `R-D06`/`R-F30` (build it from source as a PIE on E-OS) | upstream prebuilt | no separate repo; link to upstream downloads on the product page | S |
+
+**Repositories to create** (names proposed; creation is the owner's call, §3.0 Q13): `eos-sheets`,
+`eos-slides`, `eos-drive`, `eos-store`. Each starts from the `eos-notes` skeleton (`eos-ui`,
+AGPL-3.0, `overflow-checks`, the `.gitlab-ci.yml` light tier, `deny.toml`, a `#[test]` in the first
+commit) so `TQ-*` applies from day one; each gets a recipe under `recipes/gui/` and a
+`[packages.*]` entry that `PR-005` can switch off.
+
+**Order that costs least:** `PR-006` → `PR-007` → `PR-009` → `PR-001` → `PR-005` → `PR-008` (Notes and
+Control on Linux/Windows exist at this point) → `PR-004` → `PR-013` → `PR-010` → `PR-011` → `PR-012`
+(server last, because it waits for `CS-001`). `PR-002`/`PR-003` are decisions and cost nothing.
 
 ---
 
@@ -1392,6 +1549,7 @@ trusted.
 | `R-F26` | **The release-signing key was lost and has been rotated** (`U-205`). `keys/eos-release.pub` (minisign `DCEC85BA6057ED4A`) was committed, and `docs/getting-started/install.md` and `docs/security/hardening.md` **instructed users** to verify downloads with it — while the owner confirmed he did not hold the private half. **Nothing broke silently:** `scripts/make-release.sh` fails safe without `MINISIGN_SECRET_KEY`, and unsigned requires an explicit `EOS_ALLOW_UNSIGNED=1` (`U-120`) — **but the documentation promised a verification that could not be delivered for any new release.** Not a code defect: a gap between a promise and a capability. **Correction to the first version of this entry (`U-192`):** I wrote that the key ships in the image, counting two `grep` hits for `eos-release` in `config/*/eos.toml`. **Both referred to a comment about a different file** — `/usr/share/eos/eos-release`, the release identifier. Checked in the **running image**: `/usr/share/eos/` contains only `eos-release`; the minisign key is **not** in the image. That lowered the cost of rotation: the public key lives only in the repository, so replacing the file is enough and requires no rebuild and no re-imaging of clients. **Done:** the operator rotated it. The new key `8A627C8113176141` is in `keys/eos-release.pub`, the old `DCEC85BA6057ED4A` moved to `keys/wycofane/` — **retired, not deleted**, so what it signed can still be verified — and the private half lives outside the repository and is untracked. The integrity gate confirms no secret material in tracked files. The full signing round trip is the operator's to run, since the key is passphrase-protected `[P1·XS·🔑]` | ✅ |
 | `R-F27` | **Secure Boot blocked installation on a typical PC.** **One of the four contradictions between the predecessors** — the old English roadmap carried ⏳ while v2 carried ✅ — and it is **stale by two milestones**; resolved as ✅ against the tree. The original finding: `recipes/core/bootloader/recipe.toml` built `bootloader.efi` and **nobody signed it**; `pesign`, `sbsign` and `shim` appeared nowhere in the repository. Every UEFI machine leaves the factory with Secure Boot on, so an unsigned `bootloader.efi` is **rejected by firmware** and the user must disable Secure Boot in the BIOS to boot the medium at all. That was the loudest obstacle to leaving QEMU, and it had never been a roadmap item — the roadmap listed drivers and test matrices, but not the boot chain. **Mechanism proven (`U-206`):** `scripts/eos-sign-bootloader.sh` signs with our own key and `scripts/eos-secureboot-proof.sh` proves it end to end under QEMU with real Secure Boot firmware (edk2) on throwaway keys, in three cases: our key + signed → boots ("E-OS Bootloader 1.0.0"); our key + unsigned → rejected; foreign key + our signature → rejected. Boot happens if and only if signed **and** trusted. **Integration closed and proven end to end (`U-207`, `U-208`):** signing moved into the recipe, at `cook` time, when the operator provides a key in `build/sb-signing/` (outside the repository), otherwise degrading gracefully to unsigned with an explicit message. **An earlier error, corrected:** I first signed the file produced by `--write-bootloader`, but the installer takes the ESP bootloader from `bootloader.pkgar` (`fetch_bootloaders`), so the ISO went out with an unsigned ESP and Access Denied under SB. Fixed at the source. Both media are now covered: live ISO **and** installed `harddrive.img` boot under Secure Boot with our key and give Access Denied with a foreign one. Deployment note: signing happens only on a fresh `cook`, so `scripts/eos-sb-setup-key.sh` invalidates the bootloader package to force re-signing on the next build. Verified in the tree today: `recipe.toml:110-130` calls `sbsign` then `sbverify`; `recipes/core/bootloader/sbat.csv` exists. Tracked onward as `V2-N03` ✅ `[P1·L·⚙️→🖥️]` | ✅ |
 | `R-F28` | **`scripts/ventoy.sh` cannot produce an E-OS image.** The only USB-preparation script has hard-coded `ARCHS=(i686 x86_64)` and `CONFIGS=(demo desktop)`; `CONFIG_NAME=eos` never appears in it, and `i686` is rewritten to `i586`. A script that **cannot work** for this project is worse than no script, because it looks like a ready path. **Recommendation unchanged: consider deleting it rather than fixing it** — `dd` is the canonical route (`installer.md` §10 item 9) `[P2·S·🖥️]` | 🔴 |
+| `R-F30` | **A gate on the shipped NetSurf artefact** (#28, minted 2026-09-03 — cited by `R-D06` and §3.0 since 2026-09-02 without a row). The recipe builds a PIE with the E-OS patches; the staged `netsurf-fb` on both architectures is upstream's `ET_EXEC` prebuilt at `0x400000` with a foreign `commit_identifier`. Gate: after `cook`, `readelf -h` on the staged binary must say `DYN`, and the binary must carry the E-OS patch marker; negative control = the current prebuilt goes red. Until green, `R-D06` stays 🟡 `[P1·S·🖥️]` | 🔴 |
 | `R-F29` | **`scripts/eos-build.sh:72` runs the build through `tail -3` inside `bash -lc` without `set -o pipefail`.** *Newly minted in this merge; neither predecessor carried it as an item.* Line **59** sets `set -o pipefail` for the host-tools build; line **72**, which runs `make CI=1 ARCH=$ARCH CONFIG_NAME=eos all build/$ARCH/eos/$MEDIUM_NAME 2>&1 \| tail -3`, does not — so the build's exit status is `tail`'s. This is `CLAUDE.md` trap **P-3** live in the build script, and it is the same mechanism that let `cargo: command not found` scroll past under `set -e` (`U-224`). The bootloader recipe's own comment names the output half of this defect — *"`scripts/eos-build.sh` pipes make through `tail -3`, so the warning never reached the operator"* — while the exit-status half is still open. **Stated precisely, because the script is not defenceless:** line 72 has no `\|\|` guard, so a failed `make` returns `tail`'s zero; what catches the worst case is a *downstream* check comparing the mtimes of `harddrive.img` and the medium before and after, which refuses to export unchanged images when a Secure Boot key is present. That guard fires only when **both** images are untouched, so a `make` that fails **after** writing one of them still passes. Fix: add `set -o pipefail` on the container side of line 72, as line 59 already does. Negative control: break the make target and confirm the script exits non-zero `[P1·XS·🖥️]` | 🔴 |
 
 ---
@@ -1434,44 +1592,96 @@ statuses as the record of that recovery.*
 | `R-1010` | **Enable the `contain` package** — Qubes-style compartmentalisation. `recipes/core/contain` **exists in the tree and is switched off**; `Namespace::fork()` is unprivileged and can only **narrow**. *Newly minted as a register row in this merge.* v2 §12.7 stated outright that the register did not contain this item **while `EP-2` and `M4` depended on it** and `CLAUDE.md:593` cited it as `R-1010`; `docs/adr/0011-installer-wizard-architecture.md` and `docs/architecture/installer-profiles.md` cite it too. Shipping a milestone that depends on a non-existent identifier is not acceptable, so it is a row: enable `contain` and define per-application policy. Audit finding `C-5`; the precondition of sandboxed profile import (M4) and the substrate `M-1` builds on `[P1·L·🖥️]` | 🔴 |
 | `R-1004` | Legacy "live Pages site" claim, quoted only inside `R-003`'s body as prose that had to be downgraded. **Retired — not an item.** See [Annex C](#annex-c--retired-documents-and-retired-identifiers) | ❌ |
 
-### 11.3 Testing, coverage and gates — the standing state
+### 11.3 Testing, coverage and gates — the standing state, and the automation to add — `TQ-*`
 
-Not a new item; the standing context every row above is measured against.
+Not a new item; the standing context every row above is measured against — followed, since
+2026-09-03, by the register of what the owner asked to be **automatic**: the state of test coverage
+and of *security* coverage, checked on every change rather than on request.
+
+#### 11.3.1 Standing state (re-measured 2026-09-03)
 
 - **`scripts/verify.sh`** is the one command run before every commit: format → lint → typecheck →
   build → test → project gates → security scans, exiting non-zero on any failure. It **calls** the
-  same commands the pipelines do rather than restating their rules — a second copy of a rule is a
-  copy that drifts. **On `main` today: 16 stages, 16 PASS, 0 FAIL, 0 SKIPPED.**
-- **A missing tool is `SKIPPED` *and* a non-zero exit**, because `gitleaks || true` once passed a
-  planted key while printing green (`U-140`): an absent scanner gives the same result as a disabled
-  one. The deliberate escape is `--allow-missing`, and then the summary names what was **not**
-  measured.
-- **`exit 1` ≠ `exit 2`.** 1 = the gate **found a defect**, fix the tree. 2 = the gate **could not
-  run**, fix the toolbox. The same split as `FAIL (instrument):` in `ci-integrity.sh` (`U-177`).
-- **`ci-integrity.sh` has checks 0…13** — banner `0.` (the instrument probe) through `11.`, plus
-  check **12**, the tarball-blake3 gate (`scripts/eos-check-tar-pins.py`), plus check **13**, added
-  2026-08-31: `scripts/eos-check-unbound-arrays.py`, which refuses an empty array expanded under
-  `set -u`. Check 5 could not see that class — it greps for bash-4-only *syntax*, and this parses in
-  bash 3.2 and dies at run time on one branch. Measured: `ci-install-smoke.sh` died with
-  `VIDEO_ARGS[@]: unbound variable` while this gate printed `ok` and exited 0 in the same tree. It
-  found one further instance nobody had planted, in `scripts/rx-proof-harness.sh:193`.
-  **The numbering gate that decision D5 requires is therefore check 14, not 13** — see Annex B. *Re-measured 2026-08-31, correcting the wording inherited from the
-  predecessors: `CLAUDE.md` **has no §0**, and its §3 (line 75) already says "twelve checks", which
-  is current. The single stale place is **§13** (line 443), which still says "8 invariant checks" —
-  four behind the gate, and therefore also contradicting §3 of its own document. (`CLAUDE.md` is
-  Polish; grep it for `kontroli` to see both lines.) A defect against `CLAUDE.md` §5.8, to be fixed
-  there rather than here.*
-- **Coverage** is measured on every `verify.sh` run, not quarterly: `tools/eos-repo-sign` is
-  **gated** at `--fail-under-lines 38` (measured 41.06 %); the vendored `redox_cookbook` is reported
-  without a threshold. The asymmetry is deliberate — gating coverage on code we do not maintain is
-  re-litigating someone else's tree.
-- **Known flake, measured rather than inferred:** `cook::cook_build::tests::file_system_loop_no_infinite_loop`
-  fails at `src/config.rs:209` with `Configuration is not initialized` — it reads global state that
-  a **different** test in the same binary initialises, so the result depends on thread order. The
-  odds **rise with CPU load**: 2 failures in 18 default parallel runs on an idle machine, 5 in 6
-  when other work competed for the processor, 0 in 3 with `--test-threads=1`. A loaded shared CI
-  runner is therefore this test's **worst** case. Not fixed by pinning threads in the gate: local
-  green bought by diverging from CI is still a red pipeline.
+  same commands the pipelines do rather than restating their rules. **On `main` today: 16 stages,
+  16 PASS, 0 FAIL, 0 SKIPPED.** `CLAUDE.md` §9 still called this script "PENDING" under the name
+  `eos-verify.sh`; corrected in the same change as this section.
+- **A missing tool is `SKIPPED` *and* a non-zero exit** (`U-140`); the deliberate escape is
+  `--allow-missing`, and then the summary names what was **not** measured.
+- **`exit 1` ≠ `exit 2`.** 1 = the gate **found a defect**; 2 = the gate **could not run** (`U-177`).
+- **`ci-integrity.sh` has checks 0…15** (15 = `eos-check-no-caches.py`, 2026-09-01), plus three
+  added 2026-09-03: **16** `scripts/eos-check-roadmap.py` (in-document anchors, duplicate heading
+  numbers, one status per identifier, ✅ only with an evidence token in the row — it found two rows
+  on its first run, `R-301` and `R-502b`, fixed in the same change), **17**
+  `scripts/eos-check-assets.sh` (byte-identical assets under two paths, the 5 MB limit, orphan
+  images — first run: 1 duplicate pair, 26 orphans, §11.7) and **18** `scripts/eos-check-summary.py`
+  (every tracked docs page listed in `SUMMARY.md`, every listed page exists — first run: 14 unlisted
+  pages). All three carry a negative self-test (`--selftest`, `EOS_ASSETS_SELFTEST=1`).
+- **Coverage** is measured on every `verify.sh` run: `tools/eos-repo-sign` is **gated** at
+  `--fail-under-lines 38` (measured 41.06 %); the vendored `redox_cookbook` is reported without a
+  threshold — gating coverage on code we do not maintain is re-litigating someone else's tree. The
+  same two legs run in `.gitlab-ci.yml` `coverage` and in `.github/workflows/ci.yml` `coverage`
+  (matrix: `eos-repo-sign` gate=true min 38; `redox-cookbook` gate=false).
+- **What is NOT measured anywhere today:** the product crates (`eos-ui`, `eos-notes`, `eos-control`,
+  `eos-guard`, `eos-sysmon` — 0 `#[test]` in the three measured, §7.5.2), the forks of type C
+  (`eos-installer`, `eos-pkgutils`, `eos-userutils`…) beyond what upstream's own tests do, and
+  **any security-coverage number at all**: nothing counts `unsafe` blocks, nothing checks that a
+  parser has a fuzz target, nothing tracks which crates run `cargo-deny`/`osv-scanner`.
+- **Runners — measured, not assumed (2026-09-03).** GitLab shared minutes are exhausted
+  intermittently (`R-009`, §3.0): the newest `main` pipeline (2026-09-02T21:08) had all 10 light-tier
+  jobs fail on `ci_quota_exceeded`. The GitHub mirror's workflows **do not execute either**:
+  `gh api …/actions/workflows/security.yml/runs` → `total_count: 0`, `lint.yml` 0, `ci.yml` last run
+  2026-06-15 — the 294 "runs" on the repository are Dependabot's, not ours. An earlier draft of
+  this section said the GitHub workflows run; that was wrong and is corrected here. **The only
+  runner that has executed a job since 2026-09-01 is the self-hosted `eos-heavy` Mac** (online,
+  concurrency 1; `build-image` passed 2026-09-01 19:14 UTC). New automation therefore lands **in
+  `verify.sh` first** (always runs) and **as an `eos-heavy` job second** (`TQ-011`), with the
+  shared-runner and GitHub copies kept as the identical third — they judge nothing today.
+- **Known flake, measured:** `cook::cook_build::tests::file_system_loop_no_infinite_loop` (#20) —
+  thread-order dependent; the `test` stage serialises the vendored suite; not fixed by that.
+- **Tools on this host (2026-09-03):** `cargo-llvm-cov`, `cargo-deny`, `semgrep`, `gitleaks`,
+  `osv-scanner`, `shellcheck`, `yamllint` present; `cargo-audit`, `cargo-geiger`, `cargo-mutants`,
+  `cargo-fuzz`, `cargo-nextest`, `pyflakes` **absent** — every row below that needs one says so.
+
+#### 11.3.2 What "security coverage" means here, so it can be a number
+
+A coverage percentage says which lines a test executed. It says nothing about whether the
+*dangerous* lines were tested, or whether the crate's dependencies are known-bad. Five proxies,
+each computable from the tree with tools on this host or one `cargo install` away, each with a
+floor that can go red:
+
+| proxy | what it counts | tool | floor to start |
+|---|---|---|---|
+| **SC-1 unsafe hygiene** | `unsafe` blocks/fns in own code with a `// SAFETY:` comment on the preceding line ÷ all `unsafe` | `grep` (script), later `cargo-geiger` | 100 % of *new* unsafe; measured baseline for old |
+| **SC-2 parser fuzzing** | files matching `parse|decode|deserialize|from_bytes|from_str` in own crates that have a `fuzz/fuzz_targets/*` target | `cargo-fuzz` (absent) | baseline; then "no new parser without a target" |
+| **SC-3 dependency policy** | own crates with `deny.toml` **and** an executed `cargo-deny check` **and** `osv-scanner` in `verify.sh`/CI ÷ all own crates | `cargo-deny`, `osv-scanner` (present) | 100 % — a crate outside the scan is a crate nobody watches |
+| **SC-4 negative tests on inputs** | externally facing inputs (CLI args, env vars, files read, sockets) with at least one test that feeds a hostile value ÷ all such inputs, per crate; a manifest lists them | a `tests/inputs.toml` per crate + a script that checks each named input has a test | baseline; new inputs 100 % |
+| **SC-5 mutation score on trust code** | killed mutants ÷ mutants in `tools/eos-repo-sign::verify()`, `eos-bootloader` manifest verification, `eos-installer` crypto paths | `cargo-mutants` (absent) | measured once, then "does not fall" |
+
+Line coverage stays the sixth number (**SC-0**), per crate, with the floor policy already in force.
+
+#### 11.3.3 The register
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `TQ-001` | **One coverage report for every own crate, published where a reader looks** — `scripts/eos-coverage-report.sh` runs `cargo llvm-cov --summary-only` over `tools/eos-repo-sign` and every type-A product checkout it can reach, writes a page `coverage.md` under `docs/reference/` (a table: crate · lines % · floor · date · commit) and fails if any gated crate is under its floor | one crate gated, one advisory; number visible only in a log | the script, the generated page, a `verify.sh` stage `coverage-report`, the `local-gates` job (`TQ-011`) uploading the page as an artifact | M |
+| `TQ-002` | **Security-coverage report** — `scripts/eos-security-coverage.py` computes SC-1, SC-3, SC-4 from the tree today (no new tool), SC-2 and SC-5 when their tools are present (`SKIPPED` + exit 2 otherwise, never silently 0 %), writes a page `security-coverage.md` under `docs/reference/`, fails when a floor is crossed | nothing | the script with a `--selftest` that plants an `unsafe` without `SAFETY:` and expects red; floors in a `security-coverage.toml`; stage in `verify.sh`; runs inside `local-gates` | M |
+| `TQ-003` | **First test suites and floors in the product crates** — `eos-ui` (platform init, font registration), `eos-notes` (SQLite storage round-trip, Markdown), `eos-control` (blake3 baseline diff, process list parsing, network pane model); `--fail-under-lines` set to the *first measured value minus nothing* so the gate catches regression from day one | 0 / 0 / 0 tests | tests, `cargo llvm-cov` in each repo's CI, the crate rows in `TQ-001` | M |
+| `TQ-004` | **`cargo-audit` and `cargo-geiger` installed and wired** — audit duplicates `osv-scanner` on the advisory database but runs offline from `Cargo.lock`; geiger gives SC-1 without the grep approximation | both absent | `cargo install --locked`, pins in `verify.sh` `have` checks with the install hint; the `eos-heavy` host gets the same installs | S |
+| `TQ-005` | **Fuzz targets for the trust parsers** — `tools/eos-repo-sign` (index parsing, signature envelope), `eos-pkgutils` (`repo.toml`, pkgar header), `eos-bootloader` (manifest) — `cargo-fuzz`, 60 s per target in CI, corpus committed | none | `cargo-fuzz` install, `fuzz/` per crate, a scheduled `eos-heavy` job (fuzzing on every push burns hours for nothing) | M |
+| `TQ-006` | **Mutation score on `verify()`** — `cargo-mutants` on `tools/eos-repo-sign` first (the audit's critic named `verify()` untested, §1.4), then `eos-bootloader` | absent | install, a `mutants.toml` excluding I/O, a nightly `eos-heavy` job, the number in `TQ-002`'s page | M |
+| `TQ-007` | **Negative-input manifest per crate** (`tests/inputs.toml`: every CLI flag, env var, file format, socket the crate reads, and the test that feeds it garbage) — the SC-4 source of truth; `eos-security-coverage.py` refuses an input with no test | nothing | the manifest format, the first three manifests (`eos-repo-sign`, `eos-installer`, `eos-control`), the check | M |
+| `TQ-008` | **Lints that are security policy, enforced as errors** — `unsafe_op_in_unsafe_fn`, `missing_docs` (`API-003`), `clippy::undocumented_unsafe_blocks` (this *is* SC-1 at compile time), `clippy::unwrap_used` in trust code | `eos-ui` has `warn(missing_docs)`; nothing else | `[lints]` tables in each own `Cargo.toml`, `-D` in CI; measured before/after count of warnings | S per crate |
+| `TQ-009` | **Script tests as a suite, not folklore** — every own script's negative test collected in `scripts/tests/run.sh` (today they live in MR descriptions and in `ci-integrity.sh` comments); `verify.sh` runs the suite | 2 self-tests (`eos-check-roadmap.py`, `eos-check-assets.sh`) plus ad-hoc | the harness (one function per script: setup → run → expect exit N → expect a line), the first ten scripts, the stage | M |
+| `TQ-010` | **The two numbers on the README badge row and in the roadmap page** — line coverage of gated crates and the security-coverage summary, generated, never typed | typed numbers (38 %, 41.06 % — in this section and in `CLAUDE.md` §5.10; `README.md` carries none) | `TQ-001`/`TQ-002` outputs consumed by `README.md` through the marker-value gate pattern (`R-F05`) | S |
+
+| `TQ-011` | **A `local-gates` job on the `eos-heavy` runner** — `bash scripts/verify.sh` on every merge request and on `main`, `needs: []`, `tags: [eos-heavy]`, its summary published as an artifact; the runner has every tool `verify.sh` names | the 16 stages run only on the developer's machine; every shared-runner and GitHub job fails on quota or never starts | the job (added 2026-09-03 in the same change as this row; first pipeline is its proof), then the merge rule "the `local-gates` job is green" replaces "all jobs failed on quota" in §3.0 | S |
+| `TQ-012` | **Semgrep rules for this project's own invariants** — the blocking tier scans 11 of 71 files (Python only) with 0 ERROR rules for Rust or bash; add `.semgrep/eos.yml` (bash: `\|\| true` on a gate line, unquoted `$@`; Rust: `Command::new("sh")`, `.unwrap()` on decode results in trust code, `temp_dir` outside `cfg(test)`) and pass `--config=.semgrep/` | 19 rules / 11 files at ERROR; the two Rust INFO findings never reach the gate | the rule file with a planted-violation self-test, `verify.sh` stage `semgrep` widened | S |
+| `TQ-013` | **The network-only invariant gates moved to the runner that works** — `mirror-drift` and `rebase-check` need git + python3 + network, all present on the `eos-heavy` Mac; today both fail on quota in every scheduled pipeline | 8 of 17 GitLab jobs cannot gate (allow_failure, manual, dormant, schedule-only); the two that guard fork drift have not run green since 2026-09-01 | `tags: [eos-heavy]`, `needs: []` on both; `rebase-check` keeps `allow_failure` | S |
+
+**Order that costs least:** `TQ-011` (one job; done in this change) → `TQ-004` (installs) → `TQ-008`
+(lints, each a one-line change with a measured warning count) → `TQ-013` → `TQ-012` → `TQ-001` →
+`TQ-002` → `TQ-003` → `TQ-009` → `TQ-007` → `TQ-005` → `TQ-006` → `TQ-010`. The first five are a
+week; `TQ-005`/`TQ-006` need a scheduled runner and are the only rows that cost minutes.
 
 ---
 
@@ -1637,7 +1847,7 @@ register keeps that line.
 
 | id | item | today | to build | size |
 |---|---|---|---|---|
-| `API-001` | **Scheme reference** — every scheme the image mounts, its nodes, the operations each accepts, with the E-OS allowlist (`login_schemes.toml`) cross-referenced so a reader sees what an unprivileged user can reach | `netcfg:` sketched (`docs/architecture/eos-control-network.md:23-36`); the kernel tree shows what the page must cover: `src/scheme/{acpi,debug,dtb,event,irq,memory,pipe,proc,serio,sys,time,user}` and `sys/` nodes `block context cpu exe fdstat iostat irq log stat syscall uname`, plus `env` and `kstop` registered inline in `sys/mod.rs:81,97` — none of it documented | generated from a running image (`ls /scheme`, per-scheme probing) into `docs/reference/schemes.md`, with a CI check that the page and the image agree | M |
+| `API-001` | **Scheme reference** — every scheme the image mounts, its nodes, the operations each accepts, with the E-OS allowlist (`login_schemes.toml`) cross-referenced so a reader sees what an unprivileged user can reach | `netcfg:` sketched (`docs/architecture/eos-control-network.md:23-36`); the kernel tree shows what the page must cover: `src/scheme/{acpi,debug,dtb,event,irq,memory,pipe,proc,serio,sys,time,user}` and `sys/` nodes `block context cpu exe fdstat iostat irq log stat syscall uname`, plus `env` and `kstop` registered inline in `sys/mod.rs:81,97` — none of it documented | generated from a running image (`ls /scheme`, per-scheme probing) into a page `schemes.md` under `docs/reference/`, with a CI check that the page and the image agree | M |
 | `API-002` | **Syscall / ABI reference for the shipped kernel revision** — pinned to the `eos-kernel` rev in `repos.toml`, regenerated on every bump | nothing | rustdoc of the kernel's `syscall` crate published as an artefact, plus a hand-written map from syscall to scheme operation | M |
 | `API-003` | **rustdoc for every type-A crate**, published, with `#![deny(missing_docs)]` on public items | `eos-ui` is documented at source with `warn(missing_docs)`; nothing is published — the GitLab `rustdoc` and `pages` jobs carry `allow_failure: true` and have not run since 2026-08-28 (`R-009`), and `docs.yml` publishes an artefact, not Pages; the four apps have no such lint; `eos-repo-sign`'s rustdoc has no public items | fetch the type-A sources in CI (they are pinned), build docs, fail on undocumented public items | M |
 | `API-004` | **A stability contract for E-OS's own interfaces** — which crates and panes are public, what semver means for them, what `0.x` promises (nothing) and what 1.0 will | `stability.md` covers the inherited surface only | a section in `stability.md` and a CI gate that a public item cannot disappear in a MINOR without a deprecation | S |
@@ -1650,12 +1860,72 @@ and §1.4 shows what drift costs here.
 
 ---
 
+### 11.7 Repository hygiene — what left the tree, what waits for the owner, what keeps it clean — `RH-*`
+
+Premise, owner's words (2026-09-03): *remove unnecessary things from the repository and never add
+them back; keep order; files that are not needed in the repository can be kept locally.* This
+section is the ledger of that work, because a deletion without a record is the one change nobody
+can audit afterwards.
+
+#### 11.7.1 Removed on 2026-09-03 (no approval needed — `CLAUDE.md` §21.4, or explicitly asked for)
+
+| what | count / size | why | how it stays gone |
+|---|---|---|---|
+| AppleDouble sidecars `._*` in the working tree | **28 025 files → 0** | exFAT + Finder write one beside every file touched; none was tracked; they broke `cargo llvm-cov` (`verify.sh` comment) and made `git count-objects` print 308 "garbage" warnings | `.gitignore:50,74` already has `._*`; `dot_clean -m .` or `find . -name '._*' -delete` in `docs/operations/maintenance.md`; the tree lives on exFAT, so they **will** return — `RH-004` |
+| `._*` inside `.git/objects` | 308 → 0 | same origin; harmless to git, noisy to every tool | as above |
+| `.DS_Store` | 5 → 0 | Finder metadata | `.gitignore:47,73` |
+| `ROADMAP-v2.md` | 1 779 B (a 26-line redirect stub) | the owner asked for **one** roadmap file; every citation it served now resolves through Annex C.2 | Annex C.2 keeps the naming history and `git show 87e8194b1:ROADMAP-v2.md` |
+| `docs/archive/plan.md`, `hardware-plan.md`, `roadmap-connectivity.md`, `hardware-capabilities-roadmap.md`, `acpi-off-removal-plan.md`, `feature-proposals.md` | 6 files, 51 253 B | merged **in full** into §17–§21 of this file; every citation rewritten to the new section (config comments, profiles, ADR-0011, `installer*.md`, `SUMMARY.md`, `HARDWARE.md`) | the doc-paths gate (check 14) refuses a stale path; `RH-002` |
+| `assets/screenshots/eos-aarch64-greeter-rebased-july.png` | 73 300 B | byte-identical to `eos-aarch64-live-iso-greeter.png`, which four documents cite; this copy none | check 17 (`eos-check-assets.sh`) refuses duplicates |
+| `.gitignore` guard after the `keys/` negation | 3 lines added | measured: `git check-ignore -v --no-index keys/._eos-release.pub` → **not ignored** (`.gitignore:95 !keys/**/*.pub` re-admitted it — the `U-196` regression the file's own comment warns about); after: ignored by the new `**/._*` | the guard sits after every negation; the same command is the negative test |
+
+#### 11.7.2 Waiting for the owner (`CLAUDE.md` §21.5 — measured, listed, not deleted)
+
+| candidate | size | references | proposal |
+|---|---|---|---|
+| 25 remaining orphan images under `assets/` (list: `RH-003`) | 1 624 709 B | 0 tracked documents each | brand sources (`eos-logo.svg`, `eos-wallpaper.{jpg,svg}`, `eos-login.{png,svg}`, `eos-starticon.{png,svg}`) **keep** and cite from `docs/guides/screenshots.md` §brand; 18 screenshots either get a caption in `screenshots.md` or move to `~/eos-artifacts/screenshots/` |
+| `EOS_BUILD_STATE.md` | 3 344 B | 9 (`building.md:69` cites it as the toolchain pin record) | move to `docs/archive/` and repoint the two `getting-started` citations, as Annex C.2 already proposed |
+| `docs/archive/readme-snapshot-archive.md` | 2 359 B | 0 | delete (its subject is "snapshots that are not a source of truth") |
+| `docs/archive/eos-pkg-aarch64-readme-pre-publication.md` | 1 688 B | 0 | delete; the published README supersedes it |
+| `docs/audit/05-restructure-analysis-2026-08-30.md` | 15 049 B | 0 | keep as a dated record **or** delete — the owner's; its decisions D-5/D-7/D-8 are now executed here |
+| `docs/architecture/overview.md` | 3 900 B | 12 | merge into `ARCHITECTURE.md` (Annex C.2) — a separate MR, links to rewrite |
+| upstream Redox helper scripts nobody references: `find-recipe.sh`, `print-recipe.sh`, `recipe-match.sh` (0 refs), `backtrace.sh`, `dual-boot.sh`, `network-boot.sh`, `include-recipes.sh`, `changelog.sh` (upstream form, `ADR-0003`) | 8 files | 0–2 | **keep** — they are upstream's tree shape and cost nothing; `shellcheck -S warning` treats them as advisory. Deleting them is a divergence from upstream form, not a clean-up |
+| `bin/*-llvm-config`, `bin/*-pkg-config` | 7 files, 4.4 KB | used by the cookbook build | keep |
+| `sbom/eos-0.1.0-*.cdx.json` | 64 890 B | `V2-MS08` names them as "quietly ageing" | regenerate per tag (`S-20`), then these two become the 0.1.0 record — keep |
+| `patches/` (README + `bootloader-eos-red-black.patch` + `userutils-eos-login.patch`) | 3 files | reference copies of patches that live in the forks | `git mv` to `docs/archive/branding-patches/` (the inventory's proposal) or delete once the forks are the record |
+| `scripts/probe-scheme-rmdir.sh`, `scripts/probe-scheme-rmdir.py` | 6 823 B | 0 — one-off probes for `R-F19` (2026-08-27/28), referenced by nothing, not even the changelog | record the `R-F19` result in the register, then `scripts/probes/` or delete |
+| `docs/img/` twins of 16 `assets/screenshots/` files | 758 074 B vs 1 288 981 B | `docs/img/README.md` says they are "~20× smaller" derived copies; measured ratio **0.16–2.64×**, and `eos-bootloader.png` in `docs/img` is 6.2× *larger* with different dimensions | one source of truth: keep `docs/img` (what the book renders), fix the README claim, retire the 15 `assets/` twins nothing cites by that path — owner's call, because the "originals" are the higher-resolution evidence |
+
+#### 11.7.3 The register
+
+| id | item | today | to build | size |
+|---|---|---|---|---|
+| `RH-001` | **One roadmap file** — `ROADMAP.md` is the only plan; §17–§21 hold what the six archived plans held; `ROADMAP-v2.md` is gone | done 2026-09-03 | — | ✅ |
+| `RH-002` | **Citations follow the merge** — every `docs/archive/<plan>.md §N` mention rewritten to `ROADMAP.md §17–21`; check 14 green | done 2026-09-03 | — | ✅ |
+| `RH-003` | **Orphan assets decided** — the 25 files in §11.7.2 row 1 either cited or moved out | 25 orphans, warn-only in check 17 | the owner's list; then `--warn-orphans` is removed from `ci-integrity.sh` and the rule fails closed | S |
+| `RH-004` | **The tree leaves exFAT** — every session starts with thousands of `._*` files, `cargo llvm-cov` needs a workaround, `git` prints garbage warnings; an APFS volume or a case-sensitive disk image for the checkout ends the class | exFAT (`/Volumes/Project itp`) | the operator's move (🔑); `docs/operations/maintenance.md` gets the recipe; `P-10`/`P-14` traps shrink | S (operator) |
+| `RH-005` | **`git add -A` refused by a hook** — check 15 caught two `.pyc` on 2026-09-01 *after* the fact; a `pre-commit` command in `lefthook.yml` that refuses a staged file matching the cache/sidecar/artefact classes stops it *before* | check 15 only in CI/verify | one lefthook command, negative test: stage a `.pyc`, commit refused | S |
+| `RH-006` | **No hook is installed on the development host, and two hook managers compete for the slot.** Measured 2026-09-03: `.git/hooks` holds only the `*.sample` files and `core.hooksPath` is unset — so neither `lefthook.yml`'s fail-closed gitleaks pre-commit nor `scripts/hooks/pre-push` (the secret scan §1.4 fixed) runs on this machine; both protect only a clone that installed them. `.pre-commit-config.yaml` (10 local hooks, 30 KB) says in its own header it must be *invoked by* lefthook, and is not | 0 hooks installed; two managers, no wiring | `lefthook install` + the `hygiene: pre-commit run` line the header prescribes, recorded in `maintenance.md`; a `verify.sh` stage `hooks` that fails when `.git/hooks/pre-commit` is not lefthook's (negative test: remove it → red) | S |
+| `RH-007` | **`docs/SUMMARY.md` mirrors the tree** — a gate that every `docs/**/*.md` (outside `archive/`, `audit/`, `prompts/`, `img/`) is in `SUMMARY.md` and every `SUMMARY.md` link resolves; `mdbook` is not on this host, so the gate is a script | measured 2026-09-03: **14 pages absent** — `ADR-0007`…`0011`, the four installer/update specifications, `compatibility.md`, `semver-decisions`, `third-party-licenses.md`, `github-configuration.md`, `incident-response.md`; 0 dead links | `scripts/eos-check-summary.py`, check 18 (added 2026-09-03), the 14 entries added | S |
+| `RH-008` | **`overview.md` into `ARCHITECTURE.md`** | two entry points | one document, twelve links rewritten | S |
+| `RH-009` | **`docs/prompts/`** — the owner's untracked prompt library sits in the tree; either tracked (with `docs/SUMMARY.md` exclusion and a README saying what it is) or moved out; today every `git status` shows it | untracked | the owner's decision (§3.0 Q14) | S |
+| `RH-010` | **`CLAUDE.md` numbering and its 43 dangling self-citations.** Sections run §18 → §20 → §21 → §19 (`## 19. TODO` sits at line 951) and there is a `### 21.2b`; 16 lines inside the file and 27 outside (`verify.sh:38,151,307`, `ci-integrity.sh:17`, `setup-github-security.sh`, `release.yml`…) cite sub-sections that do not exist (§1.6, §4.1–4.5, §10.1–10.3, "§2 reguła 4") | measured 2026-09-03 | a one-time old→new map (§4.1→§5.4, §4.2→§20.6, §4.3→§18.3, §4.5→§18.6, §10.1/§10.3→§5.7, §10.2→§4, §1.6→§19), `§19 TODO` → `§22`, all 43 rewritten, and a 0.05 s check that every `CLAUDE.md §N.M` in the tree matches a heading | M |
+| `RH-011` | **Three Definition-of-Done lists that disagree** — `CLAUDE.md` §6 (17 items), `CONTRIBUTING.md:92-116` (14), the MR template (8, and it cites "the three gates" that `CLAUDE.md` never defines; `scripts/eos-check.sh:3` too) | measured 2026-09-03 | §6 stays the single list; the template and CONTRIBUTING become a link plus the `verify.sh` output slot; "three gates" is either defined in §5.2 or deleted | S |
+| `RH-012` | **The same paragraph copied across files, each copy with its own date** — the CI-quota status in ≥ 9 files, the repository-type list in 6 (and `docs/architecture/forks.md` contradicts `repos.toml` on `eos-orbital`), the build/boot quick start in 6, the gate list in 8, the FDE description in 4 | measured 2026-09-03 | one home per paragraph, the others link; where a copy must exist (README), the marker-value gate pattern (`R-F05`) keeps it in step | M |
+| `RH-013` | **Shared shell helpers instead of pasted ones** — `cleanup()` ×3 byte-identical, `fail()` ×3, `step()` ×2, `mon()` ×2, `_parse()` ×2 already diverging, the QEMU/firmware discovery block ×8 with drift (different `FW_VARS` names, quoting) | measured 2026-09-03 | `scripts/lib/{qemu-host.sh,report.sh,toml.sh}` sourced by the harnesses; a `ci-integrity` line that refuses a second definition of `cleanup()`/`fail()` outside `scripts/lib/` | M |
+| `RH-014` | **Scripts outside every lint** — the lint scope is `scripts/*.sh` everywhere, so `scripts/hooks/pre-push`, `bin/*` (five byte-identical `pkg-config` wrappers, two Python `llvm-config`) and the 12 `*.py` files are checked by nothing; no Python linter runs anywhere (`pyflakes`/`ruff` absent) | measured 2026-09-03 | widen the `shell-lint` stage to hooks and `bin/`; add `ruff` (or `pyflakes`) as a `verify.sh` stage with the install hint; 24 of 73 script files are named in no document — list them in `docs/operations/ci.md` | S |
+| `RH-015` | **29 hard-coded `/opt/homebrew` paths in 8 harness scripts**, 3 overridable by env — a second Mac with MacPorts, or a Linux host, cannot run the proofs | measured 2026-09-03 | one `scripts/lib/qemu-host.sh` that resolves `qemu-system-*` and the edk2 firmware from `command -v` and `EOS_QEMU_SHARE`, with the Homebrew path as the fallback (folds into `RH-013`) | S |
+| `RH-016` | **`set -euo pipefail` is the contract (`CLAUDE.md` §4) and 16 of 60 shell files set nothing, 36 lack `-e`** — the harnesses are `set -uo pipefail` on purpose (they inspect statuses); the rest are not on purpose | measured 2026-09-03 | a `ci-integrity` line: every E-OS-owned `scripts/*.sh` starts with a `set -` line, and a comment names the reason when `-e` is omitted; upstream helpers exempt (`ADR-0003`) | S |
+
+---
+
 ## 12. Standards and compliance
 
 The full standards list was analysed. The result is asymmetric and that has to be said plainly:
 **a few items have an excellent value-to-effort ratio, one is a legal obligation, and most
 certifications are, for a project this size, a trap costing years and hundreds of thousands of
 dollars.** Putting them all on a roadmap as goals would be dishonest.
+
 
 ### 12.1 Worth doing — best value for effort
 
@@ -1962,21 +2232,21 @@ correction is itself information.
 | 6 | **`/etc/shadow` after the first-boot enrolment was never read.** #27 is derived from `Config::default()` in `redox_users 0.4.6` and the crate's own tests, not from a hash on a booted disk. | after `ci-install-smoke.sh`, mount the target image's RedoxFS (a **copy**, P-6) and `grep '^root;' etc/shadow` — expect `$argon2i$v=19$m=4096,t=3` today, `$argon2id$…m=19456` after `R-602g` |
 | 7 | **The last successful docs-site publish is unknown** on either host. | GitLab: `glab api projects/e-os%2Fe-os/jobs?scope=success` filtered on `pages`; GitHub: the `github-pages` environment's deployments list |
 | 8 | **`relibc`'s `crypt(3)` argon2 parameters** (`src/header/crypt/argon2.rs`, RustCrypto `argon2 0.5.3`) were not measured. | read the `Params` it constructs, then the same 20-hash bench as `/tmp/a2b` |
-| 6 | **[stale, corrected] The check number.** An earlier version said `ci-integrity.sh` had checks 0…11 and that the new numbering gate would be **check 12**. **Check 12 already exists** — the tarball-blake3 gate at `ci-integrity.sh:339` calling `scripts/eos-check-tar-pins.py`. The numbering gate of decision D5 is **check 13**. Renumber before anyone implements it | `grep -n '^# [0-9])\|── [0-9]*\.' scripts/ci-integrity.sh` |
-| 7 | **None of the proposed negative controls has been run.** The "proof it is done — and how it fails" column in §6.3 describes the **intended** shape of each test. Per `CLAUDE.md` §5.4 none of them is a test until someone has seen it fail without the fix and pass with it | run each listed control on a branch, record the output in the MR |
-| 8 | **Measurements taken on a built tree are not reproducible today.** Artefact sizes, hybrid-image signatures and the contents of `build/fstools/bin/` come from a session in which the build tree existed. In a clean tree `build/` holds only `container.tag`, `hostbuild-eos-control` and `id_ed25519.pub.toml` | `make CI=1 ARCH=x86_64 CONFIG_NAME=eos live` and `make fstools`, then repeat the offset measurements and the binary listing |
-| 9 | **Bootloader code was not read.** Classifying the boot-attempt counter (`R-707`, M7) as a NEW SUBSYSTEM rests on `ADR-0009` saying the bootloader has no write path — not on reading it. `recipes/core/bootloader/` in this tree is `recipe.toml` + `sbat.csv`, confirmed | in `eos-bootloader`, look for any write path to the ESP or to RedoxFS |
-| 10 | **`R-F16`'s x86_64 expectation.** x86_64 is *expected* to be unaffected by the GIC defect because MSI/MSI-X avoids that path entirely — **never verified**; no x86_64 image has been built and booted for that purpose on this host | build the x86_64 image and run the INTx reproducer against it |
-| 11 | **`R-902`'s DHCP/static toggle has never been screendumped.** The pane and its apply flow were; the toggle's non-visual core is `--selftest`-proven inside a boot-smoked image. A GUI render is only proven by screendump | boot the image, open eos-control → Network, toggle, `screendump` |
-| 12 | **`R-901`'s pcap has not been re-run** against a current image; the proof is from the original fix | re-run the `-object filter-dump` capture on the current aarch64 image |
-| 13 | **Whether the Redox kernel pages at all** (swap, §14.4) | inspect the memory subsystem in `eos-kernel` |
-| 14 | **Whether `eos-kernel` has any speculative-execution mitigations** (§14.4) | `grep -riE "kpti\|retpoline\|ibrs\|ibpb\|spec_ctrl\|mds\|l1tf"` in `eos-kernel` |
-| 15 | **Whether `nvmed`/`ahcid` expose any administrative command channel** (`R-815`) | read `drivers/storage/nvmed/src/**` and `drivers/storage/ahcid/src/**` in `eos-base` |
-| 16 | **Whether keyboard layouts exist anywhere** (`R-603d`) | check `eos-orbital` and `eos-orbdata` |
-| 17 | **Whether `fsync` is durable on RedoxFS** (`R-706`, `R-612c`) | write a power-cut test against the journal format before committing to it |
-| 18 | **Three items have no register row and are named here so they are not lost:** the KDF audit for AES-XTS (`EA-2`), the honest first-run security-posture screen (`EB-4`), and offline update from removable media (`EC-7`). Also **`C-20` (enforce commit signing)** has no roadmap item | decide at approval: mint rows or fold each into `R-603b` / `R-614b` / `S-1` |
-| 19 | **`.github/workflows/_canary.yml` is missing** although `CLAUDE.md` §13.1 cites it as the reproducible Actions measurement | restore the file or correct `CLAUDE.md` |
-| 20 | **`R-201`, `R-207`, `R-402`, `R-403` carry no in-tree evidence** in either predecessor beyond a one-line description. They are carried forward at their inherited status and should be re-scoped or retired at the next review | define an acceptance criterion for each, or move to Annex C |
+| 9 | **[stale, corrected] The check number.** An earlier version said `ci-integrity.sh` had checks 0…11 and that the new numbering gate would be **check 12**. **Check 12 already exists** — the tarball-blake3 gate at `ci-integrity.sh:339` calling `scripts/eos-check-tar-pins.py`. The numbering gate of decision D5 is **check 13**. Renumber before anyone implements it | `grep -n '^# [0-9])\|── [0-9]*\.' scripts/ci-integrity.sh` |
+| 10 | **None of the proposed negative controls has been run.** The "proof it is done — and how it fails" column in §6.3 describes the **intended** shape of each test. Per `CLAUDE.md` §5.4 none of them is a test until someone has seen it fail without the fix and pass with it | run each listed control on a branch, record the output in the MR |
+| 11 | **Measurements taken on a built tree are not reproducible today.** Artefact sizes, hybrid-image signatures and the contents of `build/fstools/bin/` come from a session in which the build tree existed. In a clean tree `build/` holds only `container.tag`, `hostbuild-eos-control` and `id_ed25519.pub.toml` | `make CI=1 ARCH=x86_64 CONFIG_NAME=eos live` and `make fstools`, then repeat the offset measurements and the binary listing |
+| 12 | **Bootloader code was not read.** Classifying the boot-attempt counter (`R-707`, M7) as a NEW SUBSYSTEM rests on `ADR-0009` saying the bootloader has no write path — not on reading it. `recipes/core/bootloader/` in this tree is `recipe.toml` + `sbat.csv`, confirmed | in `eos-bootloader`, look for any write path to the ESP or to RedoxFS |
+| 13 | **`R-F16`'s x86_64 expectation.** x86_64 is *expected* to be unaffected by the GIC defect because MSI/MSI-X avoids that path entirely — **never verified**; no x86_64 image has been built and booted for that purpose on this host | build the x86_64 image and run the INTx reproducer against it |
+| 14 | **`R-902`'s DHCP/static toggle has never been screendumped.** The pane and its apply flow were; the toggle's non-visual core is `--selftest`-proven inside a boot-smoked image. A GUI render is only proven by screendump | boot the image, open eos-control → Network, toggle, `screendump` |
+| 15 | **`R-901`'s pcap has not been re-run** against a current image; the proof is from the original fix | re-run the `-object filter-dump` capture on the current aarch64 image |
+| 16 | **Whether the Redox kernel pages at all** (swap, §14.4) | inspect the memory subsystem in `eos-kernel` |
+| 17 | **Whether `eos-kernel` has any speculative-execution mitigations** (§14.4) | `grep -riE "kpti\|retpoline\|ibrs\|ibpb\|spec_ctrl\|mds\|l1tf"` in `eos-kernel` |
+| 18 | **Whether `nvmed`/`ahcid` expose any administrative command channel** (`R-815`) | read `drivers/storage/nvmed/src/**` and `drivers/storage/ahcid/src/**` in `eos-base` |
+| 19 | **Whether keyboard layouts exist anywhere** (`R-603d`) | check `eos-orbital` and `eos-orbdata` |
+| 20 | **Whether `fsync` is durable on RedoxFS** (`R-706`, `R-612c`) | write a power-cut test against the journal format before committing to it |
+| 21 | **Three items have no register row and are named here so they are not lost:** the KDF audit for AES-XTS (`EA-2`), the honest first-run security-posture screen (`EB-4`), and offline update from removable media (`EC-7`). Also **`C-20` (enforce commit signing)** has no roadmap item | decide at approval: mint rows or fold each into `R-603b` / `R-614b` / `S-1` |
+| 22 | **`.github/workflows/_canary.yml` is missing** although `CLAUDE.md` §13.1 cites it as the reproducible Actions measurement | restore the file or correct `CLAUDE.md` |
+| 23 | **`R-201`, `R-207`, `R-402`, `R-403` carry no in-tree evidence** in either predecessor beyond a one-line description. They are carried forward at their inherited status and should be re-scoped or retired at the next review | define an acceptance criterion for each, or move to Annex C |
 
 ---
 
@@ -2033,10 +2303,550 @@ they are outright violations sitting in the exact code the flagship subsystems r
 physical machines and cannot be closed from the Apple-Silicon host. The roadmap therefore has **two
 physically separate critical paths, and the metal one is the longer pole.**
 
-> **Who this is for and in what order:** see [`docs/archive/plan.md`](docs/archive/plan.md)
-> (`U-142`) — the three editions (desktop / gaming / server), which Qubes and Tails patterns map
-> onto the scheme model and which cannot without an IOMMU, and the ten-step ordering where the order
-> *is* the security control. This file stays the item list; that file is the argument.
+> **Who this is for and in what order:** [§17](#17-who-e-os-is-for-what-security-model-it-builds-and-the-order-of-work)
+> (merged from `docs/archive/plan.md`, `U-142`) — the three editions (desktop / gaming / server),
+> which Qubes and Tails patterns map onto the scheme model and which cannot without an IOMMU, and
+> the ten-step ordering where the order *is* the security control. §1–§16 are the item list; §17 is
+> the argument.
+
+---
+
+## 17. Who E-OS is for, what security model it builds, and the order of work
+
+*Merged 2026-09-03 from `docs/archive/plan.md` (written 2026-08-22, `U-142`, from the audit in
+`U-141`). The text is carried, not summarised, because §16 cites it as the argument behind the
+item list. Where the state has moved since 2026-08-22, a dated status note points at the register
+row that now holds the status; the original claim is left readable so the correction is visible.
+Old citations of the form `docs/archive/plan.md §N` map to `§17.N` of this file.*
+
+`ROADMAP.md` lists *items*. This section answers the three questions the item list cannot: **who is
+E-OS for**, **what security model is actually being built**, and **in what order**, because for
+several of these the order *is* the control.
+
+### 17.1 Where the project actually stands
+
+E-OS is a hardened Redox downstream with a **real, verified desktop on aarch64 under QEMU** — not a
+prototype, and not something anyone has booted on metal. The hardening is in the code, not just the
+prose: `overflow-checks` across kernel/relibc/base, mmap ASLR with guard bands, W⊕X at the syscall
+boundary, AES-XTS FDE with ARMv8 crypto extensions, and scheme namespaces as a working unprivileged
+confinement primitive.
+
+Three things were missing on 2026-08-22, and they are not features:
+
+1. **The trust chain is open at both ends.** No `keys/eos-repo-sign.pub.toml` existed, and every
+   shipped image carried `/etc/pkg.d/50_redox → https://static.redox-os.org/pkg`
+   (`config/base.toml:120-121`) — so `pkg install` fetched upstream binaries built without E-OS
+   flags, over a TOFU-keyed channel. *Status 2026-09-03: the key exists and is pinned in the image
+   (`R-702`, `U-224`); the upstream channel is gated by `ci-integrity.sh` check 9 (`R-701a`); the
+   x86_64 channel is still not published (`R-701`, `S-10`, `EC-1`).*
+2. **Nothing gated `main`.** `only_allow_merge_if_pipeline_succeeds = false`, **0 merge requests**
+   across 10 088 commits. *Status 2026-09-03: every change since 2026-08-31 lands by merge request
+   (!52–!78); the pipeline gate is on, and is lowered only for merges made after confirming every
+   job failed on `ci_quota_exceeded` and none evaluated the code (§3.0). `S-1` records the branch
+   protection that is still the operator's.*
+3. **Zero real hardware.** Every boot claim is QEMU. *Unchanged: `R-607b`, §18.0.*
+
+### 17.2 Three editions, one base
+
+The same base, three package sets and three defaults. Not three forks.
+
+#### 17.2.1 Desktop (the current product)
+
+Closest to shipping. What an ordinary user will miss on day one, none of which had a roadmap item
+on 2026-08-22: **removable-media automount** (`usbscsid` exists; nothing mounts a stick),
+**printing**, **accessibility and UI scaling**, **screen brightness**, **backup/restore and a
+recovery path**, **a trash/undelete**, and **an i18n string catalogue** — the UI shipped hard-coded
+Polish strings (`eos-control settings.rs`) while the docs are English. *Status 2026-09-03: i18n is
+`R-D13`; backup is `L-4`; the rest still have no register row and are listed in §3.0 as named gaps.*
+
+> There is **no i18n gate in `CLAUDE.md`**. An earlier version of `docs/archive/reality-ledger.md`
+> claimed there was; it was fabricated (see `U-126`). i18n is work to *schedule*, not a rule being
+> violated.
+
+#### 17.2.2 Gaming (honest position: not yet possible)
+
+**E-OS does not run games, and the roadmap says so out loud.** The blocker is not 3D alone — it is
+a chain, and every link is missing:
+
+| Link | State |
+|---|---|
+| Linux ABI compatibility, or native ports | none, and no item |
+| GPU acceleration (GEM/dma-fence class layer) | none — `R-930` documents the absence |
+| Gamepad input | none beyond USB HID — `usbhidd` covers keyboard/mouse and the Xbox 360 vendor class (§19.1) |
+| Low-latency audio | `ihdad` times out on the codec RIRB response and `audiod` exits |
+
+Two design decisions worth taking **now**, while they are cheap: treat executable memory as a
+capability (a JIT needs it; a text editor must not have it), and treat GPU passthrough as gated on
+IOMMU rather than something to bolt on later. *The "gamers" server edition in the owner's cloud
+request (§11.4) inherits this chain unchanged: a game *server* needs none of the four links; a game
+*client* needs all of them.*
+
+#### 17.2.3 Server (did not exist — and the placeholder is dangerous)
+
+On 2026-08-22 there was **no server edition**: no `config/*/eos-server.toml`, no roadmap item, no
+headless boot-smoke. What sits next to `eos.toml` is `config/x86_64/server-demo.toml` with
+`PermitRootLogin yes`, `PasswordAuthentication yes` and `PermitEmptyPasswords yes` — one syllable
+away from the real config. Worse, `config/desktop.toml:3` does `include = [..., "server.toml"]`, so
+the desktop image pulls the server package set. *Status 2026-09-03: the edition is now `CS-001`,
+the headless smoke `CS-010` (§11.4); the `server-demo.toml` hazard is unchanged.*
+
+Three things a server edition needs that the desktop does not:
+
+- **Unattended install.** `R-602`'s OOBE forces `passwd` before a shell on *every* path — correct
+  for a desktop, fatal for a server that must boot without a human at the console. The rule to add:
+  an account seeded with a public key and a locked password **satisfies** R-602 (`R-616b`,
+  `docs/architecture/installer-profiles.md` feature `user.authorized-key`).
+- **A firewall.** `R-904` is `P1` for the desktop; for a server it is `P0`.
+- **Its own boot-smoke** asserting a headless console and `sshd`, not a greeter (`CS-010`).
+
+### 17.3 Compartmentalisation: what transfers from Qubes and Tails, and what does not
+
+The scheme model reproduces most of Qubes' **visibility** model without a hypervisor. It does
+**not** reproduce its **hardware** isolation. That distinction has to be written down before anyone
+puts "Qubes-like" in a README.
+
+#### 17.3.1 The asset already in the tree
+
+`recipes/core/contain` exists and `config/desktop-contain.toml` is a complete sandboxed session:
+`contain_orblogin`, `getty --contain`, and an `/etc/contain.toml` that passes a narrow scheme set
+(`rand null tcp udp thisproc pty orbital display.vesa`), **brokers** the file scheme
+(`sandbox_schemes = ["file"]` — mediated, not handed over) and allowlists paths via
+`files`/`rofiles`/`dirs`/`rodirs`.
+
+It is **disabled**: `config/server.toml:14` reads `#contain = {} # needs to update dependencies`,
+the recipe has no `rev`, and no `contain.pkgar` is in the built repo. This is the single largest
+unused asset the audit found — a working AppVM-equivalent, switched off. *Register row: `R-1010`;
+the cloud plan's Tier 2 (`CS-101`) is the same primitive, hardened and given a lifecycle.*
+
+#### 17.3.2 The mapping
+
+| Qubes / Tails pattern | Equivalent here | Blocker |
+|---|---|---|
+| **AppVM compartment** | `contain` — already built, see above | Package disabled, recipe unpinned (`R-1010`) |
+| **Per-application namespace** | `Namespace::fork()` + `NsDup::IssueRegister` — kernel side complete and unprivileged | The namespace is set **once per session** in `login.rs`, so every app inherits the shell's set; a per-launch policy is `M-1` |
+| **qrexec / split-GPG** | Already done twice: `eos-power`, `eos-netcfg` — a narrow named channel with policy instead of ambient authority. Generalise into an `eos-broker` convention | Clipboard and file-open brokers do not exist |
+| **Network qube** | `netstack` is *already* a separate user-space process. A second instance on another interface, bound under `tcp`/`udp` in a narrower namespace, gives "this app only goes through that link" | Nothing spawns a second instance; no per-namespace binding today |
+| **Driver domains** | Drivers are separate processes — but without an IOMMU this is logical isolation, not hardware isolation | `Dmar::init` is commented out; no `iommu`/`smmu` path in the kernel (`R-F13`, `CS-201`) |
+| **USB qube** | **Not reachable** — it depends on handing a controller to a VM behind an IOMMU. Do **not** fake it. The achievable version gates *trust*, not isolation: `eos-devd` asks before binding a driver to a new device | `R-801`, `R-805` |
+| **dom0 has no network** | Structurally satisfied — the microkernel + `initnsmgr` + bootloader contain no network code and nowhere to run a browser. Name this as a microkernel advantage rather than a Qubes feature | — |
+| **Tails: amnesia** | **Already built**, as a side effect of the live image — the bootloader copies ~1.4 GB into RAM, verified on both arches (`U-133`). What is missing is making it a *product*: a menu entry and a guarantee that nothing touches the disk | `installer-profiles.md` feature `sys.amnesia`; `R-614a` |
+| **Tails: MAC randomisation** | `ifaces/<if>/mac` is writable with validation, and the privileged `eos-netcfg` shim already exists and is screen-verified | Needs a `randomize-mac` subcommand and a toggle in the network pane |
+| **Tails: persistent volume** | A second RedoxFS under a **separate scheme name** (`file.persist`) — in Tails persistence is bind-mounts in a global namespace; here it is a capability an app either has or lacks | Not started; depends on `R-1010` |
+| **Tails: Tor by default** | — | **Do not promise this.** No tor port, no firewall, `ip` in the user namespace. Without all three it is a guarantee the system cannot keep, and the failure is silent (`installer-profiles.md` feature `net.tor`: *unrealistic today*) |
+
+#### 17.3.3 The honest limit
+
+Everything above is isolation **between processes of the same user**, enforced by the kernel's
+scheme namespaces. It is *not* protection against a malicious driver reprogramming DMA, and it is
+not a hypervisor boundary. Until there is an IOMMU, that sentence belongs in
+`docs/security/threat-model.md` verbatim.
+
+### 17.4 Order of work — and why this order
+
+Several of these are only correct in sequence. Where that is true, the reason is stated. The
+*Status* column was added on 2026-09-03 from the register; the ordering argument is unchanged.
+
+| # | Step | Why here | Status 2026-09-03 |
+|---|---|---|---|
+| 1 | Turn on **"pipelines must succeed"** and move work onto merge requests | Until something blocks `main`, every gate added below is a notification after the fact. It also wakes `docs-currency`, which only runs on merge requests | done in practice (all work is MRs; gate on); branch protection `S-1` still the operator's |
+| 2 | **Delete `50_redox`** from the E-OS image config (`R-701a`) | Two lines, pure subtraction, independent of the key. Removes the one channel by which a shipped image undermines its own hardening | `R-701a` — see §5.3 |
+| 3 | **Keygen → sign and publish indexes (`R-008`) → pin in configs (`R-702`) → enforce (`R-703`)** | Only this order is safe. Pinning flips `pkg-lib` to fail-closed, so every already-published index must carry the new signature first | `R-008` ✅, `R-702` ✅, `R-703` — see §5.3 |
+| 4 | **Pins + `blake3` for the recipes that actually ship** (`R-F11`) | Right after (3), because a signature over content fetched without an integrity check is a signature over nothing | `R-F11`, check 12 of `ci-integrity.sh` (`eos-check-tar-pins.py`) |
+| 5 | **Remove `ip`/`icmp` from `user_schemes.user`** (`config/base.toml:44-48`) | One line, boot-verifiable, and it must precede `R-904`: a firewall built while raw sockets sit in the user namespace is a wall with a door in it | done (`U-144`: raw `ip:` is root-only) |
+| 6 | **`R-601` — install-to-second-disk harness** | First purely functional step. The only missing proof of the "daily driver" claim, and doable entirely on the current Mac | ✅ `U-176`; x86_64 `R-601c` ✅ 2026-09-02 |
+| 7 | **Fork push-mirrors** (`eos-setup-mirrors.sh --apply`, excluding `role = "pkg"`) | Now, because pin bumps start flowing and manual double-pushes silently build stale code | `M-9` (mirror-head parity) still open; `eos-mirror-drift.sh` fails closed since 2026-09-02 |
+| 8 | **`shellcheck` + `cargo-deny`/`cargo test` on the root manifest** (`R-F14`, `R-F15`) | After (1) so gates actually block, and after (6) so the first shellcheck run over 44 scripts lands with a baseline | `verify.sh` stages `shell-lint`, `cargo-deny`, `test` — §11.3 |
+| 9 | **Rewrite the security documents that overstate** | Here, because after eight steps most of those sentences need rewriting anyway — one pass instead of two. `U-141` already did the worst of it | `V2-MS03` ✅; #27/#28 corrections 2026-09-02 |
+| 10 | **Enable `contain` and add per-application namespace policy** | The compartmentalisation work only means something once (2)–(5) closed the paths around it. Starting here would be building a wall before the doors | `R-1010`, `M-1` — open |
+
+### 17.5 What we deliberately do not promise
+
+Writing these down is part of the plan, because the failure mode of a security project is a promise
+it cannot keep.
+
+- **Not "Qubes-like".** No hypervisor, no IOMMU, no driver domains in the hardware sense.
+- **Not "Tor by default".** See §17.3.2.
+- **Not a gaming platform**, until the chain in §17.2.2 exists.
+- **Not validated on hardware.** Every boot claim in this repo is QEMU until someone boots the live
+  USB on the x86 rig and records what happened — including the parts that fail (§18.0).
+
+---
+
+## 18. The road from QEMU to a physical computer
+
+*Merged 2026-09-03 from `docs/archive/hardware-plan.md` (Polish, `U-201`: 143 claims checked
+against the tree, of which 32 from the earlier summary were false). Translated, not summarised.
+Old citations `docs/archive/hardware-plan.md ETAP N` / `§0.5` map to `§18.N` / `§18.0.5`.*
+
+One question: **what to do, in what order, so that E-OS can be installed on a physical computer and
+developed further.** Every item has three parts: **what to do**, **what it gives**, and **what to
+reuse instead of writing from scratch**.
+
+### The ordering principle
+
+> **Measure on metal first, then plan.**
+
+Nothing in this repository has ever run on physical hardware — every verification is QEMU
+(`scripts/ci-boot-smoke.sh`, `repro-intx-lines.sh`, `ci-install-smoke.sh`). **The first boot on a
+real computer will give more information than a month of planning**, because it turns forecasts
+into measurements. That is why stage 0 comes before everything else, although it looks modest.
+
+### 18.0 Stage 0 — first boot on metal · one evening · **do this first** (`R-607b`)
+
+**18.0.1 Build the x86_64 image**
+
+```
+make CI=1 ARCH=x86_64 CONFIG_NAME=eos all
+```
+
+`make CI=1 all` alone builds **aarch64** — the architecture has to be given explicitly. x86_64 is
+built and passes `boot-smoke` under emulation (`U-172`, and `R-601c` since 2026-09-02), **never on
+hardware**.
+
+**18.0.2 Write it to a USB stick.** `scripts/ventoy.sh` **does not work** — it hard-codes
+`CONFIGS=(demo desktop)` and does not know `eos` (`R-F28`). Until fixed: plain `dd` of
+`redox-live.iso`.
+
+**18.0.3 Secure Boot: enrol our certificate or switch it off** — choose one. The claim that nobody
+signs the bootloader is stale: `recipes/core/bootloader/recipe.toml:52-65` signs **both** bootloaders
+(`bootloader.efi` and `bootloader-live.efi`) at `cook` time when the operator provides a key
+(`scripts/eos-sb-setup-key.sh`). Proven on both media with the operator's key (`U-210`), with a
+negative control: a foreign key → `Access Denied`. Two correct paths:
+
+- **enrol the E-OS certificate** in firmware (`db`/MOK) — install with Secure Boot on;
+- **or switch Secure Boot off** — faster if only testing.
+
+Automatic installation *without* either step would need a Microsoft-signed shim; why that is not
+done today is [`ADR-0006`](docs/adr/0006-path-to-microsoft-verification.md).
+
+**18.0.4 Choose a desktop computer, not a laptop.** This sidesteps the largest gap: **there is no
+I2C driver**, so no I2C-HID, so **no modern touchpad works** (`R-916`). USB keyboard and mouse work
+through `xhcid`.
+
+**18.0.5 Record where it stopped.** This is the real product of the stage. The sequence of symptoms
+says what is missing — the form `installer.md` §9.3 and §3.4 refer to:
+
+| how far it got | conclusion |
+|---|---|
+| firmware does not see the medium | Secure Boot on, or a bad write of the medium |
+| bootloader starts, no picture | `vesad` did not get a framebuffer from UEFI GOP |
+| picture, then "no root filesystem" | no disk driver (NVMe/AHCI) for this controller |
+| login prompt, no keyboard | `xhcid` did not bind the USB controller |
+| desktop, no network | no driver for this NIC (only `e1000d` on x86_64 — §19.2) |
+
+### 18.1 Stage 1 — the boot chain · large · unlocks "install without touching the BIOS"
+
+**18.1.1 Signed bootloader (`R-F27`).** Sign `bootloader.efi` with our own key enrolled through
+MOK (the user runs `mokutil`), or through a Microsoft-signed `shim` (their review process). Gives:
+installation without entering the BIOS. **Without it E-OS stays a system for someone who can and
+will disable Secure Boot.** Reuse: Fedora's/Debian's `shim` as the pattern; the signing key is
+**none** of the existing ones — [`keys-and-tokens.md`](docs/reference/keys-and-tokens.md) §6a,
+layer 5 does not exist. Register: `V2-MS10`, `V2-MS11`, `L-5`.
+
+**18.1.2 Fix `ventoy.sh` (`R-F28`)** · small. Gives a repeatable USB medium instead of manual `dd`.
+
+### 18.2 Stage 2 — basic hardware · nothing to render without it
+
+**18.2.1 Disk — check, do not write.** `nvmed`, `ahcid` and `virtio-blkd` **are in the image**. But
+`R-803` itself warns that some entries point at **absent binaries** — so the first task is to
+*check*, not to write a new driver.
+
+**18.2.2 Network — a real gap.** There is **only `e1000d`** wired into the x86_64 config. A typical
+PC has Realtek or a newer Intel. Without network there are no packages, updates or browser. Reuse:
+`R-910` names RTL8125 and Intel I225/I226 as the first targets; §19.2 lists the drivers already in
+the tree (`rtl8168d`, `rtl8139d`, `ixgbed`) that are present but not all wired in.
+
+**18.2.3 Input — works, but not on a laptop.** `xhcid` + `usbhidd` handle USB keyboard and mouse.
+**I2C-HID does not exist** and this is not "untested" — the whole I2C bus is missing (`R-916`).
+
+### 18.3 Stage 3 — installing next to an existing system
+
+**State:** the installer **wipes the whole disk**. Installation beside Windows or Linux **does not
+exist**. `scripts/dual-boot.sh` exists, but it is upstream's, needs a Linux host and **was never
+tested by E-OS**. Gives: using E-OS on the only computer one has — the difference between "a
+curiosity on spare hardware" and "a system one lives with". Register: `R-609`, M8 in §3.4.
+
+### 18.4 Stage 4 — driver infrastructure (`R-801`…`R-807`)
+
+**Why only now:** this is the foundation for *managing* drivers, not for their *existence*. On bare
+metal you need disk and network first; a driver catalogue without drivers gives nothing.
+
+| item | what to do | what it gives |
+|---|---|---|
+| `R-801` | `eos-devd` — device inventory (`/scheme/devices`) | knowing **what** is in the computer before guessing a driver |
+| `R-802` | signed catalogue ID → package | a driver is not code from the internet |
+| `R-804` | `pkgar` packages per driver | driver update without rebuilding the image |
+| `R-805` | `pcid` spawn-on-demand | binding without a reboot |
+| `R-807` | the "device present, no driver" list | **this** says what to write next — instead of guessing |
+
+### 18.5 Stage 5 — graphics · the furthest, contrary to appearances
+
+**Correcting the starting point.** A common error in summaries: "E-OS has no GPU driver at all".
+**`virtio-gpud` IS in the image** — in the initfs of both architectures, with an entry in
+`/lib/pcid.d/initfs.toml` (verified, `U-201`). The starting point is better than it looks.
+
+**18.5.1 What works today.** `vesad` (firmware framebuffer) + Orbital (software compositor) +
+software rendering. **Slint, Iced, egui and winit already work.** The lack of a GPU **does not
+block** interface development.
+
+**18.5.2 The order, if GPU work is taken up.**
+
+1. **VirtIO GPU 2D** — already present; use it before writing anything new.
+2. **VirtIO GPU 3D through virglrenderer** — acceleration **testable in QEMU**, without a physical GPU.
+3. **Intel modesetting** — upstream Redox has started (Kaby Lake, Tiger Lake), Intel's documentation
+   is public, the iGPU is the most common, and **it needs no closed firmware**.
+4. **AMD through `linux-kpi`** — Red Bear OS showed `amdgpu` compiles.
+
+**What not to start with:** NVIDIA (closed GSP firmware, Nova only a skeleton) and full 3D
+acceleration at once. Register: `R-930`, `L-6`.
+
+### 18.6 What to reuse instead of writing from scratch
+
+| source | what is taken from it |
+|---|---|
+| upstream Redox | Intel modesetting, `virtio-gpud`, the base drivers |
+| Red Bear OS | `linux-kpi`, `redox-drm`, `firmware-loader` — proof that `amdgpu` can be compiled |
+| Mesa3D | LLVMpipe (present), Lavapipe, a backend to write |
+| Linux DRM documentation | the UMD/KMD model as the architectural pattern |
+| `HARDWARE.md` | **upstream data, not ours** — failure distribution: touchpad, USB, network |
+
+### 18.7 What this stage plan deliberately does NOT promise
+
+**Secure Boot stays a manual switch-off** until `R-F27` is done. **No measurement in this repository
+comes from hardware** — everything above is a forecast based on code and on upstream data, and
+stage 0 exists precisely to replace it with facts.
+
+---
+
+## 19. Connectivity: USB, wired LAN, Bluetooth
+
+*Merged 2026-09-03 from `docs/archive/roadmap-connectivity.md`, grounded in the `eos-base` driver
+tree (`drivers/`, `netstack/`). Carried in full; `R-920` cites the B0–B5 phasing below and
+`docs/architecture/xhcid-nonblocking-transfers.md` cites §19.1. Everything marked
+"QEMU-verifiable" can be developed and boot-tested in the headless harness; items marked 🔬 need
+**real hardware** (QEMU emulates no Wi-Fi and effectively no Bluetooth), so they are development
+plans, not things the dev loop can prove.*
+
+### 19.1 USB
+
+USB in E-OS is **xHCI-based** (`drivers/usb/xhcid`), so **all USB versions are covered at the
+controller level** — xHCI is backward-compatible and `xhcid` handles Low/Full/High speed
+(USB 1.1/2.0) and SuperSpeed / SuperSpeed+ (USB 3.0–3.2). Support is added **per device class** by
+writing a class driver and registering it in `drivers/usb/xhcid/drivers.toml` (class/subclass/
+protocol → driver command). `usbhubd` handles hubs, so hub topology works.
+
+| Device class | Code | Driver | Status | Testable in QEMU |
+|---|---|---|---|---|
+| **HID** — keyboards, mice, gamepads | 3 | `usbhidd` | ✅ done | ✅ (`usb-kbd`, `usb-mouse`, `usb-tablet`) |
+| Xbox 360 controller (vendor HID) | 0xFF/93 | `usbhidd` | ✅ done | ⚠️ (needs a passthrough pad) |
+| **Hubs** — multi-device topology | 9 | `usbhubd` | ✅ done | ✅ (`usb-hub`) |
+| **Mass storage** — flash drives, USB HDD | 8/6 | `usbscsid` | ✅ done — re-enabled and fixed; the "XHCI errors" were a `daemon`-crate `INIT_NOTIFY` bug, not SCSI/xHCI (`U-054`) | ✅ (`usb-storage`) |
+| **Audio** — headsets, speakers, mics | 1 | *(none — `usbaudiod` to write)* | ⏳ planned | ✅ (`usb-audio`) |
+| **Printer** | 7 | *(none — `usbprinterd` to write)* | ⏳ planned | 🟡 (no native model; raw test) |
+| **CDC-ACM** — USB serial / modems | 2/2 | *(none — `usbserial` to write)* | ⏳ planned | ✅ (`usb-serial`) |
+| **RNDIS / CDC-ECM** — USB-Ethernet | 2/2, 10 | `usbnetd` | ✅ full duplex — enumerate + handshake + MAC + `network.*` scheme, TX and RX verified (`U-056`, `U-057`) | ✅ (`usb-net`) |
+| **UVC** — webcams | 14 | *(none)* | 🔬 later | 🟡 |
+
+**USB work plan (priority order).**
+
+1. **Re-enable mass storage (`usbscsid`).** ✅ done (`U-054`); the daemon fix also unblocks every
+   future xHCI subdriver (audio/printer/CDC).
+2. **`usbserial` (CDC-ACM).** The *simplest* new class driver (two bulk endpoints, a control
+   interface) — a good first "new class" and immediately useful (serial consoles, Arduino, modems).
+3. **`usbnetd` (CDC-ECM/RNDIS).** ✅ done (`U-056`/`U-057`).
+4. **`usbaudiod` (USB Audio Class 1.0, then 2.0).** The largest — isochronous endpoints,
+   format/rate negotiation, feedback endpoints — and it must plug into the audio scheme alongside
+   `ac97d`/`ihdad`/`sb16d`. UAC1 output first, then input, then UAC2.
+5. **`usbprinterd` (Printer class).** Bulk-out (+ optional bulk-in status). Raw printing first; a
+   spooler/driver ecosystem is a separate, larger effort (§17.2.1 lists printing as a desktop gap).
+
+**Effort:** CDC-ACM ≈ 1–2 weeks · USB audio ≈ 4–8 weeks · printer ≈ 2–3 weeks (raw). Each is an
+isolated driver plus a `drivers.toml` line, so they ship incrementally.
+
+### 19.2 Wired LAN — the strongest subsystem
+
+`netstack` (smoltcp: IP/ICMP/TCP/UDP plus a router and `netcfg`) rides on these PCI NIC drivers,
+each auto-spawned by `pcid` from its `config.toml` PCI-ID match:
+
+| NIC driver | Covers | Status |
+|---|---|---|
+| `virtio-netd` | virtio-net (VMs) | ✅ boot-verified in E-OS |
+| `e1000d` | Intel 8254x/PRO/1000 | ✅ present; QEMU-verified 2026-07 (`-device e1000`, `pcid` auto-spawns, login reached, 0 exceptions) |
+| `rtl8168d` | Realtek RTL8168/8111 (common desktop GbE) | ✅ present in the tree; **not verified in E-OS** |
+| `rtl8139d` | Realtek RTL8139 (legacy) | ✅ present; QEMU-verifiable (`-device rtl8139`) |
+| `ixgbed` | Intel 82599 10GbE | ✅ present; unverified |
+
+**LAN work plan (all QEMU-verifiable).** 1. verify the driver set beyond virtio — ✅ done for
+`e1000`; 2. **IPv6** — smoltcp supports it; wire it through `netstack`'s `ip`/`tcp`/`udp` schemes
+and `netcfg` (no register row yet — §3.0 named gap); 3. more NIC coverage — RTL8125 (2.5GbE), Intel
+I225/I226, Aquantia (`R-910`), DHCPv6/SLAAC; 4. throughput — checksum offload, larger rings,
+zero-copy in the smoltcp glue; 5. bridging/VLAN in the `router` module for appliance use
+(`CS-004` depends on this).
+
+### 19.3 Bluetooth — 🔬 a full stack, needs real hardware
+
+**E-OS/Redox has *no* Bluetooth today** — no HCI, no L2CAP, no profiles. This is a ground-up
+subsystem. USB BT dongles expose a standard **HCI-over-USB** interface (class 0xE0), the natural
+entry point, reusing `xhcid`.
+
+**Layered architecture (bottom-up).**
+
+1. **HCI transport (`bthci`)** — USB (class 0xE0: commands/events/ACL endpoints) first; UART-HCI
+   later. *Milestone: reset the adapter, read its BD_ADDR, start/stop inquiry.*
+2. **HCI host + L2CAP (`btd`)** — connection management plus the multiplexing layer every profile
+   rides on. *Milestone: an ACL link and an L2CAP channel to a peer.*
+3. **SDP** — service discovery.
+4. **Pairing / security** — SSP, link keys, encryption; a key store reusing E-OS's argon2/crypto.
+5. **Profiles**, each a daemon over L2CAP/RFCOMM: RFCOMM+SPP (simplest); HID (HOGP) → the existing
+   `inputd`; A2DP (SBC, then AAC/aptX) → the audio scheme; HFP.
+6. **BLE** — LE link layer + ATT/GATT + GAP. Large; can follow classic. `R-920` chooses the
+   Rust-native `trouble` + `bt-hci` crates for this layer.
+
+| Phase | Deliverable | Rough effort | Hardware |
+|---|---|---|---|
+| B0 | `bthci` USB transport: reset + BD_ADDR + inquiry | 2–4 weeks | USB BT dongle |
+| B1 | `btd`: ACL + L2CAP + SDP | 1–2 months | dongle + a peer |
+| B2 | Pairing/SSP + link-key store | 3–4 weeks | dongle + peer |
+| B3 | RFCOMM/SPP + HID (HOGP) → `inputd` | 1–2 months | BT keyboard/mouse |
+| B4 | A2DP (SBC) → audio scheme | 2–3 months | BT headphones |
+| B5 | BLE: LL + ATT/GATT + GAP | 2–4 months | LE peripheral |
+
+**Total to "BT headphones and a BT keyboard work":** roughly **6–12 months** of focused work, all
+needing hardware. A genuine subsystem, not a driver — best pursued upstream in Redox too.
+
+> **Ordering note (2026-09-03).** The register row `R-920` chose **BLE first** (the Rust-native
+> `trouble` + `bt-hci` crates over a USB-HCI shim) — the reverse of the classic-first B0–B5 above.
+> Both orderings are kept on purpose: B0–B5 is the path to headphones and keyboards, `R-920` is the
+> path to modern peripherals with the least new code. Annex C.2 used to say `R-920` "cites B0–B5";
+> it does not, and that sentence was corrected when this section was merged.
+
+**Items in this section that still have no register row** (kept visible here rather than minted
+blind — §0.3 namespaces are the owner's): `usbserial`/CDC-ACM as a deliverable (named only as an
+absence in `R-934`), `usbprinterd`, UVC webcams, NIC throughput (checksum offload, larger rings,
+zero-copy), bridging/VLAN in `router`. The rows that exist: `usbaudiod` → `R-911`, IPv6 → `R-903`,
+multi-gig NICs → `R-910`, Bluetooth → `R-920`, Wi-Fi → `R-921`.
+
+### 19.4 Summary — now versus later
+
+- **Now, QEMU-verifiable:** wired LAN across several NIC families, USB HID, USB hubs, all USB
+  speeds, USB mass storage, USB-Ethernet; writing CDC-ACM / USB-audio / printer class drivers
+  incrementally; IPv6.
+- **Later, needs real hardware:** **Wi-Fi** (`R-921`, `L-2` — 802.11 MAC + supplicant + per-chip
+  firmware) and the full **Bluetooth** stack above (`R-920`, `L-6`). Both are gated on hardware, not
+  on E-OS design.
+
+---
+
+## 20. Delivered capability plans, kept for their scope — `R-50x` and the ACPI-off removal
+
+*Merged 2026-09-03 from `docs/archive/hardware-capabilities-roadmap.md` (recreated 2026-07-12 after
+the original notes were lost) and `docs/archive/acpi-off-removal-plan.md`. All four items are
+**delivered**; what is carried is the scope and the non-goals, because the non-goals are where the
+open work hides. `HARDWARE.md` pointed at the first file; it now points here.*
+
+### 20.1 `R-501` — RAID-1 mirror daemon (`raid1d`) — ✅ delivered (`U-042`)
+
+**Why first:** pure userspace, exercises the scheme/daemon machinery, immediately useful (mirrored
+root/data on two disks), and it unlocks degraded-boot stories that fit the resilience branding.
+
+**Scope delivered:** a userspace block-scheme daemon over two disk schemes exposing one mirrored
+logical device; a per-member superblock (last 4 KiB: magic, array UUID, member index, generation
+counter) so members are identified positively; writes to both members (fail only if **both** fail),
+reads from the primary with fallback; **degraded mode** served and loudly logged; a `create`/`status`
+helper; QEMU proof: two NVMe disks → `create` → RedoxFS on the mirror → write → boot with **one**
+disk → data readable, degraded warning in the log. Hardening followed in `R-F04` (`U-068`).
+
+**Non-goals then, open scope now:** resync/rebuild after re-adding a member, RAID-0/5/6, hotplug,
+write-intent bitmaps, more than two members, root-on-RAID (needs the installer) — all folded into
+`R-912` (§8.4) as named sub-scopes; not re-minted as `R-501b`/`R-501c` (Annex C.1).
+
+### 20.2 `R-502` — aarch64 crypto-extension acceleration for FDE — ✅ delivered (`U-043`/`U-044`)
+
+The FDE path (`R-305`, RedoxFS AES-XTS) was pure software; ARMv8 Crypto Extensions are present on
+QEMU's `cortex-a72`/`a53`/`max` (confirmed once the kernel ISAR decode bug `U-043` was fixed) and on
+every realistic target, and the change lives in the userspace `redoxfs` daemon. Delivered: the `aes`
+crate's ARMv8 backend, runtime-detected with software fallback, wired into the FDE path; before/after
+numbers in `docs/guides/encryption.md`; FDE boot re-verified. **Non-goals:** kernel-side crypto, SHA
+acceleration for pkgar (`R-502b`, kept as a cross-reference), x86 AES-NI (handled by the crates).
+
+### 20.3 `R-503` — post-quantum hybrid package signing — ✅ delivered (`U-045`)
+
+Repo signing is ed25519 **and** ML-DSA-65; verification checks both on install; classical-only
+verifiers keep working. The migration plan (key custody, rollout stages, fallback) is in
+`docs/security/index.md`; the design is `ADR-0004`. **Non-goals:** PQ TLS/ssh (upstream-dependent),
+a PQ FDE-KDF (the KDF is not the quantum-exposed part), replacing ed25519 outright. *The signatures
+are inert at the client until `R-703` connects them (§16.1).*
+
+### 20.4 Horizon items from that plan, and where they went
+
+| item | register home now |
+|---|---|
+| NVMe SMART/health surfacing (`eos doctor` integration) | `V2-D02`; the "doctor" itself is §21 proposal 9 — no row yet |
+| TRIM/discard pass-through end to end (`nvmed` → RedoxFS) | `V2-D02` |
+| virtio-gpu path for QEMU (replaces ramfb; resolution switching, speed) | `virtio-gpud` is in the initfs (§18.5); the *desktop* on it is open under `R-930` |
+| Multi-queue NVMe / I/O parallelism in the storage daemons | `V2-D02` |
+
+### 20.5 The aarch64 `-machine virt,acpi=off` requirement — ✅ removed (`R-401f`, `U-019`)
+
+**Was:** aarch64 booted only with `-machine virt,acpi=off`, forcing a device-tree boot, the only
+path on which `pcid` got the PCIe `interrupt-map` it needs to route legacy INTx; under ACPI
+`pcie.interrupt_map` was empty, `nvmed` never received its IRQ and the boot hung. Root cause in
+`drivers/pcid/src/main.rs` `enable_function()` and `cfg_access/mod.rs` `Mcfg::with`.
+
+**Shipped approach (simpler than planned):** no kernel or `acpid` change was needed. The kernel
+already brought up the GIC from the ACPI MADT and exposes `irq:phandle-0`; `acpid` already serves the
+AML namespace; `pcid` reads the static `\_SB.PCIx._PRT` plus each link device's `_CRS` from
+`acpi:/symbols` and routes INTx to the matching GIC SPI (upstream patches
+`upstream/base/0002…0003`).
+
+**Deliberately not done — the general case.** Real firmware may express `_PRT` through link
+devices (`\_SB.LNKx`, `_CRS`/`_SRS`) rather than static GSIs; resolving those is a deep AML
+subsystem touching kernel + `acpid` + `pcid`, with real regression risk to the working boot, and it
+is verifiable only through slow no-ACPI TCG boots. Real aarch64 hardware boots from device-tree, so
+the value is low. **Recommendation kept:** take it up as its own focused effort only if ACPI-boot
+support becomes a requirement, and upstream the `_PRT` work into `redox-os/acpid` and
+`redox-os/drivers` rather than carrying it downstream.
+
+---
+
+## 21. The fourteen feature proposals of 2026-07-13, and what became of each
+
+*Merged 2026-09-03 from `docs/archive/feature-proposals.md` (Polish, roadmap audit of 2026-07-13:
+fourteen features chosen for a secure, telemetry-free Crimson desktop, each built on something
+already in the tree — `raid1d`, RedoxFS AES-XTS, hybrid signatures, scheme namespaces). The
+proposals are carried as a table so that the ones that never got a register row stop being
+invisible. Old citations `feature-proposals.md #N` map to row N below. `docs/architecture/system-updates.md`
+§4 and `docs/archive/reality-ledger.md` cite this list.*
+
+| # | proposal (what it does) | why it fits E-OS | effort then | fate on 2026-09-03 |
+|---|---|---|---|---|
+| 1 | **`eos-devd`** — one device inventory (`/scheme/devices`) unifying `pcid` (`/scheme/pci`), USB ports from `xhcid` and platform/ACPI/DT enumeration from `hwd` | the read side of the Driver Manager and of the Security dashboard at once; `hwd` already recognises `PNP0C0A` (battery) and `PNP0C50` (I2C-HID) by name | M | **`R-801`** — open; §18.4 puts it after disk and network on metal |
+| 2 | **Native `E-OS Settings`** (orbital/orbclient, no libcosmic) — panel host for Update, Drivers, Display, Network, Audio, Users, Date & Time, Security | the flagship Update and Driver panes had nowhere to live; libcosmic's fontconfig→host-toolchain chain did not build on aarch64 | L | **✅ `R-D01`** (`U-071`) as **`eos-control`**, Slint on Orbital via `eos-ui`; Network pane `R-902` ✅; Update pane `R-708` and Drivers pane `R-806` open |
+| 3 | **Security dashboard** (Settings → Security): FDE active, W⊕X/ASLR/overflow-checks (`R-306`), RAID-1 state, signed-repo status | a verified security foundation the user never sees; the dashboard turns an audit into a screen | M | **partly ✅** — `eos-control`'s Security tab carries `eos-guard`'s blake3 baseline and permission audit (§7.5); FDE/RAID/repo status lines not yet shown — no row; **`PR-004`** below |
+| 4 | **Signed-driver trust verifier** — every driver shows source = signed E-OS repo only, blake3+ed25519 (+ML-DSA advisory) verification, update state; plus hardening of the catalogue parser, whose `i64::from_str_radix(...).unwrap()` in `match_function` **panicked `pcid-spawner`** on a hostile entry | erases the Windows-era "hunt for a driver / fake installer" attack class | M | parser hardening **✅ `R-803`** (`U-137`, `eos-base` `66e3070b`); the UI half is **`R-806`**, open |
+| 5 | **Application capability/permission manager** — list which schemes (`/scheme/*` = capabilities) an app may open, revoke them | schemes-as-capabilities is the microkernel's native advantage; a telemetry-free desktop should show it | L | **`R-1010` / `M-1`** — open; the kernel side (`Namespace::fork()`) exists, the per-launch policy does not (§17.3.2) |
+| 6 | **Enforce credentials in the wizard** — OOBE forces the password change, retires default `root/password`, generates `machine-id` and SSH host keys | every built image booted as `user` (no password) + `root/password` | S–M | **✅ `R-602`** (`U-076`–`U-079`) for the password on every login path; `machine-id` and host keys are **`R-606`**, open; the *quality* of the password is the new `R-602a`…`g` (§6.6) |
+| 7 | **Snapshot + rollback** before every `pkg update`/apply; `eos-update rollback` | `transaction.commit()` mutates the live FS by a rename loop **without a durable journal** — a power loss leaves a half-applied state | L → XL (A/B slots) | **`R-706`**, `L-1`, `EC-4`, M6 in §3.4 — open |
+| 8 | **Recovery / rescue mode** — a second bootloader entry with `pkg`, an FDE verifier, `raid1d` assemble/rebuild and apply-on-reboot for a failed update | kernel/base/relibc updates replace the live system in place; a bad kernel can brick a real installation | L | **`R-614`/`R-614a`** (the *medium* as the rescue system; a separate rescue medium was refused) and **`R-707`** (kernel fallback) — open |
+| 9 | **`eos health` / "doctor"** — one command and a Settings tile: FDE sanity, `raid1d` consistency (**per-block scrub** — `raid1d` has no per-block checksums), stale `pcid.d` entries (`ac97d.toml`/`vboxd.toml` pointing at absent binaries) | local diagnostics without telemetry | M | **no register row** — listed as a named gap in §3.0 (2026-09-03); the stale-entry half is `R-803`'s warning, the scrub half is inside `R-912` |
+| 10 | **Offline driver bundle on the install medium** — a signed `pkgar` catalogue plus drivers generated from `/usr/lib/pcid.d/*.toml` and `xhcid/drivers.toml` | the installer already pins the key (`installer_key`, `pubkey: Some`), so the bundle verifies natively; bypasses dead CI | M | **`R-804`** (split drivers out of `base.pkgar`) is the precondition, open; the bundle itself has **no row** — §3.0 named gap |
+| 11 | **Signed hardware→driver catalogue** — a versioned `device-ID → package+version+arch` map as its own `pkgar`, signed with the `R-503` hybrid key, fetched/verified/cached | the missing source of truth for the Driver Manager; must reconcile **three** catalogues (`initfs.toml`, `usr/lib/pcid.d/*`, `xhcid/drivers.toml`) | M (+L for `drv-*` split) | **`R-802`** + **`R-804`** — open |
+| 12 | **Reproducible-build verifier for the user** — recompute the image's sums locally and compare with the signed manifest, without trusting the server | `release/SHA256SUMS` pointed at a non-existent `eos-0.1.0-<arch>.img` | S | **✅ `R-002`** (`U-069`, real checksums from a local `make release`); byte reproducibility itself is **`R-303`/`V2-MS07`**, unproven |
+| 13 | **Local crash reporter** — catches panics/data aborts (e.g. the `netsurf` ET_EXEC abort, ESR `0x92000047`), stores them locally with context, shows them in Settings | a telemetry-free desktop cannot "phone home" but still needs diagnostics | M | **no register row** — §3.0 named gap (2026-09-03); needs a panic hook in relibc/kernel |
+| 14 | **Functional system tray + host-firewall UI** — turn three **decorative** PNGs (net/vol/settings, no handlers) into live controls; and put a UI on a firewall, since the netstack exposed a raw `raw` scheme with no filtering | icons that look clickable and do nothing break the daily-driver impression | M (tray) + L (firewall) | tray **✅ `R-D02`** (`U-101`); volume **`R-D07`**; firewall **`R-904`**, `M-3` — open; raw `ip:` became root-only (`U-144`) |
+
+**Implementation order proposed then (hard dependencies), kept because it still holds:**
+
+1. **#1 `eos-devd`** and **#2 the Settings shell** — the foundation; without them Driver/Update/
+   Security/Permissions have nowhere to live. *#2 is done; #1 is not.*
+2. **#6 credentials** and **#4 parser hardening** — live critical holes, cheap, in parallel. *Both done.*
+3. **#11 catalogue + `drv-*` split → #10 offline bundle → #4 trust UI** (Driver Manager complete).
+4. **#7 snapshot/rollback + #8 recovery** — harden the update system for real disks.
+5. **#3 dashboard, #9 doctor, #13 crash reporter, #14 tray/firewall** — the layer that makes the
+   whole thing visible, auditable Crimson value.
+
+**QEMU realism then:** 12 of 14 fully doable on aarch64/TCG; revoking capabilities (#5) and the real
+driver bind (#4) need kernel work or hardware respectively. Unchanged.
 
 ---
 
@@ -2105,14 +2915,16 @@ register at the next review rather than maintained by hand.
 
 ---
 
-### A.5 Product registers added 2026-09-02
+### A.5 Registers added 2026-09-02 and 2026-09-03
 
 | family | identifiers | section |
 |---|---|---|
 | `CS-*` everything on E-OS: server edition and cloud | `CS-001` … `CS-010` (tier 1) · `CS-101` `CS-102` `CS-103` (tier 2) · `CS-201` … `CS-205` (tier 3) | §11.4 |
 | `WS-*` project website | `WS-001` … `WS-012` | §11.5 |
 | `API-*` documented system API | `API-001` … `API-006` | §11.6 |
-| `PR-*` products in the image | `PR-001` `PR-002` `PR-003` | §7.5 |
+| `PR-*` products: in the image, on Windows/Linux, the new ones | `PR-001` … `PR-014` (incl. `PR-004b`) | §7.5 |
+| `TQ-*` test and security-coverage automation | `TQ-001` … `TQ-010`; proxies `SC-0` … `SC-5` are measures, not items | §11.3 |
+| `RH-*` repository hygiene | `RH-001` … `RH-009` | §11.7 |
 
 ## Annex B — identifier collisions and decisions D1–D7
 
@@ -2296,15 +3108,17 @@ Nothing is lost; everything here says where it went and why.
 
 ### C.2 Retired documents
 
-Listed for approval before any removal — **nothing has been deleted.**
+Listed for approval before any removal. **Removed on 2026-09-03 at the owner's request** ("one detailed file as plan and roadmap, not several"): `ROADMAP-v2.md` and the six archived plans merged into §17–§21. The rest of the table still waits.
 
 | document | measured size | proposal | reason |
 |---|---|---|---|
-| `ROADMAP-v2.md` | **122,262 bytes**, now a **26-line redirect stub** | **merged into this file 2026-08-31; stub kept in the tree, deletion still needs the owner** | Its content is carried here in English: the shim-review audit (§5.1), the driver inventory (§8.1), the three-host split (§4), `eos-guard` and `eos-notes` (§7.3, §7.4), the standards analysis (§12), the anti-promises (§14) and the whole §12 installer programme (§3.4, §6). **The predecessor's own row for this file was wrong twice** — it recorded the size as 57 kB and proposed archiving the file whose §12 the project was actively working from. Both errors are corrected here rather than repeated. **The full text was not deleted** — it is in git at `87e8194b1`, and every reference to it in the tree now points here, except the dated records in `docs/audit/` and the `U-203`/`U-204`/`U-211`/`U-227` entries in `CHANGELOG.md`, which describe commits that really did act on that file — `U-227` being this merge itself. Verified 2026-08-31: `grep -rl ROADMAP-v2` over tracked Markdown returns exactly `CHANGELOG.md`, `ROADMAP.md`, `ROADMAP-v2.md` and four files in `docs/audit/` |
+| `ROADMAP-v2.md` | **122,262 bytes**, now a **26-line redirect stub** | **merged into this file 2026-08-31; stub removed 2026-09-03** (`git show 87e8194b1:ROADMAP-v2.md` for the last full text) | Its content is carried here in English: the shim-review audit (§5.1), the driver inventory (§8.1), the three-host split (§4), `eos-guard` and `eos-notes` (§7.3, §7.4), the standards analysis (§12), the anti-promises (§14) and the whole §12 installer programme (§3.4, §6). **The predecessor's own row for this file was wrong twice** — it recorded the size as 57 kB and proposed archiving the file whose §12 the project was actively working from. Both errors are corrected here rather than repeated. **The full text was not deleted** — it is in git at `87e8194b1`, and every reference to it in the tree now points here, except the dated records in `docs/audit/` and the `U-203`/`U-204`/`U-211`/`U-227` entries in `CHANGELOG.md`, which describe commits that really did act on that file — `U-227` being this merge itself. Verified 2026-08-31: `grep -rl ROADMAP-v2` over tracked Markdown returns exactly `CHANGELOG.md`, `ROADMAP.md`, `ROADMAP-v2.md` and four files in `docs/audit/` |
 | `docs/architecture/overview.md` | 3.9 kB | **merge into `ARCHITECTURE.md`** | Two architecture documents with overlapping scope, mutually cross-linked, with no statement of which is the entry point. Audit `00 §6.4` |
 | `EOS_BUILD_STATE.md` | 3.3 kB | **archive** | A checkpoint record from 2026-06-06, superseded by the audit reports |
-| `docs/archive/plan.md`, `docs/archive/hardware-plan.md` | — | **review, do not archive yet** | `plan.md` is still cited by §16 as the argument behind the item list, and `hardware-plan.md` §0.5 holds the symptom form M1 task 11 depends on |
-| `docs/archive/roadmap-connectivity.md` | — | **review** | Predates this document's networking items; `R-920` still cites its B0–B5 ordering |
+| `docs/archive/plan.md`, `docs/archive/hardware-plan.md` | 11 924 B, 8 476 B | **merged in full → §17, §18; removed 2026-09-03** | §16 now cites §17; the symptom form is §18.0.5; every `plan.md §N` citation in `config/`, `docs/architecture/`, the profiles and `ADR-0011` was rewritten to `ROADMAP.md §17.N` |
+| `docs/archive/roadmap-connectivity.md` | 9 156 B | **merged in full → §19; removed 2026-09-03** | `R-920`'s B0–B5 ordering is §19.3 |
+| `docs/archive/hardware-capabilities-roadmap.md`, `docs/archive/acpi-off-removal-plan.md` | 4 288 B, 4 839 B | **merged (scope and non-goals) → §20; removed 2026-09-03** | all four items delivered; `HARDWARE.md` repointed |
+| `docs/archive/feature-proposals.md` | 12 570 B | **merged as a fate table → §21; removed 2026-09-03** | `system-updates.md` §4 repointed |
 | `docs/archive/reality-ledger.md` | — | **review** | Superseded in function by `docs/audit/`, but `R-001` and `R-003` both cite it as the record of the CI recovery |
 
 > **Naming history, so the loop is legible.** `ROADMAP.md` v1 was archived into `ROADMAP-v2.md` on
@@ -2317,7 +3131,7 @@ Listed for approval before any removal — **nothing has been deleted.**
 ---
 
 *Every claim in this document was either read out of the tree at `main` = `821b30fd6` on
-2026-08-31, cited to a commit or a `U-NNN` changelog entry, or marked `[UNVERIFIED]` with the
+2026-08-31 (§17–§21 and the 2026-09-03 registers: at `f9e431b11`), cited to a commit or a `U-NNN` changelog entry, or marked `[UNVERIFIED]` with the
 command that would settle it. Where the two predecessor documents disagreed, the disagreement is
 written down with its evidence rather than resolved silently — §5.3 (`R-702`), §10 (`R-F05`,
 `R-F12`, `R-F27`), §7.2 (`R-D01`), §11.2 (`R-1002`, `R-1003`), §5.2 (`V2-MS12`).*

@@ -36,6 +36,36 @@ integrity:
     - bash scripts/ci-integrity.sh
 
 # Validate that every recipe pin still matches its fork tip (repos.toml is truth).
+# local-gates -- TQ-011 (ROADMAP §11.3), added 2026-09-03.
+# Measured that day: every light-tier job above fails in 0 s on ci_quota_exceeded whenever the
+# shared minutes are out (all 10 in the newest main pipeline), and the GitHub mirror's workflows
+# have not run on a push since 2026-06-15 (security.yml: 0 runs ever). The self-hosted eos-heavy
+# Mac is the one runner that executes, and it has every tool verify.sh names. So the 16 stages
+# run there on every merge request and on main, and the merge rule becomes "local-gates is
+# green", not "everything failed on quota and none judged the code" (CLAUDE.md §9).
+# `needs: []` so it starts immediately; the summary goes up as an artifact (verify.sh prints
+# a per-stage table at the end). Not `--fast`: a --fast green is not a full green.
+local-gates:
+  stage: verify
+  tags: [eos-heavy]
+  needs: []
+  timeout: 45m
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:$PATH"
+    # No `| tee`: a pipe would return tee's status (CLAUDE.md P-3). Capture, print, then exit
+    # with verify.sh's own status; the artefact check below is the second, independent judge.
+    - 'bash scripts/verify.sh > verify.log 2>&1; rc=$?; cat verify.log; [ "$rc" -eq 0 ]'
+    - grep -qE '· 0 FAIL · 0 SKIPPED' verify.log
+  artifacts:
+    when: always
+    paths: [verify.log]
+    expire_in: 2 weeks
+
 pin-check:
   stage: verify
   image: alpine:3

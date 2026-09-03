@@ -2,7 +2,7 @@
 # Schemat i uzasadnienie: docs/architecture/installer-profiles.md
 #
 # Wpis „NIEREALNE DZIŚ” istnieje po to, żeby kreator miał CO ODPOWIEDZIEĆ, gdy ktoś
-# tego szuka — zamiast milczeć i pozwolić użytkownikowi zgadywać. docs/archive/plan.md §3.2:
+# tego szuka — zamiast milczeć i pozwolić użytkownikowi zgadywać. ROADMAP.md §17.3.2:
 # „Do NOT promise this. […] bez wszystkich trzech to jest gwarancja, której system nie
 # może dotrzymać, a porażka jest cicha — gorsza niż nieoferowanie.”
 schema = 1
