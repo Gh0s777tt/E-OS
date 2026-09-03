@@ -1,0 +1,22 @@
+# Security-coverage floors, read by scripts/eos-security-coverage.py.
+#
+# Five proxies, because a line-coverage percentage says which lines RAN, never whether the
+# dangerous ones were CHECKED. Each floor is the measurement that existed when it was written.
+#
+#   SC-1  unsafe blocks carrying a `// SAFETY:` note ÷ all unsafe in E-OS-owned Rust
+#   SC-2  parser files with a fuzz target ÷ all parser files            [needs cargo-fuzz]
+#   SC-3  own crates inside cargo-deny AND osv-scanner ÷ all own crates
+#   SC-4  declared inputs with a hostile-value test ÷ all declared inputs
+#   SC-5  killed mutants ÷ mutants in trust code                        [needs cargo-mutants]
+#
+# A proxy whose tool is absent is SKIPPED and the script exits 2 — never a silent 0 %, never a
+# silent 100 %. Exit 1 = a floor was crossed, fix the tree. Exit 2 = it could not run, fix the
+# toolbox. Same split as `FAIL (instrument):` in ci-integrity.sh (U-177).
+[floor]
+# E-OS-owned Rust has zero unsafe today, so 100 % is free — and that is the point: the first
+# unsafe block without a SAFETY note breaks the gate the moment it is written.
+SC-1 = 100.0
+# A crate outside the scanners is a crate nobody watches.
+SC-3 = 100.0
+# No tests/inputs.toml exists yet; the floor rises with the first one (TQ-007).
+SC-4 = 0.0

@@ -1,0 +1,11 @@
+# Line-coverage floors, read by scripts/eos-coverage-report.sh.
+#
+# Kept OUT of the script on purpose (CLAUDE.md §5.10 rule 1): raising a floor is then an ordinary
+# commit, and lowering one is visible in a diff instead of buried in a shell variable. A floor says
+# "does not fall below this", never "this is a good number" — 38 % is not a target, it is the
+# measurement that existed when the gate was written, minus nothing.
+#
+# The vendored redox_cookbook has no floor and never will: gating coverage on a tree we do not
+# maintain is re-litigating someone else's code (§11, type B).
+[floor]
+"tools/eos-repo-sign" = 38
