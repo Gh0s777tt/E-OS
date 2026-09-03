@@ -24,7 +24,22 @@ import sys
 import time
 
 ESC = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
-PASSWORD = "eos"
+# CHOSEN BY THE POLICY, NOT BY ME. `eos` was three characters, and the credential policy wired
+# into `passwd` (R-602a/b) has a twelve-character floor, so the old value turns this harness --
+# and with it R-601c -- red. The replacement was not guessed: it was run through the shipped
+# policy with `credpolicy-hostcheck`'s `judge` example, which reported
+#
+#     eos                           score=0 len=3  -> REJECT  (too short, and blocklisted)
+#     eos-smoke-harness             score=4 len=17 -> ACCEPT
+#     correct horse battery staple  score=0 len=28 -> REJECT  (blocklisted)
+#
+# The third line is why a length floor alone would not have been enough, and why this comment
+# names the tool: the next person to change this value should ask the same question.
+# Overridable so the NEGATIVE control is reproducible without editing this file:
+#     EOS_SMOKE_PASSWORD=eos bash scripts/ci-install-smoke.sh <image> ... 
+# must FAIL with "passwd refused the harness password". A floor that has only ever been
+# seen accepting something is not a floor (CLAUDE.md §5.4).
+PASSWORD = os.environ.get("EOS_SMOKE_PASSWORD", "eos-smoke-harness")
 DISK_PASSWORD = "eosdisk"        # only used when EOS_SMOKE_FDE=1
 FDE = os.environ.get("EOS_SMOKE_FDE") == "1"
 
@@ -318,10 +333,30 @@ def _login_once(con):
         seen = con.expect_either(
             {"a shell prompt": r"root:.*#|:~#|\$",
              "a password mismatch": r"does not match",
+             # THE CREDENTIAL POLICY REFUSES HERE, NOT AT THE CONFIRMATION PROMPT, and the first
+             # version of this arm was in the wrong place for exactly that reason. `passwd`
+             # asks twice, compares, and only THEN judges -- so a refused password shows the
+             # confirmation prompt like any other and goes quiet afterwards. Measured
+             # 2026-09-03 with EOS_SMOKE_PASSWORD=eos: "saw the password confirmation",
+             # then "timed out waiting for the result of the password change", then the OOBE
+             # asked again because `login` re-runs `passwd` while the password is still blank.
+             # That retry is the proof the policy refused; this arm is what turns it from a
+             # timeout into a sentence.
+             "a policy refusal": r"passwd: ",
              "a rejected login": r"Login incorrect"},
             "the result of the password change", window=w(180))
         if seen == "a shell prompt":
             return True
+        if seen == "a policy refusal":
+            print("install-smoke: FAIL — passwd refused this password (credential policy).",
+                  file=sys.stderr)
+            print("install-smoke:        The harness password is chosen BY the policy, not by",
+                  file=sys.stderr)
+            print("install-smoke:        hand: run the `judge` example in eos-userutils'",
+                  file=sys.stderr)
+            print("install-smoke:        credpolicy-hostcheck to pick one it accepts.",
+                  file=sys.stderr)
+            return False
         if seen == "a rejected login":
             return False
         # a mismatch: the OOBE prints its banner again, so go round.

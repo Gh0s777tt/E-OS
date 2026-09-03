@@ -185,7 +185,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/userutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/userutils"
 pinned_branch = "eos-july"
-pinned_rev    = "28c6923a798339a696af21641b4fce2455aa12a9"
+pinned_rev    = "e839cfa6d18b7aa1317c8d2a1e8fa4b38a1a2f9e"
 
 # ── gui ─────────────────────────────────────────────────────────
 [[repo]]
