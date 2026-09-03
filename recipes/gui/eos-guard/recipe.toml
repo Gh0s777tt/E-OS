@@ -4,7 +4,7 @@
 # Dev + CI: https://gitlab.com/e-os/eos-guard (recipes fetch the GitHub mirror).
 git = "https://gitlab.com/e-os/eos-guard.git"
 branch = "main"
-rev = "06263607526b0d47eb77147f149aa17f00d8e0e3"
+rev = "5e1d57479a956474a5fd6994f2913b81bf3ab913"
 
 [build]
 template = "custom"
