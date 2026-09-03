@@ -141,7 +141,11 @@ if [ -n "$WRITE" ]; then
     printf 'the mutation score (`TQ-006`) and the security proxies (`TQ-002`) answer the other half.\n\n'
     printf '| crate | lines | gated | floor | state |\n|---|---|---|---|---|\n'
     printf '%s' "$rows"
-    printf '\nCommit: `%s`\n' "$(git rev-parse --short HEAD 2>/dev/null || echo '?')"
+    # No commit hash in the file. It looks like useful provenance and is not: the page is
+    # rewritten by a verify.sh stage, so a hash here makes the file dirty after EVERY run --
+    # `git status` is never clean once the gate has been used, and the churn teaches people to
+    # commit a regenerated file without reading it. `git log docs/reference/coverage.md` gives the
+    # same provenance without touching the working tree.
   } > "$WRITE"
   printf '  wrote %s\n' "$WRITE"
 fi
