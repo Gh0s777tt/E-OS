@@ -73,7 +73,7 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (22 kontroli + sonda 0)
+bash scripts/ci-integrity.sh                    # bramka integralności (23 kontroli + sonda 0)
 python3 scripts/eos-check-roadmap.py            # kontrola 16: kotwice, numery, jeden status na ID, ✅ tylko z dowodem
 bash scripts/eos-check-assets.sh                # kontrola 17: duplikaty, > 5 MB, sieroty w assets/
 python3 scripts/eos-check-summary.py            # kontrola 18: docs/SUMMARY.md = drzewo docs/
@@ -81,8 +81,9 @@ python3 scripts/eos-check-roadmap-page.py       # kontrola 19: strona roadmapy =
 python3 scripts/eos-check-changelog-sections.py # kontrola 20: wpis nie stoi pod wydaniem, które już wyszło
 python3 scripts/eos-check-claude-refs.py        # kontrola 21: każdy §N w tym pliku istnieje; sekcje po kolei
 bash scripts/eos-check-shell-strict.sh          # kontrola 22: skrypty własne mają -u i pipefail (nie -e)
+python3 scripts/eos-check-dod-refs.py           # kontrola 23: kopie listy z §6 wskazują na §6
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
-shellcheck -f gcc $(git ls-files 'scripts/*.sh')
+bash scripts/verify.sh --fast                   # etap `shell-lint`: skrypty własne, nie jeden glob
 osv-scanner scan source --lockfile Cargo.lock
 hadolint podman/*containerfile
 gitleaks detect --config .gitleaks.toml --no-banner --redact
@@ -336,6 +337,13 @@ wyłączała się na całej linii z URL-em (§1.4 roadmapy). Każda z tych trzec
 
 ## 6. Definicja ukończenia
 
+**To jest jedyna pełna lista.** `CONTRIBUTING.md` podaje **polecenia** do uruchomienia, a szablon
+merge requesta — **kształt opisu**; żadne z nich nie jest krótszą wersją tej listy i oba na nią
+wskazują. Zmierzone 2026-09-03: były trzy listy (18 / 14 / 8 pozycji), a szablon twierdził, że
+**jest** definicją ukończenia i cytował „trzy bramki”, których ten dokument nie ma. Trzy kopie
+jednej reguły to trzy odpowiedzi na jedno pytanie (`RH-011`). Kontrola 23 pilnuje, żeby kopie
+wskazywały tutaj, zamiast rywalizować.
+
 Zmiana jest skończona, gdy **wszystkie** punkty są prawdziwe:
 
 - [ ] Build przechodzi — `bash scripts/eos-build.sh <arch>` kończy się `Done.`
@@ -521,7 +529,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (22 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (23 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
