@@ -13,6 +13,96 @@ Resolved items are kept below for the record.
 
 ---
 
+## 🟡 Slint 1.17.1 cannot build for Windows without an implicit feature (OPEN upstream, found 2026-09-03, `PR-008`)
+
+Building any E-OS Slint product for `x86_64-pc-windows-gnu` fails in a dependency, not in our code:
+
+```
+error[E0026]: variant `WinitWindowOrNone::HasWindow` does not have a field named `muda_adapter`
+   --> i-slint-backend-winit-1.17.1/winitwindowadapter.rs:916:13
+    |
+916 |             muda_adapter: maybe_muda_adapter,
+    |             ^^^^^^^^^^^^ help: `WinitWindowOrNone::HasWindow` has a field named `frame_throttle`
+```
+
+**Cause, read in the crate rather than guessed.** In `i-slint-backend-winit` 1.17.1 the field is
+declared under `#[cfg(muda)]` (`winitwindowadapter.rs:171`), and `build.rs:15` defines that cfg as
+`muda = all(feature = "muda", any(target_os = "windows", target_os = "macos"))`. But the pattern
+match at `winitwindowadapter.rs:913` is gated `#[cfg(target_os = "windows")]` **alone**. The two
+gates disagree, so on Windows with the feature off the code references a field that does not exist.
+
+**Why the feature is off by default and easy to miss.** `muda` is not listed in `[features]` at all
+— it is the *implicit* feature that cargo creates for the optional dependency declared at
+`Cargo.toml:239`. Reading `[features]` therefore suggests no such knob exists.
+
+**Consequence:** with `default-features = false` — which every E-OS product uses, because the Redox
+target must not pull a windowing backend — `i-slint-backend-winit` 1.17.1 **cannot compile for
+Windows at all**. macOS is unaffected: the mismatched match arm is behind `target_os = "windows"`.
+
+**Our workaround**, in each product's `Cargo.toml`:
+
+```toml
+[target.'cfg(target_os = "windows")'.dependencies]
+i-slint-backend-winit = { version = "1.17", default-features = false, features = ["renderer-software", "muda"], optional = true }
+```
+
+Measured after the change: `eos-sheets.exe`, 22 818 304 bytes,
+`PE32+ executable (console) x86-64, for MS Windows`, built in 1 m 23 s from macOS via
+`cargo zigbuild`.
+
+**Upstream status: not yet reported.** The one-line fix is to gate the match arm
+`#[cfg(all(target_os = "windows", muda))]`. Filing it is a public action on someone else's
+tracker and belongs to the owner (`CLAUDE.md` §18.7 in spirit: the account is theirs, not the
+tool's). This entry is written so the report can be sent without re-deriving anything.
+
+---
+
+## 🟡 Cross-compiling a Slint product to Linux needs `fontconfig-dlopen`, and an emulated container is not an alternative (RESOLVED for us 2026-09-03, `PR-008`)
+
+`cargo zigbuild --target x86_64-unknown-linux-gnu` fails before compiling any of our code:
+
+```
+thread 'main' panicked at yeslogic-fontconfig-sys-6.0.1/build.rs:8:48:
+called `Result::unwrap()` on an `Err` value: "pkg-config has not been configured to support
+cross-compilation. Install a sysroot for the target platform and configure it via
+PKG_CONFIG_SYSROOT_DIR and PKG_CONFIG_PATH, or install a cross-compiling wrapper for pkg-config"
+```
+
+The dependency arrives through `fontique` ← `i-slint-common` / `parley` ← `i-slint-core`, i.e. from
+Slint's font handling, not from anything we wrote.
+
+**The fix is a feature, not a sysroot.** Both `fontique` and `i-slint-common` carry
+`fontconfig-dlopen`, which makes `yeslogic-fontconfig-sys` open libfontconfig at **runtime** instead
+of linking it at build time. `slint` does not re-export it, so the way to reach it is a direct,
+target-scoped, optional dependency on the internal crate, pinned exactly:
+
+```toml
+[target.'cfg(target_os = "linux")'.dependencies]
+i-slint-common = { version = "=1.17.1", default-features = false, features = ["fontconfig-dlopen"], optional = true }
+```
+
+Cargo's feature unification then applies it to the whole graph. The cost is stated rather than
+hidden: this pins an *internal* Slint crate by exact version, so a Slint bump has to move both
+lines together.
+
+Measured after the change: 17 001 800 bytes,
+`ELF 64-bit LSB pie executable, x86-64, dynamically linked, for GNU/Linux, stripped`, 3 m 08 s.
+
+**The obvious alternative was measured and does not work.** Building Linux x86_64 inside an
+emulated amd64 container on this Apple-Silicon host dies before it reaches our code — rustc itself
+segfaults under qemu-user:
+
+```
+qemu: uncaught target signal 11 (Segmentation fault) - core dumped
+error: process didn't exit successfully: `.../bin/rustc -vV` (signal: 11, SIGSEGV)
+```
+
+An arm64 Linux container runs natively and would give an `aarch64` ELF, which is a different
+product, not a substitute. So the zig cross above is the only path that produces the binary most
+Linux users can run, and that is why the feature pin is worth its maintenance cost.
+
+---
+
 ## ✅ aarch64 stopped booting — LTO merged stack frames past the DXE stack (RESOLVED 2026-09-01, issue #15)
 
 A freshly built aarch64 image does not reach userspace under QEMU `virt`:
