@@ -1,0 +1,496 @@
+<title>E-OS Crimson · stan prac</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#faf7f5; --surface:#ffffff; --sunk:#f2ecea;
+  --ink:#1d1517; --ink-2:#4a3d41; --ink-3:#7a6a6f;
+  --line:#e3d9d7; --line-2:#cfc2bf;
+  --crimson:#9e1b32; --crimson-soft:#f5e4e7;
+  --good:#2f7d5e; --good-soft:#e3f0ea;
+  --warn:#a8741a; --warn-soft:#f7ecd9;
+  --stop:#b03a2e; --stop-soft:#f9e5e2;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --cond:"IBM Plex Sans Condensed","IBM Plex Sans",system-ui,sans-serif;
+  --r:3px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#17110f; --surface:#1f1917; --sunk:#130e0d;
+    --ink:#f2e9e6; --ink-2:#c3b3ae; --ink-3:#8d7c77;
+    --line:#332826; --line-2:#463836;
+    --crimson:#e05270; --crimson-soft:#33161d;
+    --good:#5fbf95; --good-soft:#12261f;
+    --warn:#d8a349; --warn-soft:#2a2013;
+    --stop:#e2705f; --stop-soft:#2e1815;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#17110f; --surface:#1f1917; --sunk:#130e0d;
+  --ink:#f2e9e6; --ink-2:#c3b3ae; --ink-3:#8d7c77;
+  --line:#332826; --line-2:#463836;
+  --crimson:#e05270; --crimson-soft:#33161d;
+  --good:#5fbf95; --good-soft:#12261f;
+  --warn:#d8a349; --warn-soft:#2a2013;
+  --stop:#e2705f; --stop-soft:#2e1815;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;
+     font-size:15px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 96px}
+h1,h2,h3{font-family:var(--cond);font-weight:700;text-wrap:balance;line-height:1.15;margin:0}
+a{color:var(--crimson)}
+code,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---- naglowek ---- */
+header{padding:56px 0 28px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+         color:var(--ink-3);margin-bottom:14px}
+h1{font-size:clamp(34px,6vw,54px);letter-spacing:-.015em}
+h1 .c{color:var(--crimson)}
+.lede{margin-top:14px;max-width:62ch;color:var(--ink-2);font-size:16.5px}
+
+/* ---- pasek liczb ---- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;
+       background:var(--line);border:1px solid var(--line);margin:28px 0 0}
+.stat{background:var(--surface);padding:16px 18px}
+.stat .n{font-family:var(--cond);font-size:30px;font-weight:700;line-height:1;
+         font-variant-numeric:tabular-nums}
+.stat .l{font-size:12.5px;color:var(--ink-3);margin-top:7px;line-height:1.35}
+.stat .n.ok{color:var(--good)} .stat .n.cr{color:var(--crimson)}
+
+nav.jump{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:1px solid var(--line);
+         padding:11px 0;margin-bottom:0;display:flex;gap:20px;flex-wrap:wrap;
+         font-family:var(--mono);font-size:12.5px}
+nav.jump a{text-decoration:none;color:var(--ink-2);border-bottom:1px solid transparent;padding-bottom:2px}
+nav.jump a:hover,nav.jump a:focus-visible{color:var(--crimson);border-bottom-color:var(--crimson)}
+
+section{padding-top:52px}
+h2{font-size:26px;display:flex;align-items:baseline;gap:12px}
+h2 .num{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--crimson);
+        letter-spacing:.1em}
+.sub{color:var(--ink-2);max-width:66ch;margin-top:10px}
+
+/* ---- kamienie ---- */
+.ms{margin-top:22px;border:1px solid var(--line)}
+.ms-row{display:grid;grid-template-columns:88px 1fr auto;gap:16px;align-items:center;
+        padding:12px 16px;border-bottom:1px solid var(--line)}
+.ms-row:last-child{border-bottom:0}
+.ms-row .id{font-family:var(--cond);font-weight:700;font-size:17px}
+.ms-row .what{color:var(--ink-2);font-size:14px}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+      padding:3px 9px;border-radius:var(--r);white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)}
+.pill.go{background:var(--warn-soft);color:var(--warn)}
+.pill.no{background:var(--sunk);color:var(--ink-3)}
+.bar{height:5px;background:var(--sunk);margin-top:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--good)}
+
+/* ---- pozycje do zrobienia ---- */
+.grp{margin-top:26px}
+.grp h3{font-size:15px;font-family:var(--sans);font-weight:600;letter-spacing:.01em;
+        display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.grp h3 .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+             padding:2px 8px;border-radius:var(--r)}
+.tag.blocked{background:var(--stop-soft);color:var(--stop)}
+.tag.defect{background:var(--warn-soft);color:var(--warn)}
+.tag.gap{background:var(--sunk);color:var(--ink-3)}
+.grp .why{color:var(--ink-3);font-size:13.5px;margin:0 0 12px}
+ul.items{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:1px;
+         background:var(--line);border:1px solid var(--line)}
+ul.items li{background:var(--surface);padding:13px 16px}
+ul.items .t{font-weight:600}
+ul.items .t .k{font-family:var(--mono);font-size:12.5px;color:var(--crimson);margin-right:8px}
+ul.items .d{color:var(--ink-2);font-size:14px;margin-top:4px}
+
+/* ---- odblokowania ---- */
+ul.unlock{list-style:none;padding:0;margin:22px 0 0;display:grid;
+          grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+ul.unlock li{border:1px solid var(--line);border-top:3px solid var(--crimson);
+             padding:15px 17px;background:var(--surface)}
+ul.unlock .t{font-family:var(--cond);font-weight:700;font-size:17px;margin-bottom:5px}
+ul.unlock .d{color:var(--ink-2);font-size:14px}
+
+/* ---- tabela dowodowa ---- */
+.tw{margin-top:22px;overflow-x:auto;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:720px;font-size:13.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+   color:var(--ink-3);background:var(--sunk);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+td.g{font-family:var(--mono);font-size:12.5px;white-space:nowrap;color:var(--ink)}
+td.m{color:var(--ink-2)}
+td.m b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.note{margin-top:18px;padding:15px 17px;background:var(--sunk);border-left:3px solid var(--ink-3);
+      color:var(--ink-2);font-size:14px}
+.note b{color:var(--ink)}
+.tier{margin-top:22px;border:1px solid var(--line)}
+.tier h3{font-family:var(--cond);font-size:16px;padding:11px 16px;border-bottom:1px solid var(--line);background:var(--sunk);display:flex;gap:10px;align-items:center}
+.tier h3 .pill{margin-left:auto}
+.tier ul{list-style:none;margin:0;padding:0}
+.tier li{padding:10px 16px;border-bottom:1px solid var(--line);font-size:14px;color:var(--ink-2);display:grid;grid-template-columns:76px 1fr;gap:12px}
+.tier li:last-child{border-bottom:0}
+.tier li .k{font-family:var(--mono);font-size:12px;color:var(--crimson)}
+.tier li b{color:var(--ink)}
+ol.q{margin:18px 0 0;padding-left:0;list-style:none;counter-reset:q;display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
+ol.q li{background:var(--surface);padding:12px 16px 12px 52px;position:relative;font-size:14px;color:var(--ink-2)}
+ol.q li::before{counter-increment:q;content:counter(q);position:absolute;left:16px;top:11px;font-family:var(--cond);font-weight:700;font-size:17px;color:var(--crimson)}
+ol.q li b{color:var(--ink)}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
+       color:var(--ink-3);font-size:12.5px;font-family:var(--mono);
+       display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between}
+:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Stan na 2026-09-03 · jedna roadmapa · porządek w repozytorium · trzy nowe bramki · 15/15 decyzji wykonanych · 7 repozytoriów · Guard w obrazie</div>
+  <h1>E-OS <span class="c">Crimson</span> — co zrobione, co zostało</h1>
+  <p class="lede">Dystrybucja Redox OS z realnym łańcuchem zaufania. Ta strona odpowiada na trzy
+  pytania: gdzie projekt jest, co zostało — <b>od najszybszych rzeczy do najcięższych</b> — i co każda
+  z nich daje. Każda liczba niżej pochodzi z pomiaru, nie z planu.</p>
+  <div class="stats">
+    <div class="stat"><div class="n ok">1</div><div class="l">plik planu<br>(było 8: roadmapa, stub v2, 6 archiwalnych)</div></div>
+    <div class="stat"><div class="n ok">7</div><div class="l">repozytoriów utworzonych<br>i zapełnionych</div></div>
+    <div class="stat"><div class="n cr">26</div><div class="l">plików usuniętych z repo<br>(kopie lokalnie, 0 sierot)</div></div>
+    <div class="stat"><div class="n cr">14</div><div class="l">stron docs nigdy<br>nieopublikowanych — dodane</div></div>
+    <div class="stat"><div class="n ok">3/3</div><div class="l">produkty Slint kompilują się<br>poza Redoksem (zmierzone)</div></div>
+    <div class="stat"><div class="n ok">15/15</div><div class="l">decyzji właściciela<br>odpowiedzianych 3 września</div></div>
+  </div>
+</header>
+
+<nav class="jump">
+  <a href="#kamienie">Kamienie milowe</a>
+  <a href="#zostalo">Co zostało, po kolei</a>
+  <a href="#odblokowuje">Co to odblokowuje</a>
+  <a href="#dowody">Warstwa dowodowa</a>
+  <a href="#nowy">Nowy zakres</a>
+  <a href="#pytania">Decyzje właściciela</a>
+</nav>
+
+<section id="kamienie">
+  <h2><span class="num">01</span> Kamienie milowe</h2>
+  <p class="sub">M1 to najmniejszy pionowy plaster: nazwany, podpisany nośnik → rozruch na
+  prawdziwym pececie → instalacja na dysk wewnętrzny → restart <b>bez nośnika</b> → <code>eos login:</code>.
+  Reszta czeka na niego kolejno.</p>
+  <div class="ms">
+    <div class="ms-row"><div class="id">M1</div>
+      <div><div>Pendrive, który instaluje na realny dysk</div>
+        <div class="what">Otwarte tylko <code>R-607b</code> — pierwszy przebieg na metalu</div>
+        <div class="bar"><i style="width:91%"></i></div></div>
+      <div class="pill go" data-roadmap="M1">🟡 10 z 11</div></div>
+    <div class="ms-row"><div class="id">M2</div>
+      <div><div>Przerwana instalacja nie zostawia cegły</div>
+        <div class="what">Transakcja pięciofazowa z dziennikiem na ESP, wznawialność, tryb ratunkowy</div></div>
+      <div class="pill no" data-roadmap="M2">🔴 czeka na M1</div></div>
+    <div class="ms-row"><div class="id">M3</div>
+      <div><div>Kreator: jedna prawda dla GUI i TUI</div>
+        <div class="what">Maszyna stanów S0–S10, wybór dysku w bibliotece, parytet GUI↔TUI</div></div>
+      <div class="pill no" data-roadmap="M3">🔴 czeka na M2</div></div>
+    <div class="ms-row"><div class="id">M4</div>
+      <div><div>Profile i tryb bezobsługowy</div>
+        <div class="what">Model profili w TOML z dziedziczeniem, walidator, plik odpowiedzi</div></div>
+      <div class="pill no" data-roadmap="M4">🔴 czeka na M3</div></div>
+    <div class="ms-row"><div class="id">M5</div>
+      <div><div>Aktualizacje: koniec gubienia danych</div>
+        <div class="what">Atomowy zapis stanu, <code>package_serial</code>, brak pinu klucza ⇒ odmowa</div></div>
+      <div class="pill no" data-roadmap="M5">🔴 czeka na M4</div></div>
+    <div class="ms-row"><div class="id">M6</div>
+      <div><div>Demon i transakcja z dziennikiem</div>
+        <div class="what"><code>eos-updated</code>, dziennik intencji, <code>eos-update rollback</code></div></div>
+      <div class="pill no" data-roadmap="M6">🔴 czeka na M5</div></div>
+    <div class="ms-row"><div class="id">M7</div>
+      <div><div>Baza i jądro przy restarcie</div>
+        <div class="what">Licznik prób rozruchu, automatyczny powrót do <code>kernel.prev</code></div></div>
+      <div class="pill no" data-roadmap="M7">🔴 czeka na M6</div></div>
+    <div class="ms-row"><div class="id">M8</div>
+      <div><div>Rotacja kluczy, delty, sloty A/B</div>
+        <div class="what">Keyring z <code>not_before</code>/<code>revoked</code>, drugi root w bootloaderze</div></div>
+      <div class="pill no" data-roadmap="M8">💡 kierunek</div></div>
+  </div>
+</section>
+
+<section id="zostalo">
+  <h2><span class="num">02</span> Co zostało — od najszybszych do najcięższych</h2>
+  <p class="sub">Kolejność = koszt, rosnąco. W paśmie pierwsze idzie to, co odblokowuje więcej. Każdy
+  wiersz mówi, co zmiana <b>dodaje lub zmienia</b> i co odblokowuje. Tu skrót; pełna lista
+  (ponad 60 wierszy w pięciu pasmach) jest w roadmapie §3.0.</p>
+
+  <div class="grp">
+    <h3>A · minuty do jednego dnia <span class="tag gap">17 pozycji</span></h3>
+    <ul class="items">
+      <li><div class="t"><span class="k">PR-006</span>Produkty przypinają <code>eos-ui</code> z GitLaba, nie z lustra GitHub</div>
+        <div class="d">Zmierzone: <code>eos-notes</code> i <code>eos-control</code> biorą bibliotekę z <code>github.com/Gh0s777tt</code>. Daje: ADR-0001 obowiązuje także w produktach; jedna linia w <code>ci-integrity</code> pilnuje tego dalej.</div></li>
+      <li><div class="t"><span class="k">PR-007</span>Backend okienkowy hosta w <code>eos-ui</code></div>
+        <div class="d">Jedna cecha Cargo za <code>cfg(not(redox))</code> — Notatki i panel otwierają okno na Linuksie i macOS. Odblokowuje pierwsze pobranie produktu, które nie jest E-OS.</div></li>
+      <li><div class="t"><span class="k">RH-006</span>Haki gita naprawdę zainstalowane na hoście</div>
+        <div class="d">Zmierzone: <code>.git/hooks</code> ma tylko pliki <code>*.sample</code>. Skan sekretów „zamknięty na czerwono" nie chodził na tej maszynie. Daje: bramka przed commitem, nie po pushu.</div></li>
+      <li><div class="t"><span class="k">TQ-004 · TQ-008</span>Narzędzia i linty bezpieczeństwa jako błędy</div>
+        <div class="d"><code>cargo-audit</code>, <code>cargo-geiger</code>; <code>unsafe_op_in_unsafe_fn</code>, <code>undocumented_unsafe_blocks</code>, <code>missing_docs</code>. Daje: SC-1 egzekwowane przy kompilacji.</div></li>
+      <li><div class="t"><span class="k">R-602g</span>Naprawa #27 — po decyzji Q2</div>
+        <div class="d">Fork <code>redox_users</code> z <code>[patch.crates-io]</code> albo MR do upstreamu; haszowanie w działającym systemie wraca do argon2id z kosztem instalatora.</div></li>
+      <li><div class="t"><span class="k">S-12 · S-14 · S-18 · S-20</span>Cztery wiersze krótkoterminowe z 2026-08-31</div>
+        <div class="d">Podbicie <code>eos-pkgutils</code> (sześć adwizorii w <code>/usr/bin/pkg</code>), <code>osv-scanner</code> w GitLabie i lefthooku, jedno źródło wersji, SBOM per tag.</div></li>
+    </ul>
+  </div>
+
+  <div class="grp">
+    <h3>B · dni <span class="tag gap">18 pozycji</span></h3>
+    <ul class="items">
+      <li><div class="t"><span class="k">TQ-001 · TQ-002</span>Strona pokrycia i strona pokrycia bezpieczeństwa — generowane</div>
+        <div class="d">Jedna tabela dla każdego własnego crate'a z podłogą, która potrafi paść; pięć proxy SC-1…SC-5 (unsafe bez <code>SAFETY:</code>, parsery bez fuzzera, crate'y poza skanem, wejścia bez testu negatywnego, mutanty w kodzie zaufania). Daje: „pokrycie bezpieczeństwa" jako liczba.</div></li>
+      <li><div class="t"><span class="k">TQ-003 · PR-009</span>Pierwsze testy w produktach</div>
+        <div class="d">Zmierzone: <code>eos-ui</code> 0, <code>eos-notes</code> 0, <code>eos-control</code> 0 testów na 6 386 linii. Podłoga ustawiona na pierwszym pomiarze, żeby łapać regresję od pierwszego dnia.</div></li>
+      <li><div class="t"><span class="k">R-602a…f</span>Hasła i PIN — po decyzjach Q1, Q3–Q5</div>
+        <div class="d">Wskaźnik siły liczony z prawdziwego kosztu hasza, blocklista, podpowiedź, PIN jako osobny slot z licznikiem prób, szyfrowany pod kluczem FDE. Daje: prośba właściciela bez osłabiania szyfrowania dysku.</div></li>
+      <li><div class="t"><span class="k">PR-005 · PR-008</span>Włącz/wyłącz przy instalacji · paczki na Linux/Windows/macOS</div>
+        <div class="d">Ekran wyboru pakietów w kreatorze (instalator ma już model pakietów, brak ekranu); podpisane archiwa per system za tym samym przełącznikiem „tylko deweloperzy". Daje: pierwsze pobrania na Windows i Linux.</div></li>
+      <li><div class="t"><span class="k">API-001 · API-002</span>Odziedziczona powierzchnia API spisana z drzewa jądra</div>
+        <div class="d">Schematy, syscalle, format <code>.sig</code> z <code>main.rs:193-202</code>. Daje: „pełne API systemu" zaczyna się od tego, co istnieje.</div></li>
+      <li><div class="t"><span class="k">R-D06 · R-F30</span>NetSurf z źródła jako PIE, z bramką na artefakcie</div>
+        <div class="d">Zamyka #28 — przeglądarka przestaje być upstreamowym prebuiltem.</div></li>
+    </ul>
+  </div>
+
+  <div class="grp">
+    <h3>C · tygodnie <span class="tag gap">16 pozycji</span></h3>
+    <ul class="items">
+      <li><div class="t"><span class="k">PR-004</span>E-OS Guard jako jeden crate i jeden produkt</div>
+        <div class="d">Silnik blake3 istnieje dziś dwa razy (binarka guarda, zakładka Security w panelu). Jedna biblioteka, aplikacja w obrazie, linie stanu FDE/RAID/repozytorium. To jest odpowiedź na „antywirus = guard?": <b>tak, jako Guard; nie, jako antywirus</b>.</div></li>
+      <li><div class="t"><span class="k">PR-013</span>Sklep z aplikacjami na istniejącym kanale zaufania</div>
+        <div class="d">Metadane w podpisanym indeksie, generator w cookbooku, panel przeglądaj/instaluj/usuń. Bez kont i płatności w v1. Na Windows/Linux „sklepem" jest strona pobierania.</div></li>
+      <li><div class="t"><span class="k">WS-001…007</span>Statyczna połowa strony — hostowana lokalnie, jak powiedział właściciel</div>
+        <div class="d">Osobne repozytorium, i18n od pierwszego commita, strony produktów z generatora <code>PR-001</code>, changelog, prawo, przełącznik pobierania, szukanie, dostępność.</div></li>
+      <li><div class="t"><span class="k">CS-009 → CS-001</span>Bramka „przepis z wip/ się buduje" → edycja serwerowa</div>
+        <div class="d">Instalacja bezobsługowa z kluczem, bez greetera, headless smoke. Daje: tier 1 chmury i serwer dla dysku chmurowego.</div></li>
+      <li><div class="t"><span class="k">PR-010 · PR-011</span>Arkusz (<code>eos-sheets</code>) i prezentacje (<code>eos-slides</code>)</div>
+        <div class="d">Nowe repozytoria na <code>eos-ui</code>: siatka + ~40 funkcji + CSV; pola tekst/obraz/kształt, widok prezentera, eksport PDF (<code>printpdf</code>, MIT; import <code>.xlsx</code> przez <code>calamine</code>, MIT — licencje sprawdzone).</div></li>
+      <li><div class="t"><span class="k">R-706 · R-707 · R-801…806</span>Aktualizacje z wycofaniem · Driver Manager</div>
+        <div class="d">Transakcja etapowa z rollbackiem, jądro przy restarcie z powrotem; <code>eos-devd</code>, podpisany katalog sterowników, pakiety per sterownik, panel Drivers.</div></li>
+    </ul>
+  </div>
+
+  <div class="grp">
+    <h3>D · kwartał i więcej <span class="tag gap">11 pozycji</span></h3>
+    <ul class="items">
+      <li><div class="t"><span class="k">PR-012</span>Dysk chmurowy — serwer WebDAV w Rust na edycji serwerowej, klienci na E-OS/Linux/Windows</div>
+        <div class="d">Serwer ostatni, bo czeka na <code>CS-001</code> i usługę TLS udowodnioną na E-OS; klienci mogą wyjść wcześniej, jeśli właściciel przyjmie tymczasowy host spoza E-OS.</div></li>
+      <li><div class="t"><span class="k">CS-002…008 · CS-101…103</span>Rdzeń chmury · izolacja bez hipernadzorcy</div>
+        <div class="d">Storage S3-like, SQL, IAM, monitoring, VPN/LB, rozliczenia, poczta; kontenery na prymitywie Redoksa, orkiestrator w Rust. <b>Nie Kubernetes.</b></div></li>
+      <li><div class="t"><span class="k">PR-004b</span>Silnik sygnatur dla Guarda tam, gdzie są haki on-access</div>
+        <div class="d">Linux <code>fanotify</code> + <code>yara-x</code> (BSD-3) — praca w przestrzeni użytkownika; Windows to podpisany sterownik jądra, nie samo Rust. Dopiero wtedy słowo „antywirus" zasługuje na stronę.</div></li>
+      <li><div class="t"><span class="k">CS-201…205</span>Hipernadzorca, goście Windows/Linux, AI/ML</div>
+        <div class="d">Program jądra, nie funkcja; RFC do upstreamu przed pierwszą linią (Q11). Tymczasowo tylko emulacja TCG.</div></li>
+      <li><div class="t"><span class="k">R-920 · R-921 · R-916 · R-930</span>Bluetooth, Wi-Fi, I2C/touchpady, GPU</div>
+        <div class="d">Wszystko za sprzętem fizycznym; Bluetooth to 6–12 miesięcy od HCI do A2DP (§19.3).</div></li>
+    </ul>
+  </div>
+
+  <div class="grp">
+    <h3>E · zablokowane na czymś innym niż praca <span class="tag blocked">10 pozycji</span></h3>
+    <p class="why">Nie da się tego przyspieszyć pisaniem kodu.</p>
+    <ul class="items">
+      <li><div class="t"><span class="k">R-607b</span>Pierwszy przebieg na prawdziwym pececie</div>
+        <div class="d">Jeden komputer i wypełniony formularz objawów (§18.0.5). Ostatni otwarty wiersz M1; QEMU tego nie zastąpi.</div></li>
+      <li><div class="t"><span class="k">S-1 · S-19 · R-009 · V2-MS06 · V2-MS10</span>Ochrona gałęzi, drugi opiekun, działające CI, klucze na tokenie, podmiot prawny</div>
+        <div class="d">Kliknięcia, ludzie, minuty runnera, sprzęt i papiery — nie kod.</div></li>
+      <li><div class="t"><span class="k">#26 · #25</span>Obraz x86_64 po przegotowaniu cosmic-edit · flush promptów instalatora</div>
+        <div class="d"><code>libonig</code>/<code>libxkbcommon</code> bez przepisu; poprawka #25 (<code>eos-installer !6</code>) czeka na uruchamialny obraz.</div></li>
+      <li><div class="t"><span class="k">RH-004</span>Repozytorium schodzi z exFAT</div>
+        <div class="d">Każda sesja zaczyna się od tysięcy sidecarów; APFS kończy tę klasę. Ruch właściciela.</div></li>
+    </ul>
+  </div>
+</section>
+
+<section id="odblokowuje">
+  <h2><span class="num">03</span> Co te zmiany wprowadzają lub odblokowują</h2>
+  <p class="sub">Ani jednej nowej funkcji. Zmieniła się <b>zdolność bramek do zawiedzenia</b> — czyli
+  to, czy wolno wierzyć w funkcje, które już są.</p>
+  <ul class="unlock">
+    <li><div class="t">R-601c daje się w ogóle domknąć</div>
+      <div class="d">Harness x86_64 przechodził <b>2 razy na 7</b> przed usunięciem drugiego getty.
+      Po — <b>6 na 6</b>. Bez tego żaden wiersz x86_64 w M1 nie mógł opierać się na dowodzie.</div></li>
+    <li><div class="t">Nocne CI staje się warte czytania</div>
+      <div class="d">Zwracanie statusu <code>tail</code> zamiast <code>make</code> sprawiało, że
+      nieudany build meldował sukces; cztery kontrole integralności działały tylko w jednej gałęzi;
+      bramka rozruchowa potrafiła zameldować sukces bez startu. Zieleń znaczy dziś więcej niż wczoraj.</div></li>
+    <li><div class="t">Podpis wydania znaczy to, co mówi</div>
+      <div class="d">Potok weryfikuje własne bundle <code>cosign</code> wobec tożsamości, którą sam
+      publikuje pobierającym, i odmawia spisu materiałów bez składników.</div></li>
+    <li><div class="t">Skan sekretów faktycznie blokuje</div>
+      <div class="d">Był ostatnią linią, zanim sekret trafi na lustro — i zawodził <b>otwarcie</b>,
+      gdy brakowało <code>gitleaks</code>. Teraz odmawia i mówi dlaczego.</div></li>
+    <li><div class="t">EOS_STRICT_FETCH można wreszcie włączyć w CI</div>
+      <div class="d">Flaga podnosząca sprawdzenie sum kompilatorów z ostrzeżenia do odmowy nie
+      docierała do kontenera, w którym odbywa się pobieranie. Ustawiona na hoście nie robiła nic.</div></li>
+    <li><div class="t">Instalacja szyfrowana jest testowana</div>
+      <div class="d">Nowy przypadek dowodzi szyfrowania w trzech krokach: bootloader musi zapytać,
+      błędne hasło nie ma prawa odblokować, dopiero poprawne daje <code>eos login:</code>. Z własną
+      kontrolą negatywną.</div></li>
+  </ul>
+  <div class="note"><b>Czego to nie robi.</b> Nie dodaje ani jednej funkcji, nie dotyka jądra i nie
+  zmienia zawartości obrazów. Zapisano też cztery nowe pułapki hosta (P-12…P-15) — w tym tę, że
+  bash 3.2 kończy skrypt <b>zerem</b>, gdy <code>set -u</code> trafi na nieustawioną nazwę wewnątrz
+  <code>$(( ))</code>.</div>
+</section>
+
+<section id="dowody">
+  <h2><span class="num">04</span> Warstwa dowodowa</h2>
+  <p class="sub">Dwie tury audytu przeczytały <b>każdą</b> bramkę w repozytorium i zadały jej jedno
+  pytanie: <b>czy to sprawdzenie potrafi zawieść?</b> Każdy wiersz ma pomiar w obie strony — stan
+  przed, stan po i kontrolę negatywną.</p>
+  <div class="tw"><table>
+    <thead><tr><th>bramka</th><th>czego nie potrafiła</th><th>jak to zmierzono</th></tr></thead>
+    <tbody>
+      <tr><td class="g">hooks/pre-push</td><td>skan sekretów zawodził <b>otwarcie</b> przy braku gitleaks</td><td class="m">przed: status <b>0</b> i <b>zero</b> wzmianek o gitleaks w wyjściu</td></tr>
+      <tr><td class="g">ci-integrity 9</td><td>trafiała we własne komentarze konfiguracji</td><td class="m">podmiana jedynego realnego pinu → nadal <b>ok</b>; po poprawce → <b>FAIL</b></td></tr>
+      <tr><td class="g">release.yml</td><td>podpisywała wydanie i nigdy nie sprawdzała, co podpisała</td><td class="m">atrapa cosign: rozjechana tożsamość → <b>0</b>; z nowym krokiem → <b>1</b></td></tr>
+      <tr><td class="g">eos-build.sh</td><td>bramka Secure Boot przechodziła, nie czytając plików</td><td class="m">katalog schowany → status <b>0</b> i <b>zero</b> wierszy wyjścia</td></tr>
+      <tr><td class="g">eos-sign-bootloader</td><td>komunikat o selfteście w trybie prawdziwego podpisu</td><td class="m">tryb realny bez artefaktu: przed <b>0</b>, po <b>1</b></td></tr>
+      <tr><td class="g">ci-boot-smoke.sh</td><td>udokumentowane wywołanie meldowało sukces bez startu</td><td class="m">bash 3.2: <b>echo "$UNSET"</b> → 1, ale <b>x=$(( 1 + UNSET ))</b> → <b>0</b></td></tr>
+      <tr><td class="g">eos-build.sh</td><td><code>make | tail</code> przez granicę kontenera</td><td class="m"><b>false | tail -3</b> → 0; z <b>pipefail</b> → 1</td></tr>
+      <tr><td class="g">ci-integrity 12–15</td><td>uwięzione w gałęzi <code>else</code> kontroli 11</td><td class="m">przed: <b>10</b> wierszy ok i żadna z czterech; po: <b>14</b></td></tr>
+      <tr><td class="g">pins --strict</td><td>zwracała 0, nie porównawszy żadnego forka</td><td class="m">pusty manifest: przed <b>0</b>, po <b>1</b> — wypisując przy tym <b>pins ok=0</b></td></tr>
+      <tr><td class="g">repro-intx-lines</td><td>strażnik regresji kończył się <code>exit 0</code></td><td class="m">wymuszona porażka: przed <b>0</b>, po <b>1</b></td></tr>
+      <tr><td class="g">eos-check-tar-pins</td><td>nieparsowalny przepis znikał z domknięcia</td><td class="m">zepsuty TOML: <b>77 → 76</b> przepisów, nadal <b>ok</b></td></tr>
+      <tr><td class="g">eos-check-doc-paths</td><td>URL w wierszu wyłączał sprawdzenie całego wiersza</td><td class="m">po zawężeniu od razu znalazła martwe odwołanie w <b>docs.yml:6</b></td></tr>
+      <tr><td class="g">eos-check-repo-types</td><td>typ spoza <code>ABCD</code> nie był z niczym porównany</td><td class="m">typ <b>Z</b>: <b>OK — 31 repozytoriów, typy zgodne</b>, status 0</td></tr>
+      <tr><td class="g">eos-mirror-drift</td><td>nierozstrzygnięte repozytoria nie wpływały na wynik</td><td class="m">trwała awaria wyglądała jak chwilowa sieć: zielono</td></tr>
+      <tr><td class="g">sync-forks.sh</td><td>fork zsynchronizowany <b>nigdy</b> nie był tak raportowany</td><td class="m"><b>git rev-parse</b> na brakującym refie wypisuje argument na stdout</td></tr>
+      <tr><td class="g">eos-sync-buildtree</td><td>staging w podpowłoce: błędy i pominięcia bez śladu</td><td class="m">usunięty plik: przed <b>zero</b> wzmianek; po — nazwany, licznik skorygowany</td></tr>
+      <tr><td class="g">mk/prefix.mk</td><td>dwukropek na końcu ścieżki w <code>rm -f</code></td><td class="m">tarball rust-src przeżywał każdą zmianę wersji łańcucha narzędzi</td></tr>
+      <tr><td class="g">mk/repo.mk</td><td>średnik odrzucał status <code>$(MAKE) mount</code></td><td class="m">nieudane montowanie zostawiało znacznik sukcesu</td></tr>
+      <tr><td class="g">mk/podman.mk</td><td><code>EOS_STRICT_FETCH</code> nie docierał do kontenera</td><td class="m">bez <b>--env</b>: <b>EOS_STRICT_FETCH=&lt;brak&gt;</b></td></tr>
+      <tr><td class="g">mk/config.mk</td><td>wykrywanie możliwości przegrywało z linią poleceń</td><td class="m">obie flagi zostawały na <b>1</b> mimo komunikatów „not found"</td></tr>
+      <tr><td class="g">SBOM ×2</td><td>podpisany spis materiałów mógł nie wymieniać niczego</td><td class="m"><b>gen-sbom.py</b> na pustym katalogu: exit 0, <b>"components": []</b></td></tr>
+      <tr><td class="g">ci-integrity 16 (nowa)</td><td>roadmapa mogła mieć martwe kotwice, dwa <code>### 6.3</code>, dwa statusy jednego ID, ✅ bez dowodu</td><td class="m">selftest: 4 reguły × 1 → exit 1; na <b>ROADMAP.md</b>: <b>2</b> wiersze ✅ bez dowodu (<b>R-301</b>, <b>R-502b</b>)</td></tr>
+      <tr><td class="g">ci-integrity 17 (nowa)</td><td>zasób mógł leżeć dwa razy, ważyć 100 MB albo nie mieć żadnego odwołania</td><td class="m">selftest: duplikat + sierota → exit 1; drzewo: <b>1</b> para identyczna, <b>26</b> sierot (1,7 MB)</td></tr>
+      <tr><td class="g">ci-integrity 18 (nowa)</td><td>strona docs mogła istnieć, być linkowana i nigdy nie trafić do książki</td><td class="m">selftest → exit 1; drzewo: <b>78</b> stron, <b>52</b> w SUMMARY, <b>14</b> brakujących</td></tr>
+      <tr><td class="g">.git/hooks</td><td>haki „zamknięte na czerwono" z README i CLAUDE.md nie były zainstalowane</td><td class="m"><b>ls .git/hooks</b>: tylko <b>*.sample</b>; <b>core.hooksPath</b> pusty</td></tr>
+      <tr><td class="g">sync-forks.sh</td><td>kończył się zawsze zerem — CLONE_FAIL, NO_UPSTREAM_HEAD, push_fail były tylko tekstem tabeli</td><td class="m">atrapa <b>git</b> (exit 128): przed <b>0</b> przy 17 wierszach CLONE_FAIL; po <b>1</b></td></tr>
+      <tr><td class="g">mk/prefix.mk · mk/repo.mk</td><td>katalog <code>relibc-freestanding-install</code> wykonywany jako polecenie zamiast usunięty (<code>exit 1</code> nieosiągalny); <code>cd $(shell make …)</code> z pustym podstawieniem szedł do <code>$HOME</code></td><td class="m">sprawdzone na cytowanych liniach (306-309, 388, 401); naprawa: jedno <b>rm -rf</b> z dwiema ścieżkami; <b>$(MAKE) -s</b> ze strażnikiem</td></tr>
+      <tr><td class="g">P-15 ×2 · mk/config.mk</td><td>nienumeryczny TIMEOUT w <code>$(( ))</code> kończył dowód zerem; <code>uname -m</code> = arm64 nie pasował do żadnego <code>config/</code></td><td class="m"><b>TIMEOUT=abc</b> → exit <b>2</b> z komunikatem (oba skrypty); bez <code>.config</code>: HOST_ARCH=arm64 → <b>ARCH = aarch64</b></td></tr>
+      <tr><td class="g">eos-check-doc-paths (14)</td><td>nie widziała ścieżek zagnieżdżonych <code>docs/x/y.md</code> — 69 odwołań nigdy nie sprawdzonych</td><td class="m">regex z <b>/</b>; test negatywny: śledzony plik z martwą ścieżką zagnieżdżoną → <b>1</b>; drzewo po przepisaniu cytowań → <b>0</b></td></tr>
+      <tr><td class="g">#26 (obraz nie składał się)</td><td>zgłoszenie mówiło „tylko x86_64" i „nie dowiedzione z dziewiczego drzewa"</td><td class="m">po wymuszeniu przegotowania <b>aarch64 pada identycznie</b>; przyczyna: <code>libonig</code> to zależność <b>uruchomieniowa</b>, a domknięcie idzie za <b>budowania</b>. Kontrola przeciwna: <code>auto_deps.toml</code> z <b>01:09</b>, przed zmianą. Naprawa sprawdzona: po skasowaniu ugotowanego pakietu <code>stage.toml</code> wrócił <b>w tym przebiegu</b></td></tr>
+      <tr><td class="g">E-OS Guard w obrazie</td><td>„monitor, którego nie da się uruchomić, jest produktem"</td><td class="m">na zamontowanej <b>kopii</b> (P-6): aarch64 <b>14 635 056 B</b>, x86_64 <b>15 670 816 B</b>, wpis pulpitu <code>40_eos-guard</code>, boot-smoke <b>PASS na obu</b>. <code>strings</code> znajdował ciąg 12 razy i <b>nie był dowodem</b></td></tr>
+      <tr><td class="g">mktemp -d (P-16)</td><td>skrypt kopiował 1400 MiB tam, gdzie kazano — a szedł gdzie indziej</td><td class="m">na macOS <code>mktemp -d</code> <b>ignoruje TMPDIR</b>. Kontrola przeciwna na wolumenie 20 MiB: stara wersja skopiowała <b>1401 MiB</b> na dysk wewnętrzny i dała <b>0</b>; nowa — <b>kod 2</b> z „need 1464 MiB, have 19 MiB"</td></tr>
+      <tr><td class="g">[lib] w forku</td><td>„biblioteka w forku" wydawało się jednym wierszem w Cargo.toml</td><td class="m">pakiet ma <b>dokładnie jedną</b> bibliotekę: dodana <b>wyparła</b> istniejącą <code>userutils</code> i <b>pięć binarek</b> przestało się kompilować. Złapała to <b>budowa</b>, nie przegląd kodu; teraz to moduł istniejącej biblioteki</td></tr>
+      <tr><td class="g">force-push (§5.7)</td><td>naprawa poszła nadpisaniem opublikowanej gałęzi, zamiast kolejnym commitem</td><td class="m"><b>naruszenie twardej reguły, zgłoszone właścicielowi</b>. Nadpisany <code>cf7fc00</code> nie zginął (klon i reflog), ale był zepsuty; czubek <code>28c6923</code>. Zapisane w commicie i w CHANGELOG-u, nie wygładzone</td></tr>
+      <tr><td class="g">strona pokrycia</td><td>zapisywała hash commita, więc <code>verify.sh</code> <b>nigdy</b> nie zostawiał czystego drzewa</td><td class="m">churn uczy commitowania wygenerowanego pliku bez czytania; po usunięciu linii <b>ta sama suma kontrolna</b> między przebiegami</td></tr>
+      <tr><td class="g">local-gates (nowe zadanie CI)</td><td>od 2026-08-28 żadne zadanie GitLaba nie oceniło kodu, a workflowy GitHuba nigdy nie ruszyły — scalano „po sprawdzeniu, że wszystko padło na limit"</td><td class="m">na runnerze <b>eos-heavy</b>: 1. przebieg <b>czerwony</b> (brak <code>cargo</code> w PATH, literał <code>docs/x.md</code> w selfteście), 2. przebieg <b>16/16 PASS</b> w 63 s; !79 scalone na tym dowodzie</td></tr>
+      <tr><td class="g">produkty poza Redoksem</td><td>„do pobrania na Windows/Linux" było założeniem</td><td class="m"><b>cargo check</b> na aarch64-apple-darwin: eos-ui/eos-notes/eos-control <b>rc 0</b>; backendu okna <b>brak</b> (<code>renderer-software</code> bez <code>backend-winit</code>)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">Z 101 zgłoszeń <b>67 obalili adwersarze</b> — każde znalezisko przechodziło przez
+  trzech niezależnych weryfikatorów nastawionych na obalenie, z instrukcją „w razie wątpliwości
+  odrzuć". Dwie poprawki zostały znalezione <b>przez własną bramkę</b> zaraz po tym, jak zaczęła
+  działać.</div>
+</section>
+
+<section id="nowy">
+  <h2><span class="num">05</span> Nowy zakres — zapisany, wyceniony, nierozpoczęty</h2>
+  <p class="sub">Cztery prośby właściciela z 2026-09-02, przyjęte z założeniem <b>„wszystko na E-OS, jeśli się da"</b>.
+  Każda ma w roadmapie rejestr z tym, co istnieje (z dowodem), co trzeba zbudować i co jest niemożliwe dziś.
+  Dwie z nich ujawniły od razu wady, nie plany — obie w twierdzeniach README o zabezpieczeniach.</p>
+
+  <div class="grp">
+    <h3><span class="tag defect">znalezione po drodze</span></h3>
+    <ul class="items">
+      <li><div class="t"><span class="k">#27</span>Hasła ustawiane w systemie są haszowane słabiej, niż mówi README</div>
+        <div class="d">README obiecuje argon2id m=19456. To prawda dla haseł z <b>czasu budowy obrazu</b>. Każde
+        hasło ustawione w działającym systemie — także wymuszone hasło pierwszego rozruchu — przechodzi przez
+        <code>redox_users 0.4.6 → rust-argon2 0.8.3</code>, którego domyślne to <b>argon2i, m=4096, t=3</b>.
+        Zmierzone: <b>4,0 ms</b> na próbę zamiast 14. Poprawka to <code>R-602g</code> — ale <b>podbicie wersji nie naprawia</b>: <code>redox_users 0.5.2</code> nadal przypina <code>rust-argon2 0.8</code>. Droga to fork <code>redox_users</code> jako 31. repozytorium typu C albo MR do upstreamu — decyzja właściciela.</div></li>
+    </ul>
+  </div>
+
+  <div class="tier"><h3>Hasła i PIN <span class="mono" style="color:var(--ink-3);font-size:12px">§6.6 · R-602a…g</span><span class="pill go">buildowalne teraz</span></h3><ul>
+    <li><span class="k">istnieje</span><span>haszowanie argon2 na obu ścieżkach (plus trzecia, niezmierzona implementacja w <code>relibc</code> dla <code>crypt(3)</code>); <b>zero</b> oceny siły, listy słabych haseł, pojęcia PIN-u — w <code>login.rs</code>, <code>passwd.rs</code>, <code>orblogin</code>, instalatorze. Jedyny limit prób to <code>sudo</code>: 3, w procesie, zapominany</span></li>
+    <li><span class="k">liczba</span><span><b>15,3 ms/hasz</b> przy parametrach z obrazu → PIN 4-cyfrowy pada offline w 153 s, 6-cyfrowy w 4,2 h, 10 000 popularnych haseł w 153 s (jeden rdzeń)</span></li>
+    <li><span class="k">wniosek</span><span>PIN wyłącznie jako odblokowanie ekranu <b>z licznikiem prób</b>; nigdy jako klucz szyfrowania dysku, nigdy na dysku bez FDE. Dziś jedyna obrona to stałe 3 s opóźnienia per proces w <code>redox_users</code> — obchodzone równoległymi sesjami</span></li>
+    <li><span class="k">pułapka</span><span>harness sam ustawia hasło <code>eos</code> (3 znaki) — każdy próg długości zaczerwieni <code>R-601c</code>, dopóki hasło harnessu nie zmieni się w tym samym MR</span></li>
+    <li><span class="k">do zbudowania</span><span>jedna biblioteka polityki dla <b>pięciu</b> ścieżek uwierzytelniania (dziś pięć niezależnych: <code>passwd</code>, <code>login</code>, <code>orblogin</code>, demon sudo, podnoszenie uprawnień w <code>eos-control</code>), wskaźnik siły liczony z <b>tego</b> kosztu haszowania, blocklista w obrazie, podpowiedź z uzasadnieniem, PIN jako osobny slot, kontrole negatywne</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Chmura na E-OS jako hoście <span class="mono" style="color:var(--ink-3);font-size:12px">§11.4 · CS-*</span><span class="pill no">trzy warstwy</span></h3><ul>
+    <li><span class="k">fakt</span><span><b>Jądro Redoksa nie ma hipernadzorcy.</b> Zmierzone na forku: jedyne trafienia to wypisanie flagi CPUID, pola tabeli ACPI i <code>hvc #0</code> wołające PSCI firmware'u do zatrzymania. Zero VMCS, VMCB, <code>vmlaunch</code>, <code>vmrun</code>.</span></li>
+    <li><span class="k">tier 1</span><span><b>edycja serwerowa działająca dziś</b> — upstream ma <code>config/server.toml</code>, CI go nigdy nie zbudowało; nginx i openssh są w obrazie; storage S3-like, SQL, IAM, monitoring, VPN/LB, rozliczenia, poczta — praca w przestrzeni użytkownika, ale bazy i MTA siedzą w <code>wip/</code> niezbudowane, a serwera IMAP nie ma wcale</span></li>
+    <li><span class="k">tier 2</span><span><b>izolacja bez hipernadzorcy</b> — kontenery E-OS na własnym prymitywie Redoksa (<code>Namespace::fork()</code>, R-1010), orkiestrator w Rust, funkcje. <b>To nie będzie Kubernetes</b> i nie będzie tak nazwane.</span></li>
+    <li><span class="k">tier 3</span><span><b>maszyny wirtualne, goście Windows/Linux, AI/ML</b> — wszystko za hipernadzorcą w jądrze (<code>CS-201</code>), którego nie ma i który jest programem, nie funkcją. Bez daty. Tymczasowo tylko emulacja TCG (<code>wip/vm/qemu</code>, wolna z konstrukcji).</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Strona projektu <span class="mono" style="color:var(--ink-3);font-size:12px">§11.5 · WS-001…012</span><span class="pill go">połowa statyczna: teraz</span></h3><ul>
+    <li><span class="k">istnieje</span><span>mdBook w jednym języku, publikacja na GitLab/GitHub Pages skonfigurowana (data ostatniej udanej: <b>niezweryfikowana</b>), PDF; <code>NOTICE</code> z zastrzeżeniem znaku towarowego; polityka wsparcia w <code>SECURITY.md</code> i <code>stability.md</code>; publiczny, <b>niebramkowany</b> indeks pakietów na Pages i obrazy jako artefakty CI. <b>Nic</b> z frontendu, backendu, i18n, polityki prywatności, regulaminu, oświadczenia o dostępności</span></li>
+    <li><span class="k">dwie połowy</span><span>statyczna (treść, changelog, produkty, prawo, pobieranie) — na E-OS z nginx po <code>CS-001</code>; dynamiczna (konta, poczta, tickety, czat AI) — usługi z bazą i sekretami, poza tym repozytorium i poza statycznym Pages, po <code>CS-003</code>/<code>CS-008</code></span></li>
+    <li><span class="k">reguła</span><span>i18n jako <b>pierwszy</b> commit; strony generowane z CHANGELOG/README/ROADMAP, żeby nie mogły odjechać; przełącznik pobierania <b>po stronie serwera</b> — na statycznym hoście to ozdoba, nie kontrola dostępu</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Udokumentowane API systemu <span class="mono" style="color:var(--ink-3);font-size:12px">§11.6 · API-001…006</span><span class="pill go">dokumentować: teraz · stabilizować: 1.0</span></h3><ul>
+    <li><span class="k">istnieje</span><span><code>stability.md</code> („0.x — brak gwarancji, ABI schematów dziedziczone i zmienne"), rustdoc tylko dla <code>eos-repo-sign</code>, jeden przewodnik deweloperski, szkic schematu <code>netcfg:</code></span></li>
+    <li><span class="k">nie ma</span><span>referencji schematów i syscalli, listy węzłów <code>sys:</code>, rustdoc dla crate'ów typu A, deklaracji stabilności własnych interfejsów</span></li>
+    <li><span class="k">granica</span><span>E-OS może <b>udokumentować</b> odziedziczoną powierzchnię, ale <b>ustabilizować</b> tylko własną. Wszystko generowane z uruchomionego obrazu — ręczna lista odjeżdża, co §1.4 pokazuje na liczbach.</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Produkty: w obrazie, poza E-OS i cztery nowe <span class="mono" style="color:var(--ink-3);font-size:12px">§7.5 · PR-001…014</span><span class="pill ok">zmierzone</span></h3><ul>
+    <li><span class="k">w obrazie</span><span>Notatki (<code>eos-notes</code>), panel (<code>eos-control</code>), przeglądarka NetSurf 3.11, terminal/edytor/pliki COSMIC</span></li>
+    <li><span class="k">#28</span><span><b>NetSurf w obrazie to upstreamowy prebuilt, nie budowa PIE</b> — README obiecywało „built from source as PIE"; zmierzone: <code>EXEC</code> pod <code>0x400000</code>, brak flagi PIE, zero łatek E-OS, obcy <code>commit_identifier</code>. Łatki z przepisu są martwe w artefakcie; README i dokument o PIE poprawione, kontrola na artefakcie zaproponowana.</span></li>
+    <li><span class="k">nie w obrazie</span><span><code>eos-guard</code> i <code>eos-sysmon</code> — nie są pakietami obrazu <b>jako aplikacje</b>; baza blake3 guarda została przeniesiona do zakładki Security w <code>eos-control</code>, która się wysyła. Dokumentacja zrzutów ekranu pokazywała je jako natywne — <b>poprawione</b></span></li>
+    <li><span class="k">antywirus?</span><span><b>Tak — jako E-OS Guard; nie — jako „antywirus".</b> <code>eos-guard</code> jest produktem bezpieczeństwa (baza blake3, klasyfikacja Ok/New/Modified/Removed, setuid, samokontrola), ale nie ma haka on-access, silnika sygnatur, kwarantanny ani kanału aktualizacji sygnatur — a Redox nie ma szyny zdarzeń plików. Rekomendacja: nazwa <b>E-OS Guard</b>, opis „monitor integralności i uprawnień"; silnik sygnatur (<code>yara-x</code>) tylko tam, gdzie są haki: Linux (<code>fanotify</code>), Windows (sterownik).</span></li>
+    <li><span class="k">poza Redoksem</span><span><b>zmierzone 2026-09-03:</b> <code>eos-ui</code>, <code>eos-notes</code>, <code>eos-control</code> — <code>cargo check</code> na macOS rc 0 (30/32/23 s); kod był pisany pod host (<code>cfg(not(target_os = "redox"))</code>). Brakuje backendu okienkowego (<code>PR-007</code>, S), paczek per system (<code>PR-008</code>, M) i testów (0/0/0, <code>PR-009</code>). E-OS pozostaje platformą pierwszą.</span></li>
+    <li><span class="k">nowe</span><span><code>eos-sheets</code> (arkusz), <code>eos-slides</code> (prezentacje), <code>eos-drive</code> (dysk chmurowy: serwer WebDAV na edycji serwerowej + klient sync), <code>eos-store</code> (sklep: metadane w podpisanym indeksie + panel). Każdy z szablonu <code>eos-notes</code>, z testem w pierwszym commicie, z przepisem i przełącznikiem przy instalacji (<code>PR-005</code>). Nazwy repozytoriów do decyzji Q13.</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Pokrycie testami i pokrycie bezpieczeństwa — automatycznie <span class="mono" style="color:var(--ink-3);font-size:12px">§11.3 · TQ-001…010</span><span class="pill go">pierwsze trzy: tydzień</span></h3><ul>
+    <li><span class="k">istnieje</span><span>jedna podłoga (<code>eos-repo-sign</code> ≥ 38 %, zmierzone 41,06 %), cookbook doradczo; <code>verify.sh</code> 16/16; na GitHubie działają CodeQL, semgrep, gitleaks, osv-scanner. <b>Nigdzie</b>: liczba dla produktów, liczba dla bezpieczeństwa.</span></li>
+    <li><span class="k">definicja</span><span>„pokrycie bezpieczeństwa" jako pięć liczb z podłogą: SC-1 <code>unsafe</code> z komentarzem <code>SAFETY:</code>, SC-2 parsery z fuzzerem, SC-3 crate'y pod <code>cargo-deny</code>+<code>osv-scanner</code>, SC-4 wejścia z testem negatywnym, SC-5 mutanty w kodzie zaufania (<code>verify()</code>). Brak narzędzia = <b>SKIPPED i kod 2</b>, nigdy ciche 0 %.</span></li>
+    <li><span class="k">gdzie</span><span>najpierw <code>verify.sh</code> (chodzi zawsze), potem GitHub (chodzi dziś), na końcu GitLab (limit); liczby na stronie generowanej, nie wpisywanej — README dziś żadnej nie ma.</span></li>
+  </ul></div>
+
+  <div class="tier"><h3>Porządek w repozytorium <span class="mono" style="color:var(--ink-3);font-size:12px">§11.7 · RH-001…009</span><span class="pill ok">częściowo zrobione</span></h3><ul>
+    <li><span class="k">zrobione</span><span>jedna roadmapa (6 planów scalonych w całości, 48 cytowań w 23 plikach przepisanych, stub v2 usunięty); 28 025 sidecarów i 5 <code>.DS_Store</code> z drzewa, 308 z <code>.git</code>; jeden bajtowy duplikat zrzutu usunięty; 14 stron dodanych do książki; <code>git status</code> identyczny przed i po sprzątaniu.</span></li>
+    <li><span class="k">czeka na właściciela</span><span>25 zasobów bez odwołania (1,6 MB — marka: zostawić i zacytować; zrzuty: podpis albo poza repo), <code>EOS_BUILD_STATE.md</code> → archiwum, dwa pliki archiwum bez żadnego odwołania, analiza restrukturyzacji z 0 odwołaniami, <code>overview.md</code> → <code>ARCHITECTURE.md</code>, <code>docs/prompts/</code>.</span></li>
+    <li><span class="k">nie ruszone</span><span>8 skryptów pomocniczych upstreamu Redoksa (0–2 odwołania) — forma upstreamu (ADR-0003), koszt zero; <code>shellcheck</code> traktuje je doradczo.</span></li>
+  </ul></div>
+</section>
+
+<section id="pytania">
+  <h2><span class="num">06</span> Decyzje właściciela — zadane 2–3 września, <b>odpowiedziane 3 września</b></h2>
+  <p class="sub">Każda odpowiedź jest teraz regułą i wierszem rejestru (roadmapa §3.0.7). Odpowiedź właściciela pogrubiona; ✓ oznacza to, co już wykonane w drzewie.</p>
+  <ol class="q">
+    <li><b>PIN a szyfrowanie dysku.</b> <b>tylko odblokowanie ekranu</b> — nigdy <code>sudo</code>, <code>passwd</code> ani FDE <span class="mono" style="color:var(--ink-3);font-size:12px">→ R-602d</span></li>
+    <li><b>Droga naprawy #27.</b> <b>fork i własne wydanie</b> — repozytorium <code>eos-users</code> utworzone ✓, <code>v0.4.6-eos.1</code> w toku <span class="mono" style="color:var(--ink-3);font-size:12px">→ R-602g</span></li>
+    <li><b>Dom biblioteki polityki haseł.</b> <b>cel <code>lib</code> w forku <code>eos-userutils</code></b> <span class="mono" style="color:var(--ink-3);font-size:12px">→ R-602a/c/f</span></li>
+    <li><b>Próg długości i blocklista.</b> <b>tak</b> — 12 znaków, PIN 6 cyfr, blocklista w bibliotece; hasło harnessu zmienia się w tym samym MR <span class="mono" style="color:var(--ink-3);font-size:12px">→ R-602b/e</span></li>
+    <li><b>Licznik prób PIN-u.</b> plik per konto, <b>root może go skasować</b> <span class="mono" style="color:var(--ink-3);font-size:12px">→ R-602d</span></li>
+    <li><b>Gdzie żyje strona.</b> <b>osobne repozytorium <code>eos-website</code></b> — utworzone ✓ <span class="mono" style="color:var(--ink-3);font-size:12px">→ WS-001</span></li>
+    <li><b>Hosting dziś.</b> <b>Pages</b> — GitLab Pages, job <code>pages</code> na runnerze <code>eos-heavy</code> <span class="mono" style="color:var(--ink-3);font-size:12px">→ WS-005</span></li>
+    <li><b>Czat AI w pomocy.</b> <b>własny model, na razie projekt</b>; <b>system ticketów budowany teraz</b> — issues w <code>eos-support</code> ✓ <span class="mono" style="color:var(--ink-3);font-size:12px">→ WS-010, WS-009</span></li>
+    <li><b>Nazwa platformy chmurowej.</b> <b>E-Cloud</b> <span class="mono" style="color:var(--ink-3);font-size:12px">→ §11.4</span></li>
+    <li><b><code>CS-009</code> przed warstwą 1.</b> <b>zgoda</b> — bramka może odpowiedzieć „nie buduje się" <span class="mono" style="color:var(--ink-3);font-size:12px">→ CS-009</span></li>
+    <li><b>Hipernadzorca.</b> <b>RFC do upstreamu</b> przed pierwszą linią kodu <span class="mono" style="color:var(--ink-3);font-size:12px">→ CS-201</span></li>
+    <li><b>Produkty.</b> <b>według rekomendacji</b>: E-OS Guard wysyłany, <code>eos-sysmon</code> w archiwum, bez słowa „antywirus" <span class="mono" style="color:var(--ink-3);font-size:12px">→ PR-002/003/004</span></li>
+    <li><b>Cztery nowe repozytoria.</b> <b>utworzyć od razu i synchronizować</b> — 7 na GitLabie, 6 luster na GitHubie ✓ <span class="mono" style="color:var(--ink-3);font-size:12px">→ §7.5.4</span></li>
+    <li><b>Biblioteka promptów.</b> <b>poza repozytorium</b> — przeniesiona do lokalnego magazynu ✓ <span class="mono" style="color:var(--ink-3);font-size:12px">→ RH-009</span></li>
+    <li><b>Lista do usunięcia.</b> <b>usunąć wszystko niepotrzebne</b> — wykonane, 26 plików skopiowanych lokalnie przed usunięciem ✓ <span class="mono" style="color:var(--ink-3);font-size:12px">→ §11.7.1</span></li>
+  </ol>
+</section>
+
+<div class="note" style="margin-top:34px">
+  <b>Ta strona nie jest drugą roadmapą.</b> Jedynym źródłem prawdy jest <code>ROADMAP.md</code> w tym
+  repozytorium; strona jest jego widokiem. Osiem znaczników przy kamieniach milowych jest
+  <b>porównywanych maszynowo</b> z tabelą §3.4 roadmapy przy każdym przebiegu
+  <code>scripts/ci-integrity.sh</code> (kontrola 19), a każdy cytowany tu identyfikator musi istnieć
+  jako wiersz roadmapy albo — dla rodziny <code>ADR-</code> — jako plik w <code>docs/adr/</code>.
+  Rozjazd zapala bramkę na czerwono i wskazuje identyfikator. Powód jest zapisany w regule §5.4
+  kontraktu: bramka sprawdzająca <i>obecność</i> nie jest bramką, więc ta sprawdza <b>wartość, którą
+  czyta człowiek</b> — znacznik widoczny w kafelku, nie ukryty atrybut.
+</div>
+
+<footer>
+  <span>E-OS · dystrybucja Redox OS · AGPL-3.0</span>
+  <span>gitlab.com/e-os/e-os · roadmapa §3.0 · §7.5 · §11.3 · §11.7 · §17–§21</span>
+</footer>
+</div>

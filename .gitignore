@@ -34,6 +34,13 @@ wget-log
 .eos-orbdata-src/
 *.key
 /book
+# Dropped into the repository ROOT by `mdbook-mermaid install .`, which both the `pages` job and a
+# local `mdbook build` run. They are generated assets of the book, not sources: measured 2026-09-03,
+# building the book locally left them untracked in `git status`, which is how a generated file ends
+# up committed by someone tidying their working tree (§5.7 forbids hand-editing generated files —
+# committing them is the same mistake one step earlier).
+/mermaid.min.js
+/mermaid-init.js
 /release/*.img
 /release/*.tar.gz
 # Release checksums + signature are build outputs regenerated per-release by
