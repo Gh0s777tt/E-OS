@@ -73,12 +73,13 @@ i `src/cook/package.rs` — **zero**. To jest dług, nie stan docelowy.
 ### Kontrole
 
 ```bash
-bash scripts/ci-integrity.sh                    # bramka integralności (20 kontroli + sonda 0)
+bash scripts/ci-integrity.sh                    # bramka integralności (21 kontroli + sonda 0)
 python3 scripts/eos-check-roadmap.py            # kontrola 16: kotwice, numery, jeden status na ID, ✅ tylko z dowodem
 bash scripts/eos-check-assets.sh                # kontrola 17: duplikaty, > 5 MB, sieroty w assets/
 python3 scripts/eos-check-summary.py            # kontrola 18: docs/SUMMARY.md = drzewo docs/
 python3 scripts/eos-check-roadmap-page.py       # kontrola 19: strona roadmapy = ROADMAP.md §3.4
 python3 scripts/eos-check-changelog-sections.py # kontrola 20: wpis nie stoi pod wydaniem, które już wyszło
+python3 scripts/eos-check-claude-refs.py        # kontrola 21: każdy §N w tym pliku istnieje; sekcje po kolei
 bash scripts/eos-repos.sh pins --strict         # -> pins ok=25 drift=1 (non-allowlisted=0) split-pin=0
 shellcheck -f gcc $(git ls-files 'scripts/*.sh')
 osv-scanner scan source --lockfile Cargo.lock
@@ -312,7 +313,7 @@ wyjście, nie „przeszło") wkleja się do opisu MR (§6).
 | kod vendorowany (typ B, `src/`, `recipes/**`) | forma upstreamu (`ADR-0003`), `ci-integrity.sh` kontrole 1/4/5, `cargo test` na manifeście głównym; pin blake3 dla tarballi (kontrola 12) | `bash scripts/verify.sh --fast && bash scripts/ci-integrity.sh` | zepsuty TOML receptury → `eos-check-tar-pins.py` BAD |
 | `config/**/*.toml` | składnia TOML, kontrola 9 (`50_redox`/klucz), lista pakietów istnieje w `recipes/` (`eos-check-tar-pins.py`), boot-smoke tej architektury, gdy zmienia się zestaw pakietów lub init | `bash scripts/ci-integrity.sh && bash scripts/ci-boot-smoke.sh <arch>` | wpis pakietu bez receptury → czerwono |
 | `mk/*.mk`, `Makefile`, `podman/*` | `make -n <cel>` na czysto, `hadolint` na containerfile'ach, `actionlint`/`yamllint` nie dotyczą; **każdy cel z `$(MAKE)` propaguje status** (P-14 nie dotyczy, ale `mk/repo.mk` — pułapka `;` vs `&&`) | `bash scripts/verify.sh --fast` + jeden pełny `eos-build.sh <arch>` przy zmianie ścieżki budowania | wymuszony błąd w celu podrzędnym → `make` kończy się ≠ 0 |
-| `scripts/*.sh`, `scripts/hooks/*` | `shellcheck -S error` (blokuje) i `-S warning` (doradczo, ale nowe trafienia w skryptach **własnych** się usuwa), kontrole 5/13 (`set -u` w `$(( ))`, tablice pod `set -u`), **nagłówek z opisem i `--help`**, kod wyjścia 1 ≠ 2 (§11.3) | `bash scripts/verify.sh --fast` | uruchom skrypt na wejściu, na którym ma paść — musi paść, a nie zakończyć się 0 (§5.9, poziom 2) |
+| `scripts/*.sh`, `scripts/hooks/*` | `shellcheck -S error` (blokuje) i `-S warning` (doradczo, ale nowe trafienia w skryptach **własnych** się usuwa), kontrole 5/13 (`set -u` w `$(( ))`, tablice pod `set -u`), **nagłówek z opisem i `--help`**, kod wyjścia 1 ≠ 2 (§13.1) | `bash scripts/verify.sh --fast` | uruchom skrypt na wejściu, na którym ma paść — musi paść, a nie zakończyć się 0 (§5.9, poziom 2) |
 | `scripts/*.py` | `python3 -m py_compile`, kontrola 14 (ścieżki w dokumentach), `pyflakes` gdy jest | `bash scripts/ci-integrity.sh` | jak wyżej |
 | `.gitlab-ci.yml`, `.github/workflows/*.yml` | `yamllint`, `actionlint` (GitHub), `glab ci lint` (GitLab); żadne nowe `allow_failure: true` bez zdania *dlaczego* w komentarzu; każda nowa bramka ma `rules`, które **kiedyś są prawdziwe** | `bash scripts/verify.sh --fast` (etap `actionlint`) + `glab ci lint` | `allow_failure` przypadkowo `true` → recenzent ma to zobaczyć w diffie; dla joba: podmień polecenie na `false` na gałęzi i sprawdź, że pipeline jest czerwony |
 | dokumentacja (`*.md`, `docs/SUMMARY.md`) | kontrola 14 (`eos-check-doc-paths.py`), kotwice `](#...)` istnieją, **brak zdublowanych numerów podsekcji**, CRLF zachowane tam, gdzie przypięte (`CHANGELOG.md`), `lychee --offline` gdy jest, `mdbook build` gdy zmienia się `SUMMARY.md`; **ROADMAP:** każdy nowy ID unikalny w rodzinie (Annex A), status ✅ tylko z dowodem `U-NNN`/MR/#issue w tym samym wierszu | `python3 scripts/eos-check-doc-paths.py && bash scripts/ci-integrity.sh` + `scripts/eos-check-roadmap.py` (kotwice, duplikaty, ID) | wstaw ścieżkę do nieistniejącego pliku → kontrola 14 czerwona; zdubluj `### 6.3` → skrypt czerwony |
@@ -506,7 +507,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 2. Każda łatka ma uzasadnienie i status wobec upstreamu.
 3. `git rebase` na aktualny upstream **przechodzi bez konfliktów** albo konflikt jest
    rozwiązany i opisany.
-4. Push na **oba** hosty przed podbiciem pina, każdy zweryfikowany `git ls-remote` (§1.6).
+4. Push na **oba** hosty przed podbiciem pina, każdy zweryfikowany `git ls-remote` (§20.5).
 
 **Typ D — repozytorium pakietów**
 1. Zmiana wyłącznie przez `publish-repo-pages.sh` / `publish-repo.sh`.
@@ -519,7 +520,7 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
-`integrity` (20 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
+`integrity` (21 kontroli niezmienników plus sonda przyrządów jako kontrola 0) · `pin-check` (`pins --strict`) · `docs-currency` ·
 `renovate` · `rust-checks` (fmt, clippy `-D warnings`, `cargo test` na **obu** manifestach,
 `cargo-deny check advisories`) · `shell-lint` (shellcheck: błędy blokują, ostrzeżenia
 doradcze) · `pages` · `docs-pdf` · `semantic-release` · `build-image` ·
@@ -535,7 +536,7 @@ czy przyrząd.** Kontrola, która nie mogła się wykonać, i kontrola, która w
 wymagają przeciwnych reakcji, więc nie wolno im wypisywać tego samego komunikatu. Gorszy
 wariant tej samej wady to zielone: `git grep` bez gita wypisuje pusto, a pusto czyta się
 jak „czysto". Stąd w `ci-integrity.sh` osobne `FAIL (instrument):` i sonda narzędzi przed
-pierwszą kontrolą — §4.2 zastosowane do samej bramki.
+pierwszą kontrolą — §20.6 zastosowane do samej bramki.
 
 **Docelowo pipeline ma padać przy:**
 
@@ -613,7 +614,7 @@ Dwa `SKIPPED (could not run)` w pierwszym przebiegu to `coverage` i `cargo-deny`
 narzędzi po prostu nie było na hoście, i dlatego skrypt kończył się kodem **2**
 (nie 1 — bramka nie znalazła wady, tylko nie mogła się wykonać).
 
-**Poprawka wobec zapisu z 2026-08-30 (§2 reguła 4).** Poprzednia wersja tej tabeli mówiła
+**Poprawka wobec zapisu z 2026-08-30 (§18 pkt 6).** Poprzednia wersja tej tabeli mówiła
 o **trzech** pominiętych etapach, w tym `tar-pins` „bramki nie ma". Bramka **jest** —
 `scripts/eos-check-tar-pins.py` powstał 2026-08-30 wieczorem, a ten akapit i tekst pomocy
 `verify.sh` nie zostały wtedy zaktualizowane. To ten sam koszt odkładania, o którym mówi
@@ -627,13 +628,13 @@ receptur w domknięciu, które pinują tarball) dało **exit 1** z nazwą recept
 przywróceniu — exit 0 i czyste drzewo. Mutacja, która trafia obok, wygląda dokładnie jak
 bramka, która nie działa; różnicę widać tylko wtedy, gdy się ją sprawdzi.
 
-Kontrola negatywna (`§4.1`), dwie, obie zmierzone, nie założone: po podmianie etapu
+Kontrola negatywna (§5.4), dwie, obie zmierzone, nie założone: po podmianie etapu
 `hadolint` na plik z błędnie sformułowaną instrukcją przebieg daje `hadolint FAIL` i
 `exit 1`; po przywróceniu wcześniejszej usterki etapu `osv-scanner` (`-L` wskazujące
 `Cargo.toml` zamiast `Cargo.lock`) — `osv-scanner FAIL` i `exit 1`. Skrypt potrafi zapalić
 się na czerwono, nie tylko na zielono.
 
-**Poprawka z przeglądu 2026-08-30, zostawiona widoczna (§2 reguła 4).** Etap `osv-scanner`
+**Poprawka z przeglądu 2026-08-30, zostawiona widoczna (§18 pkt 6).** Etap `osv-scanner`
 podawał do `-L` **manifest** `Cargo.toml`, a nie plik blokady. `osv-scanner` nie traktuje
 tego jako węższego skanu, tylko kończy się kodem 127 z `could not determine extractor
 suitable to this file` — więc vendorowany graf (163 pakiety, ten z zależnościami `git`)
@@ -679,9 +680,9 @@ jest** wszechwładny, bo dostęp zależy od zdolności, nie od UID-a (co zmierzo
 **Klucze podpisujące pakiety:** docelowo **HSM lub Vault**. Dziś klucz **tajny** leży poza
 repozytorium w rękach operatora (`keys/README.md`), a w drzewie jest tylko część publiczna.
 Klucz hybrydowy (ed25519 + ML-DSA-65) opisany w `docs/security/index.md`.
-**Generowanie klucza jest działaniem człowieka (§10.1).**
+**Generowanie klucza jest działaniem człowieka (§5.7).**
 
-**`unsafe`:** każdy blok z `SAFETY:` (§10.2), a docelowo `#![deny(unsafe_code)]`
+**`unsafe`:** każdy blok z `SAFETY:` (§4), a docelowo `#![deny(unsafe_code)]`
 w komponentach krytycznych własnych E-OS. Każdy pozostawiony `unsafe` ma nieść
 uzasadnienie **oraz plan usunięcia**.
 
@@ -699,7 +700,7 @@ aktualizowana przy każdej zmianie, nagłówek nie zastępuje tabeli):
 | Cel | Stan |
 |---|---|
 | `docs/architecture/` z diagramami **Mermaid** | ✅ **jest** (`U-168`): topologia repozytoriów i ścieżka budowania, wpisane do `SUMMARY.md` |
-| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/security/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§2 reguła 4) |
+| `docs/THREAT_MODEL.md` | ⚠️ **świadomie zostaje** `docs/security/threat-model.md` — 19 odsyłaczy w 11 plikach, w tym historyczny wpis CHANGELOG-a; zmiana nazwy dla samej wielkości liter zerwałaby je albo wymusiła przepisanie zapisu historycznego (§18 pkt 6) |
 | `docs/adr/` — decyzje architektoniczne (ADR) | ✅ **jest** (`U-168`): szablon + ADR-0001…0004 wyciągnięte z realnych decyzji; CHANGELOG pozostaje dowodem |
 | `docs/hardware/` — macierz kompatybilności | ⚠️ jest `docs/reference/hardware-matrix.md` + `HARDWARE.md` |
 | CHANGELOG generowany z Conventional Commits | ⚠️ `semantic-release` jest w CI, ale wpisy `U-NNN` pisane są ręcznie i **niosą dowody** — automat ich nie zastąpi |
@@ -763,16 +764,61 @@ i podpisany (`v0.2.0`), pipeline `semantic-release`.
 1. **Zanim cokolwiek zmienisz — ustal typ repozytorium (§11)** i zastosuj reguły tego typu.
 2. **Niejasne? Pytaj, nie zgaduj.** Dotyczy zwłaszcza granicy B/C: repo wyglądające na
    czyste lustro potrafi nieść kod E-OS (`U-164`).
-3. **Mierz, nie wnioskuj** (§4.3). Trzy razy w jednej sesji opublikowano błędny wniosek
+3. **Mierz, nie wnioskuj** (§5.3). Trzy razy w jednej sesji opublikowano błędny wniosek
    wyprowadzony z tego, gdzie urwał się log.
-4. **Sprawdź instrument, zanim uwierzysz w wynik negatywny** (§4.2).
+4. **Sprawdź instrument, zanim uwierzysz w wynik negatywny** (§20.6).
 5. **Nie twierdź, że działa, jeśli nie uruchomiłeś testów.** Cytuj wynik.
-6. **Poprawiaj własne opublikowane wnioski jawnie** (§2, reguła 4; §4.5).
-7. **Nigdy nie dotykaj tokenów i kluczy** (§5, §10.3). Zadania wymagające poświadczeń
+6. **Poprawiaj własne opublikowane wnioski jawnie** (§5.3 — dowodem jest pomiar, nie zdanie, które napisałeś wcześniej).
+7. **Nigdy nie dotykaj tokenów i kluczy** (§5.7, §7). Zadania wymagające poświadczeń
    oddajesz człowiekowi.
 8. **Łatka diagnostyczna żyje wyłącznie w drzewie build kontenera**, nigdy w forku, i jest
    cofana przed commitem — a obraz po cofnięciu przebudowany i sprawdzony `boot-smoke`.
 
+
+## 19. TODO — czego naprawdę brakuje
+
+Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika dopiero, gdy
+**da się wskazać dowód**, że rzecz działa — nie gdy została zaplanowana.
+
+### Otwarte usterki (blokują `R-601`)
+
+| ID | Rzecz | Stan |
+|---|---|---|
+| `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
+| `R-F21` | `package_files()` czytało bazę pakietów ze starej ścieżki `/pkg`. | ✅ **naprawione** (`U-171`) — czyta przez `PackageState::from_sysroot`; przepisane, bo klucz też się przeniósł do `packages.toml` |
+| `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
+| `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`), potwierdzone ponownie **z poprawką `R-F18`** (`U-181`) |
+| `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
+| `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
+| `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
+
+### Narzędzia, których w repo nie ma
+
+| Narzędzie | Decyzja |
+|---|---|
+| `cosign` | ❌ Zadanie da się napisać, ale **klucz podpisujący generuje człowiek** (§5.7, §7) — narzędzie, które loguje, nie może go dotknąć. Do wykonania przez operatora, nie przez automat. |
+| `nextest` | ⏳ Do podmiany za `cargo test`; korzyść to równoległość i czytelniejszy raport, nie nowa zdolność. Niski priorytet. |
+| `miri` | ⛔ **Świadomie pominięty** — E-OS-owy kod Rust ma **zero** bloków `unsafe` (pilnuje tego kontrola 4), a `miri` bada właśnie UB w `unsafe`. Uruchamianie go na vendorowanym drzewie oznaczałoby utrzymywanie dywergencji (ADR-0003). |
+| `cargo-fuzz` | ⛔ **Świadomie pominięty tutaj** — parsery warte fuzzowania (`pkgar`, RedoxFS, `redox_installer`) mieszkają w **forkach**, nie w tym repo. Miejsce dla nich to CI forka. |
+| `cargo-audit` | ⛔ Nadmiarowy wobec `cargo-deny check advisories`; lokalnie w `local-scan.sh`. |
+
+### Wymaga człowieka, nie automatu
+
+- **`eos-setup-mirrors.sh --apply`** — potrzebuje PAT GitHuba. Nigdy nie podawaj tokenu
+  narzędziu; to zadanie operatora (§5).
+- **Klucz podpisujący** — generowanie jest **celowo** niezautomatyzowane.
+
+### Nadal niezweryfikowane
+
+- **Odtwarzalność builda** — ten sam commit → ten sam obraz bit w bit. `.config` i
+  `cookbook.lock` są już **śledzone** (`U-168`, `U-169`), więc główna przeszkoda zniknęła,
+  ale samego porównania **nikt jeszcze nie wykonał**. Dopóki nie wykona — to nie jest fakt.
+- **SBOM obrazu** — `sbom` pokrywa manifesty Rusta; SBOM-y obrazów w `sbom/` nadal
+  powstają ręcznie.
+- **Podpisane ISO** — obraz to `harddrive.img`; ISO nie jest publikowane.
+
+**Forki nie mają automatycznego lustra.** Push wymaga **dwóch** poleceń — na GitLab i na GitHub.
+Repozytorium główne ma działające lustro; forki nie.
 
 ## 20. Higiena drzew — rób to na bieżąco, nie „potem"
 
@@ -832,7 +878,7 @@ Po cofnięciu przebuduj i przepuść boot-smoke, żeby wiedzieć, co naprawdę m
 
 W jednym ciągu, nie „przy okazji":
 
-1. `git push` do **obydwu** zdalnych (`origin` **i** `gitlab` — forki nie mają lustra, §1.6),
+1. `git push` do **obydwu** zdalnych (`origin` **i** `gitlab` — forki nie mają lustra, §20.5),
 2. zaktualizuj `pinned_rev` w `repos.toml` **oraz** `rev` w `recipes/*/recipe.toml`,
 3. `scripts/eos-repos.sh pins` — musi dać `drift=0`,
 4. `scripts/eos-sync-buildtree.sh --apply`,
@@ -848,7 +894,7 @@ Pominięcie kroku 4 to dokładnie usterka z §20.1: pomiar dotyczy wtedy starego
 historii — i **każdy plik z CRLF wychodził jako „nieobecny"**. Poprawny wywołanie to
 `git hash-object --path <ścieżka-względna> <plik>`. Po korekcie: **0 z 3657** zamiast 6.
 
-> Zanim zgłosisz brak czegoś, **udowodnij, że przyrząd znajduje to, co istnieje** (§4.2).
+> Zanim zgłosisz brak czegoś, **udowodnij, że przyrząd znajduje to, co istnieje** (§20.6).
 > Wynik negatywny z niesprawdzonego narzędzia to nie wynik.
 
 ### 20.7 `pgrep` bez `-f` nie widzi długich nazw procesów
@@ -890,7 +936,7 @@ wyrwałby wtedy nośnik spod działającej maszyny razem z 37 GB cache'u.
 *Allocation Block Size*), więc każdy plik zajmuje minimum 1 MiB. Zmierzone: `recipes/` to
 **6,6 GB według `du` i 1,9 MB realnej treści** w 3376 plikach — 99,97 % to puste miejsce
 w klastrach, nie śmieci. Migawka forka Ion: **1,35 MiB treści w 906 MiB**. Cytuj **obie**
-liczby — `du -sh` i sumę rzeczywistą — albo nie cytuj żadnej (§4.3).
+liczby — `du -sh` i sumę rzeczywistą — albo nie cytuj żadnej (§5.3).
 
 ### 21.2 Zasada nadrzędna — i dlaczego sama nie wystarcza
 
@@ -1016,48 +1062,3 @@ zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-2
 trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
 rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
 klucz istniejący w **jednej kopii bez backupu**.
-
-## 19. TODO — czego naprawdę brakuje
-
-Ta lista jest tym, do czego odsyłają §13 i §16. Zasada: pozycja stąd znika dopiero, gdy
-**da się wskazać dowód**, że rzecz działa — nie gdy została zaplanowana.
-
-### Otwarte usterki (blokują `R-601`)
-
-| ID | Rzecz | Stan |
-|---|---|---|
-| `R-F19` | `unmount_path` → `rmdir /scheme/<nazwa>` trafiało **do demona redoxfs**, nie do menedżera schematów, i odbijało się od korzenia (`EPERM`). | ✅ **naprawione** (`U-170`, `eos-redoxfs` `58824d7` + `eos-installer` `02be2b5`); **nie** potwierdzone end-to-end — ścieżka staje wcześniej na `R-F21` |
-| `R-F21` | `package_files()` czytało bazę pakietów ze starej ścieżki `/pkg`. | ✅ **naprawione** (`U-171`) — czyta przez `PackageState::from_sysroot`; przepisane, bo klucz też się przeniósł do `packages.toml` |
-| `R-F22` | `copy_file()` przewracało instalację na pierwszym pliku, który konfiguracja już zapisała (`/etc/issue`, 1 z 65 wpisów `[[files]]`). | ✅ **naprawione** (`U-171`) — istniejący cel pomijany; konfiguracja wygrywa |
-| `R-601` | partycja → instalacja → reboot → login | ✅ **UDOWODNIONE** (`U-176`), potwierdzone ponownie **z poprawką `R-F18`** (`U-181`) |
-| `R-F23` | Pod `hvf` gość ginie na `synchronous_exception_at_el0` przy obciążeniu — dwa razy, w dwóch różnych procesach, także przy `-smp 1`. | 🚧 P1 — harness zostaje na TCG; `EOS_SMOKE_ACCEL=hvf` odtwarza |
-| `R-F24` | `try_fast_install()` czytał środowisko **procesu**, a zmienne live są w środowisku **jądra** (`/scheme/sys/env`). | ✅ **naprawione** (`U-176`) — 6,8 h → ~6 min |
-| `R-F18` | Sterownik potwierdzał przerwanie **przed** sprawdzeniem, czy jego urządzenie coś zgłosiło — czyli odmaskowywał dzieloną linię za cudze przerwanie. | ✅ **naprawione** (`U-180`) — `virq 37` 16 829 830 → 8; 160 s → 16 s |
-
-### Narzędzia, których w repo nie ma
-
-| Narzędzie | Decyzja |
-|---|---|
-| `cosign` | ❌ Zadanie da się napisać, ale **klucz podpisujący generuje człowiek** (§5, §10.3) — narzędzie, które loguje, nie może go dotknąć. Do wykonania przez operatora, nie przez automat. |
-| `nextest` | ⏳ Do podmiany za `cargo test`; korzyść to równoległość i czytelniejszy raport, nie nowa zdolność. Niski priorytet. |
-| `miri` | ⛔ **Świadomie pominięty** — E-OS-owy kod Rust ma **zero** bloków `unsafe` (pilnuje tego kontrola 4), a `miri` bada właśnie UB w `unsafe`. Uruchamianie go na vendorowanym drzewie oznaczałoby utrzymywanie dywergencji (ADR-0003). |
-| `cargo-fuzz` | ⛔ **Świadomie pominięty tutaj** — parsery warte fuzzowania (`pkgar`, RedoxFS, `redox_installer`) mieszkają w **forkach**, nie w tym repo. Miejsce dla nich to CI forka. |
-| `cargo-audit` | ⛔ Nadmiarowy wobec `cargo-deny check advisories`; lokalnie w `local-scan.sh`. |
-
-### Wymaga człowieka, nie automatu
-
-- **`eos-setup-mirrors.sh --apply`** — potrzebuje PAT GitHuba. Nigdy nie podawaj tokenu
-  narzędziu; to zadanie operatora (§5).
-- **Klucz podpisujący** — generowanie jest **celowo** niezautomatyzowane.
-
-### Nadal niezweryfikowane
-
-- **Odtwarzalność builda** — ten sam commit → ten sam obraz bit w bit. `.config` i
-  `cookbook.lock` są już **śledzone** (`U-168`, `U-169`), więc główna przeszkoda zniknęła,
-  ale samego porównania **nikt jeszcze nie wykonał**. Dopóki nie wykona — to nie jest fakt.
-- **SBOM obrazu** — `sbom` pokrywa manifesty Rusta; SBOM-y obrazów w `sbom/` nadal
-  powstają ręcznie.
-- **Podpisane ISO** — obraz to `harddrive.img`; ISO nie jest publikowane.
-
-**Forki nie mają automatycznego lustra.** Push wymaga **dwóch** poleceń — na GitLab i na GitHub.
-Repozytorium główne ma działające lustro; forki nie.

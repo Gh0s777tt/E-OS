@@ -510,5 +510,27 @@ else
   cannot "check 20 could not run: python3 is missing -- CHANGELOG sections are UNCHECKED"
 fi
 
+# 21) CLAUDE.md's own cross-references resolve, and its sections are in order. This is the
+# document every other document and every merge request cites, and it had accumulated 14
+# citations to sections that do not exist -- survivors of an older numbering -- plus a
+# `## 19. TODO` sitting physically after `## 21`. Nothing noticed, because no gate had ever
+# read the contract's own references. A contract that cites itself wrongly teaches a reader
+# to stop following its citations, which is worse than having none. Negative test:
+# `python3 scripts/eos-check-claude-refs.py --selftest` -- five mutations, each rejected by
+# the rule it breaks.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-claude-refs.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*claude-refs: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 21 could not run: ${out##*FAIL (instrument): }"
+  else
+    printf '%s\n' "$out"
+    bad "CLAUDE.md cites sections that do not exist, or its sections are out of order"
+  fi
+else
+  cannot "check 21 could not run: python3 is missing -- the contract's references are UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
