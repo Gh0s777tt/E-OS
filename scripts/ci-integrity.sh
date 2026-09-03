@@ -548,5 +548,29 @@ else
   else bad "an E-OS-authored shell script does not set -u and pipefail"; fi
 fi
 
+# 23) One Definition of Done, and every copy points at it. Measured 2026-09-03: three lists
+# claimed the role -- CLAUDE.md §6 with 18 items, CONTRIBUTING.md with a different 14, and the
+# merge-request template with 8 while its header said it WAS "the Definition of Done from
+# CLAUDE.md" and cited "the three gates", a concept the contract does not contain. Three copies
+# of one rule is three answers to one question, and a reader who ticks the eight-item list
+# believes they are finished. The gate does NOT diff item text (the contract is Polish and
+# CONTRIBUTING is English -- a textual diff would be noise, and a gate that cries wolf gets
+# routed around); it requires each copy to say where the whole list lives, and refuses the
+# specific claim of being it. Negative test: `python3 scripts/eos-check-dod-refs.py --selftest`
+# -- 7 cases, including the one the FIRST version of this gate let through.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-dod-refs.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*dod-refs: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 23 could not run: ${out##*FAIL (instrument): }"
+  else
+    printf '%s\n' "$out"
+    bad "a copy of the Definition of Done does not point at CLAUDE.md §6"
+  fi
+else
+  cannot "check 23 could not run: python3 is missing -- the checklist copies are UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail

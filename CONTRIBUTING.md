@@ -87,6 +87,12 @@ is the most valuable artefact in the repository.
 
 ## Pull / merge request checklist
 
+**The complete Definition of Done is `CLAUDE.md` §6 — 18 items. What follows is not a shorter
+version of it; it is the set of COMMANDS to run and the output to paste.** Measured 2026-09-03:
+this list carried 14 items, the merge-request template carried 8 and claimed to *be* the
+Definition of Done, and §6 carried 18. Three copies of one rule is three answers to one question,
+and the copies had already drifted apart (ROADMAP `RH-011`). Read §6; run these.
+
 Copy this into the MR description and fill it in. **Paste real command output, not summaries.**
 
 ```markdown
@@ -97,7 +103,8 @@ Copy this into the MR description and fill it in. **Paste real command output, n
 - [ ] `cargo test --release` (in container) → <paste result line>
 - [ ] `cd tools/eos-repo-sign && cargo test` → <paste result line>
 - [ ] `bash scripts/ci-integrity.sh` → `integrity: PASS`
-- [ ] `shellcheck -f gcc $(git ls-files 'scripts/*.sh')` → no errors
+- [ ] `bash scripts/verify.sh --fast` → the `shell-lint` stage PASS (it lints every
+      E-OS-owned script, not one glob — see `RH-014`)
 - [ ] `osv-scanner scan source --lockfile Cargo.lock` → no new findings
 - [ ] Artefact verified, not just the exit code (CLAUDE.md §5.3): <how>
 
