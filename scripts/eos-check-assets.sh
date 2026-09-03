@@ -79,7 +79,10 @@ run_check() {  # runs inside a git work tree; prints findings; returns 0/1/2
 
 if [ "${EOS_ASSETS_SELFTEST:-0}" = "1" ]; then
   T="$(mktemp -d)"; ( cd "$T" && git init -q . && mkdir -p assets docs && printf 'x' > assets/a.png && printf 'x' > assets/b.png \
-      && printf 'y' > assets/orphan.png && printf 'see a.png and b.png\n' > docs/x.md && git add -A && git -c user.email=t@t -c user.name=t commit -qm t )
+      && printf 'y' > assets/orphan.png && printf 'see a.png and b.png\n' > docs/notes.txt && git add -A && git -c user.email=t@t -c user.name=t commit -qm t )
+  # (notes.txt, not a .md name: check 14 scans this script once it is tracked and a literal
+  #  `docs/<name>.md` here reads as a dead reference. Found by local-gates on MR !79 -- the local
+  #  verify.sh ran while this file was still untracked, the P-9 class the doc-paths gate documents.)
   ( cd "$T" && run_check ); rc=$?
   rm -rf "$T"
   if [ "$rc" -eq 1 ]; then echo "selftest ok: duplicate + orphan detected, exit 1"; exit 0; fi

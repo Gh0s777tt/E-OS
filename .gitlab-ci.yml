@@ -56,7 +56,10 @@ local-gates:
   variables:
     GIT_DEPTH: "0"
   script:
-    - export PATH="$HOME/.cargo/bin:/opt/homebrew/bin:$PATH"
+    # rustup on this host is Homebrew's: cargo lives in /opt/homebrew/opt/rustup/bin, NOT in
+    # ~/.cargo/bin (measured on the job's first run: "cargo: command not found", 6 stages SKIPPED).
+    - export PATH="$HOME/.cargo/bin:/opt/homebrew/opt/rustup/bin:/opt/homebrew/bin:$PATH"
+    - command -v cargo rustup cargo-llvm-cov cargo-deny shellcheck gitleaks osv-scanner semgrep
     # No `| tee`: a pipe would return tee's status (CLAUDE.md P-3). Capture, print, then exit
     # with verify.sh's own status; the artefact check below is the second, independent judge.
     - 'bash scripts/verify.sh > verify.log 2>&1; rc=$?; cat verify.log; [ "$rc" -eq 0 ]'
