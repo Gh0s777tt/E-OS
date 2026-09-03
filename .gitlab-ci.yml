@@ -7,6 +7,26 @@
 #   * HEAVY (self-hosted runner, tag `eos-heavy`): full OS image build + QEMU
 #     smoke test, only on tags / schedules (see `build-image`). Register your own
 #     runner — see docs/operations/ci.md. Never runs on shared runners.
+# ONE PIPELINE PER CHANGE, NOT TWO. Measured 2026-09-03: every push to a branch with an
+# open merge request produced BOTH a `push` pipeline and a `merge_request_event` pipeline,
+# and both ran the same jobs. On shared runners that is invisible (they fail on quota
+# either way), but it stops being invisible the moment a job does real work: in the
+# product repositories the same ~20-minute cross build ran twice per push on a runner with
+# `concurrent = 1`, so the duplicate did not merely waste time, it DELAYED every other job
+# behind it — including the 2-minute `local-gates` this file depends on.
+#
+# The middle rule is the whole mechanism: when a branch pipeline would run while that
+# branch has an open merge request, refuse it and let the merge-request pipeline be the one
+# that runs. Without that rule the third rule matches everything and nothing is deduplicated.
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUEST_IID
+      when: never
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_BRANCH
+
 variables:
   # Full clone so gitleaks scans the WHOLE history, not just the last few commits.
   GIT_DEPTH: 0
