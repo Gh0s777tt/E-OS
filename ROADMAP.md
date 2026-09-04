@@ -1294,7 +1294,7 @@ platform asymmetry, which is a fact about the systems rather than a preference:
 
 | target | on-demand scan | on-access scan |
 |---|---|---|
-| Redox (E-OS) | buildable today — walk, hash, match, report | **no** — needs a file-event bus the kernel does not have (§7.3) |
+| Redox (E-OS) | **measured 2026-09-04, both arches**: `aho-corasick` + `memchr` + `blake3` + `walkdir` + `regex` — aarch64 **7.73 s / 8.01 s**, x86_64 **31.51 s** | **no** — needs a file-event bus the kernel does not have (§7.3) |
 | Linux | buildable today | buildable — `fanotify`, user-space |
 | Windows | buildable today | needs a **signed kernel minifilter** — ⚙️/🔑, an operator and legal step, not a coding one |
 
@@ -1308,6 +1308,29 @@ builds that `PR-008` now packages, and the Redox scanner needs a matcher small e
 cross-compile — which is a smaller problem than it sounds, because Redox has no on-access path
 anyway. ClamAV bindings remain refused: GPL-2 C in an AGPL tree.
 
+**The counter-check is what makes the two rows above worth reading (§5.9 level 4).** A build that
+succeeds proves nothing on its own — a toolchain that had silently fallen back to the host would
+have compiled the scanner stack just as happily. So the same command was run on the crate that
+*must* fail: `yara-x` on `aarch64-unknown-redox` gives `compile_error!("unsupported platform")`
+twice, `cannot find function `sigaltstack` in crate `libc``, `SS_DISABLE`, and **exit 101**. Those
+symbols are wasmtime's signal-based trap handling, so the compiler named the same cause the
+dependency graph had implied. The instrument refuses for *platform* reasons, which is what licenses
+reading its acceptance as a platform result.
+
+**Both Redox arches are now measured, and closing that gap produced a better finding than the
+gap did.** The first `x86_64-unknown-redox` attempt **failed**, and the failure was the probe's
+fault rather than the platform's: `blake3` tried to assemble `blake3_sse2_x86-64_unix.S` with the
+**host** `cc`, because a bare `cargo build --target …` inherits `PATH` and the cookbook's cross
+toolchain was not on it. `rustup toolchain link` had supplied a correct `std`, so the build started
+and looked entirely credible. With `prefix/x86_64-unknown-redox/gcc-install/bin` on `PATH` and `CC`
+/ `AR` / `CC_<target>` / `CARGO_TARGET_<TARGET>_LINKER` set the way the cookbook sets them, the same
+stack finishes in **31.51 s** — and `yara-x` still refuses on that arch with the same
+`compile_error!("unsupported platform")`.
+
+That false negative was **one export away** from being published as "blake3 does not build for
+Redox". It is recorded as trap **P-17** in `CLAUDE.md` §8, because it is the `PR-008` lesson in a new
+costume: *measure the command that runs in production, not the equivalent one you typed by hand.*
+
 #### 7.5.4 The register
 
 | id | item | today | to build | size |
@@ -1317,8 +1340,8 @@ anyway. ClamAV bindings remain refused: GPL-2 C in an AGPL tree.
 | `PR-015` | **The four new product repositories exist and build** *(created 2026-09-03, owner decision Q13)* — `eos-sheets`, `eos-slides`, `eos-drive`, `eos-store` on GitLab with GitHub mirrors, generated from one skeleton so they cannot drift apart; each pinned in `recipes/gui/<name>` and registered in `repos.toml`. **Not yet in any image**: they are skeletons, and shipping a window with a status line would be shipping a claim. `[packages.*]` entries land when each has a feature worth launching | ✅ repositories · 🔴 products | S |
 | `PR-003` | **"Antivirus" on E-OS** *(decided 2026-09-03 — Q12; **reversed 2026-09-04 — Q16**)* — the owner has asked for a separate antivirus, so the second branch of this decision was taken: the word gets used because the thing gets built. The row stays as the *record of the decision*; the scanner is `PR-020` | no engine, no hook, no row | `PR-020` scheduled; until it ships, no page prints the word | S (decision) |
 | `PR-004` | **E-OS Guard as a standalone product** — `eos-guard` repo back in the image as an app (`PR-002`) *and* its engine kept in `eos-control`'s Security tab from one crate, not two copies | the engine exists twice (guard binary; `eos-control/src/security/`) | make `eos-guard` a `lib` + `bin`; `eos-control` depends on the lib; FDE/RAID/repo-status lines from §21 proposal 3 | M |
-| `PR-004b` | **Signature engine for Guard on hosts with on-access hooks** (Windows minifilter / Linux `fanotify`) — quarantine directory, signed rule bundle over the `R-703` channel. **`yara-x` is a host-only candidate, measured 2026-09-04**: it pulls 286 crates including `wasmtime 45.0.3` and `cranelift-codegen 0.132.3` as *normal* dependencies, because it JITs rules to WebAssembly — fine on Linux and Windows, not a candidate for `*-unknown-redox` | nothing | Windows kernel-side hook is **not Rust-only** and is ⚙️/🔑 (a signed driver); Linux `fanotify` is user-space | L (Linux) / XL (Windows) |
-| `PR-020` | **A separate antivirus product** *(owner decision Q16, 2026-09-04)* — its own repository and its own product page, **not** a mode of Guard, which stays what it is (`PR-004`). Sized per platform because the platforms differ in kind, not in degree: **on-demand scanning** (walk, hash, match, report) is buildable on all three targets today; **on-access scanning** needs a file-event hook, which exists on Linux (`fanotify`) and Windows (a minifilter, ⚙️/🔑 — a signed kernel driver, an operator and legal step, not a coding one) and **does not exist on Redox at all** — the missing primitive is a file-event bus (§7.3), so on Redox the honest product is on-demand plus the integrity baseline Guard already keeps | nothing | repository; on-demand scanner shipped for the three targets `PR-008` now packages; rule format and a signed rule bundle over `R-703`; `fanotify` build for Linux; Redox stays on-demand until a file-event bus exists | L (on-demand) / XL (on-access) |
+| `PR-004b` | **Signature engine for Guard on hosts with on-access hooks** (Windows minifilter / Linux `fanotify`) — quarantine directory, signed rule bundle over the `R-703` channel. **`yara-x` is a host-only candidate, and this was measured twice 2026-09-04**: it pulls 286 crates including `wasmtime 45.0.3` and `cranelift-codegen 0.132.3` as *normal* dependencies, because it JITs rules to WebAssembly. The dependency graph **predicted** it would not cross-compile; `cargo build --target aarch64-unknown-redox` then **proved** it — `compile_error!("unsupported platform")` twice, plus `cannot find function `sigaltstack` in crate `libc`` and `SS_DISABLE`, exit **101**. Those two symbols are wasmtime's signal-based trap handling, so the compiler named the same cause the graph implied. Fine on Linux and Windows, not a candidate for `*-unknown-redox` | nothing | Windows kernel-side hook is **not Rust-only** and is ⚙️/🔑 (a signed driver); Linux `fanotify` is user-space | L (Linux) / XL (Windows) |
+| `PR-020` | **A separate antivirus product** *(owner decision Q16, 2026-09-04)* — its own repository and its own product page, **not** a mode of Guard, which stays what it is (`PR-004`). Sized per platform because the platforms differ in kind, not in degree: **on-demand scanning** (walk, hash, match, report) is buildable on all three targets today — **measured 2026-09-04 on BOTH Redox arches**, not assumed: `aho-corasick` + `memchr` + `blake3` + `walkdir` + `regex` build in **7.73 s / 8.01 s** on `aarch64-unknown-redox` and in **31.51 s** on `x86_64-unknown-redox`, each in the cookbook's own toolchain for that prefix; **on-access scanning** needs a file-event hook, which exists on Linux (`fanotify`) and Windows (a minifilter, ⚙️/🔑 — a signed kernel driver, an operator and legal step, not a coding one) and **does not exist on Redox at all** — the missing primitive is a file-event bus (§7.3), so on Redox the honest product is on-demand plus the integrity baseline Guard already keeps | nothing | repository; on-demand scanner shipped for the three targets `PR-008` now packages; rule format and a signed rule bundle over `R-703`; `fanotify` build for Linux; Redox stays on-demand until a file-event bus exists | L (on-demand) / XL (on-access) |
 | `PR-005` | **Enable/disable products at install time** — the wizard's package-selection screen writes the chosen `[packages.*]` set; the installer already takes a package list (`eos-installer` `src/config/package.rs` `PackageConfig`) | the installer *has* a package model; no screen chooses from it; `installer_tui.rs:17` lists "preconfigured packages" as a prompt to add | M3 wizard screen (§6.4) with a product list read from `PR-001`'s generator; unattended answer file (`R-616b`) carries the same set | M |
 | `PR-006` | **Products pin `eos-ui` from GitLab, not the GitHub mirror** (`eos-notes/Cargo.toml:18`, `eos-control/Cargo.toml:36`) | mirror pinned | repoint, bump, `pins --strict`; add a `ci-integrity` check: no `github.com/Gh0s777tt` in any type-A `Cargo.toml` | S |
 | `PR-007` | **Host window backend for the Slint products** — `backend-winit` feature per crate behind `cfg(not(target_os = "redox"))`, `BackendSelector` in `eos-ui::init` | `cargo check` clean on macOS; `run` has no platform | one feature line + one call per crate; measure by launching Notes on Linux and macOS; Windows **[UNVERIFIED]** | S |
