@@ -106,7 +106,23 @@ keep_work() {
   [ "${EOS_SMOKE_KEEP_IMAGES:-0}" = "1" ] || \
     echo "install-smoke:   disk images NOT kept — re-run with EOS_SMOKE_KEEP_IMAGES=1 for those"
 }
-cleanup() { [ -n "$QPID" ] && kill "$QPID" 2>/dev/null; rm -rf "$WORK"; }
+# EOS_SMOKE_KEEP_IMAGES=1 keeps the disks after ANY outcome, not just a failure. A green run
+# produces exactly one artefact worth reading -- the installed target -- and deleting it makes
+# every claim whose evidence lives INSIDE that disk unfalsifiable. `PR-018` is the case that
+# forced this: proving an application was declined means showing its files are absent from a
+# system that otherwise booted normally, and there is nowhere else to look.
+cleanup() {
+  [ -n "$QPID" ] && kill "$QPID" 2>/dev/null
+  if [ "${EOS_SMOKE_KEEP_IMAGES:-0}" = "1" ] && [ -d "$WORK" ]; then
+    dest="${EOS_SMOKE_KEEP:-${EOS_SMOKE_WORK:-$(dirname "$IMG")}}/install-smoke-images"
+    mkdir -p "$dest" 2>/dev/null
+    for f in target.img src.img stage1.log stage2.log; do
+      [ -e "$WORK/$f" ] && mv -f "$WORK/$f" "$dest/" 2>/dev/null
+    done
+    echo "install-smoke:   disk images kept in $dest (EOS_SMOKE_KEEP_IMAGES=1)"
+  fi
+  rm -rf "$WORK"
+}
 trap cleanup EXIT
 
 # The source image is COPIED: the installer writes to the target, but the run also sets a
