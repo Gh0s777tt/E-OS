@@ -18,6 +18,11 @@
 SC-1 = 100.0
 # A crate outside the scanners is a crate nobody watches.
 SC-3 = 100.0
+# One crate has parsing code and it has a fuzz target, so the floor is what the rule means: a NEW
+# crate that parses attacker-controlled bytes and ships no target turns this red the day it lands.
+# Credit is per crate, not per file -- counting per file would demand a target per source file and
+# reward splitting a parser in two.
+SC-2 = 100.0
 # The first manifest exists (TQ-007: tools/eos-repo-sign/tests/inputs.toml, four inputs), so the
 # floor rises to what the rule always meant: EVERY declared input has a hostile-value test. It sat
 # at 0.0 while nothing was declared, because a proxy with nothing to measure must not report a
