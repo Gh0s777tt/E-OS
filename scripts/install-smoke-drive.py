@@ -205,20 +205,46 @@ class Console:
         Note though that a live-mode ISO run STILL took the slow path here, so those
         variables are evidently not reaching the installer process -- unexplained, and not
         to be assumed fixed by booting live.
+
+        WHY THE KEY WAITS FOR THE MENU INSTEAD OF SLEEPING 12 s. The menu blocks in the
+        firmware's WaitForKey with no timeout, and a key delivered BEFORE the menu exists is
+        simply lost: the guest then sits at the menu, silent, until the budget runs out, with
+        QEMU alive -- exactly the signature of the 2026-09-04 20:03 run, which spent 90
+        minutes in stage 2 while the same image passed in 104 s at 21:59. Measured on a copy of
+        an installed disk with this stage-2 command line: idle host -> menu at 1.8-2.6 s and a
+        blind Enter at ~13 s works; 64 CPU hogs on the host -> the menu only appears at ~20 s,
+        the 13-s Enter is lost, and the boot never continues. The fixed sleep was the one step
+        EOS_SMOKE_SLOW did not scale. So: watch the serial line for the menu's own text
+        ("Arrow keys and enter select mode" -- printed on serial by every boot of this
+        bootloader, installer medium and installed disk alike), press the keys only then, and
+        confirm the boot moved on (the bootloader prints "usr/lib/boot/kernel" as it loads
+        the kernel); if it did not, press Enter again. The blind sleep stays as the fallback
+        for a bootloader that prints no menu text, so an older image still gets its keystroke.
         """
-        time.sleep(12)
-        try:
-            m = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            m.connect(monitor_path)
-            time.sleep(0.3)
-            if toggle_live:
-                m.sendall(b"sendkey l\n")
-                time.sleep(1.0)
-            m.sendall(b"sendkey ret\n")
-            time.sleep(0.5)
-            m.close()
-        except OSError:
-            pass
+        seen_menu = self.expect(r"Arrow keys and enter select mode", "the bootloader's mode menu",
+                                window=w(60), optional=True)
+        if not seen_menu:
+            print("install-smoke:   (menu text not seen -- pressing Enter blind after 12 s)")
+            time.sleep(12)
+        for attempt in range(1, 4):
+            try:
+                m = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                m.connect(monitor_path)
+                time.sleep(0.3)
+                if toggle_live and attempt == 1:
+                    m.sendall(b"sendkey l\n")
+                    time.sleep(1.0)
+                m.sendall(b"sendkey ret\n")
+                time.sleep(0.5)
+                m.close()
+            except OSError:
+                pass
+            # The proof that the key landed is the boot continuing, not the send succeeding:
+            # the monitor accepts a keystroke whether or not anything is listening for it.
+            if self.expect(r"usr/lib/boot/kernel", "the kernel loading after the menu",
+                           window=w(15), optional=True):
+                return
+            print("install-smoke:   the menu did not go away after Enter #%d -- pressing again" % attempt)
 
 
 def login(con, attempts=3):
@@ -563,7 +589,8 @@ def verify_fde(con, monitor_path):
     This mode must NOT call dismiss_boot_menu() before it starts, and the order below is the
     measured one, not the obvious one (2026-09-02):
 
-      * dismiss_boot_menu() sleeps a fixed 12s and then presses Enter through the QEMU
+      * dismiss_boot_menu() waits for the menu text on the serial line (blind 12 s sleep
+        only as a fallback) and then presses Enter through the QEMU
         monitor. On an ENCRYPTED disk the bootloader is sitting on the password prompt at
         that moment, so that Enter is submitted as an EMPTY password and burns an attempt --
         visible in the console as "(1/10)" with ZERO asterisks followed at once by "(2/10)".
