@@ -271,16 +271,96 @@ fn verify(public_path: &str, file_path: &str, classical_only: bool) {
         );
     }
 
-    if ed_ok && pq_ok {
+    if hybrid_ok(ed_ok, pq_ok) {
         println!("VERIFIED: {file_path}");
     } else {
         die("verification FAILED");
     }
 }
 
+/// Both signatures must verify. This is the whole point of a hybrid signature, and it is a
+/// separate function only so that a test can reach it.
+///
+/// It was inline until 2026-09-04, when `cargo-mutants` reported
+/// `replace && with || in verify` as MISSED -- meaning nothing in the suite could tell
+/// "both signatures verified" from "either signature verified". A manifest carrying one good
+/// signature and one forged one would have passed, which is precisely the attack the second
+/// algorithm is there to stop: ed25519 against a future quantum adversary, ML-DSA against a
+/// classical break of ed25519. `||` would have made the pair no stronger than its weaker half.
+///
+/// The `--classical-only` path sets `pq_ok = true` deliberately; that escape is the caller's
+/// decision and is logged there, not weakened here.
+fn hybrid_ok(ed_ok: bool, pq_ok: bool) -> bool {
+    ed_ok && pq_ok
+}
+fn main() {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.first().map(|s| s.as_str()) {
+        Some("keygen") if args.len() == 3 => keygen(&args[1], &args[2]),
+        Some("sign") if args.len() == 3 => sign(&args[1], &args[2]),
+        Some("verify") if args.len() == 3 => verify(&args[1], &args[2], false),
+        Some("verify") if args.len() == 4 && args[3] == "--classical-only" => {
+            verify(&args[1], &args[2], true)
+        }
+        _ => {
+            eprintln!(
+                "usage:\n  \
+                 eos-repo-sign keygen <secret.toml> <public.toml>\n  \
+                 eos-repo-sign sign   <secret.toml> <file>\n  \
+                 eos-repo-sign verify <public.toml> <file> [--classical-only]"
+            );
+            exit(2);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{get, hex_decode, hex_encode, parse_kv};
+    use super::{get, hex_decode, hex_encode, hybrid_ok, parse_kv};
+
+    /// The truth table, exhaustively. Three of these four rows are what `&&` gives and `||` does
+    /// not, so this is the test that kills the mutant `cargo-mutants` found surviving in
+    /// `verify()`: without it, an index needed only ONE of its two signatures to be good.
+    #[test]
+    fn hybrid_requires_both_signatures_not_either() {
+        assert!(hybrid_ok(true, true), "both good must verify");
+        assert!(
+            !hybrid_ok(true, false),
+            "a forged ML-DSA signature must NOT verify"
+        );
+        assert!(
+            !hybrid_ok(false, true),
+            "a forged ed25519 signature must NOT verify"
+        );
+        assert!(!hybrid_ok(false, false), "neither good must not verify");
+    }
+
+    /// `hex_decode` builds each byte as `(high << 4) | low` from two nibbles, and every arithmetic
+    /// step in that had survived mutation: `-` could become `+` or `/`, and `|` could become `&`
+    /// or `^`, with no test noticing. These vectors pin each one. `0x10` and `0xf0` are the
+    /// interesting cases -- with `&` or `^` in place of `|` they decode to something else, and
+    /// with the wrong nibble arithmetic the letter digits land on the wrong values.
+    #[test]
+    fn hex_decode_pins_the_nibble_arithmetic() {
+        assert_eq!(hex_decode("00").unwrap(), vec![0x00]);
+        assert_eq!(hex_decode("0f").unwrap(), vec![0x0f], "low nibble alone");
+        assert_eq!(
+            hex_decode("f0").unwrap(),
+            vec![0xf0],
+            "high nibble alone: << 4 then |"
+        );
+        assert_eq!(
+            hex_decode("10").unwrap(),
+            vec![0x10],
+            "| must not be & or ^"
+        );
+        assert_eq!(hex_decode("a5").unwrap(), vec![0xa5], "a..f maps to 10..15");
+        assert_eq!(hex_decode("A5").unwrap(), vec![0xa5], "and so does A..F");
+        assert_eq!(hex_decode("39").unwrap(), vec![0x39], "0..9 maps to 0..9");
+        // The digit boundaries, where `c - b'0'` going wrong is most visible.
+        assert_eq!(hex_decode("09").unwrap(), vec![0x09]);
+        assert_eq!(hex_decode("ff").unwrap(), vec![0xff]);
+    }
 
     #[test]
     fn hex_roundtrip() {
@@ -320,6 +400,31 @@ mod tests {
         // slice (the reason hex_decode operates on bytes, not char slices).
         assert!(hex_decode("é").is_err()); // 0xc3 0xa9 — even length, invalid nibble
         assert!(hex_decode("aé").is_err()); // odd length
+    }
+
+    /// `parse_kv` skips a line that is empty OR a comment OR a section header. `cargo-mutants`
+    /// found both `||` in that condition surviving: with `&&` a line would have to be all three
+    /// at once to be skipped, so comments and section headers would be parsed as key/value pairs.
+    /// The existing test could not see it because its comment and section lines contained no `=`,
+    /// and `split_once('=')` dropped them anyway -- the skip was doing nothing observable.
+    ///
+    /// These lines DO contain `=`, which is what makes the difference visible. A section header
+    /// like `[sig = forged]` reaching the map is not cosmetic in a file that decides what a
+    /// signature covers.
+    #[test]
+    fn parse_kv_skips_comments_and_sections_that_contain_equals() {
+        let text = "# note = this is a comment\n[section = header]\nreal = \"value\"\n";
+        let m = parse_kv(text);
+        assert_eq!(m.len(), 1, "only the real pair belongs in the map: {m:?}");
+        assert_eq!(m.get("real").map(String::as_str), Some("value"));
+        assert!(
+            !m.keys().any(|k| k.starts_with('#')),
+            "a comment became a key"
+        );
+        assert!(
+            !m.keys().any(|k| k.starts_with('[')),
+            "a section header became a key"
+        );
     }
 
     #[test]
@@ -363,26 +468,5 @@ mod tests {
         }
 
         std::fs::remove_file(&path).unwrap();
-    }
-}
-
-fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-    match args.first().map(|s| s.as_str()) {
-        Some("keygen") if args.len() == 3 => keygen(&args[1], &args[2]),
-        Some("sign") if args.len() == 3 => sign(&args[1], &args[2]),
-        Some("verify") if args.len() == 3 => verify(&args[1], &args[2], false),
-        Some("verify") if args.len() == 4 && args[3] == "--classical-only" => {
-            verify(&args[1], &args[2], true)
-        }
-        _ => {
-            eprintln!(
-                "usage:\n  \
-                 eos-repo-sign keygen <secret.toml> <public.toml>\n  \
-                 eos-repo-sign sign   <secret.toml> <file>\n  \
-                 eos-repo-sign verify <public.toml> <file> [--classical-only]"
-            );
-            exit(2);
-        }
     }
 }

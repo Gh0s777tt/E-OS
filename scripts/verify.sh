@@ -192,7 +192,7 @@ missing_tool() {  # tool install-hint
 
 is_slow() {
   case "$1" in
-    coverage|coverage-report|cargo-deny|osv-scanner|semgrep) return 0 ;;
+    coverage|coverage-report|mutants|cargo-deny|osv-scanner|semgrep) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -244,7 +244,12 @@ stage_format() {
 # ══ lint ══════════════════════════════════════════════════════════════════════════════
 stage_clippy() {
   have cargo || { missing_tool cargo "install rustup (rust-toolchain.toml pins the version)"; return "$CANNOT"; }
-  cargo clippy --locked --manifest-path "$M_OWNED" -- -D warnings || return 1
+  # --all-targets, because without it clippy never builds the test cfg and TEST CODE IS
+  # NEVER LINTED. Measured 2026-09-04: adding the flag immediately found a real lint that
+  # had been there all along (`items_after_test_module`), and the product repositories have
+  # used --all-targets since the day they were scaffolded -- so the meta-repository was the
+  # one place holding its own tests to a lower standard than the code they test.
+  cargo clippy --locked --all-targets --manifest-path "$M_OWNED" -- -D warnings || return 1
 }
 
 # .gitlab-ci.yml `shell-lint`, split kept exactly as it is there: errors BLOCK, warnings
@@ -492,6 +497,14 @@ stage_coverage() {
 # ══ the project's own gates ═══════════════════════════════════════════════════════════
 # Called, never reimplemented: these scripts ARE the rules, and a YAML or bash paraphrase
 # of them is a second definition that drifts out of step in silence.
+stage_mutants() {
+  # Coverage says a line RAN; this says a test would have NOTICED it going wrong. The pair is the
+  # point: measured 2026-09-04, this crate had 41.06 % line coverage and a mutation score of
+  # 52.2 %, and among the survivors was `replace && with || in verify` -- the `ed_ok && pq_ok`
+  # that is the entire guarantee of a hybrid signature. Covered, and not checked.
+  bash scripts/eos-mutation-score.sh || return $?
+}
+
 stage_coverage_report() {
   # TQ-001. The `coverage` stage above measures and gates; this one PUBLISHES, so the number stops
   # living only in a terminal log that scrolls away. A measurement nobody can look up is a
@@ -700,6 +713,7 @@ run_stage build       stage_build
 run_stage test        stage_test
 run_stage coverage    stage_coverage
 run_stage coverage-report stage_coverage_report
+run_stage mutants stage_mutants
 run_stage sec-coverage  stage_security_coverage
 run_stage integrity   stage_integrity
 run_stage hooks       stage_hooks
