@@ -18,5 +18,13 @@
 SC-1 = 100.0
 # A crate outside the scanners is a crate nobody watches.
 SC-3 = 100.0
-# No tests/inputs.toml exists yet; the floor rises with the first one (TQ-007).
-SC-4 = 0.0
+# The first manifest exists (TQ-007: tools/eos-repo-sign/tests/inputs.toml, four inputs), so the
+# floor rises to what the rule always meant: EVERY declared input has a hostile-value test. It sat
+# at 0.0 while nothing was declared, because a proxy with nothing to measure must not report a
+# pass -- and 100.0 now is not a boast. It is the only honest floor for a rule of the form "every
+# X has a Y": declaring an input is admitting it needs one, so the next input added without a test
+# turns this red the moment it is declared.
+SC-4 = 100.0
+# SC-5 has no floor here on purpose: the mutation score is gated by scripts/eos-mutation-score.sh
+# against mutation-floor.txt, which is the file a person edits when they raise it. Two floors for
+# one number is two answers to one question.

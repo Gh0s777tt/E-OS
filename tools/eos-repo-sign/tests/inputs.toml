@@ -1,0 +1,38 @@
+# Externally facing inputs of eos-repo-sign, and the test that feeds each one a hostile value.
+#
+# WHAT COUNTS AS AN INPUT HERE. Anything this tool parses that it did not itself produce, on a path
+# an attacker could influence. That is the public-key file, the signature file, and the manifest
+# being verified -- all three arrive over the network or off a mirror in the normal case, and all
+# three are read BEFORE any signature has been checked. Parsing happens first; that is unavoidable
+# and it is exactly why it is the surface worth attacking.
+#
+# WHY THE TESTS TARGET THE PARSING LAYER AND NOT `verify()`. `verify()` calls `die()`, which exits
+# the process, so a hostile-input test against it would be a test of `std::process::exit`. The
+# decisions worth defending -- "is this hex", "is this field present", "is this the right length"
+# -- live in `hex_decode`, `parse_kv` and `get`, which are pure and reachable. Each entry below
+# names the test that feeds that specific input something malformed and asserts a REFUSAL rather
+# than a panic, a silent zero, or a wrong-length key sliding through.
+#
+# Read by `scripts/eos-security-coverage.py` as proxy SC-4 (ROADMAP `TQ-007`). A declared input
+# with no `negative_test` counts against the score, which is the point: declaring an input is
+# admitting it needs one.
+
+[input.public_key_file]
+description = "id_ed25519.pub.toml — read before anything is verified, off a mirror"
+parsed_by = "parse_kv, get, hex_decode"
+negative_test = "hostile_public_key_fields_are_refused"
+
+[input.signature_file]
+description = "<file>.sig — the ed25519 and ml-dsa-65 signatures, attacker-supplied by definition"
+parsed_by = "parse_kv, get, hex_decode"
+negative_test = "hostile_signature_fields_are_refused"
+
+[input.hex_field]
+description = "every key and signature value is hex; malformed hex must not become bytes"
+parsed_by = "hex_decode"
+negative_test = "hex_decode_refuses_malformed_input"
+
+[input.key_value_document]
+description = "the flat key = \"value\" format both files share"
+parsed_by = "parse_kv"
+negative_test = "parse_kv_survives_hostile_documents"
