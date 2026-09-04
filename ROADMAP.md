@@ -478,10 +478,11 @@ governs cites this list.
 | 9 | cloud platform name | **E-Cloud** | §11.4 |
 | 10 | `CS-009` before Tier 1 | **agreed** | `CS-009` |
 | 11 | hypervisor | **RFC to upstream** before code | `CS-201` |
-| 12 | products | **per recommendation**: E-OS Guard ships, `eos-sysmon` archived, no "antivirus", `R-D06` 🟡 until `R-F30` | `PR-002`, `PR-003`, `PR-004` |
+| 12 | products | **per recommendation**: E-OS Guard ships, `eos-sysmon` archived, no "antivirus", `R-D06` 🟡 until `R-F30` — **the "no antivirus" half was superseded by Q16 on 2026-09-04**; the rest stands | `PR-002`, `PR-003`, `PR-004` |
 | 13 | four new repositories | **create now and keep in sync** — created on both hosts | §7.5.4, `RH-*` |
 | 14 | `docs/prompts/` | **outside the repository** — moved to the owner's local storage | `RH-009` |
 | 15 | deletion list | **delete everything unnecessary** — executed, archived locally first | §11.7.1 |
+| 16 | Guard and antivirus *(asked and answered 2026-09-04)* | **Guard stays a separate product, per the recommendation** — and **a separate antivirus is to be built**, as its own product rather than a mode of Guard. This reverses the "no antivirus" half of Q12 | `PR-004`, `PR-004b`, `PR-020` |
 
 ### 3.1 Short term (1–3 months) — `S-1`…`S-20`
 
@@ -1281,11 +1282,31 @@ What it is **not** is an antivirus in the Windows sense: it has no on-access sca
 engine, no quarantine, no update channel for signatures. On E-OS the honest equivalent of "antivirus"
 is the package-bytes gate that exists (`V2-MS13`: blake3 enforced from the signed index) plus the
 integrity baseline; the missing primitive for on-access scanning is a file-event bus, which Redox
-does not have (§7.3 table: *no hot-plug/uevent event bus*). **Recommendation:** ship the product as
+does not have (§7.3 table: *no hot-plug/uevent event bus*). **Recommendation, as given 2026-09-03:** ship the product as
 **E-OS Guard**, describe it as *integrity and permission monitoring*, and never print the word
-"antivirus" on a page until `PR-004b` below exists. On Windows/Linux, where on-access hooks exist
-(minifilter, `fanotify`), a Guard build could add a signature engine — `yara-x` (BSD-3, Rust) is the
-candidate; ClamAV bindings drag GPL-2 C into an AGPL tree and are refused here.
+"antivirus" on a page until `PR-004b` below exists.
+
+**The owner answered this again on 2026-09-04 (Q16), and the second answer governs.** Guard stays
+separate — that half of the recommendation was accepted — and **a separate antivirus is to be
+built** as its own product, `PR-020`. So the paragraph above keeps its analysis and loses its
+conclusion: the word will be printed, because the thing will exist. What does *not* change is the
+platform asymmetry, which is a fact about the systems rather than a preference:
+
+| target | on-demand scan | on-access scan |
+|---|---|---|
+| Redox (E-OS) | buildable today — walk, hash, match, report | **no** — needs a file-event bus the kernel does not have (§7.3) |
+| Linux | buildable today | buildable — `fanotify`, user-space |
+| Windows | buildable today | needs a **signed kernel minifilter** — ⚙️/🔑, an operator and legal step, not a coding one |
+
+**The engine candidate this document named does not survive measurement, and the correction is the
+point of this paragraph.** `yara-x` (BSD-3, Rust) was named above as *the* candidate without asking
+what it costs. Measured 2026-09-04 on a throwaway crate: `yara-x 1.20.0` resolves to **286
+packages**, and `wasmtime 45.0.3` and `cranelift-codegen 0.132.3` are **normal dependencies, not
+dev** — it compiles rules to WebAssembly and JITs them. That is a reasonable design on a host and an
+impossible one on `*-unknown-redox`. So `yara-x` stays the candidate for the Linux and Windows
+builds that `PR-008` now packages, and the Redox scanner needs a matcher small enough to
+cross-compile — which is a smaller problem than it sounds, because Redox has no on-access path
+anyway. ClamAV bindings remain refused: GPL-2 C in an AGPL tree.
 
 #### 7.5.4 The register
 
@@ -1294,9 +1315,10 @@ candidate; ClamAV bindings drag GPL-2 C into an AGPL tree and are refused here.
 | `PR-001` | **Product pages generated from the config**, not written by hand — for every `[packages.*]` entry the image ships, a page with what it is, where its source is, its type (A/B/C) and its pin | three hand-written lists that disagree (README, `docs/reference/packages.md`, `WS-*` product pages) | a generator over `config/*/eos.toml` + `repos.toml`; `WS-008` consumes it | S |
 | `PR-002` | **`eos-guard` and `eos-sysmon` either ship or leave the product list** *(decided 2026-09-03: `eos-guard` ships as **E-OS Guard**, `eos-sysmon` stays archived — Q12)* | ✅ **done 2026-09-03**: `[packages.eos-guard]` in both configs; proven in the artefact, not the exit code — a mounted **copy** of each image (P-6) shows `/usr/bin/eos-guard` (aarch64 14 635 056 B, x86_64 15 670 816 B) and the launcher entry `40_eos-guard`; `boot-smoke` PASS on both. `eos-sysmon` stays archived: its whole surface is the `eos-control` Overview tab | — | S |
 | `PR-015` | **The four new product repositories exist and build** *(created 2026-09-03, owner decision Q13)* — `eos-sheets`, `eos-slides`, `eos-drive`, `eos-store` on GitLab with GitHub mirrors, generated from one skeleton so they cannot drift apart; each pinned in `recipes/gui/<name>` and registered in `repos.toml`. **Not yet in any image**: they are skeletons, and shipping a window with a status line would be shipping a claim. `[packages.*]` entries land when each has a feature worth launching | ✅ repositories · 🔴 products | S |
-| `PR-003` | **"Antivirus" on E-OS** *(decided 2026-09-03: the word "antivirus" is not used until `PR-004b` exists — Q12)* — see §7.5.3; the row is the *decision*, not a scanner | no engine, no hook, no row | either the word disappears from every page, or `PR-004b` is scheduled | S (decision) |
+| `PR-003` | **"Antivirus" on E-OS** *(decided 2026-09-03 — Q12; **reversed 2026-09-04 — Q16**)* — the owner has asked for a separate antivirus, so the second branch of this decision was taken: the word gets used because the thing gets built. The row stays as the *record of the decision*; the scanner is `PR-020` | no engine, no hook, no row | `PR-020` scheduled; until it ships, no page prints the word | S (decision) |
 | `PR-004` | **E-OS Guard as a standalone product** — `eos-guard` repo back in the image as an app (`PR-002`) *and* its engine kept in `eos-control`'s Security tab from one crate, not two copies | the engine exists twice (guard binary; `eos-control/src/security/`) | make `eos-guard` a `lib` + `bin`; `eos-control` depends on the lib; FDE/RAID/repo-status lines from §21 proposal 3 | M |
-| `PR-004b` | **Signature engine for Guard on hosts with on-access hooks** (Windows minifilter / Linux `fanotify`) — `yara-x` rules, quarantine directory, signed rule bundle over the `R-703` channel | nothing | Windows kernel-side hook is **not Rust-only** and is ⚙️/🔑 (a signed driver); Linux `fanotify` is user-space | L (Linux) / XL (Windows) |
+| `PR-004b` | **Signature engine for Guard on hosts with on-access hooks** (Windows minifilter / Linux `fanotify`) — quarantine directory, signed rule bundle over the `R-703` channel. **`yara-x` is a host-only candidate, measured 2026-09-04**: it pulls 286 crates including `wasmtime 45.0.3` and `cranelift-codegen 0.132.3` as *normal* dependencies, because it JITs rules to WebAssembly — fine on Linux and Windows, not a candidate for `*-unknown-redox` | nothing | Windows kernel-side hook is **not Rust-only** and is ⚙️/🔑 (a signed driver); Linux `fanotify` is user-space | L (Linux) / XL (Windows) |
+| `PR-020` | **A separate antivirus product** *(owner decision Q16, 2026-09-04)* — its own repository and its own product page, **not** a mode of Guard, which stays what it is (`PR-004`). Sized per platform because the platforms differ in kind, not in degree: **on-demand scanning** (walk, hash, match, report) is buildable on all three targets today; **on-access scanning** needs a file-event hook, which exists on Linux (`fanotify`) and Windows (a minifilter, ⚙️/🔑 — a signed kernel driver, an operator and legal step, not a coding one) and **does not exist on Redox at all** — the missing primitive is a file-event bus (§7.3), so on Redox the honest product is on-demand plus the integrity baseline Guard already keeps | nothing | repository; on-demand scanner shipped for the three targets `PR-008` now packages; rule format and a signed rule bundle over `R-703`; `fanotify` build for Linux; Redox stays on-demand until a file-event bus exists | L (on-demand) / XL (on-access) |
 | `PR-005` | **Enable/disable products at install time** — the wizard's package-selection screen writes the chosen `[packages.*]` set; the installer already takes a package list (`eos-installer` `src/config/package.rs` `PackageConfig`) | the installer *has* a package model; no screen chooses from it; `installer_tui.rs:17` lists "preconfigured packages" as a prompt to add | M3 wizard screen (§6.4) with a product list read from `PR-001`'s generator; unattended answer file (`R-616b`) carries the same set | M |
 | `PR-006` | **Products pin `eos-ui` from GitLab, not the GitHub mirror** (`eos-notes/Cargo.toml:18`, `eos-control/Cargo.toml:36`) | mirror pinned | repoint, bump, `pins --strict`; add a `ci-integrity` check: no `github.com/Gh0s777tt` in any type-A `Cargo.toml` | S |
 | `PR-007` | **Host window backend for the Slint products** — `backend-winit` feature per crate behind `cfg(not(target_os = "redox"))`, `BackendSelector` in `eos-ui::init` | `cargo check` clean on macOS; `run` has no platform | one feature line + one call per crate; measure by launching Notes on Linux and macOS; Windows **[UNVERIFIED]** | S |
