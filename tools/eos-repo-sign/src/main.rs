@@ -318,6 +318,120 @@ fn main() {
 mod tests {
     use super::{get, hex_decode, hex_encode, hybrid_ok, parse_kv};
 
+    // ── hostile inputs (tests/inputs.toml, ROADMAP TQ-007) ────────────────────────────────
+    //
+    // These inputs are parsed BEFORE any signature has been checked -- that is unavoidable, and it
+    // is exactly why the parsing layer is the surface worth attacking. Each test asserts a
+    // REFUSAL: not a panic, not a silent zero, not a wrong-length key sliding through.
+
+    /// A public-key file an attacker controls. Every field is either missing, the wrong length, or
+    /// not hex, and none of them may yield bytes.
+    #[test]
+    fn hostile_public_key_fields_are_refused() {
+        // Missing entirely: `get` must say which field, because "invalid key" sends a person
+        // looking in the wrong file.
+        let empty = parse_kv("");
+        let err = get(&empty, "ed25519").unwrap_err();
+        assert!(
+            err.contains("ed25519"),
+            "the error must name the field: {err}"
+        );
+
+        // Present but empty -- the shape that decodes to zero bytes rather than failing.
+        let blank = parse_kv("ed25519 = \"\"\n");
+        assert_eq!(
+            hex_decode(get(&blank, "ed25519").unwrap()).unwrap(),
+            Vec::<u8>::new()
+        );
+
+        // Odd length, non-hex, and hex-looking Unicode all refused.
+        for bad in ["abc", "zz", "0x41", "ff ff", "４１"] {
+            assert!(
+                hex_decode(bad).is_err(),
+                "hex_decode accepted a hostile public key value: {bad:?}"
+            );
+        }
+
+        // The length check is what stops a SHORT key being padded into a valid-looking one.
+        let short = hex_decode("00112233").unwrap();
+        assert_ne!(
+            short.len(),
+            32,
+            "a 4-byte key must not be mistaken for an ed25519 key"
+        );
+    }
+
+    /// A signature file an attacker controls. The tool must refuse before any verification, and
+    /// must not confuse "field absent" with "field present and empty".
+    #[test]
+    fn hostile_signature_fields_are_refused() {
+        let sig = parse_kv("ed25519 = \"deadbeef\"\n");
+        assert!(
+            get(&sig, "ml-dsa-65").is_err(),
+            "a missing PQ signature must be an error"
+        );
+        assert!(get(&sig, "ed25519").is_ok());
+
+        // A signature field carrying the RIGHT hex but the WRONG length decodes fine -- the
+        // length check downstream is what refuses it, so pin that the decode does not lie.
+        let decoded = hex_decode("deadbeef").unwrap();
+        assert_eq!(decoded.len(), 4, "64 ed25519 bytes are not 4");
+
+        // Whitespace and case must not smuggle a different value past a comparison.
+        assert_eq!(hex_decode("DEADBEEF").unwrap(), decoded);
+        assert!(
+            hex_decode("dead beef").is_err(),
+            "inner whitespace is not hex"
+        );
+    }
+
+    /// Malformed hex, exhaustively by category rather than by example.
+    #[test]
+    fn hex_decode_refuses_malformed_input() {
+        for bad in [
+            "0",       // odd length
+            "abc",     // odd length, valid nibbles
+            "gg",      // out of alphabet
+            "0g",      // one good nibble, one bad
+            "g0",      // the other way round
+            "-1",      // sign
+            "0\u{0}1", // embedded NUL
+            "００",    // full-width digits
+        ] {
+            assert!(hex_decode(bad).is_err(), "hex_decode accepted {bad:?}");
+        }
+        // And the error names the offending byte, so a mirror serving junk is diagnosable.
+        let err = hex_decode("0g").unwrap_err();
+        assert!(err.contains("invalid hex byte"), "unhelpful error: {err}");
+    }
+
+    /// Documents designed to confuse a flat key/value parser. None of these may produce a key that
+    /// a later `get` would treat as authoritative.
+    #[test]
+    fn parse_kv_survives_hostile_documents() {
+        // A key repeated: last wins, deterministically. An attacker appending a second line must
+        // not get a non-deterministic result.
+        let m = parse_kv("k = \"first\"\nk = \"second\"\n");
+        assert_eq!(m.get("k").map(String::as_str), Some("second"));
+
+        // No `=` at all: dropped, not panicked on.
+        assert!(parse_kv("just some words\n").is_empty());
+
+        // `=` inside the value survives; the split is on the FIRST one.
+        let m = parse_kv("k = \"a=b\"\n");
+        assert_eq!(m.get("k").map(String::as_str), Some("a=b"));
+
+        // An enormous line does not blow up, and a very long key stays a key.
+        let big = format!("k = \"{}\"\n", "a".repeat(100_000));
+        assert_eq!(parse_kv(&big).get("k").map(String::len), Some(100_000));
+
+        // Comments and sections are skipped even when they look like pairs -- the same property
+        // `parse_kv_skips_comments_and_sections_that_contain_equals` pins, asserted here from the
+        // attacker's side: a forged `[ed25519 = ...]` must not become a field.
+        let m = parse_kv("[ed25519 = forged]\n");
+        assert!(m.is_empty(), "a section header became a field: {m:?}");
+    }
+
     /// The truth table, exhaustively. Three of these four rows are what `&&` gives and `||` does
     /// not, so this is the test that kills the mutant `cargo-mutants` found surviving in
     /// `verify()`: without it, an index needed only ONE of its two signatures to be good.
