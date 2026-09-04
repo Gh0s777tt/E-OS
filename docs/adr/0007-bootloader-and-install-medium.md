@@ -537,7 +537,7 @@ im jednego znacznika byłoby mniej uczciwe niż pokazanie widełek.
 | partycja BIOS boot 1 MiB (typ `BIOS`) **istnieje** | **JEST** | `system-updates.md` §1.4. Czy stage1 idzie tam, czy w lukę za MBR-em — **`[NIEZWERYFIKOWANE]`**, patrz *Kontekst*; `installer.md` §3.3 zostaje otwarte |
 | jądro i initfs ładowane z **zaszyfrowanego** RedoxFS-a po odblokowaniu | **JEST** | `installer-wizard.md` §5.5 |
 | hybrydowy MBR + GPT + ISO9660 na obu obrazach | **JEST** | sygnatury: `0` kod x86, `512` `EFI PART`, `0x8001` `CD001` — zmierzone w drzewie budowania, nie w tym repo |
-| rozruch z **DVD** (nie z USB) | **NOWY PODSYSTEM** | `installer.md` §2.2 — firmware wystartuje, ale system nie ma sterownika ISO9660 i nie znajdzie roota |
+| rozruch z **DVD** (nie z USB) | **NIEREALNE DZIŚ** | **korekta 2026-09-04:** nie z braku sterownika ISO 9660 — root nie leży w ISO 9660 na żadnym nośniku (ROADMAP §14.4) — lecz z pustego wpisu EFI w El Torito (`R-611d`) i z tego, że bootloader czyta bloki sam. Odczyt płyty z danymi w działającym systemie ma w `ahcid` nieuruchomioną ścieżkę ATAPI (`R-815`); nagrywanie nie istnieje |
 | netboot iPXE | **JEST w drzewie**, `[NIEZWERYFIKOWANE]` w działaniu | `redox.ipxe`, `scripts/network-boot.sh`; rozstrzyga jeden przebieg na hoście linuksowym |
 | wypalenie nośnika na USB z hosta | **JEST**, poza E-OS | `Makefile:16-17` → `popsicle-gtk` (GTK, Linux) |
 | **sumy i podpis nośnika w wydaniu** | **DO ZBUDOWANIA** | D10; dziś `make-release.sh:20-30` pakuje tylko `harddrive.img` — nośnika nie ma w `SHA256SUMS` |
