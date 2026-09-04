@@ -185,7 +185,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/userutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/userutils"
 pinned_branch = "eos-july"
-pinned_rev    = "e839cfa6d18b7aa1317c8d2a1e8fa4b38a1a2f9e"
+pinned_rev    = "fcc3661461a36d8e40c54f940dba2568d7c44f61"
 
 # ── gui ─────────────────────────────────────────────────────────
 [[repo]]
@@ -246,7 +246,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/orbutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/orbutils"
 pinned_branch = "master"
-pinned_rev    = "8ad7cd8fa8cfa85641261a3a0c44eb992e984952"
+pinned_rev    = "5931fc160b6203f8b9779eef181773b5e6283363"
 
 [[repo]]
 name   = "eos-guard"
