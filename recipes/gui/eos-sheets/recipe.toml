@@ -10,7 +10,7 @@
 [source]
 git = "https://gitlab.com/e-os/eos-sheets.git"
 branch = "main"
-rev = "92439eacd9e12a8912e9364faaebddd938bc870c"
+rev = "fdba3b750729e3221c2cd1dc39e33050fb42bf5c"
 
 [build]
 template = "custom"

@@ -10,7 +10,7 @@
 [source]
 git = "https://gitlab.com/e-os/eos-drive.git"
 branch = "main"
-rev = "e14d72bbda806ecd98eb06df08390029688f4953"
+rev = "91832a7993fdd6fa2d765309e66307516c6fb302"
 
 [build]
 template = "custom"

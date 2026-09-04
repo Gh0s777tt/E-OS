@@ -10,7 +10,7 @@
 [source]
 git = "https://gitlab.com/e-os/eos-slides.git"
 branch = "main"
-rev = "2f64e9a86e5c81bec31dd59f945798bdae7b0887"
+rev = "4cde52b0767549ac539c157eb512f9ecf2982bd9"
 
 [build]
 template = "custom"

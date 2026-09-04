@@ -368,7 +368,7 @@ gitlab = "https://gitlab.com/e-os/eos-sheets.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-sheets"
 pinned_branch = "main"
-pinned_rev    = "92439eacd9e12a8912e9364faaebddd938bc870c"
+pinned_rev    = "fdba3b750729e3221c2cd1dc39e33050fb42bf5c"
 
 [[repo]]
 name   = "eos-slides"
@@ -380,7 +380,7 @@ gitlab = "https://gitlab.com/e-os/eos-slides.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-slides"
 pinned_branch = "main"
-pinned_rev    = "2f64e9a86e5c81bec31dd59f945798bdae7b0887"
+pinned_rev    = "4cde52b0767549ac539c157eb512f9ecf2982bd9"
 
 [[repo]]
 name   = "eos-drive"
@@ -392,7 +392,7 @@ gitlab = "https://gitlab.com/e-os/eos-drive.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-drive"
 pinned_branch = "main"
-pinned_rev    = "e14d72bbda806ecd98eb06df08390029688f4953"
+pinned_rev    = "91832a7993fdd6fa2d765309e66307516c6fb302"
 
 [[repo]]
 name   = "eos-store"
@@ -404,7 +404,7 @@ gitlab = "https://gitlab.com/e-os/eos-store.git"
 pinned_in_recipe = true
 recipe        = "recipes/gui/eos-store"
 pinned_branch = "main"
-pinned_rev    = "0efce520190603031af59bf301e2fd15bc881e43"
+pinned_rev    = "5d7e2c71b3089611a4ac617846c7a774119d4714"
 
 [[repo]]
 name   = "eos-website"

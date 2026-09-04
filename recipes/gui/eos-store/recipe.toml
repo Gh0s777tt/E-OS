@@ -10,7 +10,7 @@
 [source]
 git = "https://gitlab.com/e-os/eos-store.git"
 branch = "main"
-rev = "0efce520190603031af59bf301e2fd15bc881e43"
+rev = "5d7e2c71b3089611a4ac617846c7a774119d4714"
 
 [build]
 template = "custom"
