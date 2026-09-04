@@ -15,10 +15,18 @@ rev = "e14d72bbda806ecd98eb06df08390029688f4953"
 [build]
 template = "custom"
 script = """
+# PR-017: stage the icon into the REAL directory, not through a symlink.
+# `/usr/share/ui/icons` is a symlink to `/usr/share/icons` (orbdata ships it that way), and a
+# package extractor that refuses to write through a symlink is doing the right thing -- that is
+# how a package stops being able to plant files outside its own tree. The consequence here was
+# silent: the icon was in the .pkgar (`strings` shows the path), staged correctly, and simply
+# never appeared in the image. Measured on a mounted copy: `find / -name "eos-*.png"` -> nothing.
+# Staging the real path keeps the runtime path working, because `/ui/icons/apps/x.png`
+# still resolves through the symlink when something READS it.
 # Default features only: `host-backend` pulls winit, which does not exist on
 # Redox. The Orbital platform comes from eos-ui, which the crate always links.
 cookbook_cargo
-mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/icons/apps"
 cp -v "${COOKBOOK_SOURCE}/assets/30_eos-drive" "${COOKBOOK_STAGE}/usr/share/ui/apps/30_eos-drive"
-cp -v "${COOKBOOK_SOURCE}/assets/eos-drive.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-drive.png"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-drive.png" "${COOKBOOK_STAGE}/usr/share/icons/apps/eos-drive.png"
 """

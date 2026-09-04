@@ -9,13 +9,21 @@ rev = "5e1d57479a956474a5fd6994f2913b81bf3ab913"
 [build]
 template = "custom"
 script = """
+# PR-017: stage the icon into the REAL directory, not through a symlink.
+# `/usr/share/ui/icons` is a symlink to `/usr/share/icons` (orbdata ships it that way), and a
+# package extractor that refuses to write through a symlink is doing the right thing -- that is
+# how a package stops being able to plant files outside its own tree. The consequence here was
+# silent: the icon was in the .pkgar (`strings` shows the path), staged correctly, and simply
+# never appeared in the image. Measured on a mounted copy: `find / -name "eos-*.png"` -> nothing.
+# Staging the real path keeps the runtime path working, because `/ui/icons/apps/x.png`
+# still resolves through the symlink when something READS it.
 # relibc has no LFS64 aliases (open64/mmap64/…) — bundled SQLite must use the
 # plain calls. Append to the cookbook's target CFLAGS (they carry the sysroot
 # include path, so they must not be replaced).
 tgt_cflags_var="CFLAGS_${TARGET//-/_}"
 export "${tgt_cflags_var}"="${!tgt_cflags_var} -DSQLITE_DISABLE_LFS"
 cookbook_cargo
-mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps"
+mkdir -pv "${COOKBOOK_STAGE}/usr/share/ui/apps" "${COOKBOOK_STAGE}/usr/share/icons/apps"
 cp -v "${COOKBOOK_SOURCE}/assets/40_eos-guard" "${COOKBOOK_STAGE}/usr/share/ui/apps/40_eos-guard"
-cp -v "${COOKBOOK_SOURCE}/assets/eos-guard.png" "${COOKBOOK_STAGE}/usr/share/ui/icons/apps/eos-guard.png"
+cp -v "${COOKBOOK_SOURCE}/assets/eos-guard.png" "${COOKBOOK_STAGE}/usr/share/icons/apps/eos-guard.png"
 """
