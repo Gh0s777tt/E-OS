@@ -14,7 +14,7 @@ owner: Gh0s777tt
 > places, which matters for reading this table:
 > * the boot **`initfs`** — storage, GPU, input and other early-boot drivers
 >   (`nvmed`, `ahcid`, `ided`, `virtio-blkd`, `virtio-gpud`, `ps2d`, `vesad`, …);
-> * the root filesystem **`/usr/lib/drivers`** — secondary / hot-plug drivers,
+> * the root filesystem **`/usr/lib/drivers`** — post-root drivers, bound once by `pcid` at boot (there is no hot-plug bus — `V2-S05`),
 >   mapped by `/usr/lib/pcid.d/*.toml`.
 >
 > **Status** — ✅ **Verified**: observed binding in a live headless QEMU/KVM boot on

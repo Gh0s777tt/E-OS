@@ -208,7 +208,7 @@ obrazy, a nie kopia.
 
 **Znacznik dla rozruchu z DVD: NIEREALNE DZIŚ**, i to z dwóch niezależnych powodów, z których
 **żaden nie jest brakiem sterownika ISO 9660**: (a) pusty wpis EFI w El Torito, (b) w drzewie
-nie ma sterownika napędu optycznego — `grep -ril 'atapi\|cdrom\|optical' recipes/ config/`
+nie ma **uruchomionego** sterownika napędu optycznego — **korekta 2026-09-04:** pierwotny pomiar `grep -ril 'atapi\|cdrom\|optical' recipes/ config/` szukał w plikach `recipe.toml`, więc nie mógł znaleźć źródeł sterownika; w `eos-base` `ahcid/src/ahci/disk_atapi.rs` ścieżka odczytu istnieje i czeka na pierwszy przebieg (`R-815`). Dla rozruchu z DVD to bez znaczenia, bo bootloader nie korzysta z `ahcid`
 daje `recipes/libs/mesa` i `recipes/wip/security/breakmancer`, nic sterownikowego.
 **`[NIEZWERYFIKOWANE]`, czy pusty wpis EFI jest usterką narzędzia z upstreamu, czy skutkiem
 naszej konfiguracji** — sprawdzić w `eos-installer` kod składający El Torito i porównać z
@@ -280,7 +280,7 @@ Stan po pomiarze, rozbity na to, co działa i co nie:
 | wpis El Torito dla platformy x86 (emulacja dysku, RBA 0) | **JEST** | katalog pod LBA 19 |
 | rozruch z USB przez GPT/ESP | **JEST** | `U-208`, `U-210`, `R-601` |
 | wpis El Torito dla platformy **EFI** wskazuje **puste bajty** | **DO ZBUDOWANIA** | Load RBA 2 → bajt 4096 = same zera; ESP jest pod 1 048 576 |
-| sterownik napędu optycznego (ATAPI / SCSI MMC) | **NOWY PODSYSTEM** | brak w `recipes/`; bez niego nie ma czym czytać płyty po starcie |
+| sterownik napędu optycznego (ATAPI / SCSI MMC) | **DO ZBUDOWANIA** (odczyt danych), `[NIEZWERYFIKOWANE]` | **korekta 2026-09-04:** „brak w `recipes/`" było błędem pomiaru — `recipes/` trzyma `recipe.toml`, nie źródła sterowników. W `eos-base` (`eos-july` @ `816546df`) `ahcid/src/ahci/disk_atapi.rs` ma ścieżkę odczytu ATAPI (IDENTIFY PACKET, READ CAPACITY, READ(10)) na SATA x86_64, nigdy nie uruchomioną; brak eject, zmiany nośnika, audio, IDE (`ided/src/main.rs:126` `//TODO: probe ATAPI`), aarch64 i zapisu. Rozruchu z DVD to nie zmienia: bootloader czyta bloki sam (`R-815`, ROADMAP §14.4) |
 | rozruch z DVD end-to-end | **NIEREALNE DZIŚ** | wymaga obu powyższych |
 
 **Decyzja:** utrzymujemy hybrydę, bo jej mamy za darmo, i **nie obiecujemy DVD**. Naprawa wpisu
@@ -1328,7 +1328,7 @@ Jeden znacznik na wiersz. Bez znacznika dokument byłby niekompletny.
 | nośnik instalacyjny budowany i testowany w CI | **JEST** | `.gitlab-ci.yml:430` (aarch64) i `:534` (x86_64) budują go, `:441`/`:551` boot-smoke'ują, `:459`/`:569` puszczają install-smoke; aarch64 przeszedł end-to-end 2026-09-01. Otwarte zostaje `R-601a` (§2.5) |
 | hybrydowe ISO (MBR + GPT + ISO 9660 + El Torito) | **JEST** | **[zmierzone]** §1.2 pkt 13; **korekta** — pierwsza wersja tabeli mówiła „DO ZBUDOWANIA, `xorriso`" i była błędna |
 | wpis El Torito dla platformy EFI wskazuje realny obraz | **DO ZBUDOWANIA** | dziś Load RBA 2 → same zera (§1.2 pkt 13); rozszerzenie `R-611d` |
-| sterownik napędu optycznego (ATAPI / SCSI MMC) | **NOWY PODSYSTEM** | brak w `recipes/` |
+| sterownik napędu optycznego (ATAPI / SCSI MMC) | **DO ZBUDOWANIA** (odczyt danych), `[NIEZWERYFIKOWANE]` | **korekta 2026-09-04:** ścieżka odczytu ATAPI istnieje w `ahcid` (`disk_atapi.rs`, SATA x86_64, nigdy nie uruchomiona); eject, zmiana nośnika, audio, IDE, aarch64 i zapis — brak; `R-815`, dowód w QEMU (ROADMAP §15) |
 | rozruch z DVD end-to-end | **NIEREALNE DZIŚ** | wymaga obu powyższych; **nie** z powodu braku sterownika ISO 9660 — root nie leży w ISO 9660 na żadnym nośniku |
 | ESP jako FAT32 na dysku stałym | **DO ZBUDOWANIA** | **[zmierzone]**: dziś ESP ma 1 MiB i jest **FAT12**; UEFI wymaga FAT32 na dysku stałym (§5.2) |
 | certyfikat Secure Boot na nośniku + ekran wyjaśniający | **DO ZBUDOWANIA** | §3.1 |
