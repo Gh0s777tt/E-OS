@@ -96,7 +96,16 @@ local-gates:
     - command -v cargo rustup cargo-llvm-cov cargo-deny shellcheck gitleaks osv-scanner semgrep
     # No `| tee`: a pipe would return tee's status (CLAUDE.md P-3). Capture, print, then exit
     # with verify.sh's own status; the artefact check below is the second, independent judge.
-    - 'bash scripts/verify.sh > verify.log 2>&1; rc=$?; cat verify.log; [ "$rc" -eq 0 ]'
+    # `tee`, not `>`. The previous shape buffered every stage result into a file that is only
+    # printed once the script finishes -- so when the runner lost DNS on 2026-09-04 and the job
+    # was killed as `no_updates_running`, the trace held nothing after this line and the stage
+    # table survived only in the runner's working directory. Streaming also keeps the job alive:
+    # GitLab fails a job that emits no trace output, which makes a slow healthy run
+    # indistinguishable from a hung one, and then makes it one.
+    #
+    # `${PIPESTATUS[0]}` is verify.sh's status, not tee's -- the P-3 trap, in the one place where
+    # taking the wrong end of the pipe would report every failure as a pass.
+    - 'set -o pipefail; bash scripts/verify.sh 2>&1 | tee verify.log; rc=${PIPESTATUS[0]}; [ "$rc" -eq 0 ]'
     - grep -qE '· 0 FAIL · 0 SKIPPED' verify.log
   artifacts:
     when: always
