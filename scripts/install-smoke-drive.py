@@ -41,6 +41,12 @@ ESC = re.compile(r"\x1b\[[0-9;?]*[a-zA-Z]")
 # seen accepting something is not a floor (CLAUDE.md §5.4).
 PASSWORD = os.environ.get("EOS_SMOKE_PASSWORD", "eos-smoke-harness")
 DISK_PASSWORD = "eosdisk"        # only used when EOS_SMOKE_FDE=1
+
+# Which optional applications to DECLINE at the installer's prompt (PR-018), as the numbers the
+# installer prints. Empty (the default) keeps everything, which is what every existing run wants.
+# Set it to exercise the toggle:
+#     EOS_SMOKE_DECLINE="1 2" bash scripts/ci-install-smoke.sh <image> ...
+DECLINE = os.environ.get("EOS_SMOKE_DECLINE", "").strip()
 FDE = os.environ.get("EOS_SMOKE_FDE") == "1"
 
 # One knob for "this guest is slower than the one these windows were measured on", instead
@@ -482,6 +488,18 @@ def run_install(con, target_img=None):
         con.send(DISK_PASSWORD)
     else:
         con.send("")
+
+    # THE OPTIONAL-APPLICATIONS PROMPT (PR-018). It is `optional=True` on purpose: this harness
+    # must keep working against an image built BEFORE the installer learned to ask, and against
+    # one that ships no manifest. A prompt that is not there is not a failure -- but a prompt
+    # that IS there and goes unanswered stalls the install until the window expires, which is
+    # exactly the shape of bug this arm exists to prevent (measured once already, on the
+    # credential policy: the refusal arrived at a different step than the harness watched).
+    if con.expect(r"Numbers to LEAVE OUT", "the optional-applications prompt",
+                  window=w(60), optional=True):
+        con.send(DECLINE)
+        if DECLINE:
+            print("install-smoke:   declined optional applications: %s" % DECLINE)
 
     # The installer's last observable step is writing the EFI loader; the shell prompt
     # comes back after that. Both are matched only in output produced after the drive was
