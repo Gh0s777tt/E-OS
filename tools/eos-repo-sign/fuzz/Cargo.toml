@@ -1,0 +1,34 @@
+# The parent declares an empty `[workspace]` to stay out of the cookbook workspace, which
+# makes this crate look like a member it never declared. An empty table here says the same
+# thing back: the fuzz crate is its own workspace.
+[workspace]
+
+[package]
+name = "eos-repo-sign-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+[dependencies.eos-repo-sign]
+path = ".."
+
+
+[[bin]]
+name = "parse_kv"
+path = "fuzz_targets/parse_kv.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hex_decode"
+path = "fuzz_targets/hex_decode.rs"
+test = false
+doc = false
+bench = false

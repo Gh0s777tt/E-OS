@@ -12,7 +12,7 @@ owner: Gh0s777tt
 | proxy | what it counts | value | measured | floor | state |
 |---|---|---|---|---|---|
 | `SC-1` | unsafe carrying a SAFETY note | 100.0 % | 0/0 | 100.0 % | ok |
-| `SC-2` | parsers with a fuzz target | — | — | - | SKIPPED: cargo-fuzz is not installed (cargo install cargo-fuzz) — 1 parser file(s) unmeasured |
+| `SC-2` | parsers with a fuzz target | 100.0 % | 1/1 | 100.0 % | ok |
 | `SC-3` | own crates inside the scanners | 100.0 % | 1/1 | 100.0 % | ok |
 | `SC-4` | declared inputs with a hostile-value test | 100.0 % | 4/4 | 100.0 % | ok |
 | `SC-5` | mutation score on trust code | 60.4 % | 29/48 | - | ok |

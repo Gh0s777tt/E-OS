@@ -92,15 +92,39 @@ def sc1_unsafe(root):
 
 
 def sc2_fuzz(root):
-    files = tracked(root, "*.rs", ":!src/")
+    """Parser files with a fuzz target, counted per crate rather than per repository.
+
+    Both halves of this were wrong until 2026-09-04, and in opposite directions.
+
+    The target glob was `fuzz/fuzz_targets/*.rs`, which only ever matches at the repository ROOT --
+    so two real targets living in `tools/eos-repo-sign/fuzz/` counted as zero.
+
+    And the parser list counted the fuzz targets THEMSELVES, because a file whose entire job is to
+    call `hex_decode` contains the word "decode". A target therefore made the denominator worse as
+    fast as it improved the numerator, which is the shape of a metric that punishes the fix.
+    """
+    files = tracked(root, "*.rs", ":!src/", ":!*/fuzz/fuzz_targets/*")
     if files is None:
         return None, "git ls-files failed"
     parsers = [f for f in files if PARSER_RE.search(io.open(os.path.join(root, f), encoding="utf-8", errors="replace").read())]
     if not shutil.which("cargo-fuzz"):
         return None, "cargo-fuzz is not installed (cargo install cargo-fuzz) — %d parser file(s) unmeasured" % len(parsers)
-    targets = tracked(root, "fuzz/fuzz_targets/*.rs") or []
-    pct = 0.0 if not parsers else 100.0 * min(len(targets), len(parsers)) / len(parsers)
-    return {"value": pct, "num": len(targets), "den": len(parsers), "offenders": []}, None
+    targets = tracked(root, "fuzz/fuzz_targets/*.rs", "*/fuzz/fuzz_targets/*.rs") or []
+
+    # Credit is per CRATE, not per file: one target that attacks a crate's parsing surface covers
+    # that crate. Counting per file would demand a target per source file and reward splitting a
+    # parser in two.
+    def crate_of(path):
+        parts = path.split("/")
+        return "/".join(parts[:2]) if parts[0] == "tools" and len(parts) > 2 else parts[0]
+
+    parser_crates = {crate_of(f) for f in parsers}
+    fuzzed_crates = {crate_of(t) for t in targets}
+    covered = parser_crates & fuzzed_crates
+    offenders = sorted(parser_crates - fuzzed_crates)
+    pct = 100.0 if not parser_crates else 100.0 * len(covered) / len(parser_crates)
+    return {"value": pct, "num": len(covered), "den": len(parser_crates),
+            "offenders": ["%s has parsing code and no fuzz target" % c for c in offenders]}, None
 
 
 def sc3_deps(root):
