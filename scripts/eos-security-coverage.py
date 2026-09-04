@@ -153,9 +153,45 @@ def sc4_inputs(root):
 
 
 def sc5_mutants(root):
+    """Killed mutants over tested mutants, read from cargo-mutants' own output.
+
+    Reads `mutants.out/outcomes.json` rather than re-running the tool: a proxy that takes a minute
+    to compute would be a proxy nobody runs. The file is written by the `mutants` stage of
+    verify.sh (TQ-006), so a stale one is a real signal -- it means the score being reported
+    belongs to an older tree, and the age is printed rather than hidden.
+    """
     if not shutil.which("cargo-mutants"):
         return None, "cargo-mutants is not installed (cargo install cargo-mutants) — trust code unmeasured"
-    return None, "cargo-mutants present but no run recorded; wire the nightly job (TQ-006)"
+    path = os.path.join(root, "tools", "eos-repo-sign", "mutants.out", "outcomes.json")
+    if not os.path.isfile(path):
+        return None, "no run recorded yet; `bash scripts/eos-mutation-score.sh` writes one"
+    try:
+        import json
+        data = json.load(open(path, "rb"))
+    except Exception as e:                                        # noqa: BLE001
+        return None, "mutants.out/outcomes.json is unreadable (%s)" % e
+    caught = missed = 0
+    for outcome in data.get("outcomes", []):
+        summary = outcome.get("summary")
+        if summary == "CaughtMutant":
+            caught += 1
+        elif summary == "MissedMutant":
+            missed += 1
+    if caught + missed == 0:
+        return None, "outcomes.json records no caught or missed mutants"
+    pct = 100.0 * caught / (caught + missed)
+    offenders = []
+    try:
+        import time
+        days = (time.time() - os.path.getmtime(path)) / 86400.0
+        if days >= 1:
+            # A stale run is a real signal, not noise: the score then describes an older tree.
+            offenders.append("recorded %d day(s) ago; re-run scripts/eos-mutation-score.sh" % int(days))
+    except OSError:
+        pass
+    if missed:
+        offenders.append("%d mutant(s) survived; see tools/eos-repo-sign/mutants.out/missed.txt" % missed)
+    return {"value": pct, "num": caught, "den": caught + missed, "offenders": offenders}, None
 
 
 PROXIES = [
