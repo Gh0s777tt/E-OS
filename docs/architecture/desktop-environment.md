@@ -1,7 +1,7 @@
 ---
 title: Design: E-OS Desktop Environment — "Crimson" (red/black glassmorphic shell)
 status: current
-last-reviewed: 2026-08-30
+last-reviewed: 2026-09-04
 owner: Gh0s777tt
 ---
 
@@ -165,7 +165,7 @@ already exist as **COSMIC apps that render in software on Orbital today**:
 - **Terminal** = `cosmic-term` — dark, monospaced; theme red accents + a red/black color scheme.
 - **Settings** = `cosmic-settings` (currently deferred on the *aarch64 build host* only — the
   `host:gperf` toolchain publishes x86_64-linux only; builds on the x86 rig). Theme red/black.
-- Context menus (New Folder / Open with / Compress / Properties / …) are drawn by each COSMIC app
+- Context menus are **per window, drawn by the toolkit that owns the window**: libcosmic for the COSMIC apps (themeable by colour via `cosmic-theme`, never by shape or layout), `eos-ui` for the E-OS products and orbclient for the shell. There is no compositor-level menu service to hook, and adding one would be an `eos-orbital` (type C) change. The user-selected menu style — Windows list / Linux list / radial — is roadmap `R-D15` (component) and `R-D17` (shell surfaces + Settings → Wygląd) and reaches E-OS windows and the E-OS shell only; whether it should also reach the file manager is owner decision Q23 (§3.0.7) — the *Alternative* below (`orbutils-files`/`orbterm`) is that question's option (b), and the `file_manager` bin is currently commented out of the fork.
   and are themeable — no compositor work.
 
 *Alternative* if you'd rather not carry the libcosmic fork weight: restyle the lighter **orbutils**
