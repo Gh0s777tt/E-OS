@@ -173,7 +173,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/pkgutils.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/pkgutils"
 pinned_branch = "eos"
-pinned_rev    = "ec08f22aa63d2e96e8f8100afd91b6d94172e943"
+pinned_rev    = "872c7a7b256f77d426abeb9e5d286e56fff935bf"
 
 [[repo]]
 name   = "eos-userutils"
