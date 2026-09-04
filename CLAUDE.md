@@ -402,6 +402,10 @@ Każda zmierzona, nie wydedukowana.
 | P-15 | **Bash 3.2 (powłoka systemowa macOS) kończy SKRYPT kodem 0, gdy `set -u` trafi na nieustawioną nazwę wewnątrz `$(( ))`** | zmierzone 2026-09-02: `echo "$UNSET"` → status 1, ale `x=$(( 1 + UNSET ))` → status **0**, mimo wypisanego `unbound variable`. Bramka przerywa się w połowie i melduje CI sukces. Złapane w `ci-boot-smoke.sh`: wywołanie `<obraz> --arch x86_64` (forma z jego własnej linii użycia) wstawiało `--arch` do `TIMEOUT`, a stamtąd do arytmetyki | nie wpuszczaj wartości pochodzących z argumentów do `$(( ))` bez walidacji (`case "$X" in ''|*[!0-9]*) ... esac`). Uzupełnia P-13: zsh nie ma `PIPESTATUS`, bash 3.2 gubi kod wyjścia — obie psują wnioskowanie po statusie |
 | P-16 | **`mktemp -d` na macOS ignoruje `TMPDIR`** — bez szablonu BSD `mktemp` pyta system o katalog tymczasowy (`_CS_DARWIN_USER_TEMP_DIR`) i **nie patrzy na zmienną środowiskową**, więc `TMPDIR=/duzy/wolumen` nie przekierowuje niczego | zmierzone 2026-09-03: `TMPDIR=/Volumes/EOS-Podman/tmp bash -c 'mktemp -d'` → `/var/folders/…/tmp.Sri6BifKTz`; to samo w podpowłoce wnuka. Skutek: `eos-esp-add-cert.sh` kopiuje obraz 1400 MiB na **dysk wewnętrzny**, a nie tam, gdzie wskazano. Przy 578 MiB wolnego 40-minutowa budowa padła na **ostatnim** kroku (`fcopyfile failed: No space left on device`), po poprawnym złożeniu obu obrazów | podawaj szablon jawnie: `mktemp -d "${TMPDIR:-/tmp}/nazwa.XXXXXX"`. I sprawdzaj miejsce **przed** kopiowaniem obrazu, nie po — §21.1 mówi „zmierz, który dysk boli”, a ten krok nie mierzył żadnego |
 | P-17 | **Budowanie na cel Redoksa bez krosowego kompilatora cookbooka mierzy HOSTA i melduje to jako wynik o platformie** — `rustup toolchain link` na `prefix/<arch>/rust-install` daje poprawny `std`, więc `cargo build --target x86_64-unknown-redox` **rusza** i wygląda wiarygodnie, ale każdy crate z krokiem `cc` (tu `blake3`) woła `cc` z `PATH`, czyli kompilator hosta | zmierzone 2026-09-04: ten sam stos skanera dał **błąd** `blake3_sse2_x86-64_unix.S` przez host-owy `cc`, a po dołożeniu krosowego — **Finished in 31,51 s**. Fałszywy negatyw był o **jeden export** od opublikowania jako „blake3 nie buduje się na Redoksa". Symlink `toolchains/redox` wskazuje przy tym na prefiks **ostatnio budowanej** architektury, więc sam w sobie nie mówi, który cel mierzysz | `export PATH="$P/gcc-install/bin:$PATH"`, `CC`, `AR`, `CC_<target>`, `CARGO_TARGET_<TARGET>_LINKER` — albo po prostu `cookbook_redoxer env`, bo to jest polecenie, które wykonuje się w produkcji (§5.9 poziom 4) |
+| P-18 | **zsh nie dzieli nieocytowanych rozwinięć na słowa** — `pair="a b"; set -- $pair; echo $#` daje w zsh **1**, w bashu **2**; pętla `for spec in "repo gałąź"; do set -- $spec` dostaje jeden łańcuch | zmierzone 2026-09-04: skrypt podmieniający piny przeleciał przez sześć repozytoriów z jednym argumentem zamiast dwóch; to **druga** pułapka zsh obok P-13 (`PIPESTATUS`) | `bash -c '…'`, `${=pair}` (zsh) albo cytuj i rozbijaj jawnie |
+| P-19 | **W zsh `log` jest wbudowane** — `log show --predicate …` zjada argumenty i zwraca pusto, więc dziennik systemowy „nic nie dał" | zmierzone 2026-09-04: `whence -w log` → `builtin`; przez `/usr/bin/log show --last 3h --predicate 'process == "diskarbitrationd"'` widać, że dwa zniknięcia `EOS-Podman` (13:47, 14:30) zaczęły się od odmontowania exFAT `/dev/disk4s1` (eject przez `hdiejectd`), po czym `diskimages-helper` zakończył sparsebundle | zawsze `/usr/bin/log` albo `command log` |
+| P-20 | **Cookbook nie odświeża `recipes/<r>/source/`, gdy zmienia się `rev`** — bump pina w recepturze zostawia stary checkout, a cook buduje stare bajty pod nowym numerem | zmierzone 2026-09-04: sześć receptur z `source/` na starych rewizjach po bumpie; `eos-build.sh` odmówił eksportu („refusing to export: the build tree does not match the pins") — to §12 typ B krok 5 jako kod | po bumpie: `rm -rf recipes/gui/<r>/source recipes/gui/<r>/target` w wolumenie (odtwarzalne przez `make r.<r>`), potem cook; strażnik w `eos-build.sh` ma zostać |
+| P-21 | **`eos-build.sh` synchronizuje bieżące drzewo robocze** (`git ls-files`) do wolumenu — buduje tę gałąź, którą masz **wymeldowaną**, nie tę, o której myślisz | zmierzone 2026-09-04: obraz „dla `!119`" zbudował się z `docs/…`, bo w chwili synchronizacji (17:37) gałąź pinów nie była wymeldowana; strażnik z P-20 tego **nie** złapał, bo stare piny zgadzały się ze starymi `source/`; smoke na tym obrazie dowodził niewłaściwego artefaktu | przed `eos-build.sh`: `git branch --show-current` i `git status --porcelain` w tym samym poleceniu; przy równoległej pracy na innej gałęzi używaj `git worktree` |
 
 ---
 
@@ -412,7 +416,7 @@ Jedno polecenie uruchamiające cały §5.2 **istnieje** — ta sekcja przez tygo
 przed każdym commitem (§13.1). Poprawione 2026-09-03; to samo zdanie stoi w ROADMAP §11.3.
 
 ```bash
-bash scripts/verify.sh              # 16 etapów; --fast pomija wolne skany i mówi o tym w podsumowaniu
+bash scripts/verify.sh              # 20 etapów (2026-09-04; było 16); --fast pomija wolne skany i mówi o tym w podsumowaniu
 ```
 
 Haki lokalne są w `lefthook.yml`. **Zmierzone 2026-09-03 rano: na tym hoście nie były
@@ -528,6 +532,14 @@ uzasadnienia jest długiem, którego nikt nie umie spłacić. Sprawdza to `scrip
 4. Klient potrafi zweryfikować manifest — a to **sprawdza się w artefakcie**, nie w forku
    (`U-164`).
 
+**Lustra GitHub repozytoriów produktowych (typ A) — krok ręczny do czasu `RH-019`.** Nikt ich nie pcha automatycznie (push mirroring wymaga PAT-a — zadanie operatora), więc po każdym merge'u na GitLabie lustro zostaje w tyle, a `pins --strict` — który porównuje z **oboma** hostami — melduje `MIRROR-BEHIND`, albo gorzej: gdy stare lustro równa się pinowi, `OK(tip)` na kłamstwie (zmierzone 2026-09-04, sześć repozytoriów). Wyrównanie, w każdym klonie `~/eos-<repo>-work`:
+
+```bash
+git fetch origin main && git push https://github.com/Gh0s777tt/<repo>.git refs/remotes/origin/main:refs/heads/main
+```
+
+Wyłącznie fast-forward, nigdy `-f`; potwierdzenie to `git ls-remote` obu hostów z tym samym `main`.
+
 ## 13. CI/CD jako egzekutor, nie jako sugestia
 
 **Stan faktyczny (17 zadań, 5 etapów):** `secret-scan` (gitleaks, pełna historia) ·
@@ -612,7 +624,7 @@ oraz `dependency-review` z `security.yml` — to zadanie **blokuje**, ale porów
 zależności między bazą a głową pull requesta przez API GitHuba, a na laptopie nie ma pary
 baza/głowa. Te uruchamiasz osobno — §20.5 i tabela wyżej.
 
-**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **16 etapów**:
+**Zmierzone 2026-08-31 na tym drzewie** (macOS, `/bin/bash` 3.2), **16 etapów** *(2026-09-04: 20 etapów — `grep -c '^run_stage ' scripts/verify.sh`)*:
 
 | przebieg | wynik | kod |
 |---|---|---|
@@ -930,10 +942,10 @@ buildów na zewnętrzny" — bo one już tam są** (zmierzone `U-214`, ustawione
 
 | gdzie | co | nośnik |
 |---|---|---|
-| `/Volumes/Project itp` (exFAT, 1,8 TiB) | drzewo projektu, repo, `~/eos-artifacts` **nie** | zewnętrzny |
+| `/Volumes/Project itp` (exFAT, 1,8 TiB) | drzewo projektu, repo; `~/eos-artifacts` **nie**; **nie kładź tu `target/`** — 1 MiB klastry: sonda z 2,8 GiB treści zajęła 19 GiB (`R-D15`) | zewnętrzny |
 | `/Volumes/EOS-Podman` (**APFS**, 300 GiB, sparsebundle na powyższym) | **dysk maszyny podmana** `eos-build-arm64.raw` (80 GB), a w nim wolumeny `eos-work` i `eos-root` | zewnętrzny |
 | `~/.local/share/containers` | **dowiązanie** → `/Volumes/EOS-Podman/containers` — ten sam i-węzeł, nie kopia | — |
-| `/System/Volumes/Data` (228 GiB) | system, `~/Library`, `~/eos-artifacts` | wewnętrzny |
+| `/System/Volumes/Data` (228 GiB) | system, `~/Library`; **`~/eos-artifacts` już nie** — od 2026-09-04 to symlink na `/Volumes/EOS-Podman/artifacts` (36 GiB przeniesione, gdy dysk był pełny w 100 %) | wewnętrzny |
 
 Dwa wnioski, oba kosztowałyby czas, gdyby ich nie zapisać. Po pierwsze: **budowanie nie zajmuje
 dysku wewnętrznego** — jedyne, co tam zostaje po pracy, to `~/eos-artifacts`. Po drugie:
@@ -1073,3 +1085,5 @@ zajmowały miejsca") i z pomiaru, który tę prośbę **przeformułował** (`U-2
 trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie cały raportowany
 rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
 klucz istniejący w **jednej kopii bez backupu**.
+
+**Po ponownym podpięciu maszyna podmana nie wraca sama** (zmierzone dwa razy 2026-09-04): `podman volume ls` kończy się `ssh: handshake failed` albo brakiem `~/.local/share/containers/podman/machine/machine` (to symlink w głąb `EOS-Podman`). Wtedy `podman machine stop eos-build && podman machine start eos-build`; wolumeny `eos-work`/`eos-root` wracają nietknięte.
