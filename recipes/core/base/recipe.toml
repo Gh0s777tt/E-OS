@@ -11,7 +11,7 @@ branch = "eos-july"
 # and pcid ACPI _PRT walk (a5cf1b0c). U-082: randd retries rdrand on carry-flag
 # failure instead of trusting a possibly-zero value (dd41f1da). U-083: rtcd sets
 # the aarch64 clock from the bootloader's BOOT_TIME env on ACPI boot (efc07c3e).
-rev = "816546df2a294f638eecc16eee61407d86c050c9"
+rev = "e8e1b9b594c3815a24ac5786d48652f112f18ba2"
 
 [build]
 template = "custom"
