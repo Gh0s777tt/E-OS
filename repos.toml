@@ -52,7 +52,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/kernel.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/kernel"
 pinned_branch = "eos-july"
-pinned_rev    = "68a510358d134cfeaa188423241e727c3ff1de54"
+pinned_rev    = "83fd25342d8dfdba8a40fac9e14de9eb2593cb8e"
 
 [[repo]]
 name   = "eos-redoxfs"
