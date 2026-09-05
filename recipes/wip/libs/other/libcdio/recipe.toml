@@ -1,5 +1,9 @@
-#TODO not compiled or tested
+#TODO compiled for x86_64 2026-09-05 (needs libiconv, see below); not tested
 [source]
 tar = "https://github.com/libcdio/libcdio/releases/download/2.3.0/libcdio-2.3.0.tar.bz2"
 [build]
 template = "configure"
+# libcdio's iconv probe fails without a target libiconv (`checking for iconv... no` ->
+# `#undef HAVE_ICONV` -> `lib/driver/utf8.c:392:3: #error "The iconv library is needed`).
+# Measured 2026-09-05: with this dependency the cook succeeds and stages six binaries.
+dependencies = ["libiconv"]
