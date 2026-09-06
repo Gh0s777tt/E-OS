@@ -2,7 +2,14 @@
 # E-OS vendored mirror of redox-os/redoxfs (edit freely; sync via scripts/sync-forks.sh).
 git = "https://gitlab.com/e-os/eos-redoxfs.git"
 branch = "master"
-# U-081: vendored cpufeatures — from_utf8_unchecked -> validated from_utf8 (UB fix).
+# What this pin carries beyond upstream redoxfs:
+#   U-081  vendored cpufeatures — from_utf8_unchecked -> validated from_utf8 (UB fix)
+#   R-F44  DiskCache returns the count the disk gave back, and caches only what it
+#          transferred (eos-redoxfs!2) — its short-transfer guards were unreachable
+#   R-F42/R-F43  truncate clears what it drops: the inline area is zeroed and the last
+#          partial record is deallocated (eos-redoxfs!3)
+#   R-F48  a directory split honours DirList::append and fails with ENOSPC instead of
+#          losing entries (eos-redoxfs!4)
 rev = "e529d63d6571e52e19f773654d0b1e73e512f794"
 
 [build]
