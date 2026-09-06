@@ -1102,4 +1102,13 @@ trzy rzeczy naraz: sprzątano dysk, na którym było 1,2 TiB wolnego; prawie ca�
 rozmiar okazał się artefaktem systemu plików; a katalog, który każdy kasuje odruchowo, trzyma
 klucz istniejący w **jednej kopii bez backupu**.
 
+**Kolejność ratowania, zmierzona dwa razy 2026-09-06.** Sparsebundle **leży na** exFAT
+(`/Volumes/Project itp/Podman/podman-data.sparsebundle`), więc odpadnięcie `Project itp` zabiera ze
+sobą `EOS-Podman`; wtedy najpierw `diskutil mount disk4s1`, dopiero potem sparsebundle. Gdy odpada
+sam `EOS-Podman`, `diskutil mount disk6s1` odmawia („Volume on disk6s1 failed to mount") — działa
+dopiero `hdiutil detach -force /dev/disk5`, a po nim `hdiutil attach` na pliku sparsebundle.
+**Pierwszy objaw, jaki zobaczysz, nie wygląda na problem z dyskiem:** `~/eos-artifacts` to symlink
+w głąb `EOS-Podman`, więc razem z wolumenem znikają handoff i wszystkie dowody, a zapis do nich pada
+z `FileNotFoundError` — zanim uznasz, że plik został skasowany, sprawdź `ls /Volumes`.
+
 **Po ponownym podpięciu maszyna podmana nie wraca sama** (zmierzone dwa razy 2026-09-04): `podman volume ls` kończy się `ssh: handshake failed` albo brakiem `~/.local/share/containers/podman/machine/machine` (to symlink w głąb `EOS-Podman`). Wtedy `podman machine stop eos-build && podman machine start eos-build`; wolumeny `eos-work`/`eos-root` wracają nietknięte.
