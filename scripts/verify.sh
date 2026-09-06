@@ -632,10 +632,46 @@ stage_gitleaks() {
 # CI runs a sha256-pinned cargo-deny release tarball (0.20.2, download-verify-extract,
 # U-118). This script does not download it. Fetching and executing a binary is not a thing
 # a lint command should do behind a developer's back — install it once, deliberately.
+# Measured 2026-09-07: `local-gates` on main went red with `cargo-deny FAIL 60s exit 1`, and the
+# cause was in the trace, not in the tree -- "failed to fetch advisory database … Recv failure:
+# Connection reset by peer". A dropped fetch and a real advisory both left this stage as `exit 1`,
+# so the one gate that actually runs on this project was intermittently red for a reason the
+# summary could not tell apart from a security finding.
+#
+# Two changes, and deliberately not a third. A fetch failure is retried twice, five seconds apart,
+# because it is usually transient. If it still cannot fetch, the stage STILL FAILS -- turning a
+# network failure into a pass is precisely the silent success this whole audit is about -- but it
+# fails with a note saying which of the two it was, so a red gate is readable. Nothing here
+# downloads or installs anything: the retry re-runs the same command.
 stage_cargo_deny() {
   have cargo-deny || { missing_tool cargo-deny "cargo install --locked cargo-deny"; return "$CANNOT"; }
-  cargo deny --manifest-path "$M_OWNED" check || return 1
-  cargo deny --manifest-path "$M_VENDORED" check advisories || return 1
+  _deny_run "$M_OWNED" check || return 1
+  _deny_run "$M_VENDORED" check advisories || return 1
+}
+
+# Patterns are cargo-deny's and git's own words for "I could not reach the database", never for a
+# matched advisory. Kept in one place so the two call sites cannot drift apart.
+_deny_is_fetch_failure() {
+  printf '%s' "$1" | grep -qE 'failed to fetch advisory database|Recv failure|Connection reset|Could not resolve host|unable to access|Could not read from remote repository'
+}
+
+_deny_run() {  # manifest, cargo-deny args...
+  local m="$1"; shift
+  local out rc attempt=1
+  while :; do
+    out="$(cargo deny --manifest-path "$m" "$@" 2>&1)"; rc=$?
+    printf '%s\n' "$out"
+    [ "$rc" -eq 0 ] && return 0
+    if _deny_is_fetch_failure "$out"; then
+      if [ "$attempt" -lt 3 ]; then
+        printf '  advisory database unreachable -- retry %d of 2 in 5 s\n' "$attempt"
+        attempt=$((attempt + 1)); sleep 5; continue
+      fi
+      STAGE_NOTE="could not fetch the advisory database (network) -- NOT an advisory"
+      return 1
+    fi
+    return 1
+  done
 }
 
 # security.yml `osv-scanner`, and that job BLOCKS on purpose: C-13 is that Dependabot
