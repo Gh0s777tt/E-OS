@@ -64,7 +64,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/redoxfs.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/redoxfs"
 pinned_branch = "master"
-pinned_rev    = "81de36dcaf7e8806a891afdf7ec9438ad41cd4cd"
+pinned_rev    = "e0295a5d54c2c10142393f3c37e24833284c05ec"
 
 [[repo]]
 name   = "eos-relibc"
