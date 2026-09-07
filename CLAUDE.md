@@ -699,6 +699,42 @@ Wpis zostaje jako historia; jeśli ta nazwa testu znów się zaczerwieni, to **j
 obchodzi** przez `--test-threads=1`: lokalna zieleń kupiona rozjazdem z CI to nadal czerwony
 pipeline, a flaga w bramce jest wadą do naprawienia, nie do schowania w bramce.
 
+### 13.2 Scalanie MR-a: najpierw zielona bramka, dopiero potem obniżenie ustawienia
+
+`only_allow_merge_if_pipeline_succeeds` jest w projekcie **włączone** i **nie da się go dziś
+spełnić**: z dziesięciu zadań pipeline'u dziewięć pada natychmiast na `ci_quota_exceeded` — kwota
+współdzielonych runnerów jest wyczerpana i żadne z nich nawet nie rusza. Wykonuje się **jedno**:
+`local-gates`, na własnym runnerze (macOS/arm64). Dlatego procedura scalania obniża ustawienie,
+scala i przywraca je.
+
+**To właśnie ta procedura jest treścią zarzutu w `R-F12`** — nie samo ustawienie. Zmierzone tam:
+trzy kolejne MR-y scalone **1,3 do 2,5 s po utworzeniu rekordu pipeline'u**, czyli zanim
+cokolwiek mogło się wykonać. Bramka była wtedy ozdobą w rozumieniu §13.
+
+**Reguła:** obniż ustawienie **dopiero wtedy, gdy `local-gates` zgłosi `success`.** To jedyne
+zadanie, które w ogóle bada kod, więc jest jedyną rzeczą, na którą warto czekać; czekanie na
+cały pipeline nic nie da, bo pozostałe dziewięć zadań pada na kwotę niezależnie od treści zmiany.
+
+```bash
+P=projects/e-os%2Fe-os
+PID=$(glab api "$P/merge_requests/<iid>" | python3 -c 'import sys,json;print(json.load(sys.stdin)["head_pipeline"]["id"])')
+glab api "$P/pipelines/$PID/jobs" | python3 -c 'import sys,json;print(next(j["status"] for j in json.load(sys.stdin) if j["name"]=="local-gates"))'
+# dopiero przy `success`:
+glab api -X PUT "$P" -f only_allow_merge_if_pipeline_succeeds=false
+glab api -X PUT "$P/merge_requests/<iid>/merge" -f sha=<pełny SHA> -f should_remove_source_branch=true
+glab api -X PUT "$P" -f only_allow_merge_if_pipeline_succeeds=true
+glab api "$P" | python3 -c 'import sys,json;print(json.load(sys.stdin)["only_allow_merge_if_pipeline_succeeds"])'   # odczytaj z powrotem
+```
+
+Ostatnia linia nie jest ozdobna: przywrócenie ustawienia sprawdza się **odczytem**, nie kodem
+wyjścia `PUT`-a (§5, „weryfikuj artefakt, nie kod wyjścia").
+
+**Zmierzone 2026-09-07** na `!205`, `!206` i `!207`: pipeline utworzony, `local-gates` zielone po
+2 min 10 s do 2 min 11 s, scalenie **21 do 28 s po zielonej bramce** i 151 do 160 s po utworzeniu
+pipeline'u. To nie czyni bramki skuteczną — dziewięć zadań nadal nie startuje, a to jest sprawa
+kwoty i należy do operatora (`R-F12` 🔑) — ale przenosi scalanie z „przed jakimkolwiek
+sprawdzeniem" na „po jedynym, które istnieje".
+
 ## 14. Bezpieczeństwo — kierunek i etapy
 
 **Model docelowy:** bezpieczeństwo oparte na **zdolnościach** (capability-based), z
