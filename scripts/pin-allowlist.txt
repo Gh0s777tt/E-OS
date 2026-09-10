@@ -16,4 +16,11 @@
 # EXIT=0, boot-smoke PASS, EOS-CONTROL-SELFTEST-OK), and both recipe revs were
 # bumped to their fork tips. If you add an entry here, state the removal
 # condition, not just the reason.
-
+#
+# 2026-09-10: one entry, deliberately. `eos-base` sits 6 commits behind its tip because moving the
+# pin would ship two behaviour changes the owner has not decided on: R-F56 (a GPT entry marked
+# unused is no longer published, eos-base!17) and R-F53 (the block-size refusal now says why,
+# eos-base!19). REMOVE this line when the owner moves repos.toml + recipes/core/base to a83000c0
+# or later, or reverts those merges on eos-july. The gate was red from 2026-09-07 06:52Z until this
+# entry, and nothing else reported it (pin-check in CI dies on ci_quota_exceeded).
+eos-base   pin held at f052057f pending the owner's R-F56/R-F53 decision; remove when the pin moves to a83000c0+ (see the comment above)
