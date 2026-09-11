@@ -1,12 +1,14 @@
 # E-OS Roadmap
 
-**Last reviewed:** 2026-09-03 · **Owner:** Gh0s777tt · **Status:** current · **Language:** English
-**Tree state, measured 2026-09-03:** branch `main` = `02cfbb283`. 85 merge requests merged, none open.
-`scripts/verify.sh`: **18 stages, 18 PASS, 0 FAIL, 0 SKIPPED** — on the `eos-heavy` runner as the
+**Last reviewed:** 2026-09-11 · **Owner:** Gh0s777tt · **Status:** current · **Language:** English
+**Tree state, measured 2026-09-11:** branch `main` = `a12ac6cc7`. 222 merge requests merged, none open,
+none closed unmerged.
+`scripts/verify.sh`: **20 stages, 20 PASS, 0 FAIL, 0 SKIPPED** — on the `eos-heavy` runner as the
 `local-gates` job, not only on a laptop (`TQ-011`).
 `scripts/eos-repos.sh pins --strict`: **30 OK, 0 drift** (was 26 — seven repositories were added on
 2026-09-03 and one fork pin moved).
-`scripts/ci-integrity.sh`: **19 checks** plus the instrument probe as check 0.
+`scripts/ci-integrity.sh`: **24 checks** plus the instrument probe as check 0 (it prints only when it
+aborts, so a green run is silent about it).
 
 > **A rendered view of this file lives at [`docs/roadmap/index.html`](docs/roadmap/index.html)** and is
 > published by the `pages` job at `/roadmap/`. It is a *view*, not a second plan: check 19 compares the
