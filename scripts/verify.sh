@@ -576,7 +576,7 @@ stage_release_pack() {
 # WHY THIS STAGE CAN PASS ON CI WITHOUT BEING A LOOPHOLE. The invariant is "this WORKING COPY runs
 # its hooks". An ephemeral CI checkout has no developer to protect and no hooks by design, so the
 # invariant is not violated there -- it is inapplicable, and saying so is honest where pretending to
-# measure it would not be. Off CI the stage fails closed. Negative test: `mv .git/hooks/pre-commit`
+# measure it would not be. Off CI the stage fails closed. Negative test: `mv "$(git rev-parse --git-common-dir)/hooks/pre-commit"`
 # aside with CI unset -> FAIL naming the file; put it back -> PASS.
 stage_hooks() {
   local hook
@@ -584,8 +584,18 @@ stage_hooks() {
     STAGE_NOTE="not applicable: an ephemeral CI checkout has no developer hooks"
     return 0
   fi
-  [ -d .git ] || { STAGE_NOTE="no .git directory here -- cannot tell whether hooks are installed"; return "$CANNOT"; }
-  hook=".git/hooks/pre-commit"
+  # `git worktree` gives a linked working copy a `.git` FILE, not a directory, and keeps the hooks
+  # in the COMMON git dir shared with the main checkout -- so `[ -d .git ]` said "cannot tell" in
+  # every worktree while the hooks were sitting right there, installed. Measured 2026-09-11 in
+  # `.claude/worktrees/`: `.git` is a file, the old guard is false -> SKIPPED, and
+  # `$(git rev-parse --git-common-dir)/hooks/pre-commit` is present and lefthook's. `rev-parse`
+  # exits 128 outside a working copy, which is the case the guard is really for.
+  local common
+  common=$(git rev-parse --git-common-dir 2>/dev/null) || {
+    STAGE_NOTE="not a git working copy here -- cannot tell whether hooks are installed"
+    return "$CANNOT"
+  }
+  hook="$common/hooks/pre-commit"
   if [ ! -f "$hook" ]; then
     STAGE_NOTE="$hook does not exist -- run: brew install lefthook && lefthook install"
     return 1
@@ -594,7 +604,7 @@ stage_hooks() {
     STAGE_NOTE="$hook exists but is not lefthook's -- two hook managers race for this file (see .pre-commit-config.yaml)"
     return 1
   fi
-  STAGE_NOTE="lefthook hooks installed: $(ls .git/hooks | grep -v '\.sample$' | tr '\n' ' ')"
+  STAGE_NOTE="lefthook hooks installed: $(ls "$common/hooks" | grep -v '\.sample$' | tr '\n' ' ')"
 }
 
 stage_tar_pins() {
