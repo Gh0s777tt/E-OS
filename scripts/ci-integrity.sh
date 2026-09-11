@@ -595,5 +595,26 @@ else
   cannot "check 24 could not run: python3 is missing -- the optional-app manifest is UNCHECKED"
 fi
 
+# 25) Every README translation names the revision of README.md it was made from, and is not behind
+# it. Three rules: the I18N-SOURCE marker must name a commit that is an ancestor of README.md's head
+# (and the check prints how many commits behind when it is not), the language row must list exactly
+# the README.*.md files that exist -- no dead link, no missing locale -- and both must hold in every
+# file. This is a VALUE check on purpose: the neighbouring SYNC marker is guarded by `grep -q
+# 'SYNC:'`, which passes on any value, and it sat six U-ids stale until someone read it. Negative
+# test: `python3 scripts/eos-check-i18n.py --selftest` -- 3 cases, each isolating one rule.
+if command -v python3 >/dev/null 2>&1; then
+  out="$(python3 scripts/eos-check-i18n.py 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "${out##*i18n: }"
+  elif [ "$rc" -eq 2 ]; then
+    cannot "check 25 could not run: ${out##*cannot: }"
+  else
+    printf '%s\n' "$out"
+    bad "a README translation is behind README.md, or a language row disagrees with the files on disk"
+  fi
+else
+  cannot "check 25 could not run: python3 is missing -- the translations are UNCHECKED"
+fi
+
 [ "$fail" -eq 0 ] && echo "integrity: PASS" || echo "integrity: FAIL"
 exit $fail
