@@ -28,7 +28,7 @@ upstream = "https://gitlab.redox-os.org/redox-os/base.git"
 pinned_in_recipe = true
 recipe        = "recipes/core/base"
 pinned_branch = "eos-july"
-pinned_rev    = "e2a61358e96d19057584593edb367f8485c1cac9"
+pinned_rev    = "6ffd7f0a45459ad35b9ca142a15af47e01b5eed1"
 
 [[repo]]
 name   = "eos-bootloader"
