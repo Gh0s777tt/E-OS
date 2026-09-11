@@ -1098,6 +1098,64 @@ Tylko to, i tylko po przejściu §21.2:
 | sidecary `._*`, `.DS_Store` | `dot_clean -m .` — Finder odtwarza je sam, 0 śledzonych w gicie |
 | twoja sonda / łatka diagnostyczna | ona i tak miała zniknąć — §20.4 |
 | obrazy, których dowód jest **już zapisany** w CHANGELOG-u | `scripts/eos-build.sh <arch>` |
+| **twoje** klony dysków do przebiegów w gościu (`work-*.img`) — **kasuj na bieżąco**, niżej | `cp -c <obraz źródłowy> work-<przebieg>.img` z nazwą **i sumą `md5`** obrazu źródłowego, zapisane w katalogu dowodu przebiegu, nie w CHANGELOG-u; bez tej linii nie kasuj (sprawdzenie 4 niżej) |
+
+**Swoje klony dysków z przebiegów w gościu kasuj na bieżąco, nie na koniec sesji** (decyzja właściciela
+2026-09-11, podjęta o 25 klonach własnej sesji). Swoje, czyli utworzone przez ciebie albo przez agenta,
+którego sam uruchomiłeś i który już zwrócił wynik. Klon innej sesji — zakończonej czy wciąż działającej —
+tej reguły nie podlega: to §21.5, lista z rozmiarami i pytanie do właściciela. Klon `cp -c` obrazu do jednego
+przebiegu jest jednorazowy: pisze do niego tylko ten przebieg, a następny zaczyna od świeżego klonu. Gdy
+przebieg się skończył i jest zarchiwizowany w `~/eos-artifacts/dowody/<co-dowodzi>/`, skasuj klon **od razu,
+po nazwie pliku** (§21.2), po czterech sprawdzeniach:
+
+1. **nic go nie trzyma i nic go zaraz nie otworzy** — `lsof <klon>` **i** `pgrep -fl <nazwa klonu>` (§20.7)
+   nic nie wypisują. `row30-*.sh` dostaje klon jako argument, a QEMU otwiera go dopiero chwilę później, więc
+   przebieg, który właśnie startuje, widać tylko w `pgrep`; smoke instalacji i drugi przebieg w gościu potrafią
+   działać w tym samym czasie. Klon o stałej nazwie, którą skrypt odtwarza przy każdym uruchomieniu
+   (`rm -f work-pins.img && cp -c …`), może już być świeżym klonem pod następny przebieg — kasuj go tylko,
+   gdy wiesz, że to klon **tego** skończonego przebiegu: sam go zrobiłeś albo wyjście `row30-*.sh` kończy
+   się linią `serial-selftest: exit N`, a nowszego klonu tej nazwy nikt nie przygotował;
+2. **wynik jest w `dowody/`** — katalog dowodu tego przebiegu to ten, w którym leży kopia jego
+   `qemu-cmdline.txt` o tej samej sumie `md5` (`row30-*.sh` zapisuje go przed startem QEMU, więc ma go też
+   przebieg, który nie wystartował; ścieżki gniazd i zmiennych firmware z `st<PID>` powłoki przyrządu
+   odróżniają go od sąsiednich przebiegów). W **tym** katalogu `serial.log` przebiegu ma kopię
+   o tej samej sumie (nazwa może być inna). Pusty `serial.log` nie jest dopasowaniem — ma sumę każdego
+   pustego pliku — więc wtedy w tym katalogu muszą leżeć kopie `driver.out` i `result.txt` o tych samych
+   sumach. Nie ma takiego katalogu → przebieg nie jest zarchiwizowany i klon zostaje, dopóki go nie zarchiwizujesz;
+3. **klon nie jest sam dowodem** — dysku po instalacji albo po awarii, który ktoś ma jeszcze zbadać, linia
+   `cp -c` nie odtworzy: niesie to, co przebieg na nim zapisał. Taki dysk **nie zostaje pod nazwą
+   `work-*.img`** (§21.3): przenieś go (`mv`) do katalogu dowodu przebiegu, nazwij tym, czego dowodzi,
+   i zapisz w README, po co jest. `mv` nic nie kopiuje, bo `~/eos-artifacts` leży na tym samym wolumenie
+   `EOS-Podman` (§21.1), a pod starą nazwą skasowałby go skrypt, który zaczyna od świeżego klonu;
+4. **linia odtwarzająca jest już zapisana** — w katalogu dowodu przebiegu (w README, w skrypcie, który
+   zrobił klon, albo w jego zapisanym wyjściu — skrypt, który liczy `md5 -q` dopiero przy uruchomieniu, ma
+   sumę tylko w wyjściu) stoi `cp -c <obraz źródłowy> work-<przebieg>.img` **z sumą `md5` obrazu źródłowego
+   sprzed przebiegu**. Sama nazwa nie wystarcza: `scripts/eos-build.sh` zapisuje każdy eksport pod
+   `eos-<arch>-harddrive.img` (§21.3), więc po następnym buildzie ta sama linia sklonuje inne bajty. Poprzedni
+   eksport zostaje tylko wtedy, gdy ktoś przemianował go przed buildem na nazwę z datą (robił to skrypt sesji,
+   nie repozytorium); przed odtworzeniem porównaj `md5`. Linii nie ma → dopisz ją **przed** `rm` (§21.2), ale
+   sumę weź z zapisu z chwili klonowania (np. `md5 -q` wypisane w twojej sesji obok `cp -c`). Plik, który
+   **dziś** leży pod nazwą eksportu, wolno zsumować tylko wtedy, gdy jego `stat -f %Sc` jest wcześniejszy niż
+   chwila klonowania — nowy eksport i zmiana nazwy przesuwają `ctime`. Inaczej to może być inny obraz
+   (`row30-*.sh` zapisuje tylko ścieżkę klonu), a porównanie `md5` przed odtworzeniem przejdzie potem na złym:
+   2026-09-11 przebieg na klonie `work-schemes3.img` (źródło `61e99b8a…`) skończył się o 08:37:52, a od 08:40:11
+   pod tą nazwą leżał `7663cc42…`. Nie ustalisz sumy żadną z tych dróg → nie zgaduj: klon zostaje i pokazujesz
+   go właścicielowi (§21.5).
+
+Polecenie odtwarzające, którego wymaga §21.2, jest w tym przypadku linią z punktu 4 w katalogu dowodu, nie
+wpisem CHANGELOG-a — `row30-*.sh` dostaje gotowy klon jako argument i nie zapisuje, z czego go zrobiono. Ta
+linia odtwarza dysk sprzed przebiegu, nie skasowany klon; wystarcza, bo wynik jest w `dowody/` (2), a klon
+nie jest dowodem (3). Klony APFS dzielą bloki z obrazem, więc `du` zawyża to, co zwolni ich skasowanie —
+zmierz `df` przed i po.
+
+Zmierzone 2026-09-11 na 25 klonach w `/Volumes/EOS-Podman/xbuild/accept-2026-09-11/`: `du` katalogu spadł
+z 35 121 MiB do 121 MiB, a wolne miejsce wolumenu `EOS-Podman` wzrosło z 17 466 do 17 520 MiB — o **54 MiB**;
+klon kosztuje tylko to, co przebieg do niego zapisał. Tamto kasowanie sprawdzało tylko punkty 1 i 2, w słabszej
+postaci (`lsof`, suma `serial.log` gdziekolwiek w `dowody/`), a źródeł nie zapisało przed `rm`: pod
+`~/eos-artifacts/eos-x86_64-harddrive.img` leżały tego dnia po kolei trzy różne obrazy (`61e99b8a…` z 03:35,
+`7663cc42…` z 08:40, `4426b44e…` z 11:52), więc źródło każdego klonu trzeba było odtworzyć po fakcie
+z dowodów: 10 z 25 z zapisu (README, suma wypisana przy klonowaniu, `mtime` klonu równy `mtime` źródła),
+15 tylko z godziny startu przebiegu (`dowody/clone-cleanup-2026-09-11/deleted-clones.txt`). Stąd punkty 3 i 4.
 
 ### 21.5 Wymaga pytania właściciela
 
