@@ -1209,3 +1209,59 @@ w głąb `EOS-Podman`, więc razem z wolumenem znikają handoff i wszystkie dowo
 z `FileNotFoundError` — zanim uznasz, że plik został skasowany, sprawdź `ls /Volumes`.
 
 **Po ponownym podpięciu maszyna podmana nie wraca sama** (zmierzone dwa razy 2026-09-04): `podman volume ls` kończy się `ssh: handshake failed` albo brakiem `~/.local/share/containers/podman/machine/machine` (to symlink w głąb `EOS-Podman`). Wtedy `podman machine stop eos-build && podman machine start eos-build`; wolumeny `eos-work`/`eos-root` wracają nietknięte. **A po restarcie maszyny nie wraca sam kontener** (zmierzone dwa razy 2026-09-10): `podman exec eosbuild …` odpowiada `can only create exec sessions on running containers: container state improper` — trzeba jeszcze `podman start eosbuild`. Pełna kolejność, oba warianty odpadnięcia: `ls -ld /Volumes/EOS-Podman` i `hdiutil info | grep podman-data` (pusty katalog albo wciąż podpięty `/dev/diskN` → `hdiutil detach -force`), `hdiutil attach …sparsebundle` **bez** `-mountpoint`, `podman machine stop eos-build && podman machine start eos-build`, `podman start eosbuild`, a potem `podman exec eosbuild df -h /work` jako dowód, że wszystko stoi.
+
+### 21.8 Gałęzie i tagi — kasuj scalone **na bieżąco**, nie ruszaj historii
+
+**Zmierzone 2026-09-11** na wszystkich 37 repozytoriach z `repos.toml`:
+
+| gdzie | ile | z tego do skasowania |
+|---|---|---|
+| GitLab, `E-OS` | 66 gałęzi | **57 zawartych w `main`** (liczone gitem, nie flagą API) |
+| GitHub, `E-OS` | **211 gałęzi** | **201 zawartych w `main`**; **145 istnieje wyłącznie na GitHubie** |
+| GitHub, pozostałe 35 luster | 1–9 każde (~95 łącznie) | tam bałaganu nie ma |
+| tagi, wszystkie repozytoria | ~241 | **zero** — 238 to tagi wydań upstreamu, 3 nasze |
+
+Skąd 145 gałęzi tylko na GitHubie: krok lustrzany wysyła dziś **wyłącznie `main`**
+(`push github refs/remotes/origin/main:refs/heads/main`), więc nic nie sprząta pozostałości po dawnym
+pełnym `push --mirror`.
+
+**Kasuj bez pytania, zaraz po scaleniu MR-a** — gałąź źródłową, na GitLabie i na lustrze. Warunek jest
+jeden i sprawdza go git, nie API:
+
+```bash
+git merge-base --is-ancestor <gałąź> <gałąź-domyślna>   # rc=0 => zawarta => można kasować
+```
+
+W JSON-ie MR-a ustawiaj `"remove_source_branch": true`, żeby GitLab kasował ją sam przy scaleniu.
+
+**Nigdy nie kasujesz:**
+
+* gałęzi **przypiętych w `repos.toml`**: `master` (16 repozytoriów), `main` (8), `eos-july` (4),
+  `eos-rebased` (1), `eos` (1). `pins --strict` rozwiązuje się względem nich — skasowanie którejś psuje
+  bramkę pinów w 30 repozytoriach.
+* gałęzi **cytowanych w śledzonych dokumentach**: dziś `lts/0.1` (10 plików: `CONTRIBUTING.md`,
+  `SECURITY.md`, `ROADMAP.md` `R-1002`, cztery dokumenty architektury…), `archive/pre-migration-de-phase1`
+  (4, w tym `CHANGELOG.md`, który każe ją czytać przez `git show`), `archive/redox-0.4.1` (1),
+  `archive/redox-mirror-2019` (1).
+* **żadnego tagu** bez wyraźnego polecenia właściciela. Prawie wszystkie to historia wydań upstreamu
+  (`eos-redoxer` 0.2.60 z 2025-11-20, `eos-installer` 0.2.39–0.2.42 ze stycznia–marca 2026,
+  `eos-orbclient` 0.4.x), a nasze trzy — `v0.1.0`, `v0.2.0`, `eos-base-2026-06-06` — to wydania i punkt
+  kontrolny.
+* gałęzi **upstreamu odziedziczonych z forka**: `orbcalculator` (2020), `Canvas`/`box_shadow` (2018),
+  `tokio` (2017), `no_std` (2019), `rfcs` (2018), `slint-*` (2022), `update-crate` (2023), `imgbot`.
+  To historia, nie śmieci.
+
+**Trzy pułapki, każda zmierzona tego samego dnia przy tym samym audycie:**
+
+1. **Flaga `merged` z API GitLaba bywa nieaktualna.** Dla gałęzi scalonej kilka minut wcześniej API
+   mówiło `unmerged`, a `--is-ancestor` — zawarta (1 rozbieżność na 65). Myli się **zachowawczo**, ale
+   licz zawieranie gitem.
+2. **`while IFS=… read -r name path`** — zsh wiąże `$path` z `$PATH`; pętla zgubiła `python3` w połowie
+   i wypisała 37 pustych wierszy. Nie używaj `path` jako nazwy zmiennej (patrz pułapki zsh).
+3. **`git grep -hoE '\blts/0\.1\b'` zwrócił ZERO cytowań**, a prawdziwa odpowiedź to dziesięć plików.
+   Do pytania „czy coś cytuje tę gałąź" używaj **stałych łańcuchów**: `git grep -aF -l '<gałąź>' --
+   '*.md' '*.toml'`. Fałszywe zero **właśnie tutaj** kasuje gałąź, na której stoi dokumentacja.
+
+**Kolejność:** `git grep -aF` po dokumentach → `--is-ancestor` → wypisz listę → dopiero potem
+`git push --delete`. Masowe kasowanie na lustrze GitHuba jest **zadaniem operatora** (§21.5): asystent
+mierzy i przygotowuje listę z `--dry-run`, kasuje właściciel — PAT lustra nie jest w rękach asystenta.
