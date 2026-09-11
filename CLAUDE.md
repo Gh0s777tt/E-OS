@@ -1217,13 +1217,29 @@ z `FileNotFoundError` — zanim uznasz, że plik został skasowany, sprawdź `ls
 | gdzie | ile | z tego do skasowania |
 |---|---|---|
 | GitLab, `E-OS` | 66 gałęzi | **57 zawartych w `main`** (liczone gitem, nie flagą API) |
-| GitHub, `E-OS` | **211 gałęzi** | **201 zawartych w `main`**; **145 istnieje wyłącznie na GitHubie** |
+| GitHub, `E-OS` | **211 gałęzi** | **201 zawartych w `main`**; **145 istnieje wyłącznie na GitHubie** (wieczorem 155 — patrz niżej) |
 | GitHub, pozostałe 35 luster | 1–9 każde (~95 łącznie) | tam bałaganu nie ma |
 | tagi, wszystkie repozytoria | ~241 | **zero** — 238 to tagi wydań upstreamu, 3 nasze |
 
-Skąd 145 gałęzi tylko na GitHubie: krok lustrzany wysyła dziś **wyłącznie `main`**
-(`push github refs/remotes/origin/main:refs/heads/main`), więc nic nie sprząta pozostałości po dawnym
-pełnym `push --mirror`.
+**Skąd gałęzie tylko na GitHubie — zmierzone 2026-09-11 wieczorem, i to obala zdanie, które sam tu
+wpisałem rano.** To nie są pozostałości po dawnym `push --mirror`. GitLab ma **włączone lustro
+wypychające** (`projects/e-os%2Fe-os/remote_mirrors`, id `4061808`, `enabled: true`,
+`only_protected_branches: false`, `keep_divergent_refs: true`, ostatnie powodzenie
+`2026-09-11T19:38:06Z`). Wypycha **każdą** gałąź, a `keep_divergent_refs` sprawia, że **nie przenosi
+skasowań**. Dowód mieści się w jednym MR-ze: `docs/rf65-enumerator-framing-refuted` powstała wyłącznie
+na GitLabie (krok lustrzany w `meta-merge.sh` wysyła tylko `main`), mimo to pojawiła się na GitHubie,
+a gdy GitLab skasował ją przy scaleniu (zdarzenie `19:40:16Z`), **ref na GitHubie został**.
+
+Konsekwencja: liczba rośnie o jeden na każdy scalony MR i sama nie spadnie. Stan po sprzątaniu tego
+samego dnia, liczony `git ls-remote --heads`, nie API: GitLab **57**, GitHub **212**, wyłącznie na
+GitHubie **155**, wyłącznie na GitLabie **0**. Dziś skasowano na GitLabie **15** gałęzi: **13** z nich
+nadal istnieje na GitHubie, a **dwie** (`docs/claude-branch-tag-hygiene`, `fix/install-smoke-arch-arg`)
+nie trafiły tam **wcale** — lustro chodzi okresowo, więc gałąź powstała i skasowana między dwoma jego
+przebiegami mija je w całości. Narasta zatem tylko to, co przeżyło choć jeden przebieg. (Poranny audyt
+naliczył 145 gałęzi wyłącznie na GitHubie, wieczorny 155; różnicy **nie** rozkładam na konkretne
+gałęzie, bo część dzisiejszych skasowań była już wliczona rano.)
+Kasowanie na GitLabie jest więc konieczne, ale **nie wystarcza** — lustro wymaga osobnego
+przebiegu, co jest zadaniem operatora (§21.5).
 
 **Kasuj bez pytania, zaraz po scaleniu MR-a** — gałąź źródłową, na GitLabie i na lustrze. Warunek jest
 jeden i sprawdza go git, nie API:
