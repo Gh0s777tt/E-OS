@@ -23,4 +23,4 @@
 # eos-base!19). REMOVE this line when the owner moves repos.toml + recipes/core/base to a83000c0
 # or later, or reverts those merges on eos-july. The gate was red from 2026-09-07 06:52Z until this
 # entry, and nothing else reported it (pin-check in CI dies on ci_quota_exceeded).
-eos-base   pin held at f052057f pending the owner's R-F56/R-F53 decision; remove when the pin moves to a83000c0+ (see the comment above)
+# Entry removed 2026-09-11: the pin moved to e2a61358 (eos-base!17/!19/!20/!21/!22).
