@@ -24,10 +24,19 @@
 # used to invoke and which does not exist in the image (`ion: command not found`).
 set -uo pipefail
 
-IMG="${1:?usage: ci-install-smoke.sh <source-image> [seconds] [--arch aarch64]}"
-BUDGET="${2:-600}"
-ARCH="aarch64"; prev=""
-for a in "$@"; do case "$prev" in --arch) ARCH="$a";; esac; prev="$a"; done
+# `--arch <a>` is taken out of the argument list BEFORE the positionals are read. Measured
+# 2026-09-11: with `<image> --arch x86_64` the flag was also read as `[seconds]`, and the driver
+# died on `int('--arch')` before QEMU was ever driven -- two failed runs blamed on the image
+# until the log was read. The default is aarch64 because the reference host is arm64; an x86_64
+# image booted under that default lands in the UEFI shell, which the same log also showed.
+ARCH="aarch64"; POS=(); prev=""
+for a in "$@"; do
+  case "$prev" in --arch) ARCH="$a"; prev=""; continue;; esac
+  case "$a" in --arch) prev="$a"; continue;; esac
+  POS+=("$a")
+done
+IMG="${POS[0]:?usage: ci-install-smoke.sh <source-image> [seconds] [--arch aarch64|x86_64]   (default --arch aarch64)}"
+BUDGET="${POS[1]:-600}"
 [ -f "$IMG" ] || { echo "install-smoke: image not found: $IMG"; exit 1; }
 
 # R-601c. The arch block is lifted from ci-boot-smoke.sh rather than re-derived: those
