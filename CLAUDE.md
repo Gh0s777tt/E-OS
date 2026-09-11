@@ -1281,3 +1281,76 @@ W JSON-ie MR-a ustawiaj `"remove_source_branch": true`, żeby GitLab kasował j�
 **Kolejność:** `git grep -aF` po dokumentach → `--is-ancestor` → wypisz listę → dopiero potem
 `git push --delete`. Masowe kasowanie na lustrze GitHuba jest **zadaniem operatora** (§21.5): asystent
 mierzy i przygotowuje listę z `--dry-run`, kasuje właściciel — PAT lustra nie jest w rękach asystenta.
+
+### 21.9 Zanim skasujesz plik — udowodnij, że nic go nie potrzebuje
+
+§21.2 pyta „czy umiem to odtworzyć", §21.3 wymienia, czego nie wolno ruszać. Brakowało trzeciego
+pytania, a to na nim wykładałem się najczęściej: **czy cokolwiek jeszcze się na ten plik powołuje.**
+Wszystkie pułapki niżej są zmierzone w tym projekcie, każda kończyła się fałszywym „nic tego nie
+używa" — czyli dokładnie tym zdaniem, na podstawie którego się kasuje.
+
+**Procedura jest obowiązkowa dla każdego kasowania, które nie jest klonem z §21.4.**
+
+1. **Wypisz listę — bez filtra.** `find <kat> -maxdepth 2 | wc -l`, `du -sh <kat>/*`, pełne `ls -la`.
+   Nigdy `ls | head`. *2026-09-10:* `ls /work/probes | head -8` pokazał osiem katalogów sond, na tym
+   poszło `rm -rf /work/probes` — a katalog trzymał jeszcze `scratch/` innej sesji. Nic unikalnego nie
+   przepadło, ale to był przypadek, nie metoda.
+
+2. **`find -L`, gdy korzeń może być dowiązaniem.** *2026-09-11:* `find ~/eos-artifacts -name '*.iso'`
+   zwrócił **0**, bo `~/eos-artifacts` to symlink na `/Volumes/EOS-Podman/artifacts`, a `find` nie
+   schodzi w dowiązany **korzeń** bez `-L`. Z `-L` — trzy trafienia, `probe.iso` był na miejscu przez
+   cały czas. Najpierw `ls -ld <korzeń>`.
+
+3. **Szukaj odwołań w **każdym** pliku tekstowym — logi też.** *2026-09-11:* sprawdzając, czy starsze
+   obrazy w `xbuild/` są gdzieś cytowane, wykluczyłem `*.log`, „żeby było szybciej", i powiedziałem
+   właścicielowi, że nie ma do nich żadnych odwołań. Każdy z nich jest wymieniony w
+   `install-smoke.log` swojego katalogu dowodu jako obraz **celowo zachowany**. Wykluczenie typu
+   pliku jest takim samym filtrem jak `head`. Zmierzone ponownie pełnym audytem 2026-09-11/12: cztery obrazy
+   `xbuild/rf32`, `rf32b`, `rf36`, `rf38` (~7,6 GiB) wyglądają na czysty brudnopis, a każdy z nich jest
+   wymieniony w swoim `install-smoke.log` z `EOS_SMOKE_KEEP_IMAGES=1` — harness dostał **polecenie**
+   zachować je jako dowód do `R-F31`/`R-F32`.
+
+4. **Stałe łańcuchy, nie wyrażenia regularne.** `git grep -aF -l '<nazwa>' -- '*.md' '*.toml'` oraz
+   `/usr/bin/grep -raF -l '<nazwa>' ~/eos-artifacts/dowody ~/eos-artifacts/prompts`. *2026-09-11:*
+   `git grep -hoE '\blts/0\.1\b'` zwrócił **zero** cytowań gałęzi, którą cytuje **dziesięć** plików —
+   i było to sprawdzenie, które miało chronić przed skasowaniem gałęzi nośnej dla dokumentacji.
+   Markdown dokłada swoje: wiersz `does **not** stop` nie pasuje do wzorca `does not stop`.
+
+5. **Pusty plik nie jest dopasowaniem.** `d41d8cd98f00b204e9800998ecf8427e` to suma **każdego** pustego
+   pliku. *2026-09-11:* sprawdzenie „czy ten `serial.log` ma kopię w dowodach" dopasowało pusty log
+   nieuruchomionego przebiegu do niezwiązanego `qemu.log` sprzed pięciu dni i uznało archiwizację za
+   udowodnioną. Porównuj z kopią w **tym** katalogu dowodu, a pusty plik traktuj jako „nie ma czego
+   porównać". Reguła jest szersza niż pusty plik: **każda stała treść ma stałą sumę**. Zmierzone
+   2026-09-11/12: `md5` 4 GiB samych zer to `c9a5a6878d97b48cc965c1e41859f034`, a 1 468 006 400 zer —
+   `491c9abe5d3ac6c73d737be2411703b6`. Trafienie w taką sumę nie dowodzi, że to *ten* plik; dowodzi, że
+   plik jest pusty w środku.
+
+6. **Żywotność sprawdzaj dwoma narzędziami i wiedz, czego nie widzisz.** `lsof <plik>` **i**
+   `pgrep -fl <nazwa>`. `lsof` to migawka: build między wywołaniami kompilatora nie trzyma
+   deskryptora, a mimo to katalog jest w użyciu. *2026-09-11:* kopia robocza `.claude/worktrees/…`
+   miała `lsof` = 0 i zero własnych commitów, ale **10 906 plików zmienionych tego samego dnia** i 30
+   żywych procesów sesji w tle. Zero z `lsof` nie jest dowodem nieużywania — dołóż `mtime`
+   (`find <kat> -newermt '<dziś>' | wc -l`) i sprawdź, czyja to kopia (§21.5). To samo powtórzyło się w audycie 2026-09-11/12: tezę
+   o braku aktywności pod `xbuild` obalił licznik **117 plików zmienionych w ostatnich 12 h** (30 w ostatnich
+   6 h), a najnowszy zapis leżał **wewnątrz katalogu zgłoszonego do skasowania**.
+
+7. **Zerowa długość nie jest bezpieczną kategorią** (§21.2): `build/container.tag` ma 0 bajtów i jest
+   stemplem `make`.
+
+8. **Kasuj listę, nie glob.** Zapisz listę do pliku, przeczytaj ją oczami, skasuj po tej liście.
+   `rm -rf <katalog>` jest dozwolone tylko tam, gdzie §20.3 wprost na to pozwala
+   (`recipes/*/source`, `recipes/*/target`).
+
+9. **Zmierz zysk, zanim uznasz, że warto** (§21.1): `df -h` **obu** dysków przed i po. Na exFAT `du`
+   myli się o rząd wielkości (klaster 1 MiB), a klony APFS dzielą bloki — 25 klonów o `du` 35 GiB
+   zwolniło w rzeczywistości **54 MiB**. Sprzątanie na dysku, na którym nie brakuje miejsca, jest
+   ryzykiem bez zysku.
+
+**Zapis obowiązkowy.** Zanim `rm`: lista skasowanych ścieżek, polecenie odtwarzające (§21.2) i wynik
+sprawdzenia odwołań trafiają do katalogu dowodu albo do wpisu CHANGELOG-a. Bez tego zapisu kasowanie
+jest nieodwracalne **i** nieudokumentowane, więc następna sesja nie wie nawet, czego szukać.
+
+**Gdy którekolwiek sprawdzenie nie daje jednoznacznej odpowiedzi — plik zostaje.** Nie zgadujesz:
+pokazujesz właścicielowi listę z rozmiarami i pytasz (§21.5). Fałszywe „nic tego nie używa" kosztuje
+plik; niepotrzebnie zachowany plik kosztuje miejsce, którego — jak mówi §21.1 — zwykle i tak nie
+brakuje na tym dysku.
